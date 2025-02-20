@@ -34,7 +34,6 @@ jobs:
           yarn build
           cp .env build/.env
           cp -r public build/public
-          export NODE_ENV=production
           node ace migration:run
           pm2 restart api
           pm2 restart cron

@@ -113,7 +113,7 @@ export default class BillService {
 		return data;
 	}
 
-	async index(unitId: string, data: ISearch) {
+	async index(authCtx: AuthContext, data: ISearch) {
 		const qb = Database.from("bills")
 			.select(
 				Database.raw(`bills.id,
@@ -157,6 +157,10 @@ export default class BillService {
 			.joinRaw("join users seller on bills.seller_id = seller.id")
 			.joinRaw("join users creator on bills.seller_id = creator.id")
 			.orderByRaw("bill_date desc, tag desc")
+			.whereRaw("bills.economic_group_id = ? and bills.business_unit_id = ?", [
+				authCtx.group.id,
+				authCtx.unit.id,
+			])
 			.whereNull("bills.deleted_at");
 
 		if (data.tag) {
@@ -222,7 +226,7 @@ export default class BillService {
 						"issued_fiscal_documents.bill_id, count(issued_fiscal_documents.bill_id)",
 					),
 				)
-				.where("issued_fiscal_documents.business_unit_id", unitId)
+				.where("issued_fiscal_documents.business_unit_id", authCtx.unit.id)
 				.groupBy("issued_fiscal_documents.bill_id"),
 			Database.from("service_issued_fiscal_documents")
 				.select(
@@ -230,7 +234,10 @@ export default class BillService {
 						"service_issued_fiscal_documents.bill_id, count(service_issued_fiscal_documents.bill_id)",
 					),
 				)
-				.where("service_issued_fiscal_documents.business_unit_id", unitId)
+				.where(
+					"service_issued_fiscal_documents.business_unit_id",
+					authCtx.unit.id,
+				)
 				.groupBy("service_issued_fiscal_documents.bill_id"),
 		]);
 		const total = count1.concat(count2);

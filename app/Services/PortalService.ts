@@ -1251,6 +1251,7 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 			)
 			.whereRaw("economic_groups.system_id = ?", [authCtx.systemID])
 			.whereRaw("bills.deleted_at is null", [])
+			.groupByRaw("payment_methods.description" , [])
 			.orderByRaw("total_payments desc", [])
 
 		const qb3 = Database.from("bills")

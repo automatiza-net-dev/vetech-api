@@ -201,7 +201,7 @@ export default class BillService {
 			}
 
 			if (data.bill_id) {
-				qb.where("id", data.bill_id);
+				qb.where("bills.id", data.bill_id);
 			}
 
 			if (data.patientTag) {

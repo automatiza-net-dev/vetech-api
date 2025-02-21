@@ -940,7 +940,7 @@ Route.group(() => {
 	Route.put("/update-down", "FinancesController.updateFinanceDown");
 	Route.put("/update-reversal/:id", "FinancesController.updateFinanceReversal");
 
-  Route.put("/delete-multiple", "FinancesController.deleteManyFinances");
+	Route.put("/delete-multiple", "FinancesController.deleteManyFinances");
 	Route.delete("/delete/:id", "FinancesController.deleteFinance");
 
 	Route.post("/calculate-fees", "FinancesController.calculateFinanceFees");
@@ -2007,4 +2007,13 @@ Route.group(() => {
 	);
 })
 	.prefix("portal")
+	.middleware("auth");
+
+Route.group(() => {
+	Route.get("/", "DepartmentsController.index");
+	Route.post("/", "DepartmentsController.store");
+	Route.put("/:id", "DepartmentsController.update");
+	Route.delete("/:id", "DepartmentsController.destroy");
+})
+	.prefix("departments")
 	.middleware("auth");

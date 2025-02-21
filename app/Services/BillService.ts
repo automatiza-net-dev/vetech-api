@@ -413,26 +413,28 @@ export default class BillService {
 		// }
 
 		return Database.transaction(async (trx) => {
-			const invalid = await this.sharedService.checkDiscount(
-				trx,
-				authCtx,
-				data.items.map((elem) => ({
-					variationId: elem.productVariationId,
-					unitaryValue: elem.unitaryValue,
-					discountValue: elem.discountValue,
-					quantity: elem.quantity,
-					courtesy: elem.courtesy,
-					maxDiscount: elem.maxDiscount,
-					approved: elem.approved,
-				})),
-			);
-			if (invalid.length > 0) {
-				// return invalid;
-				throw new BadRequestException(
-					"Desconto máximo foi excedido",
-					400,
-					"E_ERR",
+			if (!data.maxDiscount) {
+				const invalid = await this.sharedService.checkDiscount(
+					trx,
+					authCtx,
+					data.items.map((elem) => ({
+						variationId: elem.productVariationId,
+						unitaryValue: elem.unitaryValue,
+						discountValue: elem.discountValue,
+						quantity: elem.quantity,
+						courtesy: elem.courtesy,
+						maxDiscount: elem.maxDiscount,
+						approved: elem.approved,
+					})),
 				);
+				if (invalid.length > 0) {
+					// return invalid;
+					throw new BadRequestException(
+						"Desconto máximo foi excedido",
+						400,
+						"E_ERR",
+					);
+				}
 			}
 
 			if (data.items.length > 0 && authCtx.unit.unitConfig.controlsDeposit) {
@@ -514,7 +516,7 @@ export default class BillService {
 				);
 			}
 
-			if (data.items) {
+			if (data.items && !data.maxDiscount) {
 				const result = await this.sharedService.checkDiscount(
 					trx,
 					authCtx,

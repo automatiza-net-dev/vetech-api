@@ -712,25 +712,27 @@ export default class BudgetService {
 
 	public async createBudget(authCtx: AuthContext, data: ICreateBudgetData) {
 		return Database.transaction(async (trx) => {
-			const result = await this.sharedService.checkDiscount(
-				trx,
-				authCtx,
-				data.items.map((elem) => ({
-					variationId: elem.productVariationId,
-					unitaryValue: elem.unitaryValue,
-					discountValue: elem.discountValue,
-					quantity: elem.quantity,
-					courtesy: elem.courtesy,
-					maxDiscount: elem.maxDiscount,
-				})),
-			);
-			if (result.length > 0) {
-				// return result;
-				throw new BadRequestException(
-					"Desconto máximo foi excedido",
-					400,
-					"E_ERR",
+			if (!data.maxDiscount) {
+				const result = await this.sharedService.checkDiscount(
+					trx,
+					authCtx,
+					data.items.map((elem) => ({
+						variationId: elem.productVariationId,
+						unitaryValue: elem.unitaryValue,
+						discountValue: elem.discountValue,
+						quantity: elem.quantity,
+						courtesy: elem.courtesy,
+						maxDiscount: elem.maxDiscount,
+					})),
 				);
+				if (result.length > 0) {
+					// return result;
+					throw new BadRequestException(
+						"Desconto máximo foi excedido",
+						400,
+						"E_ERR",
+					);
+				}
 			}
 
 			if (authCtx.unit.unitConfig.requiresBillPatient && !data.patientId) {
@@ -998,25 +1000,27 @@ export default class BudgetService {
 				}
 			}
 
-			const result = await this.sharedService.checkDiscount(
-				trx,
-				authCtx,
-				data.items.map((elem) => ({
-					variationId: elem.productVariationId,
-					unitaryValue: elem.unitaryValue,
-					discountValue: elem.discountValue,
-					quantity: elem.quantity,
-					courtesy: elem.courtesy,
-					maxDiscount: elem.maxDiscount,
-				})),
-			);
-			if (result.length > 0) {
-				// return result;
-				throw new BadRequestException(
-					"Desconto máximo foi excedido",
-					400,
-					"E_ERR",
+			if (!data.maxDiscount) {
+				const result = await this.sharedService.checkDiscount(
+					trx,
+					authCtx,
+					data.items.map((elem) => ({
+						variationId: elem.productVariationId,
+						unitaryValue: elem.unitaryValue,
+						discountValue: elem.discountValue,
+						quantity: elem.quantity,
+						courtesy: elem.courtesy,
+						maxDiscount: elem.maxDiscount,
+					})),
 				);
+				if (result.length > 0) {
+					// return result;
+					throw new BadRequestException(
+						"Desconto máximo foi excedido",
+						400,
+						"E_ERR",
+					);
+				}
 			}
 
 			const tasks = data.items.map(async (elem) => {

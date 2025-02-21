@@ -23,6 +23,7 @@ export interface ICreateBillData {
 
 	internalCode?: string;
 	originBillId?: string;
+	maxDiscount: boolean;
 }
 
 export interface ICreateBillItemData {
@@ -69,7 +70,7 @@ export interface IUpdateBillData {
 	clientId: string;
 	patientId?: string;
 	financialResponsibleId?: string;
-	maxDiscount?: boolean;
+	maxDiscount: boolean;
 	additionalInformation?: string;
 	internalCode?: string;
 	items?: {

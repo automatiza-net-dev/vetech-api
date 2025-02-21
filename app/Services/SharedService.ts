@@ -418,20 +418,20 @@ export default class SharedService {
 
 		const items: ItemToCheckDiscount[] = [];
 		for (const entry of data) {
-			const shouldIgnoreForCourtesy =
-				typeof entry.courtesy === "boolean" ? entry.courtesy : false;
-
-			const shouldIgnoreForMxDisc =
-				typeof entry.maxDiscount === "boolean" ? entry.maxDiscount : false;
-
-			if (!shouldIgnoreForCourtesy && !shouldIgnoreForMxDisc) {
-				items.push({
-					variacao: entry.variationId,
-					quantidade: entry.quantity,
-					preco: entry.unitaryValue,
-					vlrdesc: entry.discountValue,
-				});
-			}
+			// const shouldIgnoreForCourtesy =
+			// 	typeof entry.courtesy === "boolean" ? entry.courtesy : false;
+			//
+			// const shouldIgnoreForMxDisc =
+			// 	typeof entry.maxDiscount === "boolean" ? entry.maxDiscount : false;
+			//
+			// if (!shouldIgnoreForCourtesy && !shouldIgnoreForMxDisc) {
+			items.push({
+				variacao: entry.variationId,
+				quantidade: entry.quantity,
+				preco: entry.unitaryValue,
+				vlrdesc: entry.discountValue,
+			});
+			// }
 		}
 
 		const rows = await Database.rawQuery(

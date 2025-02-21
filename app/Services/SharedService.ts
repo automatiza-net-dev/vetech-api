@@ -43,6 +43,8 @@ type ItemToCheckDiscount = {
 	quantidade: number;
 	preco: number;
 	vlrdesc: number;
+	cortesia: boolean;
+	aprovado: boolean;
 };
 
 @inject()
@@ -408,6 +410,7 @@ export default class SharedService {
 			quantity: number;
 			courtesy?: boolean;
 			maxDiscount?: boolean;
+			approved?: boolean;
 		}[],
 	) {
 		// [cortesia, maxdiscount]
@@ -430,6 +433,8 @@ export default class SharedService {
 				quantidade: entry.quantity,
 				preco: entry.unitaryValue,
 				vlrdesc: entry.discountValue,
+				cortesia: typeof entry.courtesy === "boolean" ? entry.courtesy : false,
+				aprovado: typeof entry.approved === "boolean" ? entry.approved : false,
 			});
 			// }
 		}

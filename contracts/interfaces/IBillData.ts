@@ -15,6 +15,7 @@ export interface ICreateBillData {
 		discountValue: number;
 		courtesy?: boolean;
 		maxDiscount?: boolean;
+		approved?: boolean;
 	}>;
 
 	additionalInformation?: string;
@@ -58,6 +59,7 @@ export interface IUpdateBillItemData {
 		courtesy: boolean;
 		maxDiscount?: boolean;
 		shouldValidateDiscount?: boolean;
+		approved?: boolean;
 	}>;
 }
 

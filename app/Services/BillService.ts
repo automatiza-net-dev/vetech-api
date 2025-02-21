@@ -423,6 +423,7 @@ export default class BillService {
 					quantity: elem.quantity,
 					courtesy: elem.courtesy,
 					maxDiscount: elem.maxDiscount,
+					approved: elem.approved,
 				})),
 			);
 			if (invalid.length > 0) {
@@ -480,6 +481,7 @@ export default class BillService {
 						quantity: elem.quantity,
 						courtesy: elem.courtesy,
 						maxDiscount: elem.maxDiscount,
+						approved: elem.approved,
 					})),
 			);
 			if (invalid.length > 0) {

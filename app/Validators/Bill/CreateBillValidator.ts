@@ -50,6 +50,7 @@ export default class CreateBillValidator {
 				discountValue: schema.number([]),
 				courtesy: schema.boolean.optional([]),
 				maxDiscount: schema.boolean.optional([]),
+				approved: schema.boolean.optional([]),
 			}),
 		),
 	});

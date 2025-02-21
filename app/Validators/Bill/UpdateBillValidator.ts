@@ -60,6 +60,7 @@ export default class UpdateBillValidator {
 
 				courtesy: schema.boolean(),
 				maxDiscount: schema.boolean(),
+				approved: schema.boolean.optional([]),
 			}),
 		),
 	});

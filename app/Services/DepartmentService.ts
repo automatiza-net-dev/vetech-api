@@ -1,7 +1,9 @@
 import { inject } from "@adonisjs/fold";
+import Database from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import Department from "App/Models/Department";
+import DepartmentProduct from "App/Models/DepartmentProduct";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import { DateTime } from "luxon";
 
@@ -153,5 +155,175 @@ export default class DepartmentService {
 				deletedAt: DateTime.now(),
 			})
 			.save();
+	}
+
+	async listDepartmentProducts(
+		authCtx: AuthContext,
+		data: {
+			departmentId?: string;
+			productId?: string;
+		},
+	) {
+		if (!data.departmentId) {
+			throw new BadRequestException(
+				"É preciso informar o departamento",
+				400,
+				"E_ERR",
+			);
+		}
+
+		const qb = Database.from("departments")
+			.select(
+				Database.raw(`departments.id,
+       departments.description,
+       COALESCE
+       (json_agg(
+        json_build_object('id', products.id, 'description', products.description, 'active', products.active
+        )
+                ) FILTER (WHERE products.id IS NOT NULL),
+        '[]'::json) as products`),
+			)
+			.joinRaw(
+				"left join department_products on departments.id = department_products.department_id and department_products.deleted_at is null",
+			)
+			.joinRaw(
+				"left join products on department_products.product_id = products.id",
+			)
+			.whereRaw(
+				"(departments.system_id = ? and departments.id = ? and departments.deleted_at is null)",
+				[authCtx.system.id, data.departmentId],
+			)
+			.whereRaw("products.deleted_at is null")
+			.groupBy("departments.id");
+
+		if (data.productId) {
+			qb.whereRaw("products.id = ?", [data.productId]);
+		}
+
+		return qb.firstOrFail();
+	}
+
+	async listDepartmentProductsForMovements(
+		authCtx: AuthContext,
+		data: {
+			departmentId?: string;
+		},
+	) {
+		if (!data.departmentId) {
+			throw new BadRequestException(
+				"É preciso informar o departamento",
+				400,
+				"E_ERR",
+			);
+		}
+
+		const qb = Database.from("departments")
+			.select(
+				Database.raw(`departments.id,
+       departments.description,
+       COALESCE
+       (json_agg(
+        json_build_object('id', products.id, 'description', products.description, 'type', products.type, 'courtesy',
+                          products.courtesy, 'stock', business_unit_products.stock, 'maximum_discount_percentage',
+                          business_unit_products.maximum_discount_percentage, 'price', business_unit_products.price,
+                          'cost_price', business_unit_products.cost_price
+        )
+                ) FILTER (WHERE products.id IS NOT NULL),
+        '[]'::json) as products`),
+			)
+			.joinRaw(
+				"join department_products on departments.id = department_products.department_id and department_products.deleted_at is null",
+			)
+			.joinRaw(
+				`join products on department_products.product_id = products.id and
+                               products.deleted_at is null and
+                               products.active is true and products.purpose <> 'internal'`,
+			)
+			.joinRaw(
+				"join product_variations on products.id = product_variations.product_id",
+			)
+			.joinRaw(
+				`join business_unit_products on business_unit_products.product_variation_id = product_variations.id and
+                                             business_unit_products.businness_unit_id =
+                                             ?`,
+				[authCtx.unit.id],
+			)
+			.whereRaw(
+				"(departments.system_id = ? and departments.id = ? and departments.deleted_at is null)",
+				[authCtx.system.id, data.departmentId],
+			)
+			.whereRaw("products.deleted_at is null")
+			.whereRaw("departments.active is true")
+			.groupBy("departments.id");
+
+		return qb.firstOrFail();
+	}
+
+	async storeDepartmentProducts(
+		authCtx: AuthContext,
+		data: {
+			departmentId: number;
+			products: string[];
+		},
+	) {
+		await Database.transaction(async (trx) => {
+			const model = await Department.query()
+				.useTransaction(trx)
+				.where("id", data.departmentId)
+				.where("system_id", authCtx.system.id)
+				.first();
+
+			if (!model) {
+				throw new ResourceNotFoundException(
+					"Departamento não encontrado",
+					400,
+					"E_ERR",
+				);
+			}
+
+			await DepartmentProduct.createMany(
+				data.products.map((elem) => ({
+					department_id: data.departmentId,
+					product_id: elem,
+					creation_user_id: authCtx.user.id,
+					active: true,
+				})),
+				{
+					client: trx,
+				},
+			);
+		});
+	}
+
+	async destroyDepartmentProducts(
+		authCtx: AuthContext,
+		data: {
+			departmentId: number;
+			products: string[];
+		},
+	) {
+		await Database.transaction(async (trx) => {
+			const model = await Department.query()
+				.useTransaction(trx)
+				.where("id", data.departmentId)
+				.where("system_id", authCtx.system.id)
+				.first();
+
+			if (!model) {
+				throw new ResourceNotFoundException(
+					"Departamento não encontrado",
+					400,
+					"E_ERR",
+				);
+			}
+
+			await DepartmentProduct.query()
+				.where("department_id", data.departmentId)
+				.whereIn("product_id", data.products)
+				.update({
+					deleted_user_id: authCtx.user.id,
+					deletedAt: DateTime.now(),
+				});
+		});
 	}
 }

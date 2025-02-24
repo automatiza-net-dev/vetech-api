@@ -2,6 +2,7 @@ import { inject } from "@adonisjs/fold";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import DepartmentService from "App/Services/DepartmentService";
 import SharedService from "App/Services/SharedService";
+import CreateDepartmentProductValidator from "App/Validators/Department/CreateDepartmentProductValidator";
 import CreateDepartmentValidator from "App/Validators/Department/CreateDepartmentValidator";
 import UpdateDepartmentValidator from "App/Validators/Department/UpdateDepartmentValidator";
 
@@ -20,11 +21,46 @@ export default class DepartmentsController {
 		return response.ok(data);
 	}
 
+	public async listProducts({ auth, request, response }: HttpContextContract) {
+		const authCtx = await this.sharedService.getAuthContext(auth);
+
+		const data = await this.service.listDepartmentProducts(
+			authCtx,
+			request.qs(),
+		);
+
+		return response.ok(data);
+	}
+
+	public async listProductsMovements({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const authCtx = await this.sharedService.getAuthContext(auth);
+
+		const data = await this.service.listDepartmentProductsForMovements(
+			authCtx,
+			request.qs(),
+		);
+
+		return response.ok(data);
+	}
+
 	public async store({ auth, request, response }: HttpContextContract) {
 		const payload = await request.validate(CreateDepartmentValidator);
 		const authCtx = await this.sharedService.getAuthContext(auth);
 
 		const data = await this.service.store(authCtx, payload);
+
+		return response.created(data);
+	}
+
+	public async storeProducts({ auth, request, response }: HttpContextContract) {
+		const payload = await request.validate(CreateDepartmentProductValidator);
+		const authCtx = await this.sharedService.getAuthContext(auth);
+
+		const data = await this.service.storeDepartmentProducts(authCtx, payload);
 
 		return response.created(data);
 	}
@@ -46,6 +82,19 @@ export default class DepartmentsController {
 	public async destroy({ auth, params, response }: HttpContextContract) {
 		const authCtx = await this.sharedService.getAuthContext(auth);
 		await this.service.destroy(authCtx, params.id);
+
+		return response.noContent();
+	}
+
+	public async destroyProducts({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const payload = await request.validate(CreateDepartmentProductValidator);
+		const authCtx = await this.sharedService.getAuthContext(auth);
+
+		await this.service.destroyDepartmentProducts(authCtx, payload);
 
 		return response.noContent();
 	}

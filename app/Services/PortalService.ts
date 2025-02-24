@@ -2,7 +2,7 @@ import { inject } from "@adonisjs/fold";
 import Database from "@ioc:Adonis/Lucid/Database";
 import System from "App/Models/System";
 import User from "App/Models/User";
-import { endOfMonth } from "date-fns";
+import { endOfMonth, addHours } from "date-fns";
 import Decimal from "decimal.js";
 import SharedService from "./SharedService";
 
@@ -133,7 +133,7 @@ export default class PortalService {
 			.select(
 				Database.raw(
 					"sum(total_value)::float as total_bills, sum(total_value) / count(distinct client_id)::float as tkt_medio, sum(bills.total_value) / ? * ? as projecao",
-					[today.getDay(), endOfMonth(today).getDay()],
+					[today.getDate(), addHours(endOfMonth(today), -12).getDate()],
 				),
 			)
 			.joinRaw(
@@ -1251,8 +1251,8 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 			)
 			.whereRaw("economic_groups.system_id = ?", [authCtx.systemID])
 			.whereRaw("bills.deleted_at is null", [])
-			.groupByRaw("payment_methods.description" , [])
-			.orderByRaw("total_payments desc", [])
+			.groupByRaw("payment_methods.description", [])
+			.orderByRaw("total_payments desc", []);
 
 		const qb3 = Database.from("bills")
 			.select(

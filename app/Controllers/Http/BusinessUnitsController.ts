@@ -35,10 +35,10 @@ export default class BusinessUnitsController {
 		return response.noContent();
 	}
 
-	public async index({ request, response }: HttpContextContract) {
+	public async index({ auth, request, response }: HttpContextContract) {
 		const qs = request.qs();
 		return response.ok(
-			await this.service.index({
+			await this.service.index(await this.sharedService.getAuthContext(auth), {
 				email: qs.email,
 				identification: qs.identification,
 			}),

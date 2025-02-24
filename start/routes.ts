@@ -141,7 +141,7 @@ Route.group(() => {
 	Route.get("/system", "BusinessUnitsController.systemUnits").middleware(
 		"auth",
 	);
-	Route.get("", "BusinessUnitsController.index");
+	Route.get("", "BusinessUnitsController.index").middleware("auth");
 	Route.get(":id", "BusinessUnitsController.show");
 
 	Route.post(

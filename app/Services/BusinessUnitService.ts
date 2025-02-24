@@ -48,8 +48,13 @@ export default class BusinessUnitService {
 			});
 	}
 
-	public async index(data: ISearchBusinessUnit): Promise<Array<BusinessUnit>> {
-		const qb = BusinessUnit.query().preload("economicGroup");
+	public async index(
+		authCtx: AuthContext,
+		data: ISearchBusinessUnit,
+	): Promise<Array<BusinessUnit>> {
+		const qb = BusinessUnit.query()
+			.where("economic_group_id", authCtx.group.id)
+			.preload("economicGroup");
 
 		if (data.identification) {
 			qb.where("identification", "ilike", `%${data.identification}%`);

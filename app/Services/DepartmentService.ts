@@ -25,6 +25,9 @@ export default class DepartmentService {
 		const qb = Department.query()
 			.preload("creationUser")
 			.preload("updateUser")
+			.preload("items", (query) => {
+				query.whereNull("deleted_at");
+			})
 			.where("system_id", authCtx.system.id);
 
 		if (data.type === "portal") {
@@ -68,6 +71,12 @@ export default class DepartmentService {
 			updated_at: r.updatedAt,
 			update_user_id: r.updateUser ? r.updateUser.id : null,
 			update_user_name: r.updateUser ? r.updateUser.name : null,
+			items: r.items.map((row) => ({
+				id: row.id,
+				description: row.description,
+				photo: row.photo,
+				requiresObservation: row.requiresObservation,
+			})),
 		}));
 	}
 

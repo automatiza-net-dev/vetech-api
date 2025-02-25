@@ -7,9 +7,12 @@ import {
 	BelongsTo,
 	belongsTo,
 	column,
+    hasMany,
+    HasMany,
 } from "@ioc:Adonis/Lucid/Orm";
 import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
 import User from "./User";
+import DepartmentItem from "./DepartmentItem";
 
 export default class Department extends BaseModel {
 	@column({ isPrimary: true })
@@ -79,4 +82,9 @@ export default class Department extends BaseModel {
 		serializeAs: null,
 	})
 	public deleted_user_id: string | null;
+
+  @hasMany(() => DepartmentItem, {
+    foreignKey: 'department_id'
+  })
+  public items: HasMany<typeof DepartmentItem>
 }

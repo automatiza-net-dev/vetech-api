@@ -4001,13 +4001,15 @@ where deposit_id = ?
 				.select("id")
 				.where("business_unit_id", authCtx.unit.id)
 				.where("bill_id", data.billId)
+				.where("cancelled", "P")
 				.union((query) => {
 					query
 						.useTransaction(trx)
 						.select("id")
 						.from("bill_payments")
 						.where("business_unit_id", authCtx.unit.id)
-						.where("bill_id", data.billId);
+						.where("bill_id", data.billId)
+						.where("cancelled", "P");
 				});
 
 			await bill

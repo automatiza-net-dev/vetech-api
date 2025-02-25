@@ -3775,6 +3775,10 @@ where deposit_id = ?
 						"id",
 						data.billItems.map((bi) => bi.id),
 					);
+
+					query.preload("productVariation", (query) => {
+						query.preload("product");
+					});
 				})
 				.preload("payments", (query) => {
 					query.whereIn("id", data.billPayments);
@@ -3793,22 +3797,6 @@ where deposit_id = ?
 				throw new BadRequestException("Nota já cancelada", 400, "E_ERR");
 			}
 
-			await bill
-				.merge({
-					cancel_user_id: authCtx.user.id,
-					cancel_reason_id: data.reasonId,
-
-					cancelReason: data.cancelReason,
-					cancelled: "P",
-					cancelledAt: DateTime.now(),
-					cancelNotes: data.notes,
-					cancelValueTotal: new Decimal(bill.totalValue),
-					cancelValueProducts: new Decimal(bill.productValue),
-					cancelValueServices: new Decimal(bill.serviceValue),
-				})
-				.useTransaction(trx)
-				.save();
-
 			const itemTasks = bill.items.map(async (item) => {
 				return item
 					.merge({
@@ -3821,7 +3809,7 @@ where deposit_id = ?
 					.useTransaction(trx)
 					.save();
 			});
-			await Promise.all(itemTasks);
+			const cancelledItems = await Promise.all(itemTasks);
 
 			const paymentTasks = bill.payments.map(async (payment) => {
 				return payment
@@ -3832,6 +3820,45 @@ where deposit_id = ?
 					.save();
 			});
 			await Promise.all(paymentTasks);
+
+			await bill
+				.merge({
+					cancel_user_id: authCtx.user.id,
+					cancel_reason_id: data.reasonId,
+
+					cancelReason: data.cancelReason,
+					cancelled: "P",
+					cancelledAt: DateTime.now(),
+					cancelNotes: data.notes,
+					cancelValueTotal: cancelledItems.reduce(
+						(acc, curr) => acc.plus(new Decimal(curr.totalValue)),
+						new Decimal(0),
+					),
+					cancelValueProducts: cancelledItems.reduce(
+						(acc, curr) =>
+							curr.productVariation.product.type === ProductType.PRODUCT
+								? acc.plus(
+										new Decimal(curr.totalValue)
+											.div(curr.quantity)
+											.times(new Decimal(curr.cancelledQuantity ?? 1)),
+									)
+								: acc,
+						new Decimal(0),
+					),
+					cancelValueServices: cancelledItems.reduce(
+						(acc, curr) =>
+							curr.productVariation.product.type === ProductType.SERVICE
+								? acc.plus(
+										new Decimal(curr.totalValue)
+											.div(curr.quantity)
+											.times(new Decimal(curr.cancelledQuantity ?? 1)),
+									)
+								: acc,
+						new Decimal(0),
+					),
+				})
+				.useTransaction(trx)
+				.save();
 		});
 	}
 

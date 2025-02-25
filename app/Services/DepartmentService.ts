@@ -1,11 +1,14 @@
-import { inject } from "@adonisjs/fold";
+import { MultipartFileContract } from "@ioc:Adonis/Core/BodyParser";
 import Database from "@ioc:Adonis/Lucid/Database";
+import { inject } from "@adonisjs/fold";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import Department from "App/Models/Department";
 import DepartmentProduct from "App/Models/DepartmentProduct";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import { DateTime } from "luxon";
+import DepartmentItem from "App/Models/DepartmentItem";
+import { v4 } from "uuid";
 
 @inject()
 export default class DepartmentService {
@@ -324,6 +327,173 @@ export default class DepartmentService {
 					deleted_user_id: authCtx.user.id,
 					deletedAt: DateTime.now(),
 				});
+		});
+	}
+
+	async createDepartmentItem(
+		authCtx: AuthContext,
+		data: {
+			departmentId: number;
+			description: string;
+			photo?: MultipartFileContract;
+			requiresObservation: boolean;
+			order?: number;
+		},
+	) {
+		return await Database.transaction(async (trx) => {
+			const model = await Department.query()
+				.useTransaction(trx)
+				.where("id", data.departmentId)
+				.where("system_id", authCtx.system.id)
+				.first();
+
+			if (!model) {
+				throw new ResourceNotFoundException(
+					"Departamento não encontrado",
+					400,
+					"E_ERR",
+				);
+			}
+
+			const photoKey = data.photo ? `${v4()}.${data.photo.extname}` : null;
+			if (data.photo) {
+				await data.photo.moveToDisk(
+					"department-items",
+					{
+						name: photoKey ?? "--",
+						visibility: "private",
+					},
+					"s3",
+				);
+			}
+
+			return await DepartmentItem.create(
+				{
+					department_id: data.departmentId,
+					creation_user_id: authCtx.user.id,
+
+					description: data.description,
+					photo: photoKey ? `department-items/${photoKey}` : undefined,
+					requiresObservation: data.requiresObservation,
+					order: data.order,
+				},
+				{
+					client: trx,
+				},
+			);
+		});
+	}
+
+	async updateDepartmentItem(
+		authCtx: AuthContext,
+		departmentItemID: string,
+		data: {
+			departmentId: number;
+			description: string;
+			photo?: MultipartFileContract;
+			requiresObservation: boolean;
+			order?: number;
+			active: boolean;
+		},
+	) {
+		return await Database.transaction(async (trx) => {
+			const model = await Department.query()
+				.useTransaction(trx)
+				.where("id", data.departmentId)
+				.where("system_id", authCtx.system.id)
+				.first();
+
+			if (!model) {
+				throw new ResourceNotFoundException(
+					"Departamento não encontrado",
+					400,
+					"E_ERR",
+				);
+			}
+
+			if (!model.economic_group_id) {
+				throw new BadRequestException(
+					"Não é permitida a alteração de dados de Itens de um Departamento padrão do sistema",
+					400,
+					"E_ERR",
+				);
+			}
+
+			const item = await DepartmentItem.query()
+				.where("department_id", data.departmentId)
+				.where("id", departmentItemID)
+				.firstOrFail();
+
+			const photoKey = data.photo
+				? `${v4()}.${data.photo.extname}`
+				: item.photo;
+			if (data.photo) {
+				await data.photo.moveToDisk(
+					"department-items",
+					{
+						name: photoKey ?? "--",
+						visibility: "private",
+					},
+					"s3",
+				);
+			}
+
+			return await item
+				.merge({
+					updated_user_id: authCtx.user.id,
+
+					description: data.description,
+					photo: data.photo ? `department-items/${photoKey}` : photoKey,
+					requiresObservation: data.requiresObservation,
+					order: data.order,
+				})
+				.useTransaction(trx)
+				.save();
+		});
+	}
+
+	async deleteDepartmentItem(
+		authCtx: AuthContext,
+		departmentItemID: string,
+		data: {
+			departmentId: number;
+		},
+	) {
+		return await Database.transaction(async (trx) => {
+			const model = await Department.query()
+				.useTransaction(trx)
+				.where("id", data.departmentId)
+				.where("system_id", authCtx.system.id)
+				.first();
+
+			if (!model) {
+				throw new ResourceNotFoundException(
+					"Departamento não encontrado",
+					400,
+					"E_ERR",
+				);
+			}
+
+			if (!model.economic_group_id) {
+				throw new BadRequestException(
+					"Não é permitida a alteração de dados de Itens de um Departamento padrão do sistema",
+					400,
+					"E_ERR",
+				);
+			}
+
+			const item = await DepartmentItem.query()
+				.where("department_id", data.departmentId)
+				.where("id", departmentItemID)
+				.firstOrFail();
+
+			await item
+				.merge({
+					deleted_user_id: authCtx.user.id,
+					deletedAt: DateTime.now(),
+				})
+				.useTransaction(trx)
+				.save();
 		});
 	}
 }

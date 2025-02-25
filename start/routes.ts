@@ -2010,14 +2010,20 @@ Route.group(() => {
 	.middleware("auth");
 
 Route.group(() => {
-	Route.get("/list-products-movements", "DepartmentsController.listProductsMovements");
+	Route.get(
+		"/list-products-movements",
+		"DepartmentsController.listProductsMovements",
+	);
 	Route.get("/list-products", "DepartmentsController.listProducts");
 	Route.get("/", "DepartmentsController.index");
 
 	Route.post("/store-products", "DepartmentsController.storeProducts");
+	Route.post("/store-item", "DepartmentsController.storeItem");
 	Route.post("/", "DepartmentsController.store");
 
 	Route.put("/delete-products", "DepartmentsController.destroyProducts");
+	Route.put("/delete-item/:id", "DepartmentsController.destroyItem");
+	Route.put("/update-item/:id", "DepartmentsController.updateItem");
 	Route.put("/:id", "DepartmentsController.update");
 
 	Route.delete("/:id", "DepartmentsController.destroy");

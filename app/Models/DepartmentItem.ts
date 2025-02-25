@@ -21,7 +21,7 @@ export default class DepartmentItem extends BaseModel {
 	public photo: string | null;
 
 	@column({
-		columnName: "requires_oservation",
+		columnName: "requires_observation",
 		serializeAs: "requiresObservation",
 	})
 	public requiresObservation: boolean;

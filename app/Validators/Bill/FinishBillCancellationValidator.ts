@@ -24,11 +24,8 @@ export default class FinishBillCancellationValidator {
 	 *    ```
 	 */
 	public schema = schema.create({
-		email: schema.string([
-			rules.email(),
-			rules.exists({ table: "users", column: "email" }),
-		]),
-		password: schema.string([]),
+		userEmail: schema.string([rules.email()]),
+		userPwd: schema.string(),
 		billId: schema.string([
 			rules.uuid(),
 			rules.exists({ table: "bills", column: "id" }),

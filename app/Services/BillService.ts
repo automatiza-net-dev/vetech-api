@@ -3594,8 +3594,8 @@ where deposit_id = ?
 		data: {
 			billId: string;
 			itemsIdList: string[];
-			email: string;
-			password: string;
+			userEmail: string;
+			userPwd: string;
 			reason: string;
 			approved: boolean;
 			paymentsIdList?: string[];
@@ -3618,7 +3618,7 @@ where deposit_id = ?
 
 			const user = await User.query()
 				.useTransaction(trx)
-				.whereILike("email", data.email)
+				.whereILike("email", data.userEmail)
 				.where("system_id", authCtx.system.id)
 				.first();
 
@@ -3630,7 +3630,7 @@ where deposit_id = ?
 				);
 			}
 
-			if (!(await Hash.verify(user.password, data.password))) {
+			if (!(await Hash.verify(user.password, data.userPwd))) {
 				throw new BadRequestException(
 					"Credenciais inválidas",
 					400,
@@ -3802,15 +3802,15 @@ where deposit_id = ?
 	async reviewBillCancellation(
 		authCtx: AuthContext,
 		data: {
-			email: string;
-			password: string;
+			userEmail: string;
+			userPwd: string;
 			billId: string;
 			billItems: { id: string; cancelled: boolean; note: string }[];
 			billPayments: { id: string; cancelled: boolean; note: string }[];
 		},
 	) {
 		const user = await User.query()
-			.whereILike("email", data.email)
+			.whereILike("email", data.userEmail)
 			.where("system_id", authCtx.system.id)
 			.first();
 
@@ -3822,7 +3822,7 @@ where deposit_id = ?
 			);
 		}
 
-		if (!(await Hash.verify(user.password, data.password))) {
+		if (!(await Hash.verify(user.password, data.userPwd))) {
 			throw new BadRequestException(
 				"Credenciais inválidas",
 				400,
@@ -3873,32 +3873,40 @@ where deposit_id = ?
 				);
 			}
 
-			if (bill.cancelled) {
+			if (bill.cancelled !== "P") {
 				throw new BadRequestException("Nota já cancelada", 400, "E_ERR");
 			}
 
-			const itemTasks = bill.items.map(async (elem) => {
-				return elem.merge({
-					reviewer_cancel_user_id: authCtx.user.id,
-					reviewCancelDate: DateTime.now(),
-					cancelled: data.billItems.find((i) => i.id === elem.id)?.cancelled
-						? "S"
-						: "N",
-					reviewCancelNotes: `${elem.reviewCancelNotes}\n${DateTime.now()} - ${authCtx.user.name}\n${data.billItems.find((i) => i.id === elem.id)?.note}`,
+			const itemTasks = bill.items
+				.filter((elem) => data.billItems.find((bi) => bi.id === elem.id))
+				.map(async (elem) => {
+					return elem
+						.merge({
+							reviewer_cancel_user_id: authCtx.user.id,
+							reviewCancelDate: DateTime.now(),
+							cancelled: data.billItems.find((i) => i.id === elem.id)?.cancelled
+								? "S"
+								: "N",
+							reviewCancelNotes: `${elem.reviewCancelNotes}\n${DateTime.now()} - ${authCtx.user.name}\n${data.billItems.find((i) => i.id === elem.id)?.note}`,
+						})
+						.save();
 				});
-			});
 			await Promise.all(itemTasks);
 
-			const paymentTasks = bill.payments.map(async (elem) => {
-				return elem.merge({
-					reviewer_cancel_user_id: authCtx.user.id,
-					reviewCancelDate: DateTime.now(),
-					cancelled: data.billItems.find((i) => i.id === elem.id)?.cancelled
-						? "S"
-						: "N",
-					reviewCancelNotes: `${elem.reviewCancelNotes}\n${DateTime.now()} - ${authCtx.user.name}\n${data.billItems.find((i) => i.id === elem.id)?.note}`,
+			const paymentTasks = bill.payments
+				.filter((elem) => data.billPayments.find((bi) => bi.id === elem.id))
+				.map(async (elem) => {
+					return elem
+						.merge({
+							reviewer_cancel_user_id: authCtx.user.id,
+							reviewCancelDate: DateTime.now(),
+							cancelled: data.billItems.find((i) => i.id === elem.id)?.cancelled
+								? "S"
+								: "N",
+							reviewCancelNotes: `${elem.reviewCancelNotes}\n${DateTime.now()} - ${authCtx.user.name}\n${data.billItems.find((i) => i.id === elem.id)?.note}`,
+						})
+						.save();
 				});
-			});
 			await Promise.all(paymentTasks);
 
 			const missingStuff = await Database.from("bill_items")
@@ -3927,15 +3935,15 @@ where deposit_id = ?
 	async finishBillCancellation(
 		authCtx: AuthContext,
 		data: {
-			email: string;
-			password: string;
+			userEmail: string;
+			userPwd: string;
 			billId: string;
 			cancelled: boolean;
 			note: string;
 		},
 	) {
 		const user = await User.query()
-			.whereILike("email", data.email)
+			.whereILike("email", data.userEmail)
 			.where("system_id", authCtx.system.id)
 			.first();
 
@@ -3947,7 +3955,7 @@ where deposit_id = ?
 			);
 		}
 
-		if (!(await Hash.verify(user.password, data.password))) {
+		if (!(await Hash.verify(user.password, data.userPwd))) {
 			throw new BadRequestException(
 				"Credenciais inválidas",
 				400,

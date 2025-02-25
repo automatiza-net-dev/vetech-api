@@ -3712,6 +3712,8 @@ where deposit_id = ?
 	async requestBillCancellation(
 		authCtx: AuthContext,
 		data: {
+			userEmail: string;
+			userPwd: string;
 			reasonId?: string;
 			cancelReason?: string;
 			billId: string;
@@ -3730,6 +3732,40 @@ where deposit_id = ?
 		}
 
 		await Database.transaction(async (trx) => {
+			const user = await User.query()
+				.useTransaction(trx)
+				.whereILike("email", data.userEmail)
+				.where("system_id", authCtx.system.id)
+				.first();
+
+			if (!user) {
+				throw new BadRequestException(
+					"Credenciais inválidas",
+					400,
+					"E_BAD_CREDENTIALS",
+				);
+			}
+
+			if (!(await Hash.verify(user.password, data.userPwd))) {
+				throw new BadRequestException(
+					"Credenciais inválidas",
+					400,
+					"E_BAD_CREDENTIALS",
+				);
+			}
+
+			const hasPermissions = await this.sharedService.userHasPermission(
+				{ ...authCtx, user },
+				"VEN18",
+			);
+			if (!hasPermissions) {
+				throw new UnauthorizedException(
+					"Usuário sem permissão de fazer a operação",
+					400,
+					"E_ERR",
+				);
+			}
+
 			const bill = await Bill.query()
 				.useTransaction(trx)
 				.where("business_unit_id", authCtx.unit.id)

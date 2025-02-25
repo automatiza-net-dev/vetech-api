@@ -52,7 +52,7 @@ export default class BillsController {
 
 		await this.service.recalculateItemsTaxes(unit_id, params.id);
 
-		return response.noContent();
+		return response.ok();
 	}
 
 	public async checkItemDiscount({
@@ -71,7 +71,7 @@ export default class BillsController {
 			return response.badRequest(result);
 		}
 
-		return response.noContent();
+		return response.ok();
 	}
 
 	public async createBill({ request, response, auth }: HttpContextContract) {
@@ -111,7 +111,7 @@ export default class BillsController {
 				payload,
 			);
 
-			return response.noContent();
+			return response.ok();
 		});
 	}
 
@@ -177,7 +177,7 @@ export default class BillsController {
 			params.id,
 		);
 
-		return response.noContent();
+		return response.ok();
 	}
 
 	public async createBillPayment({
@@ -205,7 +205,7 @@ export default class BillsController {
 			params.id,
 		);
 
-		return response.noContent();
+		return response.ok();
 	}
 
 	public async deleteBillPaymentBlock({
@@ -220,7 +220,7 @@ export default class BillsController {
 			payload,
 		);
 
-		return response.noContent();
+		return response.ok();
 	}
 
 	public async searchProducts({
@@ -262,21 +262,21 @@ export default class BillsController {
 			await this.sharedService.getAuthContext(auth),
 			params.id,
 		);
-		return response.noContent();
+		return response.ok();
 	}
 
 	public async closeBill({ params, auth, response }: HttpContextContract) {
 		const { unit_id, user } = this.sharedService.extractUser(auth);
 
 		await this.service.closeBill(unit_id, user, params.id);
-		return response.noContent();
+		return response.ok();
 	}
 
 	public async reopenBill({ params, auth, response }: HttpContextContract) {
 		const { unit_id, user } = this.sharedService.extractUser(auth);
 
 		await this.service.reopenBill(unit_id, user, params.id);
-		return response.noContent();
+		return response.ok();
 	}
 
 	public async disableBillItem({
@@ -287,7 +287,7 @@ export default class BillsController {
 		const { unit_id } = this.sharedService.extractUser(auth);
 
 		await this.service.disableBillItem(unit_id, params.id);
-		return response.noContent();
+		return response.ok();
 	}
 
 	public async addKitToBill({ request, response, auth }: HttpContextContract) {
@@ -298,7 +298,7 @@ export default class BillsController {
 			payload,
 		);
 
-		return response.noContent();
+		return response.ok();
 	}
 
 	public async fetchConferenceCashier({
@@ -326,7 +326,7 @@ export default class BillsController {
 
 		await this.service.updateCashierConference(authCtx, payload);
 
-		return response.noContent();
+		return response.ok();
 	}
 
 	public async createTreatment({
@@ -339,7 +339,7 @@ export default class BillsController {
 
 		await this.service.createTreatmentFromBill(authCtx, payload);
 
-		return response.noContent();
+		return response.ok();
 	}
 
 	public async updatePaymentExpiration({
@@ -352,7 +352,7 @@ export default class BillsController {
 
 		await this.service.updatePaymentExpiration(authCtx, payload.items);
 
-		return response.noContent();
+		return response.ok();
 	}
 
 	public async updateBillFinancialResponsible({
@@ -367,7 +367,7 @@ export default class BillsController {
 
 		await this.service.updateBillFinancialResponsible(authCtx, payload);
 
-		return response.noContent();
+		return response.ok();
 	}
 
 	public async checkDepositAvailability({
@@ -380,7 +380,7 @@ export default class BillsController {
 
 		await this.service.checkDepositAvailability(authCtx, payload);
 
-		return response.noContent();
+		return response.ok();
 	}
 
 	public async discountDepositItems({
@@ -393,7 +393,7 @@ export default class BillsController {
 
 		await this.service.discountDepositItems(authCtx, payload);
 
-		return response.noContent();
+		return response.ok();
 	}
 
 	public async printPaymentReceipt({
@@ -424,7 +424,7 @@ export default class BillsController {
 
 		await this.service.approveCourtesyOrMaxDiscount(authCtx, payload);
 
-		return response.noContent();
+		return response.ok();
 	}
 
 	public async requestBillCancellation({
@@ -437,7 +437,7 @@ export default class BillsController {
 
 		await this.service.requestBillCancellation(authCtx, payload);
 
-		return response.noContent();
+		return response.ok();
 	}
 
 	public async reviewBillCancellation({
@@ -450,7 +450,7 @@ export default class BillsController {
 
 		await this.service.reviewBillCancellation(authCtx, payload);
 
-		return response.noContent();
+		return response.ok();
 	}
 
 	public async finishBillCancellation({
@@ -463,6 +463,6 @@ export default class BillsController {
 
 		await this.service.finishBillCancellation(authCtx, payload);
 
-		return response.noContent();
+		return response.ok();
 	}
 }

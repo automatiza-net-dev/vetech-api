@@ -3831,7 +3831,12 @@ where deposit_id = ?
 					cancelledAt: DateTime.now(),
 					cancelNotes: data.notes,
 					cancelValueTotal: cancelledItems.reduce(
-						(acc, curr) => acc.plus(new Decimal(curr.totalValue)),
+						(acc, curr) =>
+							acc.plus(
+								new Decimal(curr.totalValue)
+									.div(curr.quantity)
+									.times(new Decimal(curr.cancelledQuantity ?? 1)),
+							),
 						new Decimal(0),
 					),
 					cancelValueProducts: cancelledItems.reduce(

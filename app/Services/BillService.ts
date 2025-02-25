@@ -3916,6 +3916,8 @@ where deposit_id = ?
 			const itemTasks = bill.items
 				.filter((elem) => data.billItems.find((bi) => bi.id === elem.id))
 				.map(async (elem) => {
+					const note = data.billItems.find((i) => i.id === elem.id)?.note;
+
 					return elem
 						.merge({
 							reviewer_cancel_user_id: authCtx.user.id,
@@ -3923,7 +3925,14 @@ where deposit_id = ?
 							cancelled: data.billItems.find((i) => i.id === elem.id)?.cancelled
 								? "S"
 								: "N",
-							reviewCancelNotes: `${elem.reviewCancelNotes}\n${DateTime.now()} - ${authCtx.user.name}\n${data.billItems.find((i) => i.id === elem.id)?.note}`,
+							reviewCancelNotes: note
+								? [
+										elem.reviewCancelNotes,
+										`${DateTime.now()} - ${authCtx.user.name}\n${note}`,
+									]
+										.filter(Boolean)
+										.join("\n")
+								: elem.reviewCancelNotes,
 						})
 						.save();
 				});
@@ -3932,6 +3941,8 @@ where deposit_id = ?
 			const paymentTasks = bill.payments
 				.filter((elem) => data.billPayments.find((bi) => bi.id === elem.id))
 				.map(async (elem) => {
+					const note = data.billPayments.find((i) => i.id === elem.id)?.note;
+
 					return elem
 						.merge({
 							reviewer_cancel_user_id: authCtx.user.id,
@@ -3940,7 +3951,14 @@ where deposit_id = ?
 								?.cancelled
 								? "S"
 								: "N",
-							reviewCancelNotes: `${elem.reviewCancelNotes}\n${DateTime.now()} - ${authCtx.user.name}\n${data.billItems.find((i) => i.id === elem.id)?.note}`,
+							reviewCancelNotes: note
+								? [
+										elem.reviewCancelNotes,
+										`${DateTime.now()} - ${authCtx.user.name}\n${note}`,
+									]
+										.filter(Boolean)
+										.join("\n")
+								: elem.reviewCancelNotes,
 						})
 						.save();
 				});

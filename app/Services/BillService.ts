@@ -3936,7 +3936,8 @@ where deposit_id = ?
 						.merge({
 							reviewer_cancel_user_id: authCtx.user.id,
 							reviewCancelDate: DateTime.now(),
-							cancelled: data.billItems.find((i) => i.id === elem.id)?.cancelled
+							cancelled: data.billPayments.find((i) => i.id === elem.id)
+								?.cancelled
 								? "S"
 								: "N",
 							reviewCancelNotes: `${elem.reviewCancelNotes}\n${DateTime.now()} - ${authCtx.user.name}\n${data.billItems.find((i) => i.id === elem.id)?.note}`,

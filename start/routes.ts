@@ -2022,6 +2022,7 @@ Route.group(() => {
 	Route.post("/store-item", "DepartmentsController.storeItem");
 	Route.post("/", "DepartmentsController.store");
 
+	Route.put("/update-products", "DepartmentsController.updateProducts");
 	Route.put("/delete-products", "DepartmentsController.destroyProducts");
 	Route.put("/delete-item/:id", "DepartmentsController.destroyItem");
 	Route.put("/update-item/:id", "DepartmentsController.updateItem");

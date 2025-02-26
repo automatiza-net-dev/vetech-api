@@ -9,6 +9,7 @@ import SharedService, { AuthContext } from "App/Services/SharedService";
 import { DateTime } from "luxon";
 import DepartmentItem from "App/Models/DepartmentItem";
 import { v4 } from "uuid";
+import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 
 @inject()
 export default class DepartmentService {
@@ -331,6 +332,14 @@ export default class DepartmentService {
 			products: string[];
 		},
 	) {
+		if (!authCtx.hasPermission("DPT01")) {
+			throw new UnauthorizedException(
+				"Usuário sem permissão para fazer a operação",
+				400,
+				"E_ERR",
+			);
+		}
+
 		await Database.transaction(async (trx) => {
 			const model = await Department.query()
 				.useTransaction(trx)
@@ -360,6 +369,59 @@ export default class DepartmentService {
 		});
 	}
 
+	async updateDepartmentProducts(
+		authCtx: AuthContext,
+		data: {
+			departmentId: number;
+			products: string[];
+		},
+	) {
+		if (!authCtx.hasPermission("DPT02")) {
+			throw new UnauthorizedException(
+				"Usuário sem permissão para fazer a operação",
+				400,
+				"E_ERR",
+			);
+		}
+
+		await Database.transaction(async (trx) => {
+			const model = await Department.query()
+				.useTransaction(trx)
+				.where("id", data.departmentId)
+				.where("system_id", authCtx.system.id)
+				.first();
+
+			if (!model) {
+				throw new ResourceNotFoundException(
+					"Departamento não encontrado",
+					400,
+					"E_ERR",
+				);
+			}
+
+			await DepartmentProduct.query()
+				.useTransaction(trx)
+				.where("department_id", data.departmentId)
+				.whereNull("deleted_at")
+				.update({
+					deleted_user_id: authCtx.user.id,
+					deleted_at: DateTime.now(),
+				});
+
+			await DepartmentProduct.createMany(
+				data.products.map((elem) => ({
+					department_id: data.departmentId,
+					product_id: elem,
+					creation_user_id: authCtx.user.id,
+					active: true,
+				})),
+				{
+					client: trx,
+				},
+			);
+		});
+	}
+
 	async destroyDepartmentProducts(
 		authCtx: AuthContext,
 		data: {
@@ -367,6 +429,14 @@ export default class DepartmentService {
 			products: string[];
 		},
 	) {
+		if (!authCtx.hasPermission("DPT03")) {
+			throw new UnauthorizedException(
+				"Usuário sem permissão para fazer a operação",
+				400,
+				"E_ERR",
+			);
+		}
+
 		await Database.transaction(async (trx) => {
 			const model = await Department.query()
 				.useTransaction(trx)

@@ -99,6 +99,19 @@ export default class DepartmentsController {
 		return response.ok(data);
 	}
 
+	public async updateProducts({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const payload = await request.validate(CreateDepartmentProductValidator);
+		const authCtx = await this.sharedService.getAuthContext(auth);
+
+		await this.service.updateDepartmentProducts(authCtx, payload);
+
+		return response.noContent();
+	}
+
 	public async updateItem({ auth, request, response }: HttpContextContract) {
 		const payload = await request.validate(UpdateDepartmentItemValidator);
 		const authCtx = await this.sharedService.getAuthContext(auth);

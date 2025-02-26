@@ -3938,7 +3938,7 @@ where deposit_id = ?
 				);
 			}
 
-			if (bill.cancelled !== "P") {
+			if (bill.cancelled !== "P" && bill.cancelled !== "F") {
 				throw new BadRequestException("Nota já cancelada", 400, "E_ERR");
 			}
 

@@ -4091,8 +4091,12 @@ where deposit_id = ?
 				);
 			}
 
-			if (bill.cancelled) {
-				throw new BadRequestException("Nota já cancelada", 400, "E_ERR");
+			if (bill.cancelled !== "A") {
+				throw new BadRequestException(
+					"Venda não pode ser finalizada pois não está avaliada",
+					400,
+					"E_ERR",
+				);
 			}
 
 			await bill

@@ -341,37 +341,34 @@ export default class BillService {
 		const rows = await Database.from("bills")
 			.select(
 				Database.raw(
-					`p.description as produto, pi2.description as produtividade, te.schedule_date , te.execution_date , u."name" as usuario_execucao, bi.id`,
+					`bill_items.id as bid,
+       pi2.description   as item_produtividade,
+       te.treatment_id,
+       te.treatment_item_id,
+       te.id as vid,
+       te.schedule_date  as data_agendamento,
+       te.execution_date as data_execucao,
+       te.observations,
+       users.name        as usuario_execucao`,
 				),
 			)
-			.joinRaw("join bill_items bi on bills.id = bi.bill_id", [])
+			.joinRaw("join bill_items on bills.id = bill_items.bill_id", [])
 			.joinRaw(
-				"join product_variations pv on bi.product_variation_id = pv.id",
+				`left join (treatments t
+    join treatment_items ti on t.id = ti.treatment_id and t.business_unit_id = ti.business_unit_id
+    join treatment_executions te on ti.treatment_id = te.treatment_id and ti.id = te.treatment_item_id
+    join productivity_items pi2 on te.productivity_item_id = pi2.id
+    left join users on te.execution_user_id = users.id)
+                   on bills.business_unit_id = t.business_unit_id and bill_items.bill_id = t.bill_id and
+                      ti.bill_item_id = bill_items.id`,
 				[],
 			)
-			.joinRaw("join products p on p.id = pv.product_id", [])
-			.joinRaw("join treatments t on bills.id = t.bill_id", [])
-			.joinRaw(
-				"join treatment_items ti on t.id = ti.treatment_id and bi.id = ti.bill_item_id",
-				[],
-			)
-			.joinRaw(
-				"join treatment_executions te on ti.id = te.treatment_item_id and ti.treatment_id = te.treatment_id",
-				[],
-			)
-			.joinRaw(
-				"join productivity_items pi2 on te.productivity_item_id = pi2.id",
-				[],
-			)
-			.joinRaw("left join users u on u.id = te.execution_user_id", [])
-			.where("bills.economic_group_id", authCtx.group.id)
-			.where("bills.business_unit_id", authCtx.unit.id)
-			.whereRaw("bills.bill_date::date = now()::date", []);
+			.whereRaw("bills.id = ?", [id]);
 
 		const jsonBill = bill.toJSON();
 
 		jsonBill.items = jsonBill.items.map((bi) => {
-			bi.treatmentExecutions = rows.filter((ro) => bi.id === ro.id);
+			bi.treatmentExecutions = rows.filter((ro) => bi.id === ro.bid);
 			return bi;
 		});
 

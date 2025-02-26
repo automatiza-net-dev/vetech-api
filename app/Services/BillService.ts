@@ -4093,7 +4093,7 @@ where deposit_id = ?
 
 			if (bill.cancelled !== "A") {
 				throw new BadRequestException(
-					"Venda não pode ser finalizada pois não está avaliada",
+					"Venda não pode ser finalizada pois não foi avaliada pelo depto Tecnico e depto Financeiro",
 					400,
 					"E_ERR",
 				);

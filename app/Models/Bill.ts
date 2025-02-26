@@ -235,7 +235,7 @@ export default class Bill extends BaseModel {
 	public cancelDate: DateTime | null;
 
 	@column.dateTime({
-		columnName: "finishe_cancel_date",
+		columnName: "finish_cancel_date",
 		serializeAs: "finishCancelDate",
 	})
 	public finishCancelDate: DateTime | null;

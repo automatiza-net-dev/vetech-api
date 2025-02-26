@@ -239,6 +239,7 @@ export default class AuthController {
 					syncCrmSchedules: unit.unitConfig.syncCrmSchedules,
 					budgetsPaymentsRequired: unit.unitConfig.budgetsPaymentsRequired,
 				},
+				configs: unit.unitConfig.config,
 				phone: unit.phone,
 				fantasy_name: unit.fantasyName,
 				address: unit.address,

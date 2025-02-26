@@ -239,7 +239,7 @@ export default class FinanceService {
 			financesQb.where("nsuDocument", data.nsu);
 		}
 
-		if (data.status) {
+		if (data.status && data.status !== "all") {
 			financesQb.where("status", data.status);
 		} else {
 			financesQb.whereNot("status", FinanceStatus.E);

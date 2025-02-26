@@ -3993,30 +3993,47 @@ where deposit_id = ?
 				});
 			await Promise.all(paymentTasks);
 
-			const missingStuff = await Database.from("bill_items")
-				.useTransaction(trx)
-				.select("id")
-				.where("business_unit_id", authCtx.unit.id)
-				.where("bill_id", data.billId)
-				.where("cancelled", "P")
-				.whereNull("deleted_at")
-				.union((query) => {
-					query
-						.useTransaction(trx)
-						.select("id")
-						.from("bill_payments")
-						.where("business_unit_id", authCtx.unit.id)
-						.where("bill_id", data.billId)
-						.where("cancelled", "P")
-						.whereNull("deleted_at");
-				});
+			const billStatus: { status: "P" | "F" | "A"; order: number } | null =
+				await Database.from("bill_items")
+					.useTransaction(trx)
+					.select(Database.raw("'P' as status, 1 as ordem"))
+					.where("cancelled", "P")
+					.where("bill_id", bill.id)
+					.whereNull("deleted_at")
+					.union((query) => {
+						query
+							.from("bill_items")
+							.select(Database.raw("'F' as status, 3 as ordem"))
+							.whereIn("cancelled", ["S", "N"])
+							.where("bill_id", bill.id)
+							.whereNull("deleted_at");
+					})
+					.union((query) => {
+						query
+							.from("bill_items")
+							.select(Database.raw("'A' as status, 2 as ordem"))
+							.joinRaw(
+								"join bill_payments on bill_items.bill_id = bill_payments.bill_id",
+							)
+							.where("bill_items.bill_id", bill.id)
+							.whereRaw("coalesce(bill_items.cancelled, '') not in ('P')")
+							.whereRaw(
+								"coalesce(bill_payments.cancelled, '') not in ('P', '')",
+							)
+							.whereRaw("bill_items.deleted_at is null")
+							.whereRaw("bill_payments.deleted_at is null");
+					})
+					.orderByRaw("ordem")
+					.first();
 
-			await bill
-				.merge({
-					cancelled: missingStuff.length === 0 ? "A" : "P",
-				})
-				.useTransaction(trx)
-				.save();
+			if (billStatus) {
+				await bill
+					.merge({
+						cancelled: billStatus.status,
+					})
+					.useTransaction(trx)
+					.save();
+			}
 		});
 	}
 

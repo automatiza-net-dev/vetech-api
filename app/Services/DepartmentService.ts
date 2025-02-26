@@ -215,6 +215,59 @@ export default class DepartmentService {
 		return qb.firstOrFail();
 	}
 
+	async listDepartmentItems(
+		authCtx: AuthContext,
+		data: {
+			departmentId?: string;
+			description?: string;
+			active?: string;
+		},
+	) {
+		if (!data.departmentId) {
+			throw new BadRequestException(
+				"É preciso informar o departamento",
+				400,
+				"E_ERR",
+			);
+		}
+
+		const qb = Database.from("departments")
+			.select(
+				Database.raw(`departments.id,
+       departments.description,
+       COALESCE
+       (json_agg(
+        json_build_object('id', department_items.id, 'description', department_items.description, 'photo',
+                          department_items.photo, 'requiresObservation', department_items.requires_observation
+        )
+                ) FILTER (WHERE department_items.id IS NOT NULL),
+        '[]'::json) as items`),
+			)
+			.joinRaw(
+				"join department_items on departments.id = department_items.department_id and department_items.deleted_at is null",
+			)
+			.whereRaw(
+				"(departments.system_id = ? and departments.id = ? and departments.deleted_at is null)",
+				[authCtx.system.id, data.departmentId],
+			)
+			.groupBy("departments.id");
+
+		if (data.description) {
+			qb.whereRaw("department_items.description ilike ?", [
+				`%${data.description}%`,
+			]);
+		}
+
+		if (data.active === "Ativos") {
+			qb.whereRaw("department_items.active is true", []);
+		}
+		if (data.active === "Inativos") {
+			qb.whereRaw("department_items.active is not true", []);
+		}
+
+		return qb.firstOrFail();
+	}
+
 	async listDepartmentProductsForMovements(
 		authCtx: AuthContext,
 		data: {

@@ -35,6 +35,14 @@ export default class DepartmentsController {
 		return response.ok(data);
 	}
 
+	public async listItems({ auth, request, response }: HttpContextContract) {
+		const authCtx = await this.sharedService.getAuthContext(auth);
+
+		const data = await this.service.listDepartmentItems(authCtx, request.qs());
+
+		return response.ok(data);
+	}
+
 	public async listProductsMovements({
 		auth,
 		request,

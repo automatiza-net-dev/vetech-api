@@ -2015,6 +2015,7 @@ Route.group(() => {
 		"DepartmentsController.listProductsMovements",
 	);
 	Route.get("/list-products", "DepartmentsController.listProducts");
+	Route.get("/list-items", "DepartmentsController.listItems");
 	Route.get("/", "DepartmentsController.index");
 
 	Route.post("/store-products", "DepartmentsController.storeProducts");

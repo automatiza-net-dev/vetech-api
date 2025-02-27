@@ -1500,32 +1500,30 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 				},
 			]),
 			configs: {
-				option: {
-					xAxis: {
-						type: "category",
-						data: result.map((r) => r.periodo),
-					},
-					tooltip: {
-						trigger: "item",
-						formatter: "R$ {c}",
-					},
-					grid: {
-						show: false,
-						containLabel: false,
-					},
-					yAxis: {
-						type: "value",
-						tooltip: {
-							show: true,
-						},
-					},
-					series: [
-						{
-							data: result.map((r) => r.total_bills),
-							type: "bar",
-						},
-					],
+				xAxis: {
+					type: "category",
+					data: result.map((r) => r.periodo),
 				},
+				tooltip: {
+					trigger: "item",
+					formatter: "R$ {c}",
+				},
+				grid: {
+					show: false,
+					containLabel: false,
+				},
+				yAxis: {
+					type: "value",
+					tooltip: {
+						show: true,
+					},
+				},
+				series: [
+					{
+						data: result.map((r) => r.total_bills),
+						type: "bar",
+					},
+				],
 			},
 		};
 	}

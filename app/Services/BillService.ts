@@ -56,6 +56,7 @@ import DepositService from "./DepositService";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import PaymentMethodFlag from "App/Models/PaymentMethodFlag";
 import ScheduleMovementsService from "./ScheduleMovementsService";
+import BillItemDepartment from "App/Models/BillItemDepartment";
 
 interface ISearch {
 	fromBill?: string;
@@ -2381,7 +2382,7 @@ where deposit_id = ?
 			.where("user_unit_roles.user_id", authCtx.user.id)
 			.where("user_unit_roles.unit_id", authCtx.unit.id);
 
-		const tasks = data.items.map((item) => {
+		const tasks = data.items.map(async (item) => {
 			const variation = productVariations.find(
 				(variation) => variation.id === item.productVariationId,
 			) as ProductVariation;
@@ -2413,7 +2414,7 @@ where deposit_id = ?
 				? icmsStBase_1 - (icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
 				: 0;
 
-			return BillItem.create(
+			const bi = await BillItem.create(
 				{
 					economic_group_id: authCtx.group.id,
 					business_unit_id: authCtx.unit.id,
@@ -2511,6 +2512,24 @@ where deposit_id = ?
 					client: trx,
 				},
 			);
+
+			if (item.departmentId && item.departmentItemId) {
+				await BillItemDepartment.create(
+					{
+						bill_id: bill.id,
+						bill_item_id: bi.id,
+						department_id: item.departmentId,
+						department_item_id: item.departmentId,
+						creation_user_id: authCtx.user.id,
+
+						observation: item.observation,
+						createdAt: DateTime.now(),
+					},
+					{
+						client: trx,
+					},
+				);
+			}
 		});
 
 		await Promise.all(tasks);

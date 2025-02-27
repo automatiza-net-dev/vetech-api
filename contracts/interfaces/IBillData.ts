@@ -16,6 +16,9 @@ export interface ICreateBillData {
 		courtesy?: boolean;
 		maxDiscount?: boolean;
 		approved?: boolean;
+		departmentId?: number;
+		departmentItemId?: number;
+		observation?: string;
 	}>;
 
 	additionalInformation?: string;

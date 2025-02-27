@@ -1425,6 +1425,7 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 			.joinRaw(
 				"join economic_groups eg on business_units.economic_group_id = eg.id",
 			)
+			.whereRaw("business_units.environment = 'P'", [])
 			.whereRaw("eg.system_id = ?", [authCtx.systemID])
 			.whereRaw("bills.deleted_at is null", [])
 			.whereRaw(
@@ -1440,12 +1441,12 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 			qb.whereIn("bills.business_unit_id", data.units);
 		}
 
-		if (data.fromDate && data.toDate) {
-			qb.whereRaw("bill_date::date between ? and ?", [
-				data.fromDate,
-				data.toDate,
-			]);
-		}
+		// if (data.fromDate && data.toDate) {
+		// 	qb.whereRaw("bill_date::date between ? and ?", [
+		// 		data.fromDate,
+		// 		data.toDate,
+		// 	]);
+		// }
 
 		const result: {
 			periodo: string;
@@ -1500,32 +1501,30 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 				},
 			]),
 			configs: {
-				option: {
-					xAxis: {
-						type: "category",
-						data: result.map((r) => r.periodo),
-					},
-					tooltip: {
-						trigger: "item",
-						formatter: "R$ {c}",
-					},
-					grid: {
-						show: false,
-						containLabel: false,
-					},
-					yAxis: {
-						type: "value",
-						tooltip: {
-							show: true,
-						},
-					},
-					series: [
-						{
-							data: result.map((r) => r.total_bills),
-							type: "bar",
-						},
-					],
+				xAxis: {
+					type: "category",
+					data: result.map((r) => r.periodo),
 				},
+				tooltip: {
+					trigger: "item",
+					formatter: "R$ {c}",
+				},
+				grid: {
+					show: false,
+					containLabel: false,
+				},
+				yAxis: {
+					type: "value",
+					tooltip: {
+						show: true,
+					},
+				},
+				series: [
+					{
+						data: result.map((r) => r.total_bills),
+						type: "bar",
+					},
+				],
 			},
 		};
 	}

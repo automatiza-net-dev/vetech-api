@@ -343,17 +343,18 @@ export default class TreatmentService {
 				);
 			}
 
-			await execution
-				.merge({
+			await TreatmentExecution.query()
+				.useTransaction(trx)
+				.where("treatment_id", execution.treatment_id)
+				.where("treatment_item_id", execution.treatment_item_id)
+				.where("id", data.executionId)
+				.update({
 					execution_user_id: authCtx.user.id,
-
 					quantityExecuted: data.quantity,
 					executionDate: data.executionDate,
 					observations: data.observations,
 					status: "Confirmado",
-				})
-				.useTransaction(trx)
-				.save();
+				});
 
 			await TreatmentItem.query()
 				.where("treatment_id", execution.treatment_id)

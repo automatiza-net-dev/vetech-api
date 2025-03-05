@@ -86,5 +86,8 @@ export interface IUpdateBillData {
 		courtesy: boolean;
 		maxDiscount?: boolean;
 		// shouldValidateDiscount?: boolean;
+		departmentId?: number;
+		departmentItemId?: number;
+		observation?: string;
 	}[];
 }

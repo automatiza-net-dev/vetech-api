@@ -61,6 +61,14 @@ export default class UpdateBillValidator {
 				courtesy: schema.boolean(),
 				maxDiscount: schema.boolean(),
 				approved: schema.boolean.optional([]),
+
+				departmentId: schema.number.optional([
+					rules.exists({ table: "departments", column: "id" }),
+				]),
+				departmentItemId: schema.number.optional([
+					rules.exists({ table: "department_items", column: "id" }),
+				]),
+				observation: schema.string.optional(),
 			}),
 		),
 	});

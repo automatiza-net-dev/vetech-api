@@ -587,51 +587,89 @@ export default class BillService {
 							);
 						}
 
-						return elem.billItemId
-							? BillItem.query()
-									.useTransaction(trx)
-									.where("bill_id", bill.id)
-									.where("id", elem.billItemId)
-									.update({
-										courtesy_issued_user_id: elem.courtesy
-											? authCtx.user.id
-											: undefined, // mantém valor anterior
+						if (elem.billItemId) {
+							await BillItem.query()
+								.useTransaction(trx)
+								.where("bill_id", bill.id)
+								.where("id", elem.billItemId)
+								.update({
+									courtesy_issued_user_id: elem.courtesy
+										? authCtx.user.id
+										: undefined, // mantém valor anterior
 
-										courtesy: elem.courtesy,
-										max_discount: elem.maxDiscount,
-										// saleValue: new Decimal(elem.saleValue ?? 0).toNumber(),
-										unitaryValue: elem.courtesy ? 0 : elem.unitaryValue,
-										discountValue: elem.courtesy ? 0 : elem.discountValue,
-										quantity: new Decimal(elem.quantity).toNumber(),
-										totalValue: elem.courtesy
-											? 0
-											: elem.quantity * elem.unitaryValue - elem.discountValue,
-									} as Partial<
-										Omit<BillItem, "quantity"> & { quantity: number }
-									>)
-							: BillItem.create(
+									courtesy: elem.courtesy,
+									max_discount: elem.maxDiscount,
+									// saleValue: new Decimal(elem.saleValue ?? 0).toNumber(),
+									unitaryValue: elem.courtesy ? 0 : elem.unitaryValue,
+									discountValue: elem.courtesy ? 0 : elem.discountValue,
+									quantity: new Decimal(elem.quantity).toNumber(),
+									totalValue: elem.courtesy
+										? 0
+										: elem.quantity * elem.unitaryValue - elem.discountValue,
+								} as Partial<
+									Omit<BillItem, "quantity"> & { quantity: number }
+								>);
+							if (elem.departmentId && elem.departmentItemId) {
+								await BillItemDepartment.updateOrCreate(
 									{
-										economic_group_id: authCtx.group.id,
-										business_unit_id: authCtx.unit.id,
-										product_variation_id: elem.productVariationId,
-										courtesy_issued_user_id: elem.courtesy
-											? authCtx.user.id
-											: null,
 										bill_id: bill.id,
-
-										courtesy: elem.courtesy,
-										maxDiscount: elem.maxDiscount,
-										unitaryValue: elem.courtesy ? 0 : elem.unitaryValue,
-										discountValue: elem.courtesy ? 0 : elem.discountValue,
-										// saleValue: new Decimal(elem.saleValue ?? 0).toNumber(),
-										quantity: new Decimal(elem.quantity),
-										totalValue: elem.courtesy
-											? 0
-											: elem.quantity * elem.unitaryValue - elem.discountValue,
-										status: BillItemStatus.A,
+										bill_item_id: elem.billItemId,
 									},
-									{ client: trx },
+									{
+										department_id: elem.departmentId,
+										department_item_id: elem.departmentId,
+										creation_user_id: authCtx.user.id,
+										updated_user_id: authCtx.user.id,
+
+										observation: elem.observation,
+										createdAt: DateTime.now(),
+									},
+									{
+										client: trx,
+									},
 								);
+							}
+							return;
+						}
+
+						const bi = await BillItem.create(
+							{
+								economic_group_id: authCtx.group.id,
+								business_unit_id: authCtx.unit.id,
+								product_variation_id: elem.productVariationId,
+								courtesy_issued_user_id: elem.courtesy ? authCtx.user.id : null,
+								bill_id: bill.id,
+
+								courtesy: elem.courtesy,
+								maxDiscount: elem.maxDiscount,
+								unitaryValue: elem.courtesy ? 0 : elem.unitaryValue,
+								discountValue: elem.courtesy ? 0 : elem.discountValue,
+								// saleValue: new Decimal(elem.saleValue ?? 0).toNumber(),
+								quantity: new Decimal(elem.quantity),
+								totalValue: elem.courtesy
+									? 0
+									: elem.quantity * elem.unitaryValue - elem.discountValue,
+								status: BillItemStatus.A,
+							},
+							{ client: trx },
+						);
+						if (elem.departmentId && elem.departmentItemId) {
+							await BillItemDepartment.create(
+								{
+									bill_id: bill.id,
+									bill_item_id: bi.id,
+									department_id: elem.departmentId,
+									department_item_id: elem.departmentId,
+									creation_user_id: authCtx.user.id,
+
+									observation: elem.observation,
+									createdAt: DateTime.now(),
+								},
+								{
+									client: trx,
+								},
+							);
+						}
 					})
 				: [];
 			await Promise.all(tasks);
@@ -643,7 +681,7 @@ export default class BillService {
 					seller_id: data.sellerId,
 					client_id: data.clientId,
 					patient_id: data.patientId,
-					financial_responsible_id: data.financialResponsibleId ?? null,
+					financial_responsible_id: data.financialResponsibleId,
 					additionalInformation: data.additionalInformation,
 					internalCode: data.internalCode,
 				})

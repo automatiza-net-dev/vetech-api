@@ -1162,6 +1162,13 @@ where deposit_id = ?
 			)
 				.useTransaction(trx)
 				.exec();
+
+			await Database.rawQuery(
+				"update bill_item_departments set deleted_at = now(), deleted_user_id = ? where bill_item_id = ?",
+				[authCtx.user.id, id],
+			)
+				.useTransaction(trx)
+				.exec();
 		});
 	}
 

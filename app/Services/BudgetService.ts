@@ -2197,14 +2197,14 @@ export default class BudgetService {
 				throw this.sharedService.ResourceNotFound();
 			}
 
-			const sum = this.sharedService.sum(
-				data.items.map((elem) => elem.totalValue),
+			const sum = data.items.reduce(
+				(acc, curr) => acc.plus(new Decimal(curr.totalValue)),
+				new Decimal(0),
 			);
 			const decimalTotal = new Decimal(budget.totalValue);
-			const decimalSum = new Decimal(sum);
 			const decimalPaid = new Decimal(budget.paidValue);
 
-			if (decimalTotal.minus(decimalPaid).lessThan(decimalSum)) {
+			if (decimalTotal.minus(decimalPaid).lessThan(sum)) {
 				throw new BadRequestException(
 					"Valores adicionais acima do valor total do orçamento",
 					400,

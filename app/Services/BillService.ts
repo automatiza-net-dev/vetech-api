@@ -342,11 +342,11 @@ export default class BillService {
 		const rows = await Database.from("bills")
 			.select(
 				Database.raw(
-					`bill_items.id as bid,
+					`bill_items.id as billitemid,
        pi2.description   as item_produtividade,
        te.treatment_id,
        te.treatment_item_id,
-       te.id as vid,
+       te.id as treatmentexecutionid,
        te.schedule_date  as data_agendamento,
        te.execution_date as data_execucao,
        te.observations,
@@ -369,7 +369,9 @@ export default class BillService {
 		const jsonBill = bill.toJSON();
 
 		jsonBill.items = jsonBill.items.map((bi) => {
-			bi.treatmentExecutions = rows.filter((ro) => bi.id === ro.bid);
+			bi.treatmentExecutions = rows.filter(
+				(ro) => bi.id === ro.billitemid && !!ro.treatment_id,
+			);
 			return bi;
 		});
 

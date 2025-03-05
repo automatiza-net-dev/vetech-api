@@ -21,6 +21,7 @@ import ApproveBillCourtesyMaxDiscountValidator from "App/Validators/Bill/Approve
 import RequestBillCancellationValidator from "App/Validators/Bill/RequestBillCancellationValidator";
 import ReviewBillCancellationValidator from "App/Validators/Bill/ReviewBillCancellationValidator";
 import FinishBillCancellationValidator from "App/Validators/Bill/FinishBillCancellationValidator";
+import DeleteItemDepartmentValidator from "App/Validators/Bill/DeleteItemDepartmentValidator";
 
 @inject()
 export default class BillsController {
@@ -462,6 +463,19 @@ export default class BillsController {
 		const payload = await request.validate(FinishBillCancellationValidator);
 
 		await this.service.finishBillCancellation(authCtx, payload);
+
+		return response.ok(null);
+	}
+
+	public async deleteItemDepartments({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const authCtx = await this.sharedService.getAuthContext(auth);
+		const payload = await request.validate(DeleteItemDepartmentValidator);
+
+		await this.service.deleteItemDepartments(authCtx, payload);
 
 		return response.ok(null);
 	}

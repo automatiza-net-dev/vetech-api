@@ -4170,6 +4170,28 @@ where deposit_id = ?
 		});
 	}
 
+	async deleteItemDepartments(
+		authCtx: AuthContext,
+		data: {
+			billId: string;
+			billItemId: string;
+			billItemDepartmentId: number;
+			departmentId: number;
+			departmentItemId: number;
+		},
+	) {
+		await BillItemDepartment.query()
+			.where("id", data.billItemDepartmentId)
+			.where("bill_id", data.billId)
+			.where("bill_item_id", data.billItemId)
+			.where("department_id", data.departmentId)
+			.where("department_item_id", data.departmentItemId)
+			.update({
+				deleted_user_id: authCtx.user.id,
+				deletedAt: DateTime.now(),
+			});
+	}
+
 	private async syncBillPendingAndSum(
 		trx: TransactionClientContract,
 		bill: Bill,

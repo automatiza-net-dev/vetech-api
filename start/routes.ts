@@ -1082,6 +1082,10 @@ Route.group(() => {
 	Route.put("/close-bill/:id", "BillsController.closeBill");
 	Route.put("/reopen-bill/:id", "BillsController.reopenBill");
 	Route.put("/update-expiration", "BillsController.updatePaymentExpiration");
+	Route.put(
+		"/delete-item-departments",
+		"BillsController.deleteItemDepartments",
+	);
 	Route.delete("/delete-payment/:id", "BillsController.deleteBillPayment");
 	Route.delete(
 		"/delete-payment-block",

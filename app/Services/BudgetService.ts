@@ -2321,7 +2321,7 @@ export default class BudgetService {
 
 			await budget
 				.merge({
-					paidValue: decimalPaid.plus(decimalSum).toNumber(),
+					paidValue: decimalPaid.plus(sum).toNumber(),
 					// continua pendente ou fica pendente se algo tá pendente
 					pending: budget.pending || result.some((r) => r.pending),
 				})

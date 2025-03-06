@@ -6,6 +6,7 @@ import Database, {
 	TransactionClientContract,
 } from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
+import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import BusinessUnit from "App/Models/BusinessUnit";
 import BusinessUnitCheckingAccountPaymentMethod from "App/Models/BusinessUnitCheckingAccountPaymentMethod";
 import { BusinessUnitFiscalDocumentMovementType } from "App/Models/BusinessUnitFiscalDocument";
@@ -2731,6 +2732,65 @@ and product_variation_id in (
 					.save();
 			});
 			await Promise.all(tasks);
+		});
+	}
+
+	async excludeReceipt(
+		authCtx: AuthContext,
+		data: {
+			receiptId: string;
+		},
+	) {
+		// if (!authCtx.hasPermission("ENT09")) {
+		// 	throw new UnauthorizedException("Usuário sem permissão", 401, "E_ERR");
+		// }
+
+		await Database.transaction(async (trx) => {
+			const receipt = await Receipt.query()
+				.useTransaction(trx)
+				// .preload("payments", (query) => {
+				// 	query.preload("finance");
+				// })
+				.where("id", data.receiptId)
+				.where("business_unit_id", authCtx.unit.id)
+				.firstOrFail();
+
+			if (receipt.status !== "Baixada") {
+				throw new BadRequestException(
+					"Apenas notas baixadas podem ser excluídas",
+					400,
+					"E_ERR",
+				);
+			}
+
+			// TODO: validar financeiro
+			await receipt
+				.merge({
+					deleted_user_id: authCtx.user.id,
+					status: "Excluida",
+					deletedAt: DateTime.now(),
+				})
+				.useTransaction(trx)
+				.save();
+
+			// await ReceiptItem.create({
+			// 	disabled_user_id: authCtx.user.id,
+			// 	status: "Excluido",
+			// 	disabledDate: DateTime.now(),
+			// });
+			// await ReceiptPayment.create({
+			// 	deleted_user_id: authCtx.user.id,
+			// 	status: "Excluido",
+			// 	deletedAt: DateTime.now(),
+			// });
+			// await IssuedFiscalDocument.create({
+			// 	deleted_user_id: authCtx.user.id,
+			// 	deletedAt: DateTime.now(),
+			// });
+			// await Finance.create({
+			// 	exclusion_user_id: authCtx.user.id,
+			// 	expirationDate: DateTime.now(),
+			// });
 		});
 	}
 

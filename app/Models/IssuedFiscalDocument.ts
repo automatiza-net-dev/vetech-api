@@ -261,6 +261,11 @@ export default class IssuedFiscalDocument extends BaseModel {
 	})
 	public fiscal_document_id: string;
 
+	@column({
+		serializeAs: null,
+	})
+	public deleted_user_id: string | null;
+
 	@hasMany(() => CorrectedFiscalDocument, {
 		foreignKey: "fiscal_document_id",
 	})

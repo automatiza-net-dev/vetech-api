@@ -1,8 +1,16 @@
-import { BaseModel, BelongsTo, belongsTo, column } from "@ioc:Adonis/Lucid/Orm";
+import {
+	BaseModel,
+	beforeFetch,
+	beforeFind,
+	BelongsTo,
+	belongsTo,
+	column,
+} from "@ioc:Adonis/Lucid/Orm";
 import PaymentMethod from "App/Models/PaymentMethod";
 import Receipt from "App/Models/Receipt";
 import TefAcquirer from "App/Models/TefAcquirer";
 import TefFlag from "App/Models/TefFlag";
+import { softDeleteQuery } from "App/Services/SoftDelete";
 import { DateTime } from "luxon";
 import { v4 } from "uuid";
 
@@ -58,6 +66,15 @@ export default class ReceiptPayment extends BaseModel {
 	@column.dateTime({ autoCreate: true, autoUpdate: true })
 	public updatedAt: DateTime;
 
+	@column.dateTime({ serializeAs: null })
+	public deletedAt: DateTime;
+
+	@beforeFind()
+	public static softDeletesFind = softDeleteQuery;
+
+	@beforeFetch()
+	public static softDeletesFetch = softDeleteQuery;
+
 	@column({
 		serializeAs: null,
 	})
@@ -82,6 +99,11 @@ export default class ReceiptPayment extends BaseModel {
 		serializeAs: null,
 	})
 	public conference_user_id: string;
+
+	@column({
+		serializeAs: null,
+	})
+	public deleted_user_id: string | null;
 
 	@column({
 		serializeAs: null,

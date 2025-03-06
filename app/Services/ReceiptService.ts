@@ -2773,20 +2773,35 @@ and product_variation_id in (
 				.useTransaction(trx)
 				.save();
 
-			// await ReceiptItem.create({
-			// 	disabled_user_id: authCtx.user.id,
-			// 	status: "Excluido",
-			// 	disabledDate: DateTime.now(),
-			// });
-			// await ReceiptPayment.create({
-			// 	deleted_user_id: authCtx.user.id,
-			// 	status: "Excluido",
-			// 	deletedAt: DateTime.now(),
-			// });
-			// await IssuedFiscalDocument.create({
-			// 	deleted_user_id: authCtx.user.id,
-			// 	deletedAt: DateTime.now(),
-			// });
+			await ReceiptItem.query()
+				.useTransaction(trx)
+				.where("receipt_id", receipt.id)
+				.whereNot("status", "Excluido")
+				.update({
+					disabled_user_id: authCtx.user.id,
+					status: "Excluido",
+					disabledDate: DateTime.now(),
+				});
+
+			await ReceiptPayment.query()
+				.useTransaction(trx)
+				.where("receipt_id", receipt.id)
+				.whereNot("status", "Excluido")
+				.update({
+					deleted_user_id: authCtx.user.id,
+					status: "Excluido",
+					deletedAt: DateTime.now(),
+				});
+
+			await IssuedFiscalDocument.query()
+				.useTransaction(trx)
+				.where("bill_id", receipt.id)
+				.whereNull("deleted_at")
+				.update({
+					deleted_user_id: authCtx.user.id,
+					deletedAt: DateTime.now(),
+				});
+
 			// await Finance.create({
 			// 	exclusion_user_id: authCtx.user.id,
 			// 	expirationDate: DateTime.now(),

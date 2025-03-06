@@ -2748,9 +2748,7 @@ and product_variation_id in (
 		await Database.transaction(async (trx) => {
 			const receipt = await Receipt.query()
 				.useTransaction(trx)
-				// .preload("payments", (query) => {
-				// 	query.preload("finance");
-				// })
+				.preload("payments")
 				.where("id", data.receiptId)
 				.where("business_unit_id", authCtx.unit.id)
 				.firstOrFail();
@@ -2763,7 +2761,21 @@ and product_variation_id in (
 				);
 			}
 
-			// TODO: validar financeiro
+			const invalidFinances = await Finance.query()
+				.useTransaction(trx)
+				.whereIn(
+					"origin_id",
+					receipt.payments.map((r) => r.id),
+				)
+				.whereNull("exclusion_user_id");
+			if (invalidFinances.some((p) => p.status !== FinanceStatus.A)) {
+				throw new BadRequestException(
+					"Registros financeiros precisam estar abertos",
+					400,
+					"E_ERR",
+				);
+			}
+
 			await receipt
 				.merge({
 					deleted_user_id: authCtx.user.id,
@@ -2802,10 +2814,17 @@ and product_variation_id in (
 					deletedAt: DateTime.now(),
 				});
 
-			// await Finance.create({
-			// 	exclusion_user_id: authCtx.user.id,
-			// 	expirationDate: DateTime.now(),
-			// });
+			await Finance.query()
+				.useTransaction(trx)
+				.whereRaw(
+					`origin_id in (select id from receipt_payments where receipt_id = ? and status <> 'Excluido')`,
+					[receipt.id],
+				)
+				.whereNull("exclusion_user_id")
+				.update({
+					exclusion_user_id: authCtx.user.id,
+					expirationDate: DateTime.now(),
+				});
 		});
 	}
 

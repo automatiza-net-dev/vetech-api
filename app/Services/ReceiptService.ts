@@ -2795,6 +2795,18 @@ and product_variation_id in (
 					disabledDate: DateTime.now(),
 				});
 
+			await Finance.query()
+				.useTransaction(trx)
+				.whereRaw(
+					`origin_id in (select id from receipt_payments where receipt_id = ? and status <> 'Excluido')`,
+					[receipt.id],
+				)
+				.whereNull("exclusion_user_id")
+				.update({
+					exclusion_user_id: authCtx.user.id,
+					expirationDate: DateTime.now(),
+				});
+
 			await ReceiptPayment.query()
 				.useTransaction(trx)
 				.where("receipt_id", receipt.id)
@@ -2812,18 +2824,6 @@ and product_variation_id in (
 				.update({
 					deleted_user_id: authCtx.user.id,
 					deletedAt: DateTime.now(),
-				});
-
-			await Finance.query()
-				.useTransaction(trx)
-				.whereRaw(
-					`origin_id in (select id from receipt_payments where receipt_id = ? and status <> 'Excluido')`,
-					[receipt.id],
-				)
-				.whereNull("exclusion_user_id")
-				.update({
-					exclusion_user_id: authCtx.user.id,
-					expirationDate: DateTime.now(),
 				});
 		});
 	}

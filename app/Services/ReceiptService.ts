@@ -2741,9 +2741,9 @@ and product_variation_id in (
 			receiptId: string;
 		},
 	) {
-		// if (!authCtx.hasPermission("ENT09")) {
-		// 	throw new UnauthorizedException("Usuário sem permissão", 401, "E_ERR");
-		// }
+		if (!authCtx.hasPermission("ENT09")) {
+			throw new UnauthorizedException("Usuário sem permissão", 401, "E_ERR");
+		}
 
 		await Database.transaction(async (trx) => {
 			const receipt = await Receipt.query()

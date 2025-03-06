@@ -438,19 +438,19 @@ const schema = z.object({
 					modFrete: z.string(),
 					vol: z.optional(z.object({ qVol: z.string().optional() })),
 				}),
-				cobr: z.optional(
-					z.object({
-						fat: z.optional(
-							z.object({
-								nFat: z.string(),
-								vOrig: z.string(),
-								vDesc: z.string(),
-								vLiq: z.coerce.number(),
-							}),
-						),
-						dup: z.union([z.array(dupSchema), z.optional(dupSchema)]),
-					}),
-				),
+				// cobr: z.optional(
+				// 	z.object({
+				// 		fat: z.optional(
+				// 			z.object({
+				// 				nFat: z.string(),
+				// 				vOrig: z.string(),
+				// 				vDesc: z.string(),
+				// 				vLiq: z.coerce.number(),
+				// 			}),
+				// 		),
+				// 		dup: z.union([z.array(dupSchema), z.optional(dupSchema)]),
+				// 	}),
+				// ),
 				// pag: z.object({
 				// 	detPag: z.object({
 				// 		tPag: z.string(),

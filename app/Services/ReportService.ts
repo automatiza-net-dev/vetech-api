@@ -1241,7 +1241,7 @@ ON bills.patient_id = Dep."id"`,
         case when pa.death then 'Sim' else 'Não' end                             as obito_Paciente,
         case when pa.death then pa.death_date end                                as data_Obito_Paciente,
         schedules.creation_user_id,
-        uCriador.name as creator_user_name
+        uCriador.name as creation_user_name
     `),
 			)
 			.joinRaw(

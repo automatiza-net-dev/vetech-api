@@ -86,15 +86,17 @@ export default class BusinessUnitsController {
 		request,
 		response,
 	}: HttpContextContract) {
-		const payload = await request.validate(
-			CreateBusinessUnitCollaboratorValidator,
-		);
-		await this.service.createCollaborator(
-			await this.sharedService.getAuthContext(auth),
-			payload,
-		);
+		await this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(
+				CreateBusinessUnitCollaboratorValidator,
+			);
+			await this.service.createCollaborator(
+				await this.sharedService.getAuthContext(auth),
+				payload,
+			);
 
-		return response.created();
+			return response.created();
+		});
 	}
 
 	public async update({ params, request, response }: HttpContextContract) {

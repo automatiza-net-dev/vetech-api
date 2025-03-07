@@ -75,11 +75,7 @@ export default class UserService {
 
 	public async store(data: ICreateUser) {
 		return Database.transaction(async (trx) => {
-			const { systemName, ...userData } = data;
-
-			const system = await System.query()
-				.where("name", "ilike", `%${systemName}%`)
-				.first();
+			const system = await System.query().where("id", data.systemId).first();
 
 			if (!system) {
 				throw new BadRequestException(
@@ -111,7 +107,7 @@ export default class UserService {
 
 			const existingUser = await User.query()
 				.useTransaction(trx)
-				.whereILike("email", `%${userData.email}%`)
+				.whereILike("email", `%${data.email}%`)
 				.where("system_id", system.id)
 				.first();
 			if (existingUser) {
@@ -123,7 +119,7 @@ export default class UserService {
 			}
 
 			const user = await User.create(
-				{ ...userData, system_id: system.id, type: "user" },
+				{ ...data, system_id: system.id, type: "user" },
 				{
 					client: trx,
 				},

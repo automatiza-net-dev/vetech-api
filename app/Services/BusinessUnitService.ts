@@ -257,6 +257,7 @@ export default class BusinessUnitService {
 	public async createCollaborator(
 		authCtx: AuthContext,
 		props: {
+			systemId: number;
 			roleId: number;
 			name: string;
 			email: string;
@@ -273,7 +274,7 @@ export default class BusinessUnitService {
 			const userAlreadyExists = await User.query()
 				.useTransaction(trx)
 				.whereRaw("lower(email) = lower(?)", [props.email])
-				.where("system_id", unit.economicGroup.system_id)
+				.where("system_id", props.systemId)
 				.first();
 
 			if (userAlreadyExists) {
@@ -289,7 +290,7 @@ export default class BusinessUnitService {
 					name: props.name,
 					email: props.email,
 					password: props.password,
-					system_id: authCtx.system.id,
+					system_id: props.systemId,
 					type: "user",
 				},
 				{

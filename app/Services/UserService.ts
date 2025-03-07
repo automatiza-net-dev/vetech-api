@@ -730,8 +730,11 @@ export default class UserService {
 		return user;
 	}
 
-	public async checkExistingEmail(email: string) {
-		const user = await User.findBy("email", email);
+	public async checkExistingEmail(data: { email: string; systemId: string }) {
+		const user = await User.query()
+			.where("system_id", data.systemId)
+			.where("email", data.email)
+			.first();
 		if (!user) {
 			return {
 				exists: false,
@@ -739,7 +742,7 @@ export default class UserService {
 			};
 		}
 		const token = await ConfirmationToken.query()
-			.where("email", email)
+			.where("email", user.email)
 			.where("expires_at", ">", new Date())
 			.where("active", true)
 			.first();

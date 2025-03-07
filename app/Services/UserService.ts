@@ -805,31 +805,26 @@ export default class UserService {
 			.toString()
 			.padStart(6, "0");
 
-		const existing = await ConfirmationToken.findBy("code", code);
-		if (!existing) {
-			await ConfirmationToken.create({
-				system_id: data.systemId,
-				name: data.name,
-				phone: data.phone,
-				code,
-				email: data.email,
-				expiresAt: DateTime.now().plus({ hour: 1 }),
-			});
-			await Mail.send((message) => {
-				message
-					.from("sysvetech@gmail.com")
-					.to(data.email)
-					.subject("Confirmação de email")
-					.htmlView("emails/confirmation_code", {
-						name: data.name,
-						code,
-					});
-			});
+		await ConfirmationToken.create({
+			system_id: data.systemId,
+			name: data.name,
+			phone: data.phone,
+			code,
+			email: data.email,
+			expiresAt: DateTime.now().plus({ hour: 1 }),
+		});
+		await Mail.send((message) => {
+			message
+				.from("sysvetech@gmail.com")
+				.to(data.email)
+				.subject("Confirmação de email")
+				.htmlView("emails/confirmation_code", {
+					name: data.name,
+					code,
+				});
+		});
 
-			return 1;
-		}
-
-		return this.createConfirmationToken(data);
+		return 1;
 	}
 
 	public async confirmConfirmationToken(

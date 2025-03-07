@@ -830,6 +830,7 @@ export default class UserService {
 		const existing = await ConfirmationToken.findBy("code", code);
 		if (!existing) {
 			await ConfirmationToken.create({
+				system_id: data.systemId,
 				name: data.name,
 				phone: data.phone,
 				code,

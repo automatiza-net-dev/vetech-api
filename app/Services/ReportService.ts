@@ -1239,29 +1239,32 @@ ON bills.patient_id = Dep."id"`,
         pac.weight                                                               as peso_Paciente,
         pac.vaccine_origin                                                       as vacinado,
         case when pa.death then 'Sim' else 'Não' end                             as obito_Paciente,
-        case when pa.death then pa.death_date end                                as data_Obito_Paciente
+        case when pa.death then pa.death_date end                                as data_Obito_Paciente,
+        schedules.creation_user_id,
+        uCriador.name
     `),
 			)
 			.joinRaw(
-				`join business_units on schedules.business_unit_id = business_units.id`,
+				"join business_units on schedules.business_unit_id = business_units.id",
 			)
 			.joinRaw(
-				`join economic_groups on business_units.economic_group_id = economic_groups.id and economic_groups.system_id = ?`,
+				"join economic_groups on business_units.economic_group_id = economic_groups.id and economic_groups.system_id = ?",
 				[authCtx.system.id],
 			)
 			.joinRaw(
-				`join schedule_service_types on schedules.schedule_service_type_id = schedule_service_types.id`,
+				"join schedule_service_types on schedules.schedule_service_type_id = schedule_service_types.id",
 			)
 			.joinRaw(
-				`join schedule_statuses on schedules.schedule_status_id = schedule_statuses.id`,
+				"join schedule_statuses on schedules.schedule_status_id = schedule_statuses.id",
 			)
-			.joinRaw(`join users uResponsavel on schedules.user_id = uResponsavel.id`)
-
+			.joinRaw("join users uResponsavel on schedules.user_id = uResponsavel.id")
 			.joinRaw(
-				`left join users uCanc on schedules.cancellation_user_id = ucanc.id`,
+				"left join users uCriador on schedules.creation_user_id = uCriador.id",
 			)
-
-			.joinRaw(`left join reasons on schedules.reason_id = reasons.id`);
+			.joinRaw(
+				"left join users uCanc on schedules.cancellation_user_id = ucanc.id",
+			)
+			.joinRaw("left join reasons on schedules.reason_id = reasons.id");
 
 		if (authCtx.unit.unitConfig.requiresScheduleTutor) {
 			qb.joinRaw(`join (patients tutor join

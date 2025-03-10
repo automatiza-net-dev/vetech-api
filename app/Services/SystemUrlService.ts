@@ -7,13 +7,13 @@ export default class SystemUrlService {
 		return Database.from("systems")
 			.select(
 				Database.raw(
-					"systems.id, systems.name, systems.type, systems.colors, su.url, su.primary_color, su.secondary_color, su.home_image_url, su.logo_url",
+					"systems.id, systems.name, systems.type, systems.colors, system_urls.url, system_urls.primary_color, system_urls.secondary_color, system_urls.home_image_url, system_urls.logo_url",
 				),
 			)
 			.joinRaw("join system_urls su on systems.id = su.system_id")
-			.whereRaw("systems.active is active")
-			.whereRaw("su.active is active")
-			.whereRaw("su.url = ?", [data.url])
+			.whereRaw("systems.active is true")
+			.whereRaw("system_urls.active is true")
+			.whereRaw("system_urls.url = ?", [data.url])
 			.firstOrFail();
 	}
 }

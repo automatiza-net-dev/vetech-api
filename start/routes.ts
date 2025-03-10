@@ -1234,8 +1234,8 @@ Route.group(() => {
 	.middleware("auth");
 
 Route.group(() => {
-	Route.post("/search", "SystemUrlsController.search");
-}).prefix("urls");
+	Route.post("/identification", "SystemUrlsController.search");
+}).prefix("systems");
 
 Route.group(() => {
 	Route.get(

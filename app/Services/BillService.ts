@@ -132,8 +132,16 @@ export default class BillService {
                   and (approved = false and courtesy_approved_at is not null)
                   and deleted_at is null
                   and bill_items.bill_id = bills.id
+                group by bill_id
+                union
+                select true
+                from bill_payments
+                where (bill_payments.approved is false)
+                  and (bill_payments.approved_at is not null)
+                  and bill_payments.deleted_at is null
+                  and bill_payments.bill_id = bills.id
                 group by bill_id) = true then 'Nao Aprovada'
-           else bills.status end                                 as status,
+           else bills.status end as status,
        bills.created_at,
        bills.updated_at,
        bills.tag,

@@ -53,6 +53,7 @@ export default class ReviewBillCancellationValidator {
 				note: schema.string(),
 			}),
 		),
+		noPayments: schema.boolean.optional(),
 	});
 
 	/**

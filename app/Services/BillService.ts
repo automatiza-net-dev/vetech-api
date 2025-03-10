@@ -3933,6 +3933,7 @@ where deposit_id = ?
 			billId: string;
 			billItems: { id: string; cancelled: boolean; note: string }[];
 			billPayments: { id: string; cancelled: boolean; note: string }[];
+			noPayments?: boolean;
 		},
 	) {
 		const user = await User.query()
@@ -4027,6 +4028,20 @@ where deposit_id = ?
 						.save();
 				});
 			await Promise.all(itemTasks);
+
+			if (
+				bill.cancelled === "F" &&
+				data.billPayments.length === 0 &&
+				data.noPayments
+			) {
+				await bill
+					.merge({
+						cancelled: "A",
+					})
+					.useTransaction(trx)
+					.save();
+				return;
+			}
 
 			const paymentTasks = bill.payments
 				.filter((elem) => data.billPayments.find((bi) => bi.id === elem.id))

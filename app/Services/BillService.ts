@@ -57,6 +57,7 @@ import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import PaymentMethodFlag from "App/Models/PaymentMethodFlag";
 import ScheduleMovementsService from "./ScheduleMovementsService";
 import BillItemDepartment from "App/Models/BillItemDepartment";
+import BillAuthorization from "App/Models/BillAuthorization";
 
 interface ISearch {
 	fromBill?: string;
@@ -4035,7 +4036,32 @@ where deposit_id = ?
 						})
 						.save();
 				});
-			await Promise.all(itemTasks);
+			const updatedItems = await Promise.all(itemTasks);
+			await BillAuthorization.createMany(
+				updatedItems.map<Partial<BillAuthorization>>((row) => ({
+					bill_id: data.billId,
+					bill_item_id: row.id,
+					bill_payment_id: null,
+					type: (
+						[
+							row.courtesy && "courtesy",
+							row.maxDiscount && "maxDiscount",
+							"cancel",
+						] as BillAuthorization["type"][]
+					)
+						.filter(Boolean)
+						.at(0),
+					authorization_type: "RC",
+					approved: row.approved,
+					cancelled_quantity: row.cancelledQuantity,
+					authorization_user_id: authCtx.user.id,
+					authorization_date: DateTime.now(),
+					authorization_observations: data.billItems.find(
+						(bi) => bi.id === row.id,
+					)?.note,
+				})),
+				{ client: trx },
+			);
 
 			if (
 				bill.cancelled === "F" &&
@@ -4075,7 +4101,23 @@ where deposit_id = ?
 						})
 						.save();
 				});
-			await Promise.all(paymentTasks);
+			const updatedPayments = await Promise.all(paymentTasks);
+			await BillAuthorization.createMany(
+				updatedPayments.map<Partial<BillAuthorization>>((row) => ({
+					bill_id: data.billId,
+					bill_item_id: null,
+					bill_payment_id: row.id,
+					type: "maxParcelas",
+					authorization_type: "P",
+					approved: row.approved,
+					authorization_user_id: authCtx.user.id,
+					authorization_date: DateTime.now(),
+					authorization_observations: data.billPayments.find(
+						(bi) => bi.id === row.id,
+					)?.note,
+				})),
+				{ client: trx },
+			);
 
 			const billStatus: { status: "P" | "F" | "A"; order: number } | null =
 				await Database.from("bill_items")

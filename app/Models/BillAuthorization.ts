@@ -46,13 +46,13 @@ export default class BillAuthorization extends BaseModel {
 	public updatedAt: DateTime;
 
 	@column({ serializeAs: null })
-	public bill_id: number;
+	public bill_id: string;
 
 	@column({ serializeAs: null })
-	public bill_item_id: number;
+	public bill_item_id: string | null;
 
 	@column({ serializeAs: null })
-	public bill_payment_id: number;
+	public bill_payment_id: string | null;
 
 	@column({ serializeAs: null })
 	public authorization_user_id: number;

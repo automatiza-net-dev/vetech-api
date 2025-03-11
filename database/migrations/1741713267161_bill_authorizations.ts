@@ -8,25 +8,25 @@ export default class extends BaseSchema {
 			table.bigIncrements("id");
 
 			table
-				.integer("bill_id")
+				.uuid("bill_id")
 				.unsigned()
 				.references("id")
 				.inTable("bills")
 				.onDelete("CASCADE");
 			table
-				.integer("bill_item_id")
+				.uuid("bill_item_id")
 				.unsigned()
 				.references("id")
 				.inTable("bill_items")
 				.onDelete("CASCADE");
 			table
-				.integer("bill_payment_id")
+				.uuid("bill_payment_id")
 				.unsigned()
 				.references("id")
 				.inTable("bill_payments")
 				.onDelete("CASCADE");
 			table
-				.integer("authorization_user_id")
+				.uuid("authorization_user_id")
 				.unsigned()
 				.references("id")
 				.inTable("users")

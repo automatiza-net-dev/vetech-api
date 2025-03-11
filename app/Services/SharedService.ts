@@ -18,6 +18,7 @@ import { validate } from "App/Shared";
 import { ValidationException } from "@ioc:Adonis/Core/Validator";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import PaymentMethod from "App/Models/PaymentMethod";
+import SystemUrl from "App/Models/SystemUrl";
 
 type KeySelector<T> = (item: T) => any[];
 
@@ -30,6 +31,7 @@ export type AuthContext = {
 	user: User;
 	group: EconomicGroup;
 	system: System;
+	systemUrl: SystemUrl;
 	unit: BusinessUnit;
 	$roleMetas: UserUnitRole[];
 	permissions: string[];
@@ -267,6 +269,7 @@ export default class SharedService {
 			user,
 			group: unit.economicGroup,
 			system: unit.economicGroup.system,
+			systemUrl: unit.economicGroup.system.systemUrls[0],
 			unit,
 			$roleMetas: userRoles,
 			permissions: flatPermissions,

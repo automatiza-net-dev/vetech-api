@@ -103,9 +103,9 @@ export default class InviteService {
 					unitName: authCtx.unit.identification ?? "-",
 					invitedBy: authCtx.user.name,
 					systemName: authCtx.system.name,
-					imageUrl: authCtx.system.mailImage ?? "#",
-					bgColor: authCtx.system.mailBackgroundColor ?? "#ec8f24",
-					rawHtml: authCtx.system.mailTextNewUser ?? "",
+					imageUrl: authCtx.systemUrl.mailImage ?? "#",
+					bgColor: authCtx.systemUrl.mailBackgroundColor ?? "#ec8f24",
+					rawHtml: authCtx.systemUrl.mailTextNewUser ?? "",
 				});
 
 				return invite;
@@ -150,9 +150,9 @@ export default class InviteService {
 					unitName: authCtx.unit.identification ?? "-",
 					invitedBy: authCtx.user.name,
 					systemName: authCtx.system.name,
-					imageUrl: authCtx.system.mailImage ?? "#",
-					bgColor: authCtx.system.mailBackgroundColor ?? "#ec8f24",
-					rawHtml: authCtx.system.mailTextNewUser ?? "",
+					imageUrl: authCtx.systemUrl.mailImage ?? "#",
+					bgColor: authCtx.systemUrl.mailBackgroundColor ?? "#ec8f24",
+					rawHtml: authCtx.systemUrl.mailTextNewUser ?? "",
 				});
 
 				return invite;
@@ -196,9 +196,9 @@ export default class InviteService {
 				unitName: authCtx.unit.identification ?? "-",
 				invitedBy: authCtx.user.name,
 				systemName: authCtx.system.name,
-				imageUrl: authCtx.system.mailImage ?? "#",
-				bgColor: authCtx.system.mailBackgroundColor ?? "#ec8f24",
-				rawHtml: authCtx.system.mailTextWarnUser ?? "",
+				imageUrl: authCtx.systemUrl.mailImage ?? "#",
+				bgColor: authCtx.systemUrl.mailBackgroundColor ?? "#ec8f24",
+				rawHtml: authCtx.systemUrl.mailTextWarnUser ?? "",
 			});
 
 			return invite;

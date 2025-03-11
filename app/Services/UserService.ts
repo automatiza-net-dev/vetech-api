@@ -75,7 +75,10 @@ export default class UserService {
 
 	public async store(data: ICreateUser) {
 		return Database.transaction(async (trx) => {
-			const system = await System.query().where("id", data.systemId).first();
+			const system = await System.query()
+				.preload("systemUrls")
+				.where("id", data.systemId)
+				.firstOrFail();
 
 			if (!system) {
 				throw new BadRequestException(
@@ -134,7 +137,7 @@ export default class UserService {
 					companyName: `Grupo ${user.name}`,
 					fantasyName: `Grupo ${user.name}`,
 					system_id: system.id,
-					colors: system.colors,
+					colors: system.systemUrls[0].colors,
 				},
 				{},
 				{

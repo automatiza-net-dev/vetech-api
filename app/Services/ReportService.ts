@@ -1241,7 +1241,9 @@ ON bills.patient_id = Dep."id"`,
         case when pa.death then 'Sim' else 'Não' end                             as obito_Paciente,
         case when pa.death then pa.death_date end                                as data_Obito_Paciente,
         schedules.creation_user_id,
-        uCriador.name as creation_user_name
+        uCriador.name as creation_user_name,
+        schedules.user_id as professional_user_id,
+        profissionalResponsavel.name as professional_user_name
     `),
 			)
 			.joinRaw(
@@ -1260,6 +1262,9 @@ ON bills.patient_id = Dep."id"`,
 			.joinRaw("join users uResponsavel on schedules.user_id = uResponsavel.id")
 			.joinRaw(
 				"left join users uCriador on schedules.creation_user_id = uCriador.id",
+			)
+			.joinRaw(
+				"left join users profissionalResponsavel on schedules.user_id = profissionalResponsavel.id",
 			)
 			.joinRaw(
 				"left join users uCanc on schedules.cancellation_user_id = ucanc.id",

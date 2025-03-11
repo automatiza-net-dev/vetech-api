@@ -55,7 +55,7 @@ export default class BillAuthorization extends BaseModel {
 	public bill_payment_id: string | null;
 
 	@column({ serializeAs: null })
-	public authorization_user_id: number;
+	public authorization_user_id: string;
 
 	@belongsTo(() => Bill, {
 		foreignKey: "bill_id",

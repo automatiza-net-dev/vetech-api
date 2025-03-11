@@ -335,11 +335,11 @@ const detSchema = z.object({
 	_nItem: z.optional(z.string()),
 });
 
-const dupSchema = z.object({
-	vDup: z.coerce.number(),
-	dVenc: z.string(),
-	nDup: z.string(),
-});
+// const dupSchema = z.object({
+// 	vDup: z.coerce.number(),
+// 	dVenc: z.string(),
+// 	nDup: z.string(),
+// });
 
 const schema = z.object({
 	nfeProc: z.object({

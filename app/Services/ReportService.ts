@@ -15,7 +15,6 @@ import AnimalTimeline from "App/Models/mongoose/AnimalTimeline";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import { string } from "@ioc:Adonis/Core/Helpers";
 import Decimal from "decimal.js";
-import InternalErrorException from "../Exceptions/InternalErrorException";
 
 @inject()
 export default class ReportService {

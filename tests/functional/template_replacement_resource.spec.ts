@@ -538,7 +538,7 @@ test.group("Template replacement resource", (group) => {
 			password: "102030",
 		});
 
-		const tefAcq = await TefAcquirer.create({
+		await TefAcquirer.create({
 			economic_group_id: ctx.business.economicGroupId,
 			description: "any description",
 		});

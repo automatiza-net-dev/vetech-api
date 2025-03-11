@@ -11,7 +11,6 @@ import BusinessUnit from "App/Models/BusinessUnit";
 import BusinessUnitFiscalDocument, {
 	BusinessUnitFiscalDocumentMovementType,
 } from "App/Models/BusinessUnitFiscalDocument";
-import Cest from "App/Models/Cest";
 import CorrectedFiscalDocument from "App/Models/CorrectedFiscalDocument";
 import IssuedFiscalDocument, {
 	IssuedFiscalDocumentContingency,
@@ -932,7 +931,7 @@ export default class BusinessUnitFiscalDocumentService {
 
 		const tasks = Array.from(map.entries()).map(async ([key, mapItems]) => {
 			const [rawPercentage, serviceCode] = key.split("__");
-			const issPercentage = parseFloat(rawPercentage);
+			const issPercentage = Number.parseFloat(rawPercentage);
 
 			const serviceDocument = await ServiceIssuedFiscalDocument.create(
 				{
@@ -1643,32 +1642,32 @@ export default class BusinessUnitFiscalDocumentService {
 		"500",
 	];
 
-	private async calculateCest(item: BillItem) {
-		if (
-			!BusinessUnitFiscalDocumentService.ICMS_CEST_VALUES.includes(item.icmsCst)
-		) {
-			return "";
-		}
-
-		const { product } = item.productVariation;
-
-		if (product.cest && product.cest.length > 0) {
-			return product.cest.replace(/\D/g, "");
-		}
-
-		const cestRows = await Cest.query()
-			.whereILike(
-				"ncm",
-				`${product.ncm?.replace(/\D/g, "").substring(0, 4) ?? ""}%`,
-			)
-			.orderByRaw("length(ncm) desc");
-
-		if (cestRows.length === 0) {
-			return "";
-		}
-
-		return cestRows.at(0)?.cest?.replace(/\D/g, "") ?? "";
-	}
+	// private async calculateCest(item: BillItem) {
+	// 	if (
+	// 		!BusinessUnitFiscalDocumentService.ICMS_CEST_VALUES.includes(item.icmsCst)
+	// 	) {
+	// 		return "";
+	// 	}
+	//
+	// 	const { product } = item.productVariation;
+	//
+	// 	if (product.cest && product.cest.length > 0) {
+	// 		return product.cest.replace(/\D/g, "");
+	// 	}
+	//
+	// 	const cestRows = await Cest.query()
+	// 		.whereILike(
+	// 			"ncm",
+	// 			`${product.ncm?.replace(/\D/g, "").substring(0, 4) ?? ""}%`,
+	// 		)
+	// 		.orderByRaw("length(ncm) desc");
+	//
+	// 	if (cestRows.length === 0) {
+	// 		return "";
+	// 	}
+	//
+	// 	return cestRows.at(0)?.cest?.replace(/\D/g, "") ?? "";
+	// }
 
 	private calcCode(
 		issuedDocument: IssuedFiscalDocument,

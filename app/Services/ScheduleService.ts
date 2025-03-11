@@ -2327,6 +2327,7 @@ export default class ScheduleService {
 			}
 
 			const validChanges = VALID_CHANGES[schedule.serviceStatus.type];
+      // @ts-ignore -
 			if (!validChanges || !validChanges.includes(toStatus.type)) {
 				throw new BadRequestException("Mudança inválida", 400, "E_INVALID");
 			}
@@ -2443,6 +2444,7 @@ export default class ScheduleService {
 			}
 
 			const validChanges = VALID_CHANGES[schedule.serviceStatus.type];
+      // @ts-ignore -
 			if (!validChanges || !validChanges.includes(toStatus.type)) {
 				throw new BadRequestException("Mudança inválida", 400, "E_INVALID");
 			}

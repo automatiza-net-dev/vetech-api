@@ -597,7 +597,7 @@ export default class BillService {
 							);
 						}
 
-						const bi = elem.billItemId
+						elem.billItemId
 							? await BillItem.query()
 									.useTransaction(trx)
 									.where("bill_id", bill.id)

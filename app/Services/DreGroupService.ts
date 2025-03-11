@@ -348,7 +348,7 @@ export default class DreGroupService {
 				);
 			}
 
-			Logger.error(e);
+			Logger.error(JSON.stringify(e));
 			throw new InternalErrorException("Erro criando custos", 500, "E_ERR");
 		}
 	}
@@ -463,7 +463,7 @@ export default class DreGroupService {
 				);
 			}
 
-			Logger.error(e);
+			Logger.error(JSON.stringify(e));
 			throw new InternalErrorException("Erro criando custos", 500, "E_ERR");
 		}
 	}

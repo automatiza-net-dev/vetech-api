@@ -1,7 +1,5 @@
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
-import { ValidationException } from "@ioc:Adonis/Core/Validator";
 import { inject } from "@adonisjs/fold";
-import EconomicGroup from "App/Models/EconomicGroup";
 import ThirdPartyUserPermission from "App/Models/ThirdPartyUserPermission";
 import AuthService from "App/Services/AuthService";
 import SharedService from "App/Services/SharedService";

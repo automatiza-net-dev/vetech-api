@@ -116,7 +116,7 @@ export default class BusinessUnitService {
 
 				await unit.related("unitConfig").create(
 					{
-						config: authCtx.system.defaultConfig,
+						config: authCtx.systemUrl.defaultConfig,
 					},
 					{
 						client: trx,

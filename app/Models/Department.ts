@@ -3,12 +3,11 @@ import {
 	BaseModel,
 	beforeFetch,
 	beforeFind,
-	belongsTo,
 	BelongsTo,
 	belongsTo,
 	column,
-    hasMany,
-    HasMany,
+	hasMany,
+	HasMany,
 } from "@ioc:Adonis/Lucid/Orm";
 import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
 import User from "./User";
@@ -63,28 +62,28 @@ export default class Department extends BaseModel {
 	})
 	public creation_user_id: string;
 
-  @belongsTo(() => User, {
-    foreignKey: 'creation_user_id'
-  })
-  public creationUser: BelongsTo<typeof User>
+	@belongsTo(() => User, {
+		foreignKey: "creation_user_id",
+	})
+	public creationUser: BelongsTo<typeof User>;
 
 	@column({
 		serializeAs: null,
 	})
 	public updated_user_id: string | null;
 
-  @belongsTo(() => User, {
-    foreignKey: 'updated_user_id'
-  })
-  public updateUser: BelongsTo<typeof User>
+	@belongsTo(() => User, {
+		foreignKey: "updated_user_id",
+	})
+	public updateUser: BelongsTo<typeof User>;
 
 	@column({
 		serializeAs: null,
 	})
 	public deleted_user_id: string | null;
 
-  @hasMany(() => DepartmentItem, {
-    foreignKey: 'department_id'
-  })
-  public items: HasMany<typeof DepartmentItem>
+	@hasMany(() => DepartmentItem, {
+		foreignKey: "department_id",
+	})
+	public items: HasMany<typeof DepartmentItem>;
 }

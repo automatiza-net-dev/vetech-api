@@ -1197,7 +1197,10 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 								((elem.total / sum) * 100).toFixed(2),
 							),
 							itemStyle: {
-								color: system.colors[idx % system.colors.length],
+								color:
+									system.systemUrls[0].colors[
+										idx % system.systemUrls[0].colors.length
+									],
 							},
 						})),
 					},
@@ -1327,7 +1330,10 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 					title: "Descrição",
 					value: elem.description,
 					itemStyle: {
-						color: system.systemUrls[0].colors[idx % system.systemUrls[0].colors.length],
+						color:
+							system.systemUrls[0].colors[
+								idx % system.systemUrls[0].colors.length
+							],
 					},
 				},
 				{
@@ -1398,7 +1404,10 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 									.toNumber(),
 							),
 							itemStyle: {
-								color: system.systemUrls[0].colors[idx % system.systemUrls[0].colors.length],
+								color:
+									system.systemUrls[0].colors[
+										idx % system.systemUrls[0].colors.length
+									],
 							},
 						})),
 					},

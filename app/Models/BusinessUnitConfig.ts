@@ -1,7 +1,4 @@
-import Env from "@ioc:Adonis/Core/Env";
 import { BaseModel, BelongsTo, belongsTo, column } from "@ioc:Adonis/Lucid/Orm";
-import InternalErrorException from "App/Exceptions/InternalErrorException";
-import { axiom } from "App/Lib/Axiom";
 import VariationGroup from "App/Models/VariationGroup";
 import { DateTime } from "luxon";
 import * as z from "zod";

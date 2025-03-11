@@ -467,9 +467,9 @@ export default class RoleService {
        profile_accesses.description`),
 			)
 			.joinRaw(
-				`join profile_accesses on role_profile_accesses.profile_access_id = profile_accesses.id`,
+				"join profile_accesses on role_profile_accesses.profile_access_id = profile_accesses.id",
 			)
-			.joinRaw(`join roles on role_profile_accesses.role_id = roles.id`)
+			.joinRaw("join roles on role_profile_accesses.role_id = roles.id")
 			.where("roles.system_id", systemID);
 
 		if (data.id) {
@@ -492,7 +492,7 @@ export default class RoleService {
 
 		const result = await qb;
 
-		const uniqueRoles = result.reduce((acc: number[], curr) => {
+		const uniqueRoles: number[] = result.reduce((acc: number[], curr) => {
 			if (acc.includes(curr.role_id)) {
 				return acc;
 			}
@@ -520,7 +520,7 @@ export default class RoleService {
 
 		if (data.id) {
 			const mappedRole = mappedRoles.find(
-				(r) => r.id === Number.parseInt(data.id),
+				(r) => r.id === Number.parseInt(data.id ?? "-1"),
 			);
 			if (!mappedRole) {
 				throw new BadRequestException(

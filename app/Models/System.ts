@@ -1,10 +1,6 @@
-import Env from "@ioc:Adonis/Core/Env";
 import { BaseModel, HasMany, column, hasMany } from "@ioc:Adonis/Lucid/Orm";
-import InternalErrorException from "App/Exceptions/InternalErrorException";
-import { axiom } from "App/Lib/Axiom";
 import SystemUrl from "App/Models/SystemUrl";
 import { DateTime } from "luxon";
-import { ConfigSchema, TConfigSchema } from "./BusinessUnitConfig";
 
 export default class System extends BaseModel {
 	@column({ isPrimary: true })
@@ -15,6 +11,9 @@ export default class System extends BaseModel {
 
 	@column()
 	public active: boolean;
+
+	@column({})
+	public type: string;
 
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;

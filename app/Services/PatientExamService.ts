@@ -153,6 +153,7 @@ export default class PatientExamService {
 							clientId: activeTutor.id,
 							patientId: patient.id,
 							dailyMovementId: userOpenCashier.daily_movement_id,
+              maxDiscount: false,
 							items: [
 								{
 									discountValue: 0,

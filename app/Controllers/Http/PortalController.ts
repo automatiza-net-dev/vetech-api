@@ -1,14 +1,10 @@
 import { inject } from "@adonisjs/fold";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import PortalService from "App/Services/PortalService";
-import SharedService from "App/Services/SharedService";
 
 @inject()
 export default class AccountPlanGroupsController {
-	constructor(
-		private sharedService: SharedService,
-		private service: PortalService,
-	) {}
+	constructor(private service: PortalService) {}
 
 	public async dashboard({ auth, request, response }: HttpContextContract) {
 		const user = auth.use("api").user!;

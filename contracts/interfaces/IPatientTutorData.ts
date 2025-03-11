@@ -9,7 +9,7 @@ export default interface IPatientTutorData {
 	photo?: MultipartFileContract;
 	gender?: string;
 	tags?: string;
-	birthDate?: DateTime;
+	birthDate?: DateTime | string;
 	active?: boolean;
 	document?: string;
 	inscription?: string;

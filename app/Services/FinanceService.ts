@@ -908,7 +908,7 @@ export default class FinanceService {
 					[],
 				)
 				.joinRaw(
-					`join tef_acquirers on payment_method_flags.tef_acquirer_id = tef_acquirers.id`,
+					"join tef_acquirers on payment_method_flags.tef_acquirer_id = tef_acquirers.id",
 					[],
 				)
 				.whereNull("finances.deleted_at")
@@ -2482,7 +2482,7 @@ or
 
 			await bordero
 				.merge({
-					document: `BOR-${GenerateTag(parseInt(count, 10))}`,
+					document: `BOR-${GenerateTag(Number.parseInt(count, 10))}`,
 				})
 				.useTransaction(trx)
 				.save();
@@ -2534,7 +2534,7 @@ or
 
 				await bordero
 					.merge({
-						document: `BOR-${GenerateTag(parseInt(count, 10))}`,
+						document: `BOR-${GenerateTag(Number.parseInt(count, 10))}`,
 					})
 					.useTransaction(trx)
 					.save();
@@ -3033,8 +3033,7 @@ or
 		};
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: Multiple params that are untyped
-	public async dashboardFinanceResume(authCtx: AuthContext, params: any) {
+	public async dashboardFinanceResume(authCtx: AuthContext) {
 		const hasPermission = await this.sharedService.userHasPermission(
 			authCtx,
 			"PRI03",
@@ -3105,7 +3104,7 @@ or
 		];
 	}
 
-	public async dashboardCashierResume(authCtx: AuthContext, params: any) {
+	public async dashboardCashierResume(authCtx: AuthContext) {
 		const hasPermission = await this.sharedService.userHasPermission(
 			authCtx,
 			"PRI04",
@@ -3498,6 +3497,6 @@ or
 	private parseDecimal(value: string | number) {
 		if (!value) return null;
 
-		return parseFloat(value as string);
+		return Number.parseFloat(value as string);
 	}
 }

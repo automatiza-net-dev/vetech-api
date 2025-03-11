@@ -213,7 +213,7 @@ export default class UserService {
 				service_variation_group_id: SERVICE_VARIATION_GROUP_ID,
 				incoming_deposit_id: deposit.id,
 				outgoing_deposit_id: deposit.id,
-				config: system.defaultConfig,
+				config: system.systemUrls[0].defaultConfig,
 			});
 
 			const systemPaymentMethods = await SystemPaymentMethod.query()

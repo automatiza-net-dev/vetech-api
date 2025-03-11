@@ -5,7 +5,7 @@ import BadRequestException from "App/Exceptions/BadRequestException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import Department from "App/Models/Department";
 import DepartmentProduct from "App/Models/DepartmentProduct";
-import SharedService, { AuthContext } from "App/Services/SharedService";
+import {AuthContext } from "App/Services/SharedService";
 import { DateTime } from "luxon";
 import DepartmentItem from "App/Models/DepartmentItem";
 import { v4 } from "uuid";
@@ -13,7 +13,6 @@ import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 
 @inject()
 export default class DepartmentService {
-	constructor(private _sharedService: SharedService) {}
 
 	async index(
 		authCtx: AuthContext,

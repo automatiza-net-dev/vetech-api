@@ -2233,7 +2233,7 @@ where deposit_id = ?
 
 		if (data.originBillId) {
 			const existingRow = await Database.from("bills")
-				.select("tag, origin_bill_id")
+				.select("tag", "origin_bill_id")
 				.whereRaw("id = ?", [data.originBillId])
 				.first();
 			if (existingRow && !!existingRow.origin_bill_id) {

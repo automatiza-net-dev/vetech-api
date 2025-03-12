@@ -150,6 +150,7 @@ export default class BillService {
        bills.paid_value,
        bills.documents_status,
        bills.pending,
+       bills.origin_bill_id,
        case
            when client_id is not null then
                json_build_object('id', client.id, 'name', client.name, 'type', client.type)
@@ -2228,6 +2229,20 @@ where deposit_id = ?
 				400,
 				"E_ERR",
 			);
+		}
+
+		if (data.originBillId) {
+			const existingRow = await Database.from("bills")
+				.select("tag, origin_bill_id")
+				.whereRaw("id = ?", [data.originBillId])
+				.first();
+			if (existingRow && !!existingRow.origin_bill_id) {
+				throw new BadRequestException(
+					`Nota de saída ${existingRow.tag} já está sendo usada como origem`,
+					400,
+					"E_ERR",
+				);
+			}
 		}
 
 		const existingBillWithInternalCode = await Bill.query()

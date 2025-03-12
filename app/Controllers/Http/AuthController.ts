@@ -25,7 +25,6 @@ export default class AuthController {
 		const result = await this.authService.login(payload, auth);
 
 		if (typeof result.at(1) === "number") {
-			response.cookie("sid", result.at(1));
 			return response.ok(result.at(0));
 		}
 

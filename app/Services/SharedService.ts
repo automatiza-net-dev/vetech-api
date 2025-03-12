@@ -223,6 +223,7 @@ export default class SharedService {
 		user: User;
 		unit_id: string;
 		system_id: number;
+		system_url_id: number | null;
 		ip: string | null;
 	} {
 		const user = auth.use("api").user!;
@@ -232,14 +233,18 @@ export default class SharedService {
 	}
 
 	public async getAuthContext(auth: AuthContract): Promise<AuthContext> {
-		const { user, unit_id, ip } = this.extractUser(auth);
+		const { user, unit_id, ip, system_url_id } = this.extractUser(auth);
 
 		const [unit, userRoles] = await Promise.all([
 			BusinessUnit.query()
 				.where("id", unit_id)
 				.preload("economicGroup", (query) => {
 					query.preload("system", (query) => {
-						query.preload("systemUrls");
+						query.preload("systemUrls", (query) => {
+							if (system_url_id) {
+								query.where("id", system_url_id);
+							}
+						});
 					});
 				})
 				.preload("unitConfig")

@@ -1044,6 +1044,112 @@ export default class BusinessUnitFiscalDocumentService {
 		return results.filter((r) => !r.success);
 	}
 
+	public static async UpdateOldNfeRecords() {
+		const focus = new FocusNfeService();
+
+		const rowsToUpdate: {
+			id: string;
+			disabling_receipt: string | null;
+			bill_id: string | null;
+			fiscal_document_environment: string | null;
+			focus_homologation_token: string | null;
+			focus_production_token: string | null;
+		}[] = await Database.from("issued_fiscal_documents")
+			.select(
+				Database.raw(`issued_fiscal_documents.id,
+       issued_fiscal_documents.disabling_receipt,
+       issued_fiscal_documents.bill_id,
+       business_unit_configs.fiscal_document_environment,
+       business_unit_configs.focus_homologation_token,
+       business_unit_configs.focus_production_token`),
+			)
+			.joinRaw(
+				"join business_unit_configs on business_unit_configs.business_unit_id = issued_fiscal_documents.business_unit_id",
+			)
+			.whereRaw("issued_fiscal_documents.authorization_receipt is null")
+			.whereRaw("issued_fiscal_documents.disabling_receipt is null")
+			.whereRaw("issued_fiscal_documents.deleted_at is null")
+			.whereRaw(
+				"(business_unit_configs.focus_homologation_token is not null or business_unit_configs.focus_homologation_token is not null)",
+			)
+			.orderByRaw("issued_fiscal_documents.created_at desc");
+
+		const tasks = rowsToUpdate
+			.filter(
+				(row) => !!row.focus_production_token || !!row.focus_homologation_token,
+			)
+			.map(async (row) => {
+				const token =
+					row.fiscal_document_environment === "H"
+						? row.focus_homologation_token
+						: row.fiscal_document_environment;
+				if (!token) {
+					console.log(JSON.stringify({ msg: "no token", ...row }, null, 2));
+					return;
+				}
+
+				const result = await focus.getNfe(row.id, token);
+				if (!result.success) {
+					console.log(JSON.stringify(result, null, 2));
+					return;
+				}
+
+				const urlPrefix =
+					row.fiscal_document_environment === "P"
+						? "https://api.focusnfe.com.br"
+						: "https://homologacao.focusnfe.com.br";
+
+				await IssuedFiscalDocument.query()
+					.where("id", row.id)
+					.update({
+						sefaz_status: result.data.status,
+						sefaz_status_code: result.data.status_sefaz,
+						sefaz_message: result.data.protocolo_cancelamento
+							? [
+									result.data.protocolo_cancelamento.descricao_evento,
+									result.data.protocolo_cancelamento.motivo,
+								].join(" - ")
+							: result.data.mensagem_sefaz,
+						access_key: result.data.chave_nfe,
+						authorization_xml_path: [
+							urlPrefix,
+							result.data.caminho_xml_nota_fiscal,
+						].join(""),
+						authorization_pdf_path: [urlPrefix, result.data.caminho_danfe].join(
+							"",
+						),
+						cancellation_xml_path: [
+							urlPrefix,
+							result.data.caminho_xml_cancelamento,
+						].join(""),
+
+						authorization_receipt:
+							result.data.protocolo_nota_fiscal?.numero_protocolo,
+						authorization_receipt_date: result.data.protocolo_nota_fiscal
+							?.data_recebimento
+							? DateTime.fromISO(
+									result.data.protocolo_nota_fiscal?.data_recebimento,
+								)
+							: undefined,
+
+						cancellation_receipt:
+							result.data.protocolo_cancelamento?.numero_protocolo,
+						cancellation_receipt_date: result.data.protocolo_cancelamento
+							?.data_evento
+							? DateTime.fromISO(
+									result.data.protocolo_cancelamento?.data_evento,
+								)
+							: undefined,
+					});
+				if (row.disabling_receipt && row.bill_id) {
+					await BillItem.query()
+						.where("bill_id", row.bill_id)
+						.update({ nfeIssued: false } as Partial<BillItem>);
+				}
+			});
+		await Promise.all(tasks);
+	}
+
 	async updateFromFocus(unitId: string, id: string) {
 		const group = await this.sharedService.getUserGroup(unitId);
 
@@ -1553,9 +1659,6 @@ export default class BusinessUnitFiscalDocumentService {
 		data: z.infer<typeof nfeResponseSchema>,
 		env: string,
 	) {
-		console.log("document:", document.toJSON());
-		console.log("focus payload", data);
-
 		const urlPrefix =
 			env === "P"
 				? "https://api.focusnfe.com.br"

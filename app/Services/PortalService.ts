@@ -1021,7 +1021,7 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 			.select(
 				Database.raw(
 					`'Recorrentes'          as description,
-            sum(bills.total_value) as total,
+            coalesce(sum(bills.total_value), 0) as total,
             count(distinct bills.client_id) as qty_clients
           `,
 				),
@@ -1056,7 +1056,7 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 						Database.raw(
 							`
 			       client_origins.description,
-			       sum(bills.total_value) as total,
+			       coalesce(sum(bills.total_value), 0) as total,
 			       count( distinct bills.client_id ) as qty_clients
 			       `,
 						),
@@ -1257,7 +1257,7 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 		const qb3 = Database.from("bills")
 			.select(
 				Database.raw(
-					"'Em aberto' as description, sum(bills.total_value - bills.paid_value) as total_payments",
+					"'Em aberto' as description, coalesce(sum(coalesce(bills.total_value,0) - coalesce(bills.paid_value,0)),0) as total_payments",
 				),
 			)
 			.joinRaw(

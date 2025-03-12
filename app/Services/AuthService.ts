@@ -388,7 +388,7 @@ export default class AuthService {
 
 			const systemUrl = await SystemUrl.query()
 				.useTransaction(trx)
-				.where("system_id", data.system)
+				.where("system_id", system.id)
 				.where("url", data.systemUrl)
 				.firstOrFail();
 

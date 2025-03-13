@@ -1859,13 +1859,8 @@ export default class FinanceService {
 						[authCtx.unit.id, authCtx.user.id],
 					)
 					.whereRaw(
-						`( p.control_id = 'TPG03' and coalesce(role_permissions.status, false) = false and exists (select id from finances where type = 'DEBITO' and id in (?) ) )
-or
- ( p.control_id = 'TRC03' and coalesce(role_permissions.status, false) = false and exists (select id from finances where type = 'CREDITO' and id in (?) ) )`,
-						[
-							data.idList.map((id) => `'${id}'`).join(", "),
-							data.idList.map((id) => `'${id}'`).join(", "),
-						],
+						`(p.control_id = 'TPG03' and coalesce(role_permissions.status, false) = false and exists (select id from finances where type = 'DEBITO' and id in (${data.idList.map((id) => `'${id}'`).join(", ")}) ) ) or ( p.control_id = 'TRC03' and coalesce(role_permissions.status, false) = false and exists (select id from finances where type = 'CREDITO' and id in (${data.idList.map((id) => `'${id}'`).join(", ")}) ) )`,
+						[],
 					);
 
 			if (accessResult.length > 0) {
@@ -1984,14 +1979,12 @@ case when p.control_id = 'TRC11' then 'Usuário não possui permissão para reti
 					.where("user_id", authCtx.user.id)
 					.whereRaw(
 						`( p.control_id = 'TPG11' and coalesce(role_permissions.status, false) = false
-         and exists (select id from finances where type = 'DEBITO' and id in (?) ) )
+         and exists (select id from finances where type = 'DEBITO' and id in (${data.ids.map((id) => `'${id}'`).join(", ")}) ) )
 
    or ( p.control_id = 'TRC11' and coalesce(role_permissions.status, false) = false
 
-        and exists (select id from finances where type = 'CREDITO' and id in (?) ) )`,
+        and exists (select id from finances where type = 'CREDITO' and id in (${data.ids.map((id) => `'${id}'`).join(", ")}) ) )`,
 						[
-							data.ids.map((id) => `'${id}'`).join(", "),
-							data.ids.map((id) => `'${id}'`).join(", "),
 						],
 					);
 			if (accessResult.length > 0) {

@@ -1126,6 +1126,8 @@ Route.group(() => {
 		"BusinessUnitFiscalDocumentsController.search",
 	);
 
+	Route.post("/tmp", "BusinessUnitFiscalDocumentsController.tmpSync");
+
 	Route.post(
 		"/business-unit/store",
 		"BusinessUnitFiscalDocumentsController.store",

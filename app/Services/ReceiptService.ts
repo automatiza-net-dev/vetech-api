@@ -2753,9 +2753,9 @@ and product_variation_id in (
 				.where("business_unit_id", authCtx.unit.id)
 				.firstOrFail();
 
-			if (receipt.status !== "Baixada") {
+			if (receipt.status === "Baixada") {
 				throw new BadRequestException(
-					"Apenas notas baixadas podem ser excluídas",
+					"Notas baixada não podem ser excluídas",
 					400,
 					"E_ERR",
 				);

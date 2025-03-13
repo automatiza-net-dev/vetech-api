@@ -30,7 +30,6 @@ jobs:
           cd ${{ secrets.FOLDER }}
           git pull origin develop
           yarn
-          rm -rf dist
           yarn build
           cp .env build/.env
           cp -r public build/public

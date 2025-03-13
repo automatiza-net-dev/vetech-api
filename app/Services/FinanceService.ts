@@ -908,7 +908,7 @@ export default class FinanceService {
 					[],
 				)
 				.joinRaw(
-					`join tef_acquirers on payment_method_flags.tef_acquirer_id = tef_acquirers.id`,
+					"join tef_acquirers on payment_method_flags.tef_acquirer_id = tef_acquirers.id",
 					[],
 				)
 				.whereNull("finances.deleted_at")
@@ -1859,10 +1859,8 @@ export default class FinanceService {
 						[authCtx.unit.id, authCtx.user.id],
 					)
 					.whereRaw(
-						`( p.control_id = 'TPG03' and coalesce(role_permissions.status, false) = false and exists (select id from finances where type = 'DEBITO' and id in (?) ) )
-or
- ( p.control_id = 'TRC03' and coalesce(role_permissions.status, false) = false and exists (select id from finances where type = 'CREDITO' and id in (?) ) )`,
-						[data.idList.join(","), data.idList.join(",")],
+						`(p.control_id = 'TPG03' and coalesce(role_permissions.status, false) = false and exists (select id from finances where type = 'DEBITO' and id in (${data.idList.map((id) => `'${id}'`).join(", ")}) ) ) or ( p.control_id = 'TRC03' and coalesce(role_permissions.status, false) = false and exists (select id from finances where type = 'CREDITO' and id in (${data.idList.map((id) => `'${id}'`).join(", ")}) ) )`,
+						[],
 					);
 
 			if (accessResult.length > 0) {
@@ -1909,10 +1907,7 @@ or
 
 			return Finance.query()
 				.useTransaction(trx)
-				.whereIn(
-					"id",
-					finances.map((f) => f.id),
-				)
+				.whereIn("id", data.idList)
 				.update({
 					exclusion_user_id: authCtx.user.id,
 					status: FinanceStatus.E,
@@ -1950,17 +1945,52 @@ or
 
 	async notAcceptMany(
 		authCtx: AuthContext,
-		data: { ids: string[]; type: "Credito" | "Debito" },
+		data: {
+			ids: string[];
+			// type: "Credito" | "Debito"
+		},
 	) {
-		if (data.type === "Credito" && !authCtx.hasPermission("TRC11")) {
-			throw new UnauthorizedException("Usuário sem permissão", 400, "E_ERR");
-		}
-
-		if (data.type === "Debito" && !authCtx.hasPermission("TRG11")) {
-			throw new UnauthorizedException("Usuário sem permissão", 400, "E_ERR");
-		}
+		// if (data.type === "Credito" && !authCtx.hasPermission("TRC11")) {
+		// 	throw new UnauthorizedException("Usuário sem permissão", 400, "E_ERR");
+		// }
+		//
+		// if (data.type === "Debito" && !authCtx.hasPermission("TRG11")) {
+		// 	throw new UnauthorizedException("Usuário sem permissão", 400, "E_ERR");
+		// }
 
 		await Database.transaction(async (trx) => {
+			const accessResult: { control_id: string; erro: string }[] =
+				await Database.from("role_permissions")
+					.select(
+						Database.raw(
+							`p.control_id,
+case when p.control_id = 'TRC11' then 'Usuário não possui permissão para retirar o aceito de titulos de Credito' else 'Usuário não possui permissão para para retirar o aceito de titulos de Debito' end as erro`,
+						),
+					)
+					.useTransaction(trx)
+					.joinRaw(
+						"join permissions p on role_permissions.permission_id = p.id",
+					)
+					.joinRaw(
+						"join user_unit_roles uur on role_permissions.role_id = uur.role_id and uur.unit_id = ? and user_id = ?",
+						[authCtx.unit.id, authCtx.user.id],
+					)
+					.where("uur.unit_id", authCtx.unit.id)
+					.where("user_id", authCtx.user.id)
+					.whereRaw(
+						`( p.control_id = 'TPG11' and coalesce(role_permissions.status, false) = false
+         and exists (select id from finances where type = 'DEBITO' and id in (${data.ids.map((id) => `'${id}'`).join(", ")}) ) )
+
+   or ( p.control_id = 'TRC11' and coalesce(role_permissions.status, false) = false
+
+        and exists (select id from finances where type = 'CREDITO' and id in (${data.ids.map((id) => `'${id}'`).join(", ")}) ) )`,
+						[
+						],
+					);
+			if (accessResult.length > 0) {
+				throw new UnauthorizedException(accessResult[0].erro, 400, "E_ERR");
+			}
+
 			const finances = await Finance.query()
 				.useTransaction(trx)
 				.whereIn("id", data.ids)
@@ -2482,7 +2512,7 @@ or
 
 			await bordero
 				.merge({
-					document: `BOR-${GenerateTag(parseInt(count, 10))}`,
+					document: `BOR-${GenerateTag(Number.parseInt(count, 10))}`,
 				})
 				.useTransaction(trx)
 				.save();
@@ -2534,7 +2564,7 @@ or
 
 				await bordero
 					.merge({
-						document: `BOR-${GenerateTag(parseInt(count, 10))}`,
+						document: `BOR-${GenerateTag(Number.parseInt(count, 10))}`,
 					})
 					.useTransaction(trx)
 					.save();
@@ -3033,8 +3063,7 @@ or
 		};
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: Multiple params that are untyped
-	public async dashboardFinanceResume(authCtx: AuthContext, params: any) {
+	public async dashboardFinanceResume(authCtx: AuthContext) {
 		const hasPermission = await this.sharedService.userHasPermission(
 			authCtx,
 			"PRI03",
@@ -3105,7 +3134,7 @@ or
 		];
 	}
 
-	public async dashboardCashierResume(authCtx: AuthContext, params: any) {
+	public async dashboardCashierResume(authCtx: AuthContext) {
 		const hasPermission = await this.sharedService.userHasPermission(
 			authCtx,
 			"PRI04",
@@ -3498,6 +3527,6 @@ or
 	private parseDecimal(value: string | number) {
 		if (!value) return null;
 
-		return parseFloat(value as string);
+		return Number.parseFloat(value as string);
 	}
 }

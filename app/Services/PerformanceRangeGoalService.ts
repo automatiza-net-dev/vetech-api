@@ -3,14 +3,12 @@ import Database from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import Meta from "App/Models/Meta";
 import PerformanceRangeGoal from "App/Models/PerformanceRangeGoal";
-import SharedService, { AuthContext } from "App/Services/SharedService";
+import { AuthContext } from "App/Services/SharedService";
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 
 @inject()
 export default class PerformanceRangeGoalService {
-	constructor(private _shared: SharedService) {}
-
 	public async search(authCtx: AuthContext, metaId: string) {
 		const meta = await Meta.query()
 			.where("system_id", authCtx.system.id)

@@ -20,7 +20,6 @@ import TefAcquirer from "App/Models/TefAcquirer";
 import TefFlag, { TefFlagType } from "App/Models/TefFlag";
 import Unit, { UnitType } from "App/Models/Unit";
 import BudgetService from "App/Services/BudgetService";
-import { Parameter } from "aws-sdk/clients/iot";
 import PatientFactory from "Database/factories/PatientFactory";
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";

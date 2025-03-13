@@ -1904,7 +1904,7 @@ export default class IndicatorService {
 	}
 
 	public async opportunitiesIndicators(
-		authCtx: AuthContext,
+		_authCtx: AuthContext,
 		data: {
 			unit?: string;
 			group?: string;
@@ -1965,7 +1965,7 @@ export default class IndicatorService {
 	}
 
 	public async generalOpportunitiesIndicators(
-		authCtx: AuthContext,
+		_authCtx: AuthContext,
 		data: {
 			unit?: string;
 			group?: string;
@@ -2101,15 +2101,15 @@ export default class IndicatorService {
 				),
 			)
 			.joinRaw(
-				`join opportunities on opportunity_logs.opportunity_id = opportunities.id and opportunities.deleted_at is null`,
+				"join opportunities on opportunity_logs.opportunity_id = opportunities.id and opportunities.deleted_at is null",
 				[],
 			)
 			.joinRaw(
-				`join business_units on opportunity_logs.business_unit_id = business_units.id`,
+				"join business_units on opportunity_logs.business_unit_id = business_units.id",
 				[],
 			)
 			.joinRaw(
-				`join crm_statuses on opportunity_logs.status_id = crm_statuses.id`,
+				"join crm_statuses on opportunity_logs.status_id = crm_statuses.id",
 				[],
 			)
 			.groupBy("business_units.id");
@@ -2166,15 +2166,15 @@ export default class IndicatorService {
 				),
 			)
 			.joinRaw(
-				`join opportunities on opportunity_logs.opportunity_id = opportunities.id and opportunities.deleted_at is null`,
+				"join opportunities on opportunity_logs.opportunity_id = opportunities.id and opportunities.deleted_at is null",
 				[],
 			)
 			.joinRaw(
-				`join business_units on opportunity_logs.business_unit_id = business_units.id`,
+				"join business_units on opportunity_logs.business_unit_id = business_units.id",
 				[],
 			)
 			.joinRaw(
-				`join crm_statuses on opportunity_logs.status_id = crm_statuses.id`,
+				"join crm_statuses on opportunity_logs.status_id = crm_statuses.id",
 				[],
 			)
 			.groupBy("business_units.id");
@@ -2287,11 +2287,11 @@ export default class IndicatorService {
 				),
 			)
 			.joinRaw(
-				`join business_units on bills.business_unit_id = business_units.id`,
+				"join business_units on bills.business_unit_id = business_units.id",
 				[],
 			)
 			.joinRaw(
-				`join economic_groups on business_units.economic_group_id = economic_groups.id`,
+				"join economic_groups on business_units.economic_group_id = economic_groups.id",
 				[],
 			)
 			.groupBy(
@@ -2502,6 +2502,7 @@ export default class IndicatorService {
 				},
 				unit: {
 					id: elem.b_id,
+					name: elem.identification,
 					identification: elem.identification,
 				},
 				meta: {
@@ -2544,14 +2545,14 @@ export default class IndicatorService {
 				`join bill_items on bills.id = bill_items.bill_id and bill_items.status <> 'INATIVA'`,
 			)
 			.joinRaw(
-				`join product_variations on bill_items.product_variation_id = product_variations.id`,
+				"join product_variations on bill_items.product_variation_id = product_variations.id",
 			)
-			.joinRaw(`join products on product_variations.product_id = products.id`)
+			.joinRaw("join products on product_variations.product_id = products.id")
 			.joinRaw(
-				`join business_units on bills.business_unit_id = business_units.id`,
+				"join business_units on bills.business_unit_id = business_units.id",
 			)
 			.joinRaw(
-				`join economic_groups on business_units.economic_group_id = economic_groups.id`,
+				"join economic_groups on business_units.economic_group_id = economic_groups.id",
 			)
 			.groupBy("economic_groups.id", "business_units.id")
 			.whereNull("bills.deleted_at");
@@ -2656,12 +2657,12 @@ export default class IndicatorService {
           `,
 				),
 			)
-			.joinRaw(`join patients on patients.id = bills.client_id`)
+			.joinRaw("join patients on patients.id = bills.client_id")
 			.joinRaw(
-				`join business_units on bills.business_unit_id = business_units.id`,
+				"join business_units on bills.business_unit_id = business_units.id",
 			)
 			.joinRaw(
-				`join economic_groups on business_units.economic_group_id = economic_groups.id`,
+				"join economic_groups on business_units.economic_group_id = economic_groups.id",
 			)
 			.groupBy("economic_groups.id", "business_units.id")
 			.whereNull("bills.deleted_at");
@@ -2787,18 +2788,18 @@ export default class IndicatorService {
 				),
 			)
 			.joinRaw(
-				`join business_units on budgets.business_unit_id = business_units.id`,
+				"join business_units on budgets.business_unit_id = business_units.id",
 			)
 			.joinRaw(
-				`join economic_groups on business_units.economic_group_id = economic_groups.id`,
+				"join economic_groups on business_units.economic_group_id = economic_groups.id",
 			)
 			.groupBy("economic_groups.id", "business_units.id", "users.id")
 			.whereNull("budgets.deleted_at");
 
 		if (data.type === "VENDEDOR") {
-			qb.joinRaw(`left join users on budgets.seller_id = users.id`);
+			qb.joinRaw("left join users on budgets.seller_id = users.id");
 		} else {
-			qb.joinRaw(`left join users on budgets.reviewer_id  = users.id`);
+			qb.joinRaw("left join users on budgets.reviewer_id  = users.id");
 		}
 
 		if (data.units && Array.isArray(data.units)) {
@@ -2889,10 +2890,10 @@ export default class IndicatorService {
 				),
 			)
 			.joinRaw(
-				`join business_units on budgets.business_unit_id = business_units.id`,
+				"join business_units on budgets.business_unit_id = business_units.id",
 			)
 			.joinRaw(
-				`left join reasons on reasons.id = budgets.cancelation_reason_id and reasons.counts_for_report is true`,
+				"left join reasons on reasons.id = budgets.cancelation_reason_id and reasons.counts_for_report is true",
 				[],
 			)
 			.groupBy("business_units.id")
@@ -2939,15 +2940,15 @@ export default class IndicatorService {
 				),
 			)
 			.joinRaw(
-				`join business_units on bills.business_unit_id = business_units.id`,
+				"join business_units on bills.business_unit_id = business_units.id",
 			)
 			.joinRaw(
-				`join economic_groups on business_units.economic_group_id = economic_groups.id`,
+				"join economic_groups on business_units.economic_group_id = economic_groups.id",
 			)
 			.joinRaw(
 				`join patients on bills.client_id = patients.id and to_char(bill_date, 'MM/yyyy') = to_char(patients.created_at, 'MM/yyyy')`,
 			)
-			.joinRaw(`join patient_tutors on patients.id = patient_tutors.patient_id`)
+			.joinRaw("join patient_tutors on patients.id = patient_tutors.patient_id")
 			.joinRaw(
 				`join client_origins on patient_tutors.client_origin_id = client_origins.id and client_origins.group = 'Marketing'`,
 			)
@@ -2968,10 +2969,10 @@ export default class IndicatorService {
         `),
 			)
 			.joinRaw(
-				`join business_units on finances.business_unit_id = business_units.id`,
+				"join business_units on finances.business_unit_id = business_units.id",
 			)
 			.joinRaw(
-				`join economic_groups on business_units.economic_group_id = economic_groups.id`,
+				"join economic_groups on business_units.economic_group_id = economic_groups.id",
 			)
 			.joinRaw(
 				`join business_unit_configs on business_unit_configs.business_unit_id = business_units.id
@@ -2980,7 +2981,7 @@ export default class IndicatorService {
 			.whereNull("finances.deleted_at")
 			.where("finances.type", FinanceType.D)
 			.whereNot("finances.status", FinanceStatus.E)
-			.groupByRaw(`business_units.id, economic_groups.id, competence_date`)
+			.groupByRaw("business_units.id, economic_groups.id, competence_date")
 			.orderBy("competence_date", "asc");
 
 		if (data.units && Array.isArray(data.units)) {
@@ -3001,7 +3002,7 @@ export default class IndicatorService {
 
 		if (data.fromDate) {
 			billsQb.andWhereRaw("bill_date::date >= ?", [data.fromDate]);
-			financesQb.andWhereRaw(`competence_date = ?`, [
+			financesQb.andWhereRaw("competence_date = ?", [
 				DateTime.fromFormat(data.fromDate, "yyyy-MM-dd").toFormat("MM/yyyy"),
 			]);
 		}
@@ -3118,16 +3119,16 @@ export default class IndicatorService {
 				),
 			)
 			.joinRaw(
-				`left join business_units on bills.business_unit_id = business_units.id`,
+				"left join business_units on bills.business_unit_id = business_units.id",
 			)
 			.joinRaw(
-				`left join economic_groups on business_units.economic_group_id = economic_groups.id`,
+				"left join economic_groups on business_units.economic_group_id = economic_groups.id",
 			)
 			.joinRaw(
 				`join patients on patients.id = bills.client_id and
                                to_char(patients.created_at, 'MM/yyyy') = to_char(bills.bill_date, 'MM/yyyy')`,
 			)
-			.joinRaw(`join patient_tutors pt on patients.id = pt.patient_id`)
+			.joinRaw("join patient_tutors pt on patients.id = pt.patient_id")
 			.joinRaw(
 				`join client_origins co on pt.client_origin_id = co.id and co.group = 'Marketing'`,
 			)
@@ -3148,18 +3149,18 @@ export default class IndicatorService {
       `),
 			)
 			.joinRaw(
-				`join business_units on finances.business_unit_id = business_units.id`,
+				"join business_units on finances.business_unit_id = business_units.id",
 			)
 			.joinRaw(
-				`join economic_groups on business_units.economic_group_id = economic_groups.id`,
+				"join economic_groups on business_units.economic_group_id = economic_groups.id",
 			)
 			.joinRaw(
-				`join business_unit_configs on business_unit_configs.business_unit_id = business_units.id and business_unit_configs.marketing_account_plan_id = finances.account_plan_id`,
+				"join business_unit_configs on business_unit_configs.business_unit_id = business_units.id and business_unit_configs.marketing_account_plan_id = finances.account_plan_id",
 			)
 			.whereNull("finances.deleted_at")
 			.where("finances.type", FinanceType.D)
 			.whereNot("finances.status", FinanceStatus.E)
-			.groupByRaw(`business_units.id, economic_groups.id, competence_date`)
+			.groupByRaw("business_units.id, economic_groups.id, competence_date")
 			.orderBy("competence_date");
 
 		if (data.units && Array.isArray(data.units)) {
@@ -3180,7 +3181,7 @@ export default class IndicatorService {
 
 		if (data.fromDate) {
 			billsQb.andWhereRaw("bill_date::date >= ?", [data.fromDate]);
-			financesQb.andWhereRaw(`competence_date = ?`, [
+			financesQb.andWhereRaw("competence_date = ?", [
 				DateTime.fromFormat(data.fromDate, "yyyy-MM-dd").toFormat("MM/yyyy"),
 			]);
 		}
@@ -3302,16 +3303,16 @@ export default class IndicatorService {
 				),
 			)
 			.joinRaw(
-				`left join business_units on bills.business_unit_id = business_units.id`,
+				"left join business_units on bills.business_unit_id = business_units.id",
 			)
 			.joinRaw(
-				`left join economic_groups on business_units.economic_group_id = economic_groups.id`,
+				"left join economic_groups on business_units.economic_group_id = economic_groups.id",
 			)
 			.joinRaw(
-				`join bill_payments on bills.id = bill_payments.bill_id and bill_payments.deleted_at is null`,
+				"join bill_payments on bills.id = bill_payments.bill_id and bill_payments.deleted_at is null",
 			)
 			.joinRaw(
-				`join payment_methods on bill_payments.payment_method_id = payment_methods.id`,
+				"join payment_methods on bill_payments.payment_method_id = payment_methods.id",
 			)
 			.groupByRaw(
 				`economic_groups.id, business_units.id, to_char(bills.bill_date, 'YYYY/MM'), to_char(bills.bill_date, 'MM/YYYY')`,
@@ -3385,16 +3386,16 @@ export default class IndicatorService {
 				),
 			)
 			.joinRaw(
-				`left join business_units on bills.business_unit_id = business_units.id`,
+				"left join business_units on bills.business_unit_id = business_units.id",
 			)
 			.joinRaw(
-				`left join economic_groups on business_units.economic_group_id = economic_groups.id`,
+				"left join economic_groups on business_units.economic_group_id = economic_groups.id",
 			)
 			.joinRaw(
-				`join bill_payments on bills.id = bill_payments.bill_id and bill_payments.deleted_at is null`,
+				"join bill_payments on bills.id = bill_payments.bill_id and bill_payments.deleted_at is null",
 			)
 			.joinRaw(
-				`join payment_methods on bill_payments.payment_method_id = payment_methods.id`,
+				"join payment_methods on bill_payments.payment_method_id = payment_methods.id",
 			)
 			.groupByRaw(
 				`economic_groups.id, business_units.id, to_char(bills.bill_date, 'YYYY/MM'), to_char(bills.bill_date, 'MM/YYYY')`,
@@ -3471,14 +3472,14 @@ export default class IndicatorService {
 				),
 			)
 			.joinRaw(
-				`left join business_units on bills.business_unit_id = business_units.id`,
+				"left join business_units on bills.business_unit_id = business_units.id",
 			)
 			.joinRaw(
-				`left join economic_groups on business_units.economic_group_id = economic_groups.id and economic_groups.system_id = ?`,
+				"left join economic_groups on business_units.economic_group_id = economic_groups.id and economic_groups.system_id = ?",
 				[authCtx.system.id],
 			)
 			.joinRaw(
-				`join bill_payments on bills.id = bill_payments.bill_id and bill_payments.deleted_at is null`,
+				"join bill_payments on bills.id = bill_payments.bill_id and bill_payments.deleted_at is null",
 			)
 			.joinRaw(
 				`left join finances
@@ -3487,7 +3488,7 @@ export default class IndicatorService {
                       finances.payment_date is null`,
 			)
 			.joinRaw(
-				`join payment_methods on bill_payments.payment_method_id = payment_methods.id`,
+				"join payment_methods on bill_payments.payment_method_id = payment_methods.id",
 			)
 			.groupByRaw(
 				`economic_groups.id, business_units.id, to_char(bills.bill_date, 'YYYY/MM')`,
@@ -3556,11 +3557,11 @@ export default class IndicatorService {
        sum(bills.total_value) as total`,
 				),
 			)
-			.joinRaw(`join patients on bills.client_id = patients.id`)
+			.joinRaw("join patients on bills.client_id = patients.id")
 			.joinRaw(
-				`inner join business_units on business_units.id = bills.business_unit_id`,
+				"inner join business_units on business_units.id = bills.business_unit_id",
 			)
-			.groupByRaw(`business_units.id`)
+			.groupByRaw("business_units.id")
 			.whereNull("bills.deleted_at")
 			.whereRaw(
 				`to_char(bills.bill_date, 'YYYY-MM') <> to_char(patients.first_sale, 'YYYY-MM')`,
@@ -3587,7 +3588,7 @@ export default class IndicatorService {
     )
               on bills.client_id = patient_tutors.patient_id`)
 			.joinRaw(
-				`inner join business_units on business_units.id = bills.business_unit_id`,
+				"inner join business_units on business_units.id = bills.business_unit_id",
 			)
 			.groupByRaw(`business_units.id, client_origin_categories.description, client_origin_groups.description,
          client_origins.description`)
@@ -3995,7 +3996,9 @@ export default class IndicatorService {
 								{
 									description: "Faturamento Realizado",
 									value: this.shared.formatter.format(
-										cards.at(0)?.reduce((acc, curr) => acc + curr.total, 0),
+										cards[0]
+											? cards[0].reduce((acc, curr) => acc + curr.total, 0)
+											: 0,
 									),
 								},
 							],
@@ -4008,9 +4011,12 @@ export default class IndicatorService {
 								{
 									description: "Meta Faturamento",
 									value: this.shared.formatter.format(
-										cards
-											.at(0)
-											?.reduce((acc, curr) => acc + curr.meta.value, 0) ?? 0,
+										cards[0]
+											? (cards[0].reduce(
+													(acc, curr) => acc + curr.meta.value,
+													0,
+												) ?? 0)
+											: 0,
 									),
 								},
 							],
@@ -4023,9 +4029,12 @@ export default class IndicatorService {
 								{
 									description: "Atingimento",
 									value: this.shared.formatPercentage(
-										cards
-											.at(0)
-											?.reduce((acc, curr) => acc + curr.percentage, 0) ?? 0,
+										cards[0]
+											? (cards[0].reduce(
+													(acc, curr) => acc + curr.percentage,
+													0,
+												) ?? 0)
+											: 0,
 									),
 								},
 							],
@@ -4038,14 +4047,17 @@ export default class IndicatorService {
 								{
 									description: "Tendencia",
 									percentage: this.shared.formatPercentage(
-										cards
-											.at(0)
-											?.reduce((acc, curr) => acc + curr.metaProjection, 0),
+										cards[0]
+											? cards[0].reduce(
+													(acc, curr) => acc + curr.metaProjection,
+													0,
+												)
+											: 0,
 									),
 									value: this.shared.formatter.format(
-										cards
-											.at(0)
-											?.reduce((acc, curr) => acc + curr.projection, 0) ?? 0,
+										cards[0]
+											? cards[0].reduce((acc, curr) => acc + curr.projection, 0)
+											: 0,
 									),
 									color: authCtx.hasPermission("IND14")
 										? (billing.at(0)?.color ?? "#000")
@@ -4559,16 +4571,16 @@ export default class IndicatorService {
 				),
 			)
 			.joinRaw(
-				`left join business_units on bills.business_unit_id = business_units.id`,
+				"left join business_units on bills.business_unit_id = business_units.id",
 			)
 			.joinRaw(
-				`left join economic_groups on business_units.economic_group_id = economic_groups.id`,
+				"left join economic_groups on business_units.economic_group_id = economic_groups.id",
 			)
 			.joinRaw(
-				`join bill_payments on bills.id = bill_payments.bill_id and bill_payments.deleted_at is null`,
+				"join bill_payments on bills.id = bill_payments.bill_id and bill_payments.deleted_at is null",
 			)
 			.joinRaw(
-				`join payment_methods on bill_payments.payment_method_id = payment_methods.id`,
+				"join payment_methods on bill_payments.payment_method_id = payment_methods.id",
 			)
 			.groupByRaw(
 				`economic_groups.id, business_units.id, to_char(bills.bill_date, 'YYYY/MM'), to_char(bills.bill_date, 'MM/YYYY')`,
@@ -4754,7 +4766,7 @@ export default class IndicatorService {
 			fromDate?: string;
 			toDate?: string;
 		},
-		description: string = "",
+		description = "",
 	) {
 		const qb = Database.from("bills")
 			.select(
@@ -4797,13 +4809,13 @@ export default class IndicatorService {
 				),
 			)
 			.joinRaw(
-				`left join business_units on bills.business_unit_id = business_units.id`,
+				"left join business_units on bills.business_unit_id = business_units.id",
 			)
 			.joinRaw(
-				`left join economic_groups on business_units.economic_group_id = economic_groups.id`,
+				"left join economic_groups on business_units.economic_group_id = economic_groups.id",
 			)
-			.joinRaw(`join users on bills.user_id = users.id`)
-			.groupByRaw(`economic_groups.id, business_units.id, users.id`)
+			.joinRaw("join users on bills.user_id = users.id")
+			.groupByRaw("economic_groups.id, business_units.id, users.id")
 			.whereNull("bills.deleted_at");
 
 		if (data.units && Array.isArray(data.units)) {
@@ -4922,14 +4934,14 @@ export default class IndicatorService {
 				`join bill_items on bills.id = bill_items.bill_id and bill_items.status <> 'INATIVA'`,
 			)
 			.joinRaw(
-				`join product_variations on bill_items.product_variation_id = product_variations.id`,
+				"join product_variations on bill_items.product_variation_id = product_variations.id",
 			)
-			.joinRaw(`join products on product_variations.product_id = products.id`)
+			.joinRaw("join products on product_variations.product_id = products.id")
 			.joinRaw(
-				`join business_units on bills.business_unit_id = business_units.id`,
+				"join business_units on bills.business_unit_id = business_units.id",
 			)
 			.joinRaw(
-				`join economic_groups on business_units.economic_group_id = economic_groups.id`,
+				"join economic_groups on business_units.economic_group_id = economic_groups.id",
 			)
 			.groupBy("economic_groups.id", "business_units.id")
 			.whereNull("bills.deleted_at");
@@ -5194,7 +5206,7 @@ export default class IndicatorService {
 			fromDate?: string;
 			toDate?: string;
 		},
-		description: string = "",
+		description = "",
 	) {
 		const qb = Database.from("bills")
 			.select(
@@ -5251,12 +5263,12 @@ export default class IndicatorService {
           `,
 				),
 			)
-			.joinRaw(`join patients on patients.id = bills.client_id`)
+			.joinRaw("join patients on patients.id = bills.client_id")
 			.joinRaw(
-				`join business_units on bills.business_unit_id = business_units.id`,
+				"join business_units on bills.business_unit_id = business_units.id",
 			)
 			.joinRaw(
-				`join economic_groups on business_units.economic_group_id = economic_groups.id`,
+				"join economic_groups on business_units.economic_group_id = economic_groups.id",
 			)
 			.groupBy("economic_groups.id", "business_units.id")
 			.whereNull("bills.deleted_at");
@@ -5421,21 +5433,21 @@ export default class IndicatorService {
 				),
 			)
 			.joinRaw(
-				`join business_units on budgets.business_unit_id = business_units.id`,
+				"join business_units on budgets.business_unit_id = business_units.id",
 			)
 			.joinRaw(
-				`join economic_groups on business_units.economic_group_id = economic_groups.id`,
+				"join economic_groups on business_units.economic_group_id = economic_groups.id",
 			)
 			.groupBy("economic_groups.id", "business_units.id", "users.id")
 			.whereNull("budgets.deleted_at")
 			.orderByRaw("total_value desc, name");
 
 		if (!data.type || data.type === "VENDEDOR") {
-			qb.joinRaw(`left join users on budgets.seller_id = users.id`);
+			qb.joinRaw("left join users on budgets.seller_id = users.id");
 		}
 
 		if (data.type === "AVALIADOR") {
-			qb.joinRaw(`left join users on budgets.reviewer_id  = users.id`);
+			qb.joinRaw("left join users on budgets.reviewer_id  = users.id");
 		}
 
 		if (data.units && Array.isArray(data.units)) {
@@ -5957,9 +5969,9 @@ export default class IndicatorService {
 			10,
 		);
 
-		const _vendidos = Number.parseInt(
-			salesResult.find((r) => r.id === generalResult.at(0)?.id)?.sales ?? "0",
-		);
+		// const _vendidos = Number.parseInt(
+		// 	salesResult.find((r) => r.id === generalResult.at(0)?.id)?.sales ?? "0",
+		// );
 
 		const _clientes = Number.parseInt(
 			salesResult.find((r) => r.id === generalResult.at(0)?.id)?.clients ?? "0",
@@ -6278,7 +6290,7 @@ export default class IndicatorService {
 		}
 
 		if (data.fromDate && data.toDate) {
-			qb.whereRaw(`bill_date::date between ? and ?`, [
+			qb.whereRaw("bill_date::date between ? and ?", [
 				data.fromDate,
 				data.toDate,
 			]);

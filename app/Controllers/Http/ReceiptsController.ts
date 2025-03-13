@@ -9,6 +9,7 @@ import CreateReceiptValidator from "App/Validators/Receipt/CreateReceiptValidato
 import CreateSupplierProductValidator from "App/Validators/Receipt/CreateSupplierProductValidator";
 import DeleteReceiptItemValidator from "App/Validators/Receipt/DeleteReceiptItemValidator";
 import DeleteReceiptPaymentValidator from "App/Validators/Receipt/DeleteReceiptPaymentValidator";
+import ExcludeReceiptValidator from "App/Validators/Receipt/ExcludeReceiptValidator";
 import FinishReceiptImportValidator from "App/Validators/Receipt/FinishReceiptImportValidator";
 import ImportFromXmlValidator from "App/Validators/Receipt/ImportFromXmlValidator";
 import ReopenReceiptValidator from "App/Validators/Receipt/ReopenReceiptValidator";
@@ -239,6 +240,17 @@ export default class ReceiptsController {
 		const payload = await request.validate(ReopenReceiptValidator);
 
 		await this.service.reopenReceipt(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.noContent();
+	}
+
+	public async deleteReceipt({ request, response, auth }: HttpContextContract) {
+		const payload = await request.validate(ExcludeReceiptValidator);
+
+		await this.service.excludeReceipt(
 			await this.sharedService.getAuthContext(auth),
 			payload,
 		);

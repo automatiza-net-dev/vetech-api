@@ -35,10 +35,10 @@ export default class BusinessUnitsController {
 		return response.noContent();
 	}
 
-	public async index({ request, response }: HttpContextContract) {
+	public async index({ auth, request, response }: HttpContextContract) {
 		const qs = request.qs();
 		return response.ok(
-			await this.service.index({
+			await this.service.index(await this.sharedService.getAuthContext(auth), {
 				email: qs.email,
 				identification: qs.identification,
 			}),
@@ -86,15 +86,17 @@ export default class BusinessUnitsController {
 		request,
 		response,
 	}: HttpContextContract) {
-		const payload = await request.validate(
-			CreateBusinessUnitCollaboratorValidator,
-		);
-		await this.service.createCollaborator(
-			await this.sharedService.getAuthContext(auth),
-			payload,
-		);
+		await this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(
+				CreateBusinessUnitCollaboratorValidator,
+			);
+			await this.service.createCollaborator(
+				await this.sharedService.getAuthContext(auth),
+				payload,
+			);
 
-		return response.created();
+			return response.created();
+		});
 	}
 
 	public async update({ params, request, response }: HttpContextContract) {

@@ -8,7 +8,6 @@ import CopyRoleValidator from "App/Validators/Role/CopyRoleValidator";
 import CreateRoleValidator from "App/Validators/Role/CreateRoleValidator";
 import ManageRolePermissionValidator from "App/Validators/Role/ManageRolePermissionValidator";
 import UpdateRoleValidator from "App/Validators/Role/UpdateRoleValidator";
-import { ValidationException } from "@ioc:Adonis/Core/Validator";
 
 @inject()
 export default class RolesController {

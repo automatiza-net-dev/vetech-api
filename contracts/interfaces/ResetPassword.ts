@@ -1,9 +1,9 @@
 export interface IForgotPassword {
-  email: string;
-  systemName: string;
+	systemId: number;
+	email: string;
 }
 
 export interface IResetPassword {
-  hash: string;
-  password: string;
+	hash: string;
+	password: string;
 }

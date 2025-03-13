@@ -1,5 +1,5 @@
 import { MultipartFileContract } from "@ioc:Adonis/Core/BodyParser";
-import { PatientGender, PatientVaccineOrigin } from "App/Models/Patient";
+import { PatientVaccineOrigin } from "App/Models/Patient";
 import { DateTime } from "luxon";
 
 export default interface IPatientData {
@@ -12,7 +12,7 @@ export default interface IPatientData {
 	photo?: MultipartFileContract;
 	gender?: string;
 	tags?: string;
-	birthDate?: DateTime;
+	birthDate?: DateTime | string;
 	birthDays?: number;
 	birthMonths?: number;
 	birthYears?: number;

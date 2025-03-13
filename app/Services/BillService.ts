@@ -56,6 +56,8 @@ import DepositService from "./DepositService";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import PaymentMethodFlag from "App/Models/PaymentMethodFlag";
 import ScheduleMovementsService from "./ScheduleMovementsService";
+import BillItemDepartment from "App/Models/BillItemDepartment";
+import BillAuthorization from "App/Models/BillAuthorization";
 
 interface ISearch {
 	fromBill?: string;
@@ -131,8 +133,16 @@ export default class BillService {
                   and (approved = false and courtesy_approved_at is not null)
                   and deleted_at is null
                   and bill_items.bill_id = bills.id
+                group by bill_id
+                union
+                select true
+                from bill_payments
+                where (bill_payments.approved is false)
+                  and (bill_payments.approved_at is not null)
+                  and bill_payments.deleted_at is null
+                  and bill_payments.bill_id = bills.id
                 group by bill_id) = true then 'Nao Aprovada'
-           else bills.status end                                 as status,
+           else bills.status end as status,
        bills.created_at,
        bills.updated_at,
        bills.tag,
@@ -140,6 +150,7 @@ export default class BillService {
        bills.paid_value,
        bills.documents_status,
        bills.pending,
+       bills.origin_bill_id,
        case
            when client_id is not null then
                json_build_object('id', client.id, 'name', client.name, 'type', client.type)
@@ -341,37 +352,36 @@ export default class BillService {
 		const rows = await Database.from("bills")
 			.select(
 				Database.raw(
-					`p.description as produto, pi2.description as produtividade, te.schedule_date , te.execution_date , u."name" as usuario_execucao, bi.id`,
+					`bill_items.id as billitemid,
+       pi2.description   as item_produtividade,
+       te.treatment_id,
+       te.treatment_item_id,
+       te.id as treatmentexecutionid,
+       te.schedule_date  as data_agendamento,
+       te.execution_date as data_execucao,
+       te.observations,
+       users.name        as usuario_execucao`,
 				),
 			)
-			.joinRaw("join bill_items bi on bills.id = bi.bill_id", [])
+			.joinRaw("join bill_items on bills.id = bill_items.bill_id", [])
 			.joinRaw(
-				"join product_variations pv on bi.product_variation_id = pv.id",
+				`left join (treatments t
+    join treatment_items ti on t.id = ti.treatment_id and t.business_unit_id = ti.business_unit_id
+    join treatment_executions te on ti.treatment_id = te.treatment_id and ti.id = te.treatment_item_id
+    join productivity_items pi2 on te.productivity_item_id = pi2.id
+    left join users on te.execution_user_id = users.id)
+                   on bills.business_unit_id = t.business_unit_id and bill_items.bill_id = t.bill_id and
+                      ti.bill_item_id = bill_items.id`,
 				[],
 			)
-			.joinRaw("join products p on p.id = pv.product_id", [])
-			.joinRaw("join treatments t on bills.id = t.bill_id", [])
-			.joinRaw(
-				"join treatment_items ti on t.id = ti.treatment_id and bi.id = ti.bill_item_id",
-				[],
-			)
-			.joinRaw(
-				"join treatment_executions te on ti.id = te.treatment_item_id and ti.treatment_id = te.treatment_id",
-				[],
-			)
-			.joinRaw(
-				"join productivity_items pi2 on te.productivity_item_id = pi2.id",
-				[],
-			)
-			.joinRaw("left join users u on u.id = te.execution_user_id", [])
-			.where("bills.economic_group_id", authCtx.group.id)
-			.where("bills.business_unit_id", authCtx.unit.id)
-			.whereRaw("bills.bill_date::date = now()::date", []);
+			.whereRaw("bills.id = ?", [id]);
 
 		const jsonBill = bill.toJSON();
 
 		jsonBill.items = jsonBill.items.map((bi) => {
-			bi.treatmentExecutions = rows.filter((ro) => bi.id === ro.id);
+			bi.treatmentExecutions = rows.filter(
+				(ro) => bi.id === ro.billitemid && !!ro.treatment_id,
+			);
 			return bi;
 		});
 
@@ -413,25 +423,28 @@ export default class BillService {
 		// }
 
 		return Database.transaction(async (trx) => {
-			const invalid = await this.sharedService.checkDiscount(
-				trx,
-				authCtx,
-				data.items.map((elem) => ({
-					variationId: elem.productVariationId,
-					unitaryValue: elem.unitaryValue,
-					discountValue: elem.discountValue,
-					quantity: elem.quantity,
-					courtesy: elem.courtesy,
-					maxDiscount: elem.maxDiscount,
-				})),
-			);
-			if (invalid.length > 0) {
-				// return invalid;
-				throw new BadRequestException(
-					"Desconto máximo foi excedido",
-					400,
-					"E_ERR",
+			if (!data.maxDiscount) {
+				const invalid = await this.sharedService.checkDiscount(
+					trx,
+					authCtx,
+					data.items.map((elem) => ({
+						variationId: elem.productVariationId,
+						unitaryValue: elem.unitaryValue,
+						discountValue: elem.discountValue,
+						quantity: elem.quantity,
+						courtesy: elem.courtesy,
+						maxDiscount: elem.maxDiscount,
+						approved: elem.approved,
+					})),
 				);
+				if (invalid.length > 0) {
+					// return invalid;
+					throw new BadRequestException(
+						"Desconto máximo foi excedido",
+						400,
+						"E_ERR",
+					);
+				}
 			}
 
 			if (data.items.length > 0 && authCtx.unit.unitConfig.controlsDeposit) {
@@ -480,6 +493,7 @@ export default class BillService {
 						quantity: elem.quantity,
 						courtesy: elem.courtesy,
 						maxDiscount: elem.maxDiscount,
+						approved: elem.approved,
 					})),
 			);
 			if (invalid.length > 0) {
@@ -512,7 +526,7 @@ export default class BillService {
 				);
 			}
 
-			if (data.items) {
+			if (data.items && !data.maxDiscount) {
 				const result = await this.sharedService.checkDiscount(
 					trx,
 					authCtx,
@@ -585,8 +599,8 @@ export default class BillService {
 							);
 						}
 
-						return elem.billItemId
-							? BillItem.query()
+						elem.billItemId
+							? await BillItem.query()
 									.useTransaction(trx)
 									.where("bill_id", bill.id)
 									.where("id", elem.billItemId)
@@ -607,7 +621,7 @@ export default class BillService {
 									} as Partial<
 										Omit<BillItem, "quantity"> & { quantity: number }
 									>)
-							: BillItem.create(
+							: await BillItem.create(
 									{
 										economic_group_id: authCtx.group.id,
 										business_unit_id: authCtx.unit.id,
@@ -630,6 +644,39 @@ export default class BillService {
 									},
 									{ client: trx },
 								);
+
+						if (elem.departmentId && elem.departmentItemId) {
+							if (elem.billItemDepartmentId) {
+								await BillItemDepartment.query()
+									.useTransaction(trx)
+									.where("id", elem.billItemDepartmentId)
+									.where("bill_id", data.billId)
+									.where(
+										"bill_item_id",
+										elem.billItemId ? elem.billItemId : v4(),
+									)
+									.where("department_id", elem.departmentId)
+									.where("department_item_id", elem.departmentItemId)
+									.update({
+										observation: elem.observation,
+										updated_user_id: authCtx.user.id,
+									});
+								// } else {
+								// 	await BillItemDepartment.create(
+								// 		{
+								// 			bill_id: data.billId,
+								// 			bill_item_id: Array.isArray(bi)
+								// 				? (elem.billItemId ?? v4())
+								// 				: bi.id,
+								// 			department_id: elem.departmentItemId,
+								// 			department_item_id: elem.departmentItemId,
+								// 			creation_user_id: authCtx.user.id,
+								// 			observation: elem.observation,
+								// 		},
+								// 		{ client: trx },
+								// 	);
+							}
+						}
 					})
 				: [];
 			await Promise.all(tasks);
@@ -641,7 +688,7 @@ export default class BillService {
 					seller_id: data.sellerId,
 					client_id: data.clientId,
 					patient_id: data.patientId,
-					financial_responsible_id: data.financialResponsibleId ?? null,
+					financial_responsible_id: data.financialResponsibleId,
 					additionalInformation: data.additionalInformation,
 					internalCode: data.internalCode,
 				})
@@ -1119,6 +1166,13 @@ where deposit_id = ?
 					billItem.deposit_id,
 					billItem.product_variation_id,
 				],
+			)
+				.useTransaction(trx)
+				.exec();
+
+			await Database.rawQuery(
+				"update bill_item_departments set deleted_at = now(), deleted_user_id = ? where bill_item_id = ?",
+				[authCtx.user.id, id],
 			)
 				.useTransaction(trx)
 				.exec();
@@ -2177,6 +2231,20 @@ where deposit_id = ?
 			);
 		}
 
+		if (data.originBillId) {
+			const existingRow = await Database.from("bills")
+				.select("tag", "origin_bill_id")
+				.whereRaw("id = ?", [data.originBillId])
+				.first();
+			if (existingRow && !!existingRow.origin_bill_id) {
+				throw new BadRequestException(
+					`Nota de saída ${existingRow.tag} já está sendo usada como origem`,
+					400,
+					"E_ERR",
+				);
+			}
+		}
+
 		const existingBillWithInternalCode = await Bill.query()
 			.useTransaction(trx)
 			.where("business_unit_id", authCtx.unit.id)
@@ -2380,7 +2448,7 @@ where deposit_id = ?
 			.where("user_unit_roles.user_id", authCtx.user.id)
 			.where("user_unit_roles.unit_id", authCtx.unit.id);
 
-		const tasks = data.items.map((item) => {
+		const tasks = data.items.map(async (item) => {
 			const variation = productVariations.find(
 				(variation) => variation.id === item.productVariationId,
 			) as ProductVariation;
@@ -2412,7 +2480,7 @@ where deposit_id = ?
 				? icmsStBase_1 - (icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
 				: 0;
 
-			return BillItem.create(
+			const bi = await BillItem.create(
 				{
 					economic_group_id: authCtx.group.id,
 					business_unit_id: authCtx.unit.id,
@@ -2510,6 +2578,24 @@ where deposit_id = ?
 					client: trx,
 				},
 			);
+
+			if (item.departmentId && item.departmentItemId) {
+				await BillItemDepartment.create(
+					{
+						bill_id: bill.id,
+						bill_item_id: bi.id,
+						department_id: item.departmentId,
+						department_item_id: item.departmentId,
+						creation_user_id: authCtx.user.id,
+
+						observation: item.observation,
+						createdAt: DateTime.now(),
+					},
+					{
+						client: trx,
+					},
+				);
+			}
 		});
 
 		await Promise.all(tasks);
@@ -3590,8 +3676,8 @@ where deposit_id = ?
 		data: {
 			billId: string;
 			itemsIdList: string[];
-			email: string;
-			password: string;
+			userEmail: string;
+			userPwd: string;
 			reason: string;
 			approved: boolean;
 			paymentsIdList?: string[];
@@ -3614,7 +3700,7 @@ where deposit_id = ?
 
 			const user = await User.query()
 				.useTransaction(trx)
-				.whereILike("email", data.email)
+				.whereILike("email", data.userEmail)
 				.where("system_id", authCtx.system.id)
 				.first();
 
@@ -3626,7 +3712,7 @@ where deposit_id = ?
 				);
 			}
 
-			if (!(await Hash.verify(user.password, data.password))) {
+			if (!(await Hash.verify(user.password, data.userPwd))) {
 				throw new BadRequestException(
 					"Credenciais inválidas",
 					400,
@@ -3708,6 +3794,8 @@ where deposit_id = ?
 	async requestBillCancellation(
 		authCtx: AuthContext,
 		data: {
+			userEmail: string;
+			userPwd: string;
 			reasonId?: string;
 			cancelReason?: string;
 			billId: string;
@@ -3726,6 +3814,40 @@ where deposit_id = ?
 		}
 
 		await Database.transaction(async (trx) => {
+			const user = await User.query()
+				.useTransaction(trx)
+				.whereILike("email", data.userEmail)
+				.where("system_id", authCtx.system.id)
+				.first();
+
+			if (!user) {
+				throw new BadRequestException(
+					"Credenciais inválidas",
+					400,
+					"E_BAD_CREDENTIALS",
+				);
+			}
+
+			if (!(await Hash.verify(user.password, data.userPwd))) {
+				throw new BadRequestException(
+					"Credenciais inválidas",
+					400,
+					"E_BAD_CREDENTIALS",
+				);
+			}
+
+			const hasPermissions = await this.sharedService.userHasPermission(
+				{ ...authCtx, user },
+				"VEN18",
+			);
+			if (!hasPermissions) {
+				throw new UnauthorizedException(
+					"Usuário sem permissão de fazer a operação",
+					400,
+					"E_ERR",
+				);
+			}
+
 			const bill = await Bill.query()
 				.useTransaction(trx)
 				.where("business_unit_id", authCtx.unit.id)
@@ -3735,6 +3857,10 @@ where deposit_id = ?
 						"id",
 						data.billItems.map((bi) => bi.id),
 					);
+
+					query.preload("productVariation", (query) => {
+						query.preload("product");
+					});
 				})
 				.preload("payments", (query) => {
 					query.whereIn("id", data.billPayments);
@@ -3753,22 +3879,6 @@ where deposit_id = ?
 				throw new BadRequestException("Nota já cancelada", 400, "E_ERR");
 			}
 
-			await bill
-				.merge({
-					cancel_user_id: authCtx.user.id,
-					cancel_reason_id: data.reasonId,
-
-					cancelReason: data.cancelReason,
-					cancelled: "P",
-					cancelledAt: DateTime.now(),
-					cancelNotes: data.notes,
-					cancelValueTotal: new Decimal(bill.totalValue),
-					cancelValueProducts: new Decimal(bill.productValue),
-					cancelValueServices: new Decimal(bill.serviceValue),
-				})
-				.useTransaction(trx)
-				.save();
-
 			const itemTasks = bill.items.map(async (item) => {
 				return item
 					.merge({
@@ -3781,7 +3891,7 @@ where deposit_id = ?
 					.useTransaction(trx)
 					.save();
 			});
-			await Promise.all(itemTasks);
+			const cancelledItems = await Promise.all(itemTasks);
 
 			const paymentTasks = bill.payments.map(async (payment) => {
 				return payment
@@ -3792,21 +3902,66 @@ where deposit_id = ?
 					.save();
 			});
 			await Promise.all(paymentTasks);
+
+			await bill
+				.merge({
+					cancel_user_id: authCtx.user.id,
+					cancel_reason_id: data.reasonId,
+
+					cancelReason: data.cancelReason,
+					cancelled: "P",
+					cancelledAt: DateTime.now(),
+					cancelNotes: data.notes,
+					cancelValueTotal: cancelledItems.reduce(
+						(acc, curr) =>
+							acc.plus(
+								new Decimal(curr.totalValue)
+									.div(curr.quantity)
+									.times(new Decimal(curr.cancelledQuantity ?? 1)),
+							),
+						new Decimal(0),
+					),
+					cancelValueProducts: cancelledItems.reduce(
+						(acc, curr) =>
+							curr.productVariation.product.type === ProductType.PRODUCT
+								? acc.plus(
+										new Decimal(curr.totalValue)
+											.div(curr.quantity)
+											.times(new Decimal(curr.cancelledQuantity ?? 1)),
+									)
+								: acc,
+						new Decimal(0),
+					),
+					cancelValueServices: cancelledItems.reduce(
+						(acc, curr) =>
+							curr.productVariation.product.type === ProductType.SERVICE
+								? acc.plus(
+										new Decimal(curr.totalValue)
+											.div(curr.quantity)
+											.times(new Decimal(curr.cancelledQuantity ?? 1)),
+									)
+								: acc,
+						new Decimal(0),
+					),
+				})
+				.useTransaction(trx)
+				.save();
 		});
 	}
 
 	async reviewBillCancellation(
 		authCtx: AuthContext,
 		data: {
-			email: string;
-			password: string;
+			userEmail: string;
+			userPwd: string;
 			billId: string;
 			billItems: { id: string; cancelled: boolean; note: string }[];
 			billPayments: { id: string; cancelled: boolean; note: string }[];
+			noPayments?: boolean;
 		},
 	) {
 		const user = await User.query()
-			.whereILike("email", data.email)
+			.whereILike("email", data.userEmail)
 			.where("system_id", authCtx.system.id)
 			.first();
 
@@ -3818,7 +3973,7 @@ where deposit_id = ?
 			);
 		}
 
-		if (!(await Hash.verify(user.password, data.password))) {
+		if (!(await Hash.verify(user.password, data.userPwd))) {
 			throw new BadRequestException(
 				"Credenciais inválidas",
 				400,
@@ -3869,69 +4024,172 @@ where deposit_id = ?
 				);
 			}
 
-			if (bill.cancelled) {
+			if (bill.cancelled !== "P" && bill.cancelled !== "F") {
 				throw new BadRequestException("Nota já cancelada", 400, "E_ERR");
 			}
 
-			const itemTasks = bill.items.map(async (elem) => {
-				return elem.merge({
-					reviewer_cancel_user_id: authCtx.user.id,
-					reviewCancelDate: DateTime.now(),
-					cancelled: data.billItems.find((i) => i.id === elem.id)?.cancelled
-						? "S"
-						: "N",
-					reviewCancelNotes: `${elem.reviewCancelNotes}\n${DateTime.now()} - ${authCtx.user.name}\n${data.billItems.find((i) => i.id === elem.id)?.note}`,
-				});
-			});
-			await Promise.all(itemTasks);
+			const itemTasks = bill.items
+				.filter((elem) => data.billItems.find((bi) => bi.id === elem.id))
+				.map(async (elem) => {
+					const note = data.billItems.find((i) => i.id === elem.id)?.note;
 
-			const paymentTasks = bill.payments.map(async (elem) => {
-				return elem.merge({
-					reviewer_cancel_user_id: authCtx.user.id,
-					reviewCancelDate: DateTime.now(),
-					cancelled: data.billItems.find((i) => i.id === elem.id)?.cancelled
-						? "S"
-						: "N",
-					reviewCancelNotes: `${elem.reviewCancelNotes}\n${DateTime.now()} - ${authCtx.user.name}\n${data.billItems.find((i) => i.id === elem.id)?.note}`,
+					return elem
+						.merge({
+							reviewer_cancel_user_id: authCtx.user.id,
+							reviewCancelDate: DateTime.now(),
+							cancelled: data.billItems.find((i) => i.id === elem.id)?.cancelled
+								? "S"
+								: "N",
+							reviewCancelNotes: note
+								? [
+										elem.reviewCancelNotes,
+										`${DateTime.now()} - ${authCtx.user.name}\n${note}`,
+									]
+										.filter(Boolean)
+										.join("\n")
+								: elem.reviewCancelNotes,
+						})
+						.save();
 				});
-			});
-			await Promise.all(paymentTasks);
+			const updatedItems = await Promise.all(itemTasks);
+			await BillAuthorization.createMany(
+				updatedItems.map<Partial<BillAuthorization>>((row) => ({
+					bill_id: data.billId,
+					bill_item_id: row.id,
+					bill_payment_id: null,
+					type: (
+						[
+							row.courtesy && "courtesy",
+							row.maxDiscount && "maxDiscount",
+							"cancel",
+						] as BillAuthorization["type"][]
+					)
+						.filter(Boolean)
+						.at(0),
+					authorization_type: "RC",
+					approved: row.approved,
+					cancelled_quantity: row.cancelledQuantity,
+					authorization_user_id: authCtx.user.id,
+					authorization_date: DateTime.now(),
+					authorization_observations: data.billItems.find(
+						(bi) => bi.id === row.id,
+					)?.note,
+				})),
+				{ client: trx },
+			);
 
-			const missingStuff = await Database.from("bill_items")
-				.useTransaction(trx)
-				.select("id")
-				.where("business_unit_id", authCtx.unit.id)
-				.where("bill_id", data.billId)
-				.union((query) => {
-					query
-						.useTransaction(trx)
-						.select("id")
-						.from("bill_payments")
-						.where("business_unit_id", authCtx.unit.id)
-						.where("bill_id", data.billId);
+			if (
+				bill.cancelled === "F" &&
+				data.billPayments.length === 0 &&
+				data.noPayments
+			) {
+				await bill
+					.merge({
+						cancelled: "A",
+					})
+					.useTransaction(trx)
+					.save();
+				return;
+			}
+
+			const paymentTasks = bill.payments
+				.filter((elem) => data.billPayments.find((bi) => bi.id === elem.id))
+				.map(async (elem) => {
+					const note = data.billPayments.find((i) => i.id === elem.id)?.note;
+
+					return elem
+						.merge({
+							reviewer_cancel_user_id: authCtx.user.id,
+							reviewCancelDate: DateTime.now(),
+							cancelled: data.billPayments.find((i) => i.id === elem.id)
+								?.cancelled
+								? "S"
+								: "N",
+							reviewCancelNotes: note
+								? [
+										elem.reviewCancelNotes,
+										`${DateTime.now()} - ${authCtx.user.name}\n${note}`,
+									]
+										.filter(Boolean)
+										.join("\n")
+								: elem.reviewCancelNotes,
+						})
+						.save();
 				});
+			const updatedPayments = await Promise.all(paymentTasks);
+			await BillAuthorization.createMany(
+				updatedPayments.map<Partial<BillAuthorization>>((row) => ({
+					bill_id: data.billId,
+					bill_item_id: null,
+					bill_payment_id: row.id,
+					type: "maxParcelas",
+					authorization_type: "P",
+					approved: row.approved,
+					authorization_user_id: authCtx.user.id,
+					authorization_date: DateTime.now(),
+					authorization_observations: data.billPayments.find(
+						(bi) => bi.id === row.id,
+					)?.note,
+				})),
+				{ client: trx },
+			);
 
-			await bill
-				.merge({
-					cancelled: missingStuff.length === 0 ? "A" : "P",
-				})
-				.useTransaction(trx)
-				.save();
+			const billStatus: { status: "P" | "F" | "A"; order: number } | null =
+				await Database.from("bill_items")
+					.useTransaction(trx)
+					.select(Database.raw("'P' as status, 1 as ordem"))
+					.where("cancelled", "P")
+					.where("bill_id", bill.id)
+					.whereNull("deleted_at")
+					.union((query) => {
+						query
+							.from("bill_items")
+							.select(Database.raw("'F' as status, 3 as ordem"))
+							.whereIn("cancelled", ["S", "N"])
+							.where("bill_id", bill.id)
+							.whereNull("deleted_at");
+					})
+					.union((query) => {
+						query
+							.from("bill_items")
+							.select(Database.raw("'A' as status, 2 as ordem"))
+							.joinRaw(
+								"join bill_payments on bill_items.bill_id = bill_payments.bill_id",
+							)
+							.where("bill_items.bill_id", bill.id)
+							.whereRaw("coalesce(bill_items.cancelled, '') not in ('P')")
+							.whereRaw(
+								"coalesce(bill_payments.cancelled, '') not in ('P', '')",
+							)
+							.whereRaw("bill_items.deleted_at is null")
+							.whereRaw("bill_payments.deleted_at is null");
+					})
+					.orderByRaw("ordem")
+					.first();
+
+			if (billStatus) {
+				await bill
+					.merge({
+						cancelled: billStatus.status,
+					})
+					.useTransaction(trx)
+					.save();
+			}
 		});
 	}
 
 	async finishBillCancellation(
 		authCtx: AuthContext,
 		data: {
-			email: string;
-			password: string;
+			userEmail: string;
+			userPwd: string;
 			billId: string;
 			cancelled: boolean;
 			note: string;
 		},
 	) {
 		const user = await User.query()
-			.whereILike("email", data.email)
+			.whereILike("email", data.userEmail)
 			.where("system_id", authCtx.system.id)
 			.first();
 
@@ -3943,7 +4201,7 @@ where deposit_id = ?
 			);
 		}
 
-		if (!(await Hash.verify(user.password, data.password))) {
+		if (!(await Hash.verify(user.password, data.userPwd))) {
 			throw new BadRequestException(
 				"Credenciais inválidas",
 				400,
@@ -3974,8 +4232,12 @@ where deposit_id = ?
 				);
 			}
 
-			if (bill.cancelled) {
-				throw new BadRequestException("Nota já cancelada", 400, "E_ERR");
+			if (bill.cancelled !== "A") {
+				throw new BadRequestException(
+					"Venda não pode ser finalizada pois não foi avaliada pelo depto Tecnico e depto Financeiro",
+					400,
+					"E_ERR",
+				);
 			}
 
 			await bill
@@ -3988,6 +4250,28 @@ where deposit_id = ?
 				.useTransaction(trx)
 				.save();
 		});
+	}
+
+	async deleteItemDepartments(
+		authCtx: AuthContext,
+		data: {
+			billId: string;
+			billItemId: string;
+			billItemDepartmentId: number;
+			departmentId: number;
+			departmentItemId: number;
+		},
+	) {
+		await BillItemDepartment.query()
+			.where("id", data.billItemDepartmentId)
+			.where("bill_id", data.billId)
+			.where("bill_item_id", data.billItemId)
+			.where("department_id", data.departmentId)
+			.where("department_item_id", data.departmentItemId)
+			.update({
+				deleted_user_id: authCtx.user.id,
+				deletedAt: DateTime.now(),
+			});
 	}
 
 	private async syncBillPendingAndSum(

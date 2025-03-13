@@ -14,6 +14,7 @@ import { isAfter } from "date-fns";
 import { AuthContract, ProviderTokenContract } from "@ioc:Adonis/Addons/Auth";
 import Hash from "@ioc:Adonis/Core/Hash";
 import Database from "@ioc:Adonis/Lucid/Database";
+import SystemUrl from "App/Models/SystemUrl";
 
 @inject()
 export default class AuthService {
@@ -385,6 +386,12 @@ export default class AuthService {
 				.where("name", data.system)
 				.firstOrFail();
 
+			const systemUrl = await SystemUrl.query()
+				.useTransaction(trx)
+				.where("system_id", system.id)
+				.where("url", data.systemUrl)
+				.firstOrFail();
+
 			const user = await User.query()
 				.useTransaction(trx)
 				.where("email", data.email)
@@ -463,6 +470,7 @@ export default class AuthService {
 					await auth.use("api").generate(user, {
 						expiresIn: "7d",
 						unit_id: unit.id,
+						system_url_id: systemUrl.id,
 						system_id: system.id,
 						system_name: system.name,
 						ip: data.ip,
@@ -548,6 +556,7 @@ export default class AuthService {
 				await auth.use("api").generate(user, {
 					expiresIn: "7d",
 					unit_id: unit.id,
+					system_url_id: systemUrl.id,
 					system_id: system.id,
 					system_name: system.name,
 					ip: data.ip,
@@ -619,6 +628,12 @@ export default class AuthService {
 				.where("name", data.system)
 				.firstOrFail();
 
+			const systemUrl = await SystemUrl.query()
+				.useTransaction(trx)
+				.where("system_id", system.id)
+				.where("url", data.systemUrl)
+				.firstOrFail();
+
 			const user = await User.query()
 				.useTransaction(trx)
 				.where("email", data.email)
@@ -654,6 +669,7 @@ export default class AuthService {
 
 			return auth.use("api").generate(user, {
 				expiresIn: "7d",
+				system_url_id: systemUrl.id,
 				system_id: system.id,
 				system_name: system.name,
 				ip: data.ip,
@@ -666,6 +682,12 @@ export default class AuthService {
 			const system = await System.query()
 				.useTransaction(trx)
 				.where("name", data.system)
+				.firstOrFail();
+
+			const systemUrl = await SystemUrl.query()
+				.useTransaction(trx)
+				.where("system_id", system.id)
+				.where("url", data.systemUrl)
 				.firstOrFail();
 
 			const user = await User.query()
@@ -754,6 +776,7 @@ export default class AuthService {
 
 			const token = await auth.use("api").generate(user, {
 				expiresIn: "7d",
+				system_url_id: systemUrl.id,
 				system_id: system.id,
 				system_name: system.name,
 				ip: null,

@@ -141,7 +141,7 @@ Route.group(() => {
 	Route.get("/system", "BusinessUnitsController.systemUnits").middleware(
 		"auth",
 	);
-	Route.get("", "BusinessUnitsController.index");
+	Route.get("", "BusinessUnitsController.index").middleware("auth");
 	Route.get(":id", "BusinessUnitsController.show");
 
 	Route.post(
@@ -940,7 +940,7 @@ Route.group(() => {
 	Route.put("/update-down", "FinancesController.updateFinanceDown");
 	Route.put("/update-reversal/:id", "FinancesController.updateFinanceReversal");
 
-  Route.put("/delete-multiple", "FinancesController.deleteManyFinances");
+	Route.put("/delete-multiple", "FinancesController.deleteManyFinances");
 	Route.delete("/delete/:id", "FinancesController.deleteFinance");
 
 	Route.post("/calculate-fees", "FinancesController.calculateFinanceFees");
@@ -1082,6 +1082,10 @@ Route.group(() => {
 	Route.put("/close-bill/:id", "BillsController.closeBill");
 	Route.put("/reopen-bill/:id", "BillsController.reopenBill");
 	Route.put("/update-expiration", "BillsController.updatePaymentExpiration");
+	Route.put(
+		"/delete-item-departments",
+		"BillsController.deleteItemDepartments",
+	);
 	Route.delete("/delete-payment/:id", "BillsController.deleteBillPayment");
 	Route.delete(
 		"/delete-payment-block",
@@ -1121,6 +1125,8 @@ Route.group(() => {
 		"/business-unit/search",
 		"BusinessUnitFiscalDocumentsController.search",
 	);
+
+	Route.post("/tmp", "BusinessUnitFiscalDocumentsController.tmpSync");
 
 	Route.post(
 		"/business-unit/store",
@@ -1230,8 +1236,8 @@ Route.group(() => {
 	.middleware("auth");
 
 Route.group(() => {
-	Route.post("/search", "SystemUrlsController.search");
-}).prefix("urls");
+	Route.post("/identification", "SystemUrlsController.search");
+}).prefix("systems");
 
 Route.group(() => {
 	Route.get(
@@ -1487,6 +1493,7 @@ Route.group(() => {
 	Route.post("/finish-import", "ReceiptsController.finishReceiptImport");
 	Route.post("/reopen", "ReceiptsController.reopenReceipt");
 
+	Route.post("/delete-receipt", "ReceiptsController.deleteReceipt");
 	Route.post("/delete-item", "ReceiptsController.deleteReceiptItem");
 	Route.post("/delete-payment", "ReceiptsController.deleteReceiptPayment");
 
@@ -2007,4 +2014,28 @@ Route.group(() => {
 	);
 })
 	.prefix("portal")
+	.middleware("auth");
+
+Route.group(() => {
+	Route.get(
+		"/list-products-movements",
+		"DepartmentsController.listProductsMovements",
+	);
+	Route.get("/list-products", "DepartmentsController.listProducts");
+	Route.get("/list-items", "DepartmentsController.listItems");
+	Route.get("/", "DepartmentsController.index");
+
+	Route.post("/store-products", "DepartmentsController.storeProducts");
+	Route.post("/store-item", "DepartmentsController.storeItem");
+	Route.post("/", "DepartmentsController.store");
+
+	Route.put("/update-products", "DepartmentsController.updateProducts");
+	Route.put("/delete-products", "DepartmentsController.destroyProducts");
+	Route.put("/delete-item/:id", "DepartmentsController.destroyItem");
+	Route.put("/update-item/:id", "DepartmentsController.updateItem");
+	Route.put("/:id", "DepartmentsController.update");
+
+	Route.delete("/:id", "DepartmentsController.destroy");
+})
+	.prefix("departments")
 	.middleware("auth");

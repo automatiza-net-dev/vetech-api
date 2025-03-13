@@ -1,4 +1,3 @@
-import Database from "@ioc:Adonis/Lucid/Database";
 import {
 	BaseModel,
 	HasMany,
@@ -8,7 +7,6 @@ import {
 	column,
 	hasMany,
 	manyToMany,
-	computed,
 } from "@ioc:Adonis/Lucid/Orm";
 import Permission from "App/Models/Permission";
 import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";

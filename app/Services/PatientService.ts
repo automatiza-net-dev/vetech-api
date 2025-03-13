@@ -12,9 +12,7 @@ import Budget, { BudgetStatus } from "App/Models/Budget";
 import Hospitalization, {
 	HospitalizationType,
 } from "App/Models/Hospitalization";
-import Patient, {
-	PatientType,
-} from "App/Models/Patient";
+import Patient, { PatientType } from "App/Models/Patient";
 import TimelineType from "App/Models/TimelineType";
 import User from "App/Models/User";
 import AnimalTimeline from "App/Models/mongoose/AnimalTimeline";
@@ -490,7 +488,7 @@ export default class PatientService {
 		}
 
 		if (data.tutorID) {
-			qb.whereRaw(`holder_dependents.holder_id = ?`, [data.tutorID]);
+			qb.whereRaw("holder_dependents.holder_id = ?", [data.tutorID]);
 		}
 
 		if (data.tutor) {
@@ -621,11 +619,11 @@ export default class PatientService {
 		const rows = await Database.from("patients")
 			.select(
 				Database.raw(
-					`distinct(patients.client_origin_item_description) as desc`,
+					"distinct(patients.client_origin_item_description) as desc",
 				),
 			)
 			.joinRaw(
-				`left join patient_economic_groups on patient_economic_groups.patient_id = patients.id`,
+				"left join patient_economic_groups on patient_economic_groups.patient_id = patients.id",
 			)
 			.where("patient_economic_groups.economic_group_id", authCtx.group.id)
 			.whereNotNull("patients.client_origin_item_description")
@@ -1341,7 +1339,9 @@ export default class PatientService {
 				!data.birthYears && !data.birthMonths && !data.birthDays
 					? // verifica se tem data
 						data.birthDate
-						? DateTime.fromISO(data.birthDate).toJSDate()
+						? typeof data.birthDate === "string"
+							? DateTime.fromISO(data.birthDate).toJSDate()
+							: data.birthDate.toJSDate()
 						: // se não tiver, usa null
 							null
 					: DateTime.now()
@@ -1358,7 +1358,7 @@ export default class PatientService {
 					gender: data.gender,
 					tags: data.tags,
 					community: data.community,
-					birthDate,
+					birthDate: birthDate ?? undefined,
 					type: PatientType.ANIMAL,
 					photo,
 					vaccineOrigin: data.vaccineOrigin,
@@ -1482,7 +1482,9 @@ export default class PatientService {
 				{
 					name: data.name ?? data.corporateName ?? "",
 					birthDate: data.birthDate
-						? DateTime.fromISO(data.birthDate).toJSDate()
+						? typeof data.birthDate === "string"
+							? DateTime.fromISO(data.birthDate).toJSDate()
+							: data.birthDate.toJSDate()
 						: undefined,
 					gender: data.gender,
 					tags: data.tags,
@@ -1755,7 +1757,11 @@ export default class PatientService {
 					gender: data.gender,
 					tags: data.tags,
 					community: data.community,
-					birthDate: data.birthDate?.toJSDate(),
+					birthDate: data.birthDate
+						? typeof data.birthDate === "string"
+							? DateTime.fromISO(data.birthDate).toJSDate()
+							: data.birthDate.toJSDate()
+						: undefined,
 					active: data.active,
 					vaccineOrigin: data.vaccineOrigin,
 					hypertension: data.hypertension,
@@ -2097,7 +2103,9 @@ export default class PatientService {
 					gender: data.gender,
 					tags: data.tags,
 					birthDate: data.birthDate
-						? DateTime.fromISO(data.birthDate).toJSDate()
+						? typeof data.birthDate === "string"
+							? DateTime.fromISO(data.birthDate).toJSDate()
+							: data.birthDate.toJSDate()
 						: undefined,
 					active: data.active,
 					diabetes: data.diabetes,

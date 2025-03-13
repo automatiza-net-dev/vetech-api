@@ -18,6 +18,7 @@ import { validate } from "App/Shared";
 import { ValidationException } from "@ioc:Adonis/Core/Validator";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import PaymentMethod from "App/Models/PaymentMethod";
+import SystemUrl from "App/Models/SystemUrl";
 
 type KeySelector<T> = (item: T) => any[];
 
@@ -30,6 +31,7 @@ export type AuthContext = {
 	user: User;
 	group: EconomicGroup;
 	system: System;
+	systemUrl: SystemUrl;
 	unit: BusinessUnit;
 	$roleMetas: UserUnitRole[];
 	permissions: string[];
@@ -43,6 +45,8 @@ type ItemToCheckDiscount = {
 	quantidade: number;
 	preco: number;
 	vlrdesc: number;
+	cortesia: boolean;
+	aprovado: boolean;
 };
 
 @inject()
@@ -219,6 +223,7 @@ export default class SharedService {
 		user: User;
 		unit_id: string;
 		system_id: number;
+		system_url_id: number | null;
 		ip: string | null;
 	} {
 		const user = auth.use("api").user!;
@@ -228,14 +233,18 @@ export default class SharedService {
 	}
 
 	public async getAuthContext(auth: AuthContract): Promise<AuthContext> {
-		const { user, unit_id, ip } = this.extractUser(auth);
+		const { user, unit_id, ip, system_url_id } = this.extractUser(auth);
 
 		const [unit, userRoles] = await Promise.all([
 			BusinessUnit.query()
 				.where("id", unit_id)
 				.preload("economicGroup", (query) => {
 					query.preload("system", (query) => {
-						query.preload("systemUrls");
+						query.preload("systemUrls", (query) => {
+							if (system_url_id) {
+								query.where("id", system_url_id);
+							}
+						});
 					});
 				})
 				.preload("unitConfig")
@@ -265,6 +274,7 @@ export default class SharedService {
 			user,
 			group: unit.economicGroup,
 			system: unit.economicGroup.system,
+			systemUrl: unit.economicGroup.system.systemUrls[0],
 			unit,
 			$roleMetas: userRoles,
 			permissions: flatPermissions,
@@ -408,6 +418,7 @@ export default class SharedService {
 			quantity: number;
 			courtesy?: boolean;
 			maxDiscount?: boolean;
+			approved?: boolean;
 		}[],
 	) {
 		// [cortesia, maxdiscount]
@@ -418,20 +429,22 @@ export default class SharedService {
 
 		const items: ItemToCheckDiscount[] = [];
 		for (const entry of data) {
-			const shouldIgnoreForCourtesy =
-				typeof entry.courtesy === "boolean" ? entry.courtesy : false;
-
-			const shouldIgnoreForMxDisc =
-				typeof entry.maxDiscount === "boolean" ? entry.maxDiscount : false;
-
-			if (!shouldIgnoreForCourtesy && !shouldIgnoreForMxDisc) {
-				items.push({
-					variacao: entry.variationId,
-					quantidade: entry.quantity,
-					preco: entry.unitaryValue,
-					vlrdesc: entry.discountValue,
-				});
-			}
+			// const shouldIgnoreForCourtesy =
+			// 	typeof entry.courtesy === "boolean" ? entry.courtesy : false;
+			//
+			// const shouldIgnoreForMxDisc =
+			// 	typeof entry.maxDiscount === "boolean" ? entry.maxDiscount : false;
+			//
+			// if (!shouldIgnoreForCourtesy && !shouldIgnoreForMxDisc) {
+			items.push({
+				variacao: entry.variationId,
+				quantidade: entry.quantity,
+				preco: entry.unitaryValue,
+				vlrdesc: entry.discountValue,
+				cortesia: typeof entry.courtesy === "boolean" ? entry.courtesy : false,
+				aprovado: typeof entry.approved === "boolean" ? entry.approved : false,
+			});
+			// }
 		}
 
 		const rows = await Database.rawQuery(

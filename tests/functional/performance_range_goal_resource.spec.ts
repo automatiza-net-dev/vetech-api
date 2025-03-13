@@ -69,7 +69,7 @@ test.group("Performance range goals resource", (group) => {
 						color: "#000",
 					},
 				],
-			} as SkipAuthCtx<"store">)
+			})
 			.bearerToken(token);
 
 		assert.equal(201, result.status());

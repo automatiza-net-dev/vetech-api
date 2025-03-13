@@ -44,7 +44,7 @@ export default class UpdateBillValidator {
 			rules.uuid(),
 			rules.exists({ table: "patients", column: "id" }),
 		]),
-		maxDiscount: schema.boolean.optional(),
+		maxDiscount: schema.boolean(),
 		additionalInformation: schema.string.optional(),
 		internalCode: schema.string.optional(),
 		items: schema.array.optional().members(
@@ -60,6 +60,17 @@ export default class UpdateBillValidator {
 
 				courtesy: schema.boolean(),
 				maxDiscount: schema.boolean(),
+				approved: schema.boolean.optional([]),
+				billItemDepartmentId: schema.number.optional([
+					rules.exists({ table: "bill_item_departments", column: "id" }),
+				]),
+				departmentId: schema.number.optional([
+					rules.exists({ table: "departments", column: "id" }),
+				]),
+				departmentItemId: schema.number.optional([
+					rules.exists({ table: "department_items", column: "id" }),
+				]),
+				observation: schema.string.optional(),
 			}),
 		),
 	});

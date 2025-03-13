@@ -1112,7 +1112,10 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 		const result = await qb1;
 
 		const sum = result.reduce((acc, curr) => acc + curr.total, 0);
-		const system = await System.findOrFail(authCtx.systemID);
+		const system = await System.query()
+			.preload("systemUrls")
+			.where("id", authCtx.systemID)
+			.firstOrFail();
 
 		return {
 			name: "portal-median-ticket-by-origin",
@@ -1124,7 +1127,10 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 					title: "Descrição",
 					value: elem.description,
 					itemStyle: {
-						color: system.colors[idx % system.colors.length],
+						color:
+							system.systemUrls[0].colors[
+								idx % system.systemUrls[0].colors.length
+							],
 					},
 				},
 				{
@@ -1191,7 +1197,10 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 								((elem.total / sum) * 100).toFixed(2),
 							),
 							itemStyle: {
-								color: system.colors[idx % system.colors.length],
+								color:
+									system.systemUrls[0].colors[
+										idx % system.systemUrls[0].colors.length
+									],
 							},
 						})),
 					},
@@ -1302,7 +1311,11 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 		const result3: { description: string; total_payments: string }[] =
 			await qb3;
 
-		const system = await System.findOrFail(authCtx.systemID);
+		const system = await System.query()
+			.preload("systemUrls")
+			.where("id", authCtx.systemID)
+			.firstOrFail();
+
 		const total = new Decimal(result1.at(0)?.total_bills ?? 0);
 
 		const fullResult = [...result2, ...result3].sort(
@@ -1321,7 +1334,10 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 					title: "Descrição",
 					value: elem.description,
 					itemStyle: {
-						color: system.colors[idx % system.colors.length],
+						color:
+							system.systemUrls[0].colors[
+								idx % system.systemUrls[0].colors.length
+							],
 					},
 				},
 				{
@@ -1392,7 +1408,10 @@ sum(bill_items.total_value) as total, count(distinct bills.client_id) as clients
 									.toNumber(),
 							),
 							itemStyle: {
-								color: system.colors[idx % system.colors.length],
+								color:
+									system.systemUrls[0].colors[
+										idx % system.systemUrls[0].colors.length
+									],
 							},
 						})),
 					},

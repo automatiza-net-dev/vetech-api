@@ -1,7 +1,5 @@
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
-import { ValidationException } from "@ioc:Adonis/Core/Validator";
 import { inject } from "@adonisjs/fold";
-import EconomicGroup from "App/Models/EconomicGroup";
 import ThirdPartyUserPermission from "App/Models/ThirdPartyUserPermission";
 import AuthService from "App/Services/AuthService";
 import SharedService from "App/Services/SharedService";
@@ -27,7 +25,6 @@ export default class AuthController {
 		const result = await this.authService.login(payload, auth);
 
 		if (typeof result.at(1) === "number") {
-			response.cookie("sid", result.at(1));
 			return response.ok(result.at(0));
 		}
 
@@ -239,6 +236,7 @@ export default class AuthController {
 					syncCrmSchedules: unit.unitConfig.syncCrmSchedules,
 					budgetsPaymentsRequired: unit.unitConfig.budgetsPaymentsRequired,
 				},
+				configs: unit.unitConfig.config,
 				phone: unit.phone,
 				fantasy_name: unit.fantasyName,
 				address: unit.address,

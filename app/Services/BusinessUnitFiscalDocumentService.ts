@@ -11,7 +11,6 @@ import BusinessUnit from "App/Models/BusinessUnit";
 import BusinessUnitFiscalDocument, {
 	BusinessUnitFiscalDocumentMovementType,
 } from "App/Models/BusinessUnitFiscalDocument";
-import Cest from "App/Models/Cest";
 import CorrectedFiscalDocument from "App/Models/CorrectedFiscalDocument";
 import IssuedFiscalDocument, {
 	IssuedFiscalDocumentContingency,
@@ -932,7 +931,7 @@ export default class BusinessUnitFiscalDocumentService {
 
 		const tasks = Array.from(map.entries()).map(async ([key, mapItems]) => {
 			const [rawPercentage, serviceCode] = key.split("__");
-			const issPercentage = parseFloat(rawPercentage);
+			const issPercentage = Number.parseFloat(rawPercentage);
 
 			const serviceDocument = await ServiceIssuedFiscalDocument.create(
 				{
@@ -1043,6 +1042,167 @@ export default class BusinessUnitFiscalDocumentService {
 
 		const results = await Promise.all(tasks);
 		return results.filter((r) => !r.success);
+	}
+
+	public static async UpdateOldNfeRecords() {
+		const focus = new FocusNfeService();
+
+		const rowsToUpdate: {
+			id: string;
+			disabling_receipt: string | null;
+			bill_id: string | null;
+			fiscal_document_environment: string | null;
+			focus_homologation_token: string | null;
+			focus_production_token: string | null;
+		}[] = await Database.from("issued_fiscal_documents")
+			.select(
+				Database.raw(`issued_fiscal_documents.id,
+       issued_fiscal_documents.disabling_receipt,
+       issued_fiscal_documents.bill_id,
+       business_unit_configs.fiscal_document_environment,
+       business_unit_configs.focus_homologation_token,
+       business_unit_configs.focus_production_token`),
+			)
+			.joinRaw(
+				"join business_unit_configs on business_unit_configs.business_unit_id = issued_fiscal_documents.business_unit_id",
+			)
+			.whereRaw("issued_fiscal_documents.authorization_receipt is null")
+			.whereRaw("issued_fiscal_documents.disabling_receipt is null")
+			.whereRaw("issued_fiscal_documents.deleted_at is null")
+			.whereRaw(
+				"(business_unit_configs.focus_homologation_token is not null or business_unit_configs.focus_homologation_token is not null)",
+			)
+			.orderByRaw("issued_fiscal_documents.created_at desc");
+
+		const tasks = rowsToUpdate
+			.filter(
+				(row) => !!row.focus_production_token || !!row.focus_homologation_token,
+			)
+			.map(async (row) => {
+				const token =
+					row.fiscal_document_environment === "H"
+						? row.focus_homologation_token
+						: row.fiscal_document_environment;
+				if (!token) {
+					return { [row.id]: "Sem token" };
+				}
+
+				const result = await focus.getNfe(row.id, token);
+				if (!result.success) {
+					return {
+						[row.id]: {
+							msg: "Falha ao pegar resultados da focus",
+							result,
+						},
+					};
+				}
+
+				const urlPrefix =
+					row.fiscal_document_environment === "P"
+						? "https://api.focusnfe.com.br"
+						: "https://homologacao.focusnfe.com.br";
+
+				await IssuedFiscalDocument.query()
+					.where("id", row.id)
+					.update({
+						sefaz_status: result.data.status,
+						sefaz_status_code: result.data.status_sefaz,
+						sefaz_message: result.data.protocolo_cancelamento
+							? [
+									result.data.protocolo_cancelamento.descricao_evento,
+									result.data.protocolo_cancelamento.motivo,
+								].join(" - ")
+							: result.data.mensagem_sefaz,
+						access_key: result.data.chave_nfe,
+						authorization_xml_path: [
+							urlPrefix,
+							result.data.caminho_xml_nota_fiscal,
+						].join(""),
+						authorization_pdf_path: [urlPrefix, result.data.caminho_danfe].join(
+							"",
+						),
+						cancellation_xml_path: [
+							urlPrefix,
+							result.data.caminho_xml_cancelamento,
+						].join(""),
+
+						authorization_receipt:
+							result.data.protocolo_nota_fiscal?.numero_protocolo,
+						authorization_receipt_date: result.data.protocolo_nota_fiscal
+							?.data_recebimento
+							? DateTime.fromISO(
+									result.data.protocolo_nota_fiscal?.data_recebimento,
+								)
+							: undefined,
+
+						cancellation_receipt:
+							result.data.protocolo_cancelamento?.numero_protocolo,
+						cancellation_receipt_date: result.data.protocolo_cancelamento
+							?.data_evento
+							? DateTime.fromISO(
+									result.data.protocolo_cancelamento?.data_evento,
+								)
+							: undefined,
+					});
+				if (row.disabling_receipt && row.bill_id) {
+					await BillItem.query()
+						.where("bill_id", row.bill_id)
+						.update({ nfeIssued: false } as Partial<BillItem>);
+				}
+
+				return {
+					[row.id]: {
+						msg: "Atualizado com sucesso",
+						result,
+						atualizouBillItem: {
+							disabling: row.disabling_receipt,
+							bill_id: row.bill_id,
+						},
+						campos: {
+							sefaz_status: result.data.status,
+							sefaz_status_code: result.data.status_sefaz,
+							sefaz_message: result.data.protocolo_cancelamento
+								? [
+										result.data.protocolo_cancelamento.descricao_evento,
+										result.data.protocolo_cancelamento.motivo,
+									].join(" - ")
+								: result.data.mensagem_sefaz,
+							access_key: result.data.chave_nfe,
+							authorization_xml_path: [
+								urlPrefix,
+								result.data.caminho_xml_nota_fiscal,
+							].join(""),
+							authorization_pdf_path: [
+								urlPrefix,
+								result.data.caminho_danfe,
+							].join(""),
+							cancellation_xml_path: [
+								urlPrefix,
+								result.data.caminho_xml_cancelamento,
+							].join(""),
+
+							authorization_receipt:
+								result.data.protocolo_nota_fiscal?.numero_protocolo,
+							authorization_receipt_date: result.data.protocolo_nota_fiscal
+								?.data_recebimento
+								? DateTime.fromISO(
+										result.data.protocolo_nota_fiscal?.data_recebimento,
+									)
+								: "NÃO FOI SETADO",
+
+							cancellation_receipt:
+								result.data.protocolo_cancelamento?.numero_protocolo,
+							cancellation_receipt_date: result.data.protocolo_cancelamento
+								?.data_evento
+								? DateTime.fromISO(
+										result.data.protocolo_cancelamento?.data_evento,
+									)
+								: "NÃO FOI SETADO",
+						},
+					},
+				};
+			});
+		return await Promise.all(tasks);
 	}
 
 	async updateFromFocus(unitId: string, id: string) {
@@ -1554,9 +1714,6 @@ export default class BusinessUnitFiscalDocumentService {
 		data: z.infer<typeof nfeResponseSchema>,
 		env: string,
 	) {
-		console.log("document:", document.toJSON());
-		console.log("focus payload", data);
-
 		const urlPrefix =
 			env === "P"
 				? "https://api.focusnfe.com.br"
@@ -1643,32 +1800,32 @@ export default class BusinessUnitFiscalDocumentService {
 		"500",
 	];
 
-	private async calculateCest(item: BillItem) {
-		if (
-			!BusinessUnitFiscalDocumentService.ICMS_CEST_VALUES.includes(item.icmsCst)
-		) {
-			return "";
-		}
-
-		const { product } = item.productVariation;
-
-		if (product.cest && product.cest.length > 0) {
-			return product.cest.replace(/\D/g, "");
-		}
-
-		const cestRows = await Cest.query()
-			.whereILike(
-				"ncm",
-				`${product.ncm?.replace(/\D/g, "").substring(0, 4) ?? ""}%`,
-			)
-			.orderByRaw("length(ncm) desc");
-
-		if (cestRows.length === 0) {
-			return "";
-		}
-
-		return cestRows.at(0)?.cest?.replace(/\D/g, "") ?? "";
-	}
+	// private async calculateCest(item: BillItem) {
+	// 	if (
+	// 		!BusinessUnitFiscalDocumentService.ICMS_CEST_VALUES.includes(item.icmsCst)
+	// 	) {
+	// 		return "";
+	// 	}
+	//
+	// 	const { product } = item.productVariation;
+	//
+	// 	if (product.cest && product.cest.length > 0) {
+	// 		return product.cest.replace(/\D/g, "");
+	// 	}
+	//
+	// 	const cestRows = await Cest.query()
+	// 		.whereILike(
+	// 			"ncm",
+	// 			`${product.ncm?.replace(/\D/g, "").substring(0, 4) ?? ""}%`,
+	// 		)
+	// 		.orderByRaw("length(ncm) desc");
+	//
+	// 	if (cestRows.length === 0) {
+	// 		return "";
+	// 	}
+	//
+	// 	return cestRows.at(0)?.cest?.replace(/\D/g, "") ?? "";
+	// }
 
 	private calcCode(
 		issuedDocument: IssuedFiscalDocument,

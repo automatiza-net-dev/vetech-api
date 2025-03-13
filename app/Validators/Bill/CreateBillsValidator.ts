@@ -37,6 +37,8 @@ export default class CreateBillsValidator {
 					rules.exists({ table: "bills", column: "id" }),
 				]),
 
+				maxDiscount: schema.boolean([]),
+
 				items: schema.array().members(
 					schema.object().members({
 						productVariationId: schema.string({ trim: true }, [
@@ -48,6 +50,13 @@ export default class CreateBillsValidator {
 						discountValue: schema.number([]),
 						courtesy: schema.boolean.optional([]),
 						maxDiscount: schema.boolean.optional([]),
+						departmentId: schema.number.optional([
+							rules.exists({ table: "departments", column: "id" }),
+						]),
+						departmentItemId: schema.number.optional([
+							rules.exists({ table: "department_items", column: "id" }),
+						]),
+						observation: schema.string.optional(),
 					}),
 				),
 			}),

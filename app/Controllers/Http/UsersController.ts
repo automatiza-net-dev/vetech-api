@@ -37,9 +37,12 @@ export default class UsersController {
 		return response.ok(user);
 	}
 
-	public async checkEmail({ params, response }: HttpContextContract) {
+	public async checkEmail({ params, request, response }: HttpContextContract) {
 		const { email } = params;
-		const result = await this.service.checkExistingEmail(email);
+		const result = await this.service.checkExistingEmail({
+			email,
+			systemId: request.qs().systemId ?? "-1",
+		});
 
 		return response.ok(result);
 	}

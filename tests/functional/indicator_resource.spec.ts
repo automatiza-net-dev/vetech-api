@@ -1,14 +1,5 @@
 import Database from "@ioc:Adonis/Lucid/Database";
 import { test } from "@japa/runner";
-import { BusinessUnitProductMetaType } from "App/Models/BusinessUnitProduct";
-import Deposit, { TDepositStatus, TDepositType } from "App/Models/Deposit";
-import { TDepositItemStatus } from "App/Models/DepositItem";
-import DepositMovement from "App/Models/DepositMovement";
-import Product, { ProductType } from "App/Models/Product";
-import ProductVariation from "App/Models/ProductVariation";
-import Unit, { UnitType } from "App/Models/Unit";
-import Decimal from "decimal.js";
-import { DateTime } from "luxon";
 
 import { generateJwtToken, userBootstrap } from "../utils";
 

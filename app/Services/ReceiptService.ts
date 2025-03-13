@@ -6,6 +6,7 @@ import Database, {
 	TransactionClientContract,
 } from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
+import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import BusinessUnit from "App/Models/BusinessUnit";
 import BusinessUnitCheckingAccountPaymentMethod from "App/Models/BusinessUnitCheckingAccountPaymentMethod";
 import { BusinessUnitFiscalDocumentMovementType } from "App/Models/BusinessUnitFiscalDocument";
@@ -334,11 +335,11 @@ const detSchema = z.object({
 	_nItem: z.optional(z.string()),
 });
 
-const dupSchema = z.object({
-	vDup: z.coerce.number(),
-	dVenc: z.string(),
-	nDup: z.string(),
-});
+// const dupSchema = z.object({
+// 	vDup: z.coerce.number(),
+// 	dVenc: z.string(),
+// 	nDup: z.string(),
+// });
 
 const schema = z.object({
 	nfeProc: z.object({
@@ -2731,6 +2732,99 @@ and product_variation_id in (
 					.save();
 			});
 			await Promise.all(tasks);
+		});
+	}
+
+	async excludeReceipt(
+		authCtx: AuthContext,
+		data: {
+			receiptId: string;
+		},
+	) {
+		if (!authCtx.hasPermission("ENT09")) {
+			throw new UnauthorizedException("Usuário sem permissão", 401, "E_ERR");
+		}
+
+		await Database.transaction(async (trx) => {
+			const receipt = await Receipt.query()
+				.useTransaction(trx)
+				.preload("payments")
+				.where("id", data.receiptId)
+				.where("business_unit_id", authCtx.unit.id)
+				.firstOrFail();
+
+			if (receipt.status === "Baixada") {
+				throw new BadRequestException(
+					"Notas baixada não podem ser excluídas",
+					400,
+					"E_ERR",
+				);
+			}
+
+			const invalidFinances = await Finance.query()
+				.useTransaction(trx)
+				.whereIn(
+					"origin_id",
+					receipt.payments.map((r) => r.id),
+				)
+				.whereNull("exclusion_user_id");
+			if (invalidFinances.some((p) => p.status !== FinanceStatus.A)) {
+				throw new BadRequestException(
+					"Registros financeiros precisam estar abertos",
+					400,
+					"E_ERR",
+				);
+			}
+
+			await receipt
+				.merge({
+					deleted_user_id: authCtx.user.id,
+					status: "Excluida",
+					deletedAt: DateTime.now(),
+				})
+				.useTransaction(trx)
+				.save();
+
+			await ReceiptItem.query()
+				.useTransaction(trx)
+				.where("receipt_id", receipt.id)
+				.whereNot("status", "Excluido")
+				.update({
+					disabled_user_id: authCtx.user.id,
+					status: "Excluido",
+					disabledDate: DateTime.now(),
+				});
+
+			await Finance.query()
+				.useTransaction(trx)
+				.whereRaw(
+					`origin_id in (select id from receipt_payments where receipt_id = ? and status <> 'Excluido')`,
+					[receipt.id],
+				)
+				.whereNull("exclusion_user_id")
+				.update({
+					exclusion_user_id: authCtx.user.id,
+					expirationDate: DateTime.now(),
+				});
+
+			await ReceiptPayment.query()
+				.useTransaction(trx)
+				.where("receipt_id", receipt.id)
+				.whereNot("status", "Excluido")
+				.update({
+					deleted_user_id: authCtx.user.id,
+					status: "Excluido",
+					deletedAt: DateTime.now(),
+				});
+
+			await IssuedFiscalDocument.query()
+				.useTransaction(trx)
+				.where("bill_id", receipt.id)
+				.whereNull("deleted_at")
+				.update({
+					deleted_user_id: authCtx.user.id,
+					deletedAt: DateTime.now(),
+				});
 		});
 	}
 

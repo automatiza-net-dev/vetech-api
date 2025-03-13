@@ -15,6 +15,10 @@ export interface ICreateBillData {
 		discountValue: number;
 		courtesy?: boolean;
 		maxDiscount?: boolean;
+		approved?: boolean;
+		departmentId?: number;
+		departmentItemId?: number;
+		observation?: string;
 	}>;
 
 	additionalInformation?: string;
@@ -22,6 +26,7 @@ export interface ICreateBillData {
 
 	internalCode?: string;
 	originBillId?: string;
+	maxDiscount: boolean;
 }
 
 export interface ICreateBillItemData {
@@ -58,6 +63,7 @@ export interface IUpdateBillItemData {
 		courtesy: boolean;
 		maxDiscount?: boolean;
 		shouldValidateDiscount?: boolean;
+		approved?: boolean;
 	}>;
 }
 
@@ -67,7 +73,7 @@ export interface IUpdateBillData {
 	clientId: string;
 	patientId?: string;
 	financialResponsibleId?: string;
-	maxDiscount?: boolean;
+	maxDiscount: boolean;
 	additionalInformation?: string;
 	internalCode?: string;
 	items?: {
@@ -80,5 +86,9 @@ export interface IUpdateBillData {
 		courtesy: boolean;
 		maxDiscount?: boolean;
 		// shouldValidateDiscount?: boolean;
+		billItemDepartmentId?: number;
+		departmentId?: number;
+		departmentItemId?: number;
+		observation?: string;
 	}[];
 }

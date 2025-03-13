@@ -23,6 +23,7 @@ export const ReceiptStatus = [
 	"Baixada",
 	"Estornada",
 	"PendenteXml",
+	"Excluida",
 ] as const;
 export type TReceiptStatus = (typeof ReceiptStatus)[number];
 
@@ -280,6 +281,11 @@ export default class Receipt extends BaseModel {
 		serializeAs: null,
 	})
 	public reversal_reason_id: string;
+
+	@column({
+		serializeAs: null,
+	})
+	public deleted_user_id: string | null;
 
 	@hasMany(() => ReceiptPayment, {
 		foreignKey: "receipt_id",

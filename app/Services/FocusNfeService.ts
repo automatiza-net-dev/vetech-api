@@ -723,7 +723,7 @@ export default class FocusNfeService {
 
 	// não é possível inutilizar nfe já autorizada
 	// https://atendimento.tecnospeed.com.br/hc/pt-br/articles/360015738793-Rejei%C3%A7%C3%A3o-241-Um-n%C3%BAmero-da-faixa-j%C3%A1-foi-utilizado
-	public async disable(ref: string, disableData: IDisableNfe, token: string) {
+	public async disable(_ref: string, disableData: IDisableNfe, token: string) {
 		try {
 			const { data } = await this.ax.post(
 				`/v2/nfe/inutilizacao`,

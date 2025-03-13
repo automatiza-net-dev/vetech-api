@@ -38,6 +38,7 @@ export default class CreateBudgetValidator {
 		internalCode: schema.string.optional(),
 		internalObservation: schema.string.optional(),
 		clientName: schema.string.optional(),
+		maxDiscount: schema.boolean([]),
 		items: schema.array().members(
 			schema.object().members({
 				productVariationId: schema.string({}, [

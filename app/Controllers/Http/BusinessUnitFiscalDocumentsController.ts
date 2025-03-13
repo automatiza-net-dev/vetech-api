@@ -18,6 +18,13 @@ export default class BusinessUnitFiscalDocumentsController {
 		private readonly sharedService: SharedService,
 	) {}
 
+	public async tmpSync({ response }: HttpContextContract) {
+		const result =
+			await BusinessUnitFiscalDocumentService.UpdateOldNfeRecords();
+
+		return response.ok(result);
+	}
+
 	public async indexNfe({ auth, request, response }: HttpContextContract) {
 		const { unit_id } = this.sharedService.extractUser(auth);
 

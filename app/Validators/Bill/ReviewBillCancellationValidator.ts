@@ -24,11 +24,11 @@ export default class ReviewBillCancellationValidator {
 	 *    ```
 	 */
 	public schema = schema.create({
-		email: schema.string([
+		userEmail: schema.string([
 			rules.email(),
 			rules.exists({ table: "users", column: "email" }),
 		]),
-		password: schema.string([]),
+		userPwd: schema.string([]),
 		billId: schema.string([
 			rules.uuid(),
 			rules.exists({ table: "bills", column: "id" }),
@@ -53,6 +53,7 @@ export default class ReviewBillCancellationValidator {
 				note: schema.string(),
 			}),
 		),
+		noPayments: schema.boolean.optional(),
 	});
 
 	/**

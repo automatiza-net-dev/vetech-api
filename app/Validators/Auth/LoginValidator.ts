@@ -22,8 +22,16 @@ export default class LoginValidator {
 				column: "name",
 			}),
 		]),
+		systemUrl: schema.string({}, [
+			rules.exists({
+				table: "system_urls",
+				column: "url",
+			}),
+		]),
 		ip: schema.string.optional({}),
 	});
 
-	public messages: CustomMessages = {};
+	public messages: CustomMessages = {
+		"systemUrl.exists": "URL não encontada",
+	};
 }

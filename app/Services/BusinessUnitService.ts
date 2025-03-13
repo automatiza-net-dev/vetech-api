@@ -48,8 +48,13 @@ export default class BusinessUnitService {
 			});
 	}
 
-	public async index(data: ISearchBusinessUnit): Promise<Array<BusinessUnit>> {
-		const qb = BusinessUnit.query().preload("economicGroup");
+	public async index(
+		authCtx: AuthContext,
+		data: ISearchBusinessUnit,
+	): Promise<Array<BusinessUnit>> {
+		const qb = BusinessUnit.query()
+			.where("economic_group_id", authCtx.group.id)
+			.preload("economicGroup");
 
 		if (data.identification) {
 			qb.where("identification", "ilike", `%${data.identification}%`);
@@ -111,7 +116,7 @@ export default class BusinessUnitService {
 
 				await unit.related("unitConfig").create(
 					{
-						config: authCtx.system.defaultConfig,
+						config: authCtx.systemUrl.defaultConfig,
 					},
 					{
 						client: trx,
@@ -252,6 +257,7 @@ export default class BusinessUnitService {
 	public async createCollaborator(
 		authCtx: AuthContext,
 		props: {
+			systemId: number;
 			roleId: number;
 			name: string;
 			email: string;
@@ -268,7 +274,7 @@ export default class BusinessUnitService {
 			const userAlreadyExists = await User.query()
 				.useTransaction(trx)
 				.whereRaw("lower(email) = lower(?)", [props.email])
-				.where("system_id", unit.economicGroup.system_id)
+				.where("system_id", props.systemId)
 				.first();
 
 			if (userAlreadyExists) {
@@ -284,7 +290,7 @@ export default class BusinessUnitService {
 					name: props.name,
 					email: props.email,
 					password: props.password,
-					system_id: authCtx.system.id,
+					system_id: props.systemId,
 					type: "user",
 				},
 				{

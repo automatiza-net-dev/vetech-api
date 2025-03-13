@@ -16,7 +16,6 @@ import TreatmentItem from "App/Models/TreatmentItem";
 import User from "App/Models/User";
 import ScheduleService from "App/Services/ScheduleService";
 import IScheduleContactData from "Contracts/interfaces/IScheduleContactData";
-import IScheduleData from "Contracts/interfaces/IScheduleData";
 import IUpdateScheduleStatus from "Contracts/interfaces/IUpdateScheduleStatus";
 import PatientFactory from "Database/factories/PatientFactory";
 import ScheduleServiceTypeFactory from "Database/factories/ScheduleServiceTypeFactory";
@@ -416,7 +415,7 @@ test.group("Scheduling resource", (group) => {
 						treatmentExecutionId: treatmentExecution.id,
 					},
 				],
-			} as IScheduleData)
+			})
 			.bearerToken(token);
 
 		assert.equal(201, result.status());

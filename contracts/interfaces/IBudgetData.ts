@@ -26,6 +26,7 @@ export interface ICreateBudgetData {
 	observation?: string;
 	internalObservation?: string;
 	clientName?: string;
+	maxDiscount: boolean;
 	items: Array<Omit<ICreateBudgetItemData, "budgetId">>;
 }
 

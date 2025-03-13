@@ -1,7 +1,4 @@
-import Env from "@ioc:Adonis/Core/Env";
 import { BaseModel, BelongsTo, belongsTo, column } from "@ioc:Adonis/Lucid/Orm";
-import InternalErrorException from "App/Exceptions/InternalErrorException";
-import { axiom } from "App/Lib/Axiom";
 import VariationGroup from "App/Models/VariationGroup";
 import { DateTime } from "luxon";
 import * as z from "zod";
@@ -296,32 +293,32 @@ export default class BusinessUnitConfig extends BaseModel {
 	public syncCrmSchedules: boolean;
 
 	@column({
-		consume(rawValue) {
-			const result = ConfigSchema.safeParse(rawValue);
-			if (!result.success) {
-				axiom.ingest(Env.get("AXIOM_DATASET"), [
-					{
-						_type: "$config-error",
-						origin: "business-unit-config",
-						errors: result.error.flatten(),
-					},
-				]);
-				axiom.flush().catch((err) => {
-					console.error(err);
-				});
-
-				throw new InternalErrorException(
-					"Erro buscando informações da unidade, contate o desenvolvedor",
-					500,
-					"E_ERR",
-				);
-			}
-
-			return result.data;
-		},
-		serialize(zodValue: TConfigSchema) {
-			return JSON.stringify(zodValue);
-		},
+		// consume(rawValue) {
+		// 	const result = ConfigSchema.safeParse(rawValue);
+		// 	if (!result.success) {
+		// 		axiom.ingest(Env.get("AXIOM_DATASET"), [
+		// 			{
+		// 				_type: "$config-error",
+		// 				origin: "business-unit-config",
+		// 				errors: result.error.flatten(),
+		// 			},
+		// 		]);
+		// 		axiom.flush().catch((err) => {
+		// 			console.error(err);
+		// 		});
+		//
+		// 		throw new InternalErrorException(
+		// 			"Erro buscando informações da unidade, contate o desenvolvedor",
+		// 			500,
+		// 			"E_ERR",
+		// 		);
+		// 	}
+		//
+		// 	return result.data;
+		// },
+		// serialize(zodValue: TConfigSchema) {
+		// 	return JSON.stringify(zodValue);
+		// },
 	})
 	public config: TConfigSchema;
 

@@ -1084,14 +1084,17 @@ export default class BusinessUnitFiscalDocumentService {
 						? row.focus_homologation_token
 						: row.fiscal_document_environment;
 				if (!token) {
-					console.log(JSON.stringify({ msg: "no token", ...row }, null, 2));
-					return;
+					return { [row.id]: "Sem token" };
 				}
 
 				const result = await focus.getNfe(row.id, token);
 				if (!result.success) {
-					console.log(JSON.stringify(result, null, 2));
-					return;
+					return {
+						[row.id]: {
+							msg: "Falha ao pegar resultados da focus",
+							result,
+						},
+					};
 				}
 
 				const urlPrefix =
@@ -1146,8 +1149,60 @@ export default class BusinessUnitFiscalDocumentService {
 						.where("bill_id", row.bill_id)
 						.update({ nfeIssued: false } as Partial<BillItem>);
 				}
+
+				return {
+					[row.id]: {
+						msg: "Atualizado com sucesso",
+						result,
+						atualizouBillItem: {
+							disabling: row.disabling_receipt,
+							bill_id: row.bill_id,
+						},
+						campos: {
+							sefaz_status: result.data.status,
+							sefaz_status_code: result.data.status_sefaz,
+							sefaz_message: result.data.protocolo_cancelamento
+								? [
+										result.data.protocolo_cancelamento.descricao_evento,
+										result.data.protocolo_cancelamento.motivo,
+									].join(" - ")
+								: result.data.mensagem_sefaz,
+							access_key: result.data.chave_nfe,
+							authorization_xml_path: [
+								urlPrefix,
+								result.data.caminho_xml_nota_fiscal,
+							].join(""),
+							authorization_pdf_path: [
+								urlPrefix,
+								result.data.caminho_danfe,
+							].join(""),
+							cancellation_xml_path: [
+								urlPrefix,
+								result.data.caminho_xml_cancelamento,
+							].join(""),
+
+							authorization_receipt:
+								result.data.protocolo_nota_fiscal?.numero_protocolo,
+							authorization_receipt_date: result.data.protocolo_nota_fiscal
+								?.data_recebimento
+								? DateTime.fromISO(
+										result.data.protocolo_nota_fiscal?.data_recebimento,
+									)
+								: "NÃO FOI SETADO",
+
+							cancellation_receipt:
+								result.data.protocolo_cancelamento?.numero_protocolo,
+							cancellation_receipt_date: result.data.protocolo_cancelamento
+								?.data_evento
+								? DateTime.fromISO(
+										result.data.protocolo_cancelamento?.data_evento,
+									)
+								: "NÃO FOI SETADO",
+						},
+					},
+				};
 			});
-		await Promise.all(tasks);
+		return await Promise.all(tasks);
 	}
 
 	async updateFromFocus(unitId: string, id: string) {

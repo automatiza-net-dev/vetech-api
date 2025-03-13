@@ -1862,7 +1862,10 @@ export default class FinanceService {
 						`( p.control_id = 'TPG03' and coalesce(role_permissions.status, false) = false and exists (select id from finances where type = 'DEBITO' and id in (?) ) )
 or
  ( p.control_id = 'TRC03' and coalesce(role_permissions.status, false) = false and exists (select id from finances where type = 'CREDITO' and id in (?) ) )`,
-						[data.idList.join(","), data.idList.join(",")],
+						[
+							data.idList.map((id) => `'${id}'`).join(", "),
+							data.idList.map((id) => `'${id}'`).join(", "),
+						],
 					);
 
 			if (accessResult.length > 0) {

@@ -1961,6 +1961,40 @@ or
 		// }
 
 		await Database.transaction(async (trx) => {
+			const accessResult: { control_id: string; erro: string }[] =
+				await Database.from("role_permissions")
+					.select(
+						Database.raw(
+							`p.control_id,
+case when p.control_id = 'TRC11' then 'Usuário não possui permissão para retirar o aceito de titulos de Credito' else 'Usuário não possui permissão para para retirar o aceito de titulos de Debito' end as erro`,
+						),
+					)
+					.useTransaction(trx)
+					.joinRaw(
+						"join permissions p on role_permissions.permission_id = p.id",
+					)
+					.joinRaw(
+						"join user_unit_roles uur on role_permissions.role_id = uur.role_id and uur.unit_id = ? and user_id = ?",
+						[authCtx.unit.id, authCtx.user.id],
+					)
+					.where("uur.unit_id", authCtx.unit.id)
+					.where("user_id", authCtx.user.id)
+					.whereRaw(
+						`( p.control_id = 'TPG11' and coalesce(role_permissions.status, false) = false
+         and exists (select id from finances where type = 'DEBITO' and id in (?) ) )
+
+   or ( p.control_id = 'TRC11' and coalesce(role_permissions.status, false) = false
+
+        and exists (select id from finances where type = 'CREDITO' and id in (?) ) )`,
+						[
+							data.ids.map((id) => `'${id}'`).join(", "),
+							data.ids.map((id) => `'${id}'`).join(", "),
+						],
+					);
+			if (accessResult.length > 0) {
+				throw new UnauthorizedException(accessResult[0].erro, "400", "E_ERR");
+			}
+
 			const finances = await Finance.query()
 				.useTransaction(trx)
 				.whereIn("id", data.ids)

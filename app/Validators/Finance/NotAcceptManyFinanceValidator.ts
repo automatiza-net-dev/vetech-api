@@ -32,7 +32,7 @@ export default class NotAcceptManyFinanceValidator {
 					rules.exists({ table: "finances", column: "id" }),
 				]),
 			),
-		type: schema.enum(["Debito", "Credito"] as const),
+		// type: schema.enum(["Debito", "Credito"] as const),
 	});
 
 	/**

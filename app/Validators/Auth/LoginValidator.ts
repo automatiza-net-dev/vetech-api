@@ -31,5 +31,7 @@ export default class LoginValidator {
 		ip: schema.string.optional({}),
 	});
 
-	public messages: CustomMessages = {};
+	public messages: CustomMessages = {
+		"systemUrl.exists": "URL não encontada",
+	};
 }

@@ -1992,7 +1992,7 @@ case when p.control_id = 'TRC11' then 'Usuário não possui permissão para reti
 						],
 					);
 			if (accessResult.length > 0) {
-				throw new UnauthorizedException(accessResult[0].erro, "400", "E_ERR");
+				throw new UnauthorizedException(accessResult[0].erro, 400, "E_ERR");
 			}
 
 			const finances = await Finance.query()

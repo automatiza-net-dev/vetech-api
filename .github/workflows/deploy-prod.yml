@@ -33,7 +33,7 @@ jobs:
           cp .env build/.env
           cp -r public build/public
           node ace migration:run
-          pm2 restart api
+          pm2 restart Api
           pm2 restart cron
           ENDSSH
 

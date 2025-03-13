@@ -1909,10 +1909,7 @@ or
 
 			return Finance.query()
 				.useTransaction(trx)
-				.whereIn(
-					"id",
-					finances.map((f) => f.id),
-				)
+				.whereIn("id", data.idList)
 				.update({
 					exclusion_user_id: authCtx.user.id,
 					status: FinanceStatus.E,
@@ -1950,15 +1947,18 @@ or
 
 	async notAcceptMany(
 		authCtx: AuthContext,
-		data: { ids: string[]; type: "Credito" | "Debito" },
+		data: {
+			ids: string[];
+			// type: "Credito" | "Debito"
+		},
 	) {
-		if (data.type === "Credito" && !authCtx.hasPermission("TRC11")) {
-			throw new UnauthorizedException("Usuário sem permissão", 400, "E_ERR");
-		}
-
-		if (data.type === "Debito" && !authCtx.hasPermission("TRG11")) {
-			throw new UnauthorizedException("Usuário sem permissão", 400, "E_ERR");
-		}
+		// if (data.type === "Credito" && !authCtx.hasPermission("TRC11")) {
+		// 	throw new UnauthorizedException("Usuário sem permissão", 400, "E_ERR");
+		// }
+		//
+		// if (data.type === "Debito" && !authCtx.hasPermission("TRG11")) {
+		// 	throw new UnauthorizedException("Usuário sem permissão", 400, "E_ERR");
+		// }
 
 		await Database.transaction(async (trx) => {
 			const finances = await Finance.query()

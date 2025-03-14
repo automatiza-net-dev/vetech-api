@@ -1125,7 +1125,7 @@ export default class FinanceService {
 	async createFinance(authCtx: AuthContext, data: IUpsertFinance) {
 		if (authCtx.unit.unitConfig.requiresFinanceClient && !data.clientId) {
 			throw new BadRequestException(
-				"É preciso adicionar cliente na nota para essa unidade",
+				"É necessário informar a o titular responsavel do titulo",
 				400,
 				"BAD_REQUEST",
 			);
@@ -1228,7 +1228,7 @@ export default class FinanceService {
 			data.some((item) => !item.clientId)
 		) {
 			throw new BadRequestException(
-				"É preciso adicionar cliente na nota para essa unidade",
+				"É necessário informar a o titular responsavel dos titulos",
 				400,
 				"BAD_REQUEST",
 			);
@@ -1984,8 +1984,7 @@ case when p.control_id = 'TRC11' then 'Usuário não possui permissão para reti
    or ( p.control_id = 'TRC11' and coalesce(role_permissions.status, false) = false
 
         and exists (select id from finances where type = 'CREDITO' and id in (${data.ids.map((id) => `'${id}'`).join(", ")}) ) )`,
-						[
-						],
+						[],
 					);
 			if (accessResult.length > 0) {
 				throw new UnauthorizedException(accessResult[0].erro, 400, "E_ERR");

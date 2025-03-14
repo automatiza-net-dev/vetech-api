@@ -39,6 +39,7 @@ import Database, {
 } from "@ioc:Adonis/Lucid/Database";
 import BusinessUnitCheckingAccountPaymentMethod from "App/Models/BusinessUnitCheckingAccountPaymentMethod";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
+import { datetimeRegex } from "zod";
 
 interface ISearch {
 	fromIssueDate?: string;
@@ -1918,6 +1919,39 @@ export default class FinanceService {
 
 	async acceptMany(authCtx: AuthContext, data: { ids: string[] }) {
 		await Database.transaction(async (trx) => {
+			const accessResult: { control_id: string; erro: string }[] =
+				await Database.from("role_permissions")
+					.select(
+						Database.raw(
+							`p.control_id, case when p.control_id = 'TRC06' then 'Usuário não possui permissão para realizar o aceite de titulos de Credito' else 'Usuário não possui permissão para realizar o aceite de titulos de Debito' end as erro`,
+						),
+					)
+					.useTransaction(trx)
+					.joinRaw(
+						"join permissions p on role_permissions.permission_id = p.id",
+					)
+					.joinRaw(
+						"join user_unit_roles uur on role_permissions.role_id = uur.role_id and uur.unit_id = ? and user_id = ?",
+						[authCtx.unit.id, authCtx.user.id],
+					)
+					.where("uur.unit_id", authCtx.unit.id)
+					.where("user_id", authCtx.user.id)
+					.whereRaw(
+						`( p.control_id = 'TPG06' and coalesce(role_permissions.status, false) = false
+
+  and exists (select id from finances where type = 'DEBITO' and id in (${data.ids.map((id) => `'${id}'`).join(", ")}) ) )
+
+or
+
+ ( p.control_id = 'TRC06' and coalesce(role_permissions.status, false) = false
+
+   and exists (select id from finances where type = 'CREDITO' and id in (${data.ids.map((id) => `'${id}'`).join(", ")}) ) )`,
+						[],
+					);
+			if (accessResult.length > 0) {
+				throw new UnauthorizedException(accessResult[0].erro, 400, "E_ERR");
+			}
+
 			const finances = await Finance.query()
 				.useTransaction(trx)
 				.whereIn("id", data.ids)
@@ -1939,6 +1973,8 @@ export default class FinanceService {
 				.where("business_unit_id", authCtx.unit.id)
 				.update({
 					accept: FinanceAccept.S,
+					accept_user_id: authCtx.user.id,
+					accepted_date: DateTime.now(),
 				});
 		});
 	}
@@ -2011,6 +2047,8 @@ case when p.control_id = 'TRC11' then 'Usuário não possui permissão para reti
 				.where("business_unit_id", authCtx.unit.id)
 				.update({
 					accept: FinanceAccept.N,
+					unaccept_user_id: authCtx.user.id,
+					unaccepted_date: DateTime.now(),
 				});
 		});
 	}

@@ -114,6 +114,11 @@ export default class Finance extends BaseModel {
 	public acceptedDate: DateTime;
 
 	@column.dateTime({
+		columnName: "unaccepted_date",
+	})
+	public unacceptedDate: DateTime | null;
+
+	@column.dateTime({
 		columnName: "conciliated_date",
 	})
 	public conciliatedDate: DateTime;
@@ -368,4 +373,14 @@ export default class Finance extends BaseModel {
 		foreignKey: "bordero_id",
 	})
 	public bordero: BelongsTo<typeof Bordero>;
+
+	@column({
+		serializeAs: null,
+	})
+	public accept_user_id: string | null;
+
+	@column({
+		serializeAs: null,
+	})
+	public unaccept_user_id: string | null;
 }

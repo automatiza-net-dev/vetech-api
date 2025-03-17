@@ -55,6 +55,9 @@ export default class BillAuthorization extends BaseModel {
 	public bill_payment_id: string | null;
 
 	@column({ serializeAs: null })
+	public bill_cancelation_id: number | null;
+
+	@column({ serializeAs: null })
 	public authorization_user_id: string;
 
 	@belongsTo(() => Bill, {

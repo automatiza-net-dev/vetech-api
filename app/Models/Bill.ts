@@ -201,7 +201,7 @@ export default class Bill extends BaseModel {
 	@column({
 		columnName: "cancelled_at",
 	})
-	public cancelledAt: DateTime;
+	public cancelledAt: DateTime | null;
 
 	@column({
 		columnName: "cancellation_observation",

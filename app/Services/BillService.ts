@@ -58,6 +58,7 @@ import PaymentMethodFlag from "App/Models/PaymentMethodFlag";
 import ScheduleMovementsService from "./ScheduleMovementsService";
 import BillItemDepartment from "App/Models/BillItemDepartment";
 import BillAuthorization from "App/Models/BillAuthorization";
+import BillCancelation from "App/Models/BillCancelation";
 
 interface ISearch {
 	fromBill?: string;
@@ -3903,15 +3904,15 @@ where deposit_id = ?
 			});
 			await Promise.all(paymentTasks);
 
-			await bill
-				.merge({
+			await BillCancelation.create(
+				{
+					bill_id: bill.id,
 					cancel_user_id: authCtx.user.id,
 					cancel_reason_id: data.reasonId,
 
-					cancelReason: data.cancelReason,
 					cancelled: "P",
-					cancelledAt: DateTime.now(),
-					cancelNotes: data.notes,
+					cancelDate: DateTime.now(),
+					cancelReason: data.cancelReason,
 					cancelValueTotal: cancelledItems.reduce(
 						(acc, curr) =>
 							acc.plus(
@@ -3943,6 +3944,21 @@ where deposit_id = ?
 								: acc,
 						new Decimal(0),
 					),
+				},
+				{ client: trx },
+			);
+
+			await bill
+				.merge({
+					cancel_user_id: null,
+					cancel_reason_id: null,
+
+					cancelReason: null,
+					cancelled: null,
+					cancelledAt: null,
+					cancelNotes: null,
+					cancelValueProducts: null,
+					cancelValueServices: null,
 				})
 				.useTransaction(trx)
 				.save();
@@ -4239,6 +4255,16 @@ where deposit_id = ?
 					"E_ERR",
 				);
 			}
+
+			await BillCancelation.query()
+				.where("bill_id", bill.id)
+				.useTransaction(trx)
+				.update({
+					finish_cancel_user_id: user.id,
+					cancelled: data.cancelled ? "S" : "N",
+					finishCancelDate: DateTime.now(),
+					cancelNotes: `${bill.cancelNotes}\n${DateTime.now()} - ${user.name}\n${data.note}`,
+				});
 
 			await bill
 				.merge({

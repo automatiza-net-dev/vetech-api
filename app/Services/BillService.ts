@@ -3442,6 +3442,50 @@ where deposit_id = ?
 		});
 	}
 
+	async updateBillSeller(
+		authCtx: AuthContext,
+		data: { billId: string; sellerId: string },
+	) {
+		await Database.transaction(async (trx) => {
+			const bill = await Bill.query()
+				.useTransaction(trx)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("id", data.billId)
+				.first();
+
+			if (!bill) {
+				throw this.sharedService.ResourceNotFound();
+			}
+
+			const [fiscalDocuments, serviceFiscalDocuments] = await Promise.all([
+				IssuedFiscalDocument.query()
+					.useTransaction(trx)
+					.where("bill_id", bill.id),
+				ServiceIssuedFiscalDocument.query()
+					.useTransaction(trx)
+					.where("bill_id", bill.id),
+			]);
+
+			if (fiscalDocuments.length > 0) {
+				throw new BadRequestException(
+					"Não é possível alterar o responsável financeiro de uma nota fiscal já emitida",
+					400,
+					"E_ERR",
+				);
+			}
+
+			if (serviceFiscalDocuments.length > 0) {
+				throw new BadRequestException(
+					"Não é possível alterar o responsável financeiro de uma nota fiscal de serviço já emitida",
+					400,
+					"E_ERR",
+				);
+			}
+
+			await bill.merge({ seller_id: data.sellerId }).useTransaction(trx).save();
+		});
+	}
+
 	async checkDepositAvailability(
 		authCtx: AuthContext,
 		data: { items: { productVariationId: string; quantity: number }[] },

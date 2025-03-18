@@ -9,7 +9,7 @@ export default class extends BaseSchema {
 
 			table.uuid("bill_id").references("id").inTable("bills");
 			table.uuid("cancel_user_id").references("id").inTable("users");
-			table.uuid("cancel_reason_id").references("id").inTable("cancel_reasons");
+			table.uuid("cancel_reason_id").references("id").inTable("reasons");
 			table.uuid("finish_cancel_user_id").references("id").inTable("users");
 			table.uuid("exclusion_user_id").references("id").inTable("users");
 

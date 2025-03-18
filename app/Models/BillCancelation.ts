@@ -31,7 +31,7 @@ export default class BillCancelation extends BaseModel {
 		columnName: "cancel_value_products",
 		serializeAs: "cancelValueProducts",
 		consume: (value) => (value ? new Decimal(value) : null),
-		prepare: (value) => value.toString(),
+		prepare: (value) => (value ? value.toString() : null),
 		serialize: (value: Decimal) => (value ? value.toNumber() : 0),
 	})
 	public cancelValueProducts: Decimal | null;
@@ -40,7 +40,7 @@ export default class BillCancelation extends BaseModel {
 		columnName: "cancel_value_services",
 		serializeAs: "cancelValueServices",
 		consume: (value) => (value ? new Decimal(value) : null),
-		prepare: (value) => value.toString(),
+		prepare: (value) => (value ? value.toString() : null),
 		serialize: (value: Decimal) => (value ? value.toNumber() : 0),
 	})
 	public cancelValueServices: Decimal | null;
@@ -49,7 +49,7 @@ export default class BillCancelation extends BaseModel {
 		columnName: "cancel_value_total",
 		serializeAs: "cancelValueTotal",
 		consume: (value) => (value ? new Decimal(value) : null),
-		prepare: (value) => value.toString(),
+		prepare: (value) => (value ? value.toString() : null),
 		serialize: (value: Decimal) => (value ? value.toNumber() : 0),
 	})
 	public cancelValueTotal: Decimal | null;

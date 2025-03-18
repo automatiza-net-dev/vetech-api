@@ -59,6 +59,7 @@ import ScheduleMovementsService from "./ScheduleMovementsService";
 import BillItemDepartment from "App/Models/BillItemDepartment";
 import BillAuthorization from "App/Models/BillAuthorization";
 import BillCancelation from "App/Models/BillCancelation";
+import { datetimeRegex } from "zod";
 
 interface ISearch {
 	fromBill?: string;
@@ -3800,7 +3801,7 @@ where deposit_id = ?
 			reasonId?: string;
 			cancelReason?: string;
 			billId: string;
-			billItems: { id: string; quantity: number }[];
+			billItems: { id: string; quantity: number; notes?: string }[];
 			billPayments: string[];
 
 			notes?: string;
@@ -3876,18 +3877,21 @@ where deposit_id = ?
 				);
 			}
 
-			if (bill.cancelled) {
+			// não permitir se tiver cancelled e cancelled <> 'N'
+			if (bill.cancelled && bill.cancelled !== "N") {
 				throw new BadRequestException("Nota já cancelada", 400, "E_ERR");
 			}
 
 			const itemTasks = bill.items.map(async (item) => {
 				return item
 					.merge({
-						reviewer_cancel_user_id: null,
-						reviewCancelDate: null,
-						reviewCancelNotes: null,
+						reviewer_cancel_user_id: authCtx.user.id,
+						reviewCancelDate: DateTime.now(),
+						reviewCancelNotes:
+							data.billItems.find((bi) => bi.id === item.id)?.notes ??
+							data.notes,
 						cancelled: "P",
-						originalTotalValue: new Decimal(item.totalValue),
+						originalTotalValue: new Decimal(item.totalValue ?? 0),
 						originalQuantity: item.quantity,
 						cancelledQuantity:
 							data.billItems.find((bi) => bi.id === item.id)?.quantity ?? 0,
@@ -3897,18 +3901,16 @@ where deposit_id = ?
 			});
 			const cancelledItems = await Promise.all(itemTasks);
 
-			const paymentTasks = bill.payments.map(async (payment) => {
-				return payment
-					.merge({
-						reviewer_cancel_user_id: null,
-						reviewCancelDate: null,
-						reviewCancelNotes: null,
-						cancelled: null,
-					})
-					.useTransaction(trx)
-					.save();
-			});
-			await Promise.all(paymentTasks);
+			await BillPayment.query()
+				.useTransaction(trx)
+				.where("bill_id", bill.id)
+				.whereNull("deleted_at")
+				.update({
+					reviewer_cancel_user_id: null,
+					review_cancel_date: null,
+					review_cancel_notes: null,
+					cancelled: null,
+				});
 
 			await BillCancelation.create(
 				{
@@ -3919,6 +3921,23 @@ where deposit_id = ?
 					cancelled: "P",
 					cancelDate: DateTime.now(),
 					cancelReason: bill.cancelReason,
+					cancelValueTotal: bill.cancelValueTotal,
+					cancelValueProducts: bill.cancelValueProducts,
+					cancelValueServices: bill.cancelValueServices,
+				},
+				{ client: trx },
+			);
+
+			await bill
+				.merge({
+					cancelled: "P",
+					cancel_user_id: authCtx.user.id,
+					finish_cancel_user_id: null,
+					cancel_reason_id: data.reasonId ?? null,
+					cancelDate: DateTime.now(),
+					cancelReason: data.reasonId,
+					finishCancelDate: null,
+					cancelNotes: null,
 					cancelValueTotal: cancelledItems.reduce(
 						(acc, curr) =>
 							acc.plus(
@@ -3950,21 +3969,6 @@ where deposit_id = ?
 								: acc,
 						new Decimal(0),
 					),
-				},
-				{ client: trx },
-			);
-
-			await bill
-				.merge({
-					cancel_user_id: null,
-					cancel_reason_id: null,
-
-					cancelReason: null,
-					cancelled: null,
-					cancelledAt: null,
-					cancelNotes: null,
-					cancelValueProducts: null,
-					cancelValueServices: null,
 				})
 				.useTransaction(trx)
 				.save();
@@ -4204,8 +4208,8 @@ where deposit_id = ?
 								"join bill_payments on bill_items.bill_id = bill_payments.bill_id",
 							)
 							.where("bill_items.bill_id", bill.id)
-							.whereRaw("coalesce(bill_items.cancelled, '') not in ('N')")
-							.whereRaw("coalesce(bill_payments.cancelled, '') not in ('')")
+							.whereRaw("coalesce(bill_items.cancelled, '') in ('N')")
+							.whereRaw("coalesce(bill_payments.cancelled, '') in ('')")
 							.whereRaw("bill_items.deleted_at is null")
 							.whereRaw("bill_payments.deleted_at is null");
 					})

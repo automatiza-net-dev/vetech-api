@@ -3914,11 +3914,11 @@ where deposit_id = ?
 				{
 					bill_id: bill.id,
 					cancel_user_id: authCtx.user.id,
-					cancel_reason_id: data.reasonId,
+					cancel_reason_id: bill.cancel_reason_id,
 
 					cancelled: "P",
 					cancelDate: DateTime.now(),
-					cancelReason: data.cancelReason,
+					cancelReason: bill.cancelReason,
 					cancelValueTotal: cancelledItems.reduce(
 						(acc, curr) =>
 							acc.plus(
@@ -4074,11 +4074,22 @@ where deposit_id = ?
 						.save();
 				});
 			const updatedItems = await Promise.all(itemTasks);
+
+			const existingBillCancellation = await BillCancelation.query()
+				.useTransaction(trx)
+				.where("bill_id", bill.id)
+				.whereNull("finish_cancel_date")
+				.orderByRaw("cancel_date")
+				.first();
+
 			await BillAuthorization.createMany(
 				updatedItems.map<Partial<BillAuthorization>>((row) => ({
 					bill_id: data.billId,
 					bill_item_id: row.id,
 					bill_payment_id: null,
+					authorization_user_id: authCtx.user.id,
+					bill_cancelation_id: existingBillCancellation?.id,
+
 					type: (
 						[
 							row.courtesy && "courtesy",
@@ -4091,7 +4102,6 @@ where deposit_id = ?
 					authorization_type: "RC",
 					approved: row.approved,
 					cancelled_quantity: row.cancelledQuantity,
-					authorization_user_id: authCtx.user.id,
 					authorization_date: DateTime.now(),
 					authorization_observations: data.billItems.find(
 						(bi) => bi.id === row.id,
@@ -4166,7 +4176,7 @@ where deposit_id = ?
 					.union((query) => {
 						query
 							.from("bill_items")
-							.select(Database.raw("'F' as status, 3 as ordem"))
+							.select(Database.raw("'F' as status, 4 as ordem"))
 							.whereIn("cancelled", ["S", "N"])
 							.where("bill_id", bill.id)
 							.whereNull("deleted_at");
@@ -4183,6 +4193,19 @@ where deposit_id = ?
 							.whereRaw(
 								"coalesce(bill_payments.cancelled, '') not in ('P', '')",
 							)
+							.whereRaw("bill_items.deleted_at is null")
+							.whereRaw("bill_payments.deleted_at is null");
+					})
+					.union((query) => {
+						query
+							.from("bill_items")
+							.select(Database.raw("'A' as status, 3 as ordem"))
+							.joinRaw(
+								"join bill_payments on bill_items.bill_id = bill_payments.bill_id",
+							)
+							.where("bill_items.bill_id", bill.id)
+							.whereRaw("coalesce(bill_items.cancelled, '') not in ('N')")
+							.whereRaw("coalesce(bill_payments.cancelled, '') not in ('')")
 							.whereRaw("bill_items.deleted_at is null")
 							.whereRaw("bill_payments.deleted_at is null");
 					})

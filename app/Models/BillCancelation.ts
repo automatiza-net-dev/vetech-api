@@ -96,7 +96,7 @@ export default class BillCancelation extends BaseModel {
 	@column({
 		serializeAs: null,
 	})
-	public cancel_reason_id: string;
+	public cancel_reason_id: string | null;
 
 	@column({
 		serializeAs: null,

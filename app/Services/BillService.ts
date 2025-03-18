@@ -3883,6 +3883,9 @@ where deposit_id = ?
 			const itemTasks = bill.items.map(async (item) => {
 				return item
 					.merge({
+						reviewer_cancel_user_id: null,
+						reviewCancelDate: null,
+						reviewCancelNotes: null,
 						cancelled: "P",
 						originalTotalValue: new Decimal(item.totalValue),
 						originalQuantity: item.quantity,
@@ -3897,7 +3900,10 @@ where deposit_id = ?
 			const paymentTasks = bill.payments.map(async (payment) => {
 				return payment
 					.merge({
-						cancelled: "P",
+						reviewer_cancel_user_id: null,
+						reviewCancelDate: null,
+						reviewCancelNotes: null,
+						cancelled: null,
 					})
 					.useTransaction(trx)
 					.save();

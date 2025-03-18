@@ -1070,6 +1070,7 @@ Route.group(() => {
 		"/financial-responsible",
 		"BillsController.updateBillFinancialResponsible",
 	);
+	Route.put("/seller", "BillsController.updateBillSeller");
 
 	Route.post(
 		"/request-cancellation",

@@ -107,4 +107,9 @@ export default class BillCancelation extends BaseModel {
 		serializeAs: null,
 	})
 	public exclusion_user_id: string;
+
+	@column({
+		serializeAs: null,
+	})
+	public deposit_id: number | null;
 }

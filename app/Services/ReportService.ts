@@ -2778,9 +2778,8 @@ ON bills.patient_id = Dep."id"`,
 			.joinRaw(
 				"join holder_dependents on p.id = holder_dependents.dependent_id and holder_dependents.is_main = true",
 			)
-			.joinRaw("join patients t on holder_dependents.holder_id = t.id ")
 			.joinRaw(
-				"left join patient_contacts on t.id = patient_contacts.patient_id and patient_contacts.type = 'celular'",
+				`join (patients t left join patient_contacts on t.id = patient_contacts.patient_id and patient_contacts.type = 'celular') on holder_dependents.holder_id = t.id `,
 			)
 			.joinRaw(
 				"join business_units on patient_vaccines.business_unit_id = business_units.id",
@@ -2789,8 +2788,8 @@ ON bills.patient_id = Dep."id"`,
 				"business_units.identification, vaccines.name, vaccine_protocols.name, p.name, vaccine_calendars.scheduling_date",
 			)
 			.where("vaccines.system_id", authCtx.system.id)
+			.where("business_units.economic_group_id", authCtx.group.id)
 			.where("vaccines.type", data.type);
-		// .where("business_units.economic_group_id", authCtx.group.id)
 
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("patient_vaccines.business_unit_id", data.units);

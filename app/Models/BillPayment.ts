@@ -124,6 +124,9 @@ export default class BillPayment extends BaseModel {
 	@column.dateTime({ autoCreate: true, autoUpdate: true })
 	public updatedAt: DateTime;
 
+	@column.dateTime({ serializeAs: null })
+	public deletedAt: DateTime | null;
+
 	@column({
 		serializeAs: null,
 	})

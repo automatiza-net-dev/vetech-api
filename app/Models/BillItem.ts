@@ -384,8 +384,8 @@ export default class BillItem extends BaseModel {
 	@beforeFind()
 	public static softDeletesFind = softDeleteQuery;
 
-	@beforeFetch()
-	public static softDeletesFetch = softDeleteQuery;
+	// @beforeFetch()
+	// public static softDeletesFetch = softDeleteQuery;
 
 	public async softDelete(column?: string) {
 		await softDelete(this, column);

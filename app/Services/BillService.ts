@@ -290,7 +290,11 @@ export default class BillService {
 				query.preload("documentTemplate");
 			})
 			.preload("payments", (query) => {
-				query.orderByRaw("block, bill_payments.installments");
+				query
+					.whereRaw(
+						`( bill_payments.deleted_at is null or (bill_payments.deleted_at is not null and bill_payments.cancelled = 'S'))`,
+					)
+					.orderByRaw("block, bill_payments.installments");
 
 				query.preload("approvedUser", (query) => {
 					query.select("id", "name");
@@ -319,7 +323,11 @@ export default class BillService {
 				});
 			})
 			.preload("items", (query) => {
-				query.where("status", BillItemStatus.A);
+				query
+					.where("status", BillItemStatus.A)
+					.whereRaw(
+						`( bill_items.deleted_at is null or (bill_items.deleted_at is not null and bill_items.cancelled = 'S') )`,
+					);
 
 				query.preload("taxRule", (query) => {
 					query.select(["id"]);

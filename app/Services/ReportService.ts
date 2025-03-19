@@ -2838,16 +2838,24 @@ ON bills.patient_id = Dep."id"`,
 
 		if (data.status && Array.isArray(data.status)) {
 			for (const status of data.status) {
-				if (status === "Dose aplicada") {
+				if (status.toLowerCase() === "doses aplicadas") {
 					qb.whereRaw("vaccine_calendars.application_date is not null");
-				} else if (status === "Dose pendente - atrasada") {
+				}
+
+				if (status.toLowerCase() === "doses atrasadas") {
 					qb.whereRaw(
 						"(vaccine_calendars.application_date is null and vaccine_calendars.scheduling_date::date < now()::date)",
 					);
-				} else if (status === "Dose pendente - em dia") {
+				}
+
+				if (status.toLowerCase() === "doses futuras") {
 					qb.whereRaw(
 						"(vaccine_calendars.application_date is null and vaccine_calendars.scheduling_date::date >= now()::date)",
 					);
+				}
+
+				if (status.toLowerCase() === "doses não aplicadas") {
+					qb.whereRaw("vaccine_calendars.application_date is null");
 				}
 			}
 		}

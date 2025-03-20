@@ -51,8 +51,8 @@ export default class Kanban extends BaseModel {
 	public user_updated_id: string;
 
 	@hasOne(() => User, {
-		localKey: "user_updated_id",
-		foreignKey: "id",
+		localKey: "id",
+		foreignKey: "user_updated_id",
 	})
 	public updatedUser: HasOne<typeof User>;
 

@@ -2040,3 +2040,12 @@ Route.group(() => {
 })
 	.prefix("departments")
 	.middleware("auth");
+
+Route.group(() => {
+	Route.get("/list-kanbans", "CrmV2Controller.listKanbans");
+	Route.post("/store-kanban", "CrmV2Controller.storeKanban");
+	Route.post("/update-kanban", "CrmV2Controller.updateKanban");
+	Route.delete("/delete-kanban/:kanbanID", "CrmV2Controller.deleteKanban");
+})
+	.prefix("crm-v2")
+	.middleware("auth");

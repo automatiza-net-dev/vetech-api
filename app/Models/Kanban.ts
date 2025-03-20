@@ -1,5 +1,14 @@
 import { DateTime } from "luxon";
-import { BaseModel, column } from "@ioc:Adonis/Lucid/Orm";
+import {
+	BaseModel,
+	column,
+	HasMany,
+	HasOne,
+	hasMany,
+	hasOne,
+} from "@ioc:Adonis/Lucid/Orm";
+import KanbanUser from "./KanbanUser";
+import User from "./User";
 
 export default class Kanban extends BaseModel {
 	@column({ isPrimary: true })
@@ -32,9 +41,29 @@ export default class Kanban extends BaseModel {
 	@column({ serializeAs: null })
 	public user_creation_id: string;
 
-	@column({ serializeAs: null })
-	public user_updated_id: string;
+	@hasOne(() => User, {
+		foreignKey: "user_creation_id",
+	})
+	public creationUser: HasOne<typeof User>;
 
 	@column({ serializeAs: null })
-	public exclusion_user_id: string;
+	public user_updated_id: string | null;
+
+	@hasOne(() => User, {
+		foreignKey: "user_updated_id",
+	})
+	public updatedUser: HasOne<typeof User>;
+
+	@column({ serializeAs: null })
+	public exclusion_user_id: string | null;
+
+	@hasOne(() => User, {
+		foreignKey: "user_exclusion_id",
+	})
+	public exclusionUser: HasOne<typeof User>;
+
+	@hasMany(() => KanbanUser, {
+		foreignKey: "kanban_id",
+	})
+	public users: HasMany<typeof KanbanUser>;
 }

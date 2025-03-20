@@ -4443,7 +4443,7 @@ where bill_id = ?
 
 			await Database.rawQuery(
 				`update bill_items set quantity = quantity - cancelled_quantity ,
-total_value = (total_value - (total_value * (cancelled_quantity / quantity ) ) )
+total_value = (total_value - (total_value * (cancelled_quantity / quantity ) ) ),
 discount_value = (discount_value - (discount_value * (cancelled_quantity / quantity ) ) )
 where bill_id = ?
   and deleted_at is null

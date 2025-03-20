@@ -42,7 +42,7 @@ export default class Kanban extends BaseModel {
 	public user_creation_id: string;
 
 	@hasOne(() => User, {
-		foreignKey: "user_creation_id",
+		localKey: "user_creation_id",
 	})
 	public creationUser: HasOne<typeof User>;
 
@@ -50,7 +50,7 @@ export default class Kanban extends BaseModel {
 	public user_updated_id: string | null;
 
 	@hasOne(() => User, {
-		foreignKey: "user_updated_id",
+		localKey: "user_updated_id",
 	})
 	public updatedUser: HasOne<typeof User>;
 
@@ -58,7 +58,7 @@ export default class Kanban extends BaseModel {
 	public exclusion_user_id: string | null;
 
 	@hasOne(() => User, {
-		foreignKey: "user_exclusion_id",
+		localKey: "user_exclusion_id",
 	})
 	public exclusionUser: HasOne<typeof User>;
 

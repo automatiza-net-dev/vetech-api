@@ -3,9 +3,9 @@ import {
 	BaseModel,
 	column,
 	HasMany,
-	HasOne,
 	hasMany,
-	hasOne,
+	belongsTo,
+	BelongsTo,
 } from "@ioc:Adonis/Lucid/Orm";
 import KanbanUser from "./KanbanUser";
 import User from "./User";
@@ -41,29 +41,29 @@ export default class Kanban extends BaseModel {
 	@column({ serializeAs: null })
 	public user_creation_id: string;
 
-	@hasOne(() => User, {
+	@belongsTo(() => User, {
 		localKey: "user_creation_id",
 		foreignKey: "id",
 	})
-	public creationUser: HasOne<typeof User>;
+	public creationUser: BelongsTo<typeof User>;
 
 	@column({ serializeAs: null })
 	public user_updated_id: string;
 
-	@hasOne(() => User, {
+	@belongsTo(() => User, {
 		localKey: "user_updated_id",
 		foreignKey: "id",
 	})
-	public updatedUser: HasOne<typeof User>;
+	public updatedUser: BelongsTo<typeof User>;
 
 	@column({ serializeAs: null })
 	public exclusion_user_id: string;
 
-	@hasOne(() => User, {
+	@belongsTo(() => User, {
 		localKey: "user_exclusion_id",
 		foreignKey: "id",
 	})
-	public exclusionUser: HasOne<typeof User>;
+	public exclusionUser: BelongsTo<typeof User>;
 
 	@hasMany(() => KanbanUser, {
 		foreignKey: "kanban_id",

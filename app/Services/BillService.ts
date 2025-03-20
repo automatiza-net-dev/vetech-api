@@ -4360,7 +4360,7 @@ where deposit_id = ?
 			const pendingFinances = await Database.from("finances")
 				.select(Database.raw("1"))
 				.where("finances.business_unit_id", authCtx.unit.id)
-				.whereNull("finances.down_date")
+				.whereNotNull("finances.down_date")
 				.whereRaw(
 					`origin_id in (
 select id from bill_payments

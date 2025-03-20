@@ -1,5 +1,5 @@
 import { DateTime } from "luxon";
-import { BaseModel, column, HasOne, hasOne } from "@ioc:Adonis/Lucid/Orm";
+import { BaseModel, column, BelongsTo, belongsTo } from "@ioc:Adonis/Lucid/Orm";
 import User from "./User";
 
 export default class KanbanUser extends BaseModel {
@@ -33,8 +33,8 @@ export default class KanbanUser extends BaseModel {
 	@column({ serializeAs: null })
 	public exclusion_user_id: string;
 
-	@hasOne(() => User, {
+	@belongsTo(() => User, {
 		foreignKey: "user_id",
 	})
-	public user: HasOne<typeof User>;
+	public user: BelongsTo<typeof User>;
 }

@@ -42,7 +42,7 @@ export default class Kanban extends BaseModel {
 	public user_creation_id: string;
 
 	@belongsTo(() => User, {
-		localKey: "user_creation_id",
+		foreignKey: "user_creation_id",
 	})
 	public creationUser: BelongsTo<typeof User>;
 
@@ -50,7 +50,7 @@ export default class Kanban extends BaseModel {
 	public user_updated_id: string;
 
 	@belongsTo(() => User, {
-		localKey: "user_updated_id",
+		foreignKey: "user_updated_id",
 	})
 	public updatedUser: BelongsTo<typeof User>;
 
@@ -58,7 +58,7 @@ export default class Kanban extends BaseModel {
 	public exclusion_user_id: string;
 
 	@belongsTo(() => User, {
-		localKey: "user_exclusion_id",
+		foreignKey: "user_exclusion_id",
 	})
 	public exclusionUser: BelongsTo<typeof User>;
 

@@ -4343,7 +4343,7 @@ where deposit_id = ?
 					)
 					.where("products.type", ProductType.PRODUCT)
 					.whereRaw(
-						`product_variations.id in (select bi.product_variation_id from bill_items bi where bill_id = ? and canceled = 'S' and deleted_at is null )`,
+						`product_variations.id in (select bi.product_variation_id from bill_items bi where bill_id = ? and cancelled = 'S' and deleted_at is null )`,
 						[bill.id],
 					);
 

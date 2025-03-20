@@ -4406,7 +4406,7 @@ where bill_id = ?
 			await Database.from("bill_payments")
 				.useTransaction(trx)
 				.update({
-					// exclusion_user_id: authCtx.user.id,
+					exclusion_user_id: authCtx.user.id,
 					deleted_at: DateTime.now(),
 				})
 				.where("bill_payments.bill_id", bill.id)

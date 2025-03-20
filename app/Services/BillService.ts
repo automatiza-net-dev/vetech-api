@@ -60,6 +60,7 @@ import BillItemDepartment from "App/Models/BillItemDepartment";
 import BillAuthorization from "App/Models/BillAuthorization";
 import BillCancelation from "App/Models/BillCancelation";
 import { datetimeRegex } from "zod";
+import { format } from "date-fns";
 
 interface ISearch {
 	fromBill?: string;
@@ -4121,7 +4122,7 @@ where deposit_id = ?
 							reviewCancelNotes: note
 								? [
 										elem.reviewCancelNotes,
-										`${DateTime.now()} - ${authCtx.user.name}\n${note}`,
+										`${format(new Date(), "dd/MM/yyyy HH:mm:ss")} - ${authCtx.user.name}\n${note}`,
 									]
 										.filter(Boolean)
 										.join("\n")
@@ -4196,7 +4197,7 @@ where deposit_id = ?
 							reviewCancelNotes: note
 								? [
 										elem.reviewCancelNotes,
-										`${DateTime.now()} - ${authCtx.user.name}\n${note}`,
+										`${format(new Date(), "dd/MM/yyyy HH:mm:ss")} - ${authCtx.user.name}\n${note}`,
 									]
 										.filter(Boolean)
 										.join("\n")
@@ -4472,7 +4473,7 @@ where id = ?`,
 					finish_cancel_user_id: user.id,
 					cancelled: data.cancelled ? "S" : "N",
 					finishCancelDate: DateTime.now(),
-					cancelNotes: `${bill.cancelNotes}\n${DateTime.now()} - ${user.name}\n${data.note}`,
+					cancelNotes: `${bill.cancelNotes}\n${format(new Date(), "dd/MM/yyyy HH:mm:ss")} - ${user.name}\n${data.note}`,
 				});
 
 			await bill
@@ -4480,7 +4481,7 @@ where id = ?`,
 					finish_cancel_user_id: user.id,
 					cancelled: data.cancelled ? "S" : "N",
 					finishCancelDate: DateTime.now(),
-					cancelNotes: `${bill.cancelNotes}\n${DateTime.now()} - ${user.name}\n${data.note}}`,
+					cancelNotes: `${bill.cancelNotes}\n${format(new Date(), "dd/MM/yyyy HH:mm:ss")} - ${user.name}\n${data.note}}`,
 				})
 				.useTransaction(trx)
 				.save();

@@ -4392,7 +4392,7 @@ where bill_id = ?
 					exclusion_user_id: authCtx.user.id,
 					deleted_at: DateTime.now(),
 				})
-				.whereNull("finances.down_date")
+				.whereNotNull("finances.down_date")
 				.whereRaw(
 					`origin_id in (
 select id from bill_payments

@@ -4410,6 +4410,7 @@ where bill_id = ?
 					deleted_at: DateTime.now(),
 				})
 				.where("bill_payments.bill_id", bill.id)
+				.where("bill_payments.cancelled", "S")
 				.whereNull("bill_payments.deleted_at");
 
 			if (data.depositId) {

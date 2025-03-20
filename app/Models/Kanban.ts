@@ -48,7 +48,7 @@ export default class Kanban extends BaseModel {
 	public creationUser: HasOne<typeof User>;
 
 	@column({ serializeAs: null })
-	public user_updated_id: string | null;
+	public user_updated_id: string;
 
 	@hasOne(() => User, {
 		localKey: "user_updated_id",
@@ -57,7 +57,7 @@ export default class Kanban extends BaseModel {
 	public updatedUser: HasOne<typeof User>;
 
 	@column({ serializeAs: null })
-	public exclusion_user_id: string | null;
+	public exclusion_user_id: string;
 
 	@hasOne(() => User, {
 		localKey: "user_exclusion_id",

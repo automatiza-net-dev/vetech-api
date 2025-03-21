@@ -4136,7 +4136,7 @@ where deposit_id = ?
 				.useTransaction(trx)
 				.where("bill_id", bill.id)
 				.whereNull("finish_cancel_date")
-				.orderByRaw("cancel_date")
+				.orderByRaw("cancel_date desc")
 				.first();
 
 			await BillAuthorization.createMany(

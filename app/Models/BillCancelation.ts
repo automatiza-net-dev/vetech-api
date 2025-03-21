@@ -55,14 +55,12 @@ export default class BillCancelation extends BaseModel {
 	public cancelValueTotal: Decimal | null;
 
 	@column.dateTime({
-		autoCreate: true,
 		columnName: "cancel_date",
 		serializeAs: "cancelDate",
 	})
 	public cancelDate: DateTime | null;
 
 	@column.dateTime({
-		autoCreate: true,
 		columnName: "finish_cancel_date",
 		serializeAs: "finishCancelDate",
 	})

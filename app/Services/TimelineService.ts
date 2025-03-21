@@ -53,10 +53,8 @@ export default class TimelineService {
 						"Patologia",
 						"Formato Receita Médica",
 						"Consulta", // Campo para manter compatibilidade
-						authCtx.system.name === "LiftOne" ||
-							(authCtx.system.type === "Clinicas" && "Avaliação"),
-						authCtx.system.name === "Sanclá" ||
-							(authCtx.system.type === "Vet" && "Atendimento"),
+						authCtx.system.type !== "Vet" && "Avaliação",
+						authCtx.system.type === "Vet" && "Atendimento",
 					].filter(Boolean),
 				},
 				"extras.deletedAt": null,
@@ -426,10 +424,7 @@ export default class TimelineService {
 				},
 			};
 
-			if (
-				authCtx.system.name === "LiftOne" ||
-				authCtx.system.type === "Clinicas"
-			) {
+			if (authCtx.system.type !== "Vet") {
 				const att = await Attendance.create(
 					{
 						business_unit_id: authCtx.unit.id,

@@ -103,26 +103,20 @@ export default class PatientTutorsController {
 			const origin = ctx.request.input("origin", "");
 
 			if (origin === "" || origin === "Cadastro") {
-				if (authCtx.system.name === "Sanclá" || authCtx.system.type === "Vet") {
+				if (authCtx.system.type === "Vet") {
 					await ctx.request.validate(CreateSanclaTutorForRegisterValidator);
 				}
 
-				if (authCtx.system.name === "LiftOne") {
+				if (authCtx.system.type !== "Vet") {
 					await ctx.request.validate(CreateLiftOneTutorForRegisterValidator);
-				}
-
-				if (authCtx.system.type === "Clinicas") {
 					await ctx.request.validate(UpsertClinicsTutorValidator);
 				}
 			} else if (origin === "Crm" || origin === "Agenda") {
-				if (authCtx.system.name === "Sanclá" || authCtx.system.type === "Vet") {
+				if (authCtx.system.type === "Vet") {
 					await ctx.request.validate(CreateSanclaTutorForGenericValidator);
 				}
 
-				if (
-					authCtx.system.name === "LiftOne" ||
-					authCtx.system.type === "Clinicas"
-				) {
+				if (authCtx.system.type === "Clinicas") {
 					await ctx.request.validate(CreateLiftOneTutorForGenericValidator);
 				}
 			} else {
@@ -181,26 +175,20 @@ export default class PatientTutorsController {
 			const origin = request.input("origin");
 
 			if (origin === "" || origin === "Cadastro") {
-				if (authCtx.system.name === "Sanclá" || authCtx.system.type === "Vet") {
+				if (authCtx.system.type === "Vet") {
 					await request.validate(UpdateSanclaTutorForRegisterValidator);
 				}
 
-				if (authCtx.system.name === "LiftOne") {
+				if (authCtx.system.type !== "Vet") {
 					await request.validate(UpdateLiftOneTutorForRegisterValidator);
-				}
-
-				if (authCtx.system.type === "Clinicas") {
 					await request.validate(UpsertClinicsTutorValidator);
 				}
 			} else if (origin === "Crm" || origin === "Agenda") {
-				if (authCtx.system.name === "Sanclá" || authCtx.system.type === "Vet") {
+				if (authCtx.system.type === "Vet") {
 					await request.validate(UpdateSanclaTutorForGenericValidator);
 				}
 
-				if (
-					authCtx.system.name === "LiftOne" ||
-					authCtx.system.type === "Clinicas"
-				) {
+				if (authCtx.system.type !== "Vet") {
 					await request.validate(UpdateLiftOneTutorForGenericValidator);
 				}
 			} else {

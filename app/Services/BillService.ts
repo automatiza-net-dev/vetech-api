@@ -4336,7 +4336,18 @@ where deposit_id = ?
 				);
 			}
 
-			if (authCtx.unit.unitConfig.config.businessUnits?.controls_deposit) {
+			if (bill.cancelled !== "A") {
+				throw new BadRequestException(
+					"Venda não pode ser finalizada pois não foi avaliada pelo depto Tecnico e depto Financeiro",
+					400,
+					"E_ERR",
+				);
+			}
+
+			if (
+				data.cancelled &&
+				authCtx.unit.unitConfig.config.businessUnits?.controls_deposit
+			) {
 				const invalidRows = await Database.from("products")
 					.useTransaction(trx)
 					.select("products.id")
@@ -4358,65 +4369,58 @@ where deposit_id = ?
 				}
 			}
 
-			const pendingFinances = await Database.from("finances")
-				.select(Database.raw("1"))
-				.where("finances.business_unit_id", authCtx.unit.id)
-				.whereNotNull("finances.down_date")
-				.whereRaw(
-					`origin_id in (
+			if (data.cancelled) {
+				const pendingFinances = await Database.from("finances")
+					.select(Database.raw("1"))
+					.where("finances.business_unit_id", authCtx.unit.id)
+					.whereNotNull("finances.down_date")
+					.whereRaw(
+						`origin_id in (
 select id from bill_payments
 where bill_id = ?
        and bill_payments.cancelled = 'S'
        and deleted_at is null
 );`,
-					[bill.id],
-				);
-			if (pendingFinances.length > 0) {
-				throw new BadRequestException(
-					"Existem títulos desta venda que já foram baixados e estão selecionados para cancelamento. Será necessário estorná-los para finalizar o cancelamento desta venda",
-					400,
-					"E_ERR",
-				);
-			}
+						[bill.id],
+					);
+				if (pendingFinances.length > 0) {
+					throw new BadRequestException(
+						"Existem títulos desta venda que já foram baixados e estão selecionados para cancelamento. Será necessário estorná-los para finalizar o cancelamento desta venda",
+						400,
+						"E_ERR",
+					);
+				}
 
-			if (bill.cancelled !== "A") {
-				throw new BadRequestException(
-					"Venda não pode ser finalizada pois não foi avaliada pelo depto Tecnico e depto Financeiro",
-					400,
-					"E_ERR",
-				);
-			}
-
-			await Database.from("finances")
-				.useTransaction(trx)
-				.update({
-					exclusion_user_id: authCtx.user.id,
-					deleted_at: DateTime.now(),
-				})
-				.whereNull("finances.down_date")
-				.whereRaw(
-					`origin_id in (
+				await Database.from("finances")
+					.useTransaction(trx)
+					.update({
+						exclusion_user_id: authCtx.user.id,
+						deleted_at: DateTime.now(),
+					})
+					.whereNull("finances.down_date")
+					.whereRaw(
+						`origin_id in (
 select id from bill_payments
 where bill_id = ?
        and bill_payments.cancelled = 'S'
        and deleted_at is null
 )`,
-					[bill.id],
-				);
+						[bill.id],
+					);
 
-			await Database.from("bill_payments")
-				.useTransaction(trx)
-				.update({
-					exclusion_user_id: authCtx.user.id,
-					deleted_at: DateTime.now(),
-				})
-				.where("bill_payments.bill_id", bill.id)
-				.where("bill_payments.cancelled", "S")
-				.whereNull("bill_payments.deleted_at");
+				await Database.from("bill_payments")
+					.useTransaction(trx)
+					.update({
+						exclusion_user_id: authCtx.user.id,
+						deleted_at: DateTime.now(),
+					})
+					.where("bill_payments.bill_id", bill.id)
+					.where("bill_payments.cancelled", "S")
+					.whereNull("bill_payments.deleted_at");
 
-			if (data.depositId) {
-				await Database.rawQuery(
-					`update deposit_items set quantity = (
+				if (data.depositId) {
+					await Database.rawQuery(
+						`update deposit_items set quantity = (
 select (deposit_items.quantity + bi.cancelled_quantity )
 from bill_items bi
 join product_variations pv on bi.product_variation_id = pv.id
@@ -4426,46 +4430,47 @@ where deposit_items.product_variation_id = bi.product_variation_id
 )
 where deposit_items.deposit_id = ?
   and deposit_items.status = 'Ativo'`,
-					[bill.id, data.depositId],
-				)
-					.useTransaction(trx)
-					.exec();
-			}
+						[bill.id, data.depositId],
+					)
+						.useTransaction(trx)
+						.exec();
+				}
 
-			await Database.rawQuery(
-				`update bill_items set deleted_at = now(), exclusion_user_id = ?
+				await Database.rawQuery(
+					`update bill_items set deleted_at = now(), exclusion_user_id = ?
 where bill_id = ?
   and deleted_at is null
   and cancelled = 'S'
   and quantity = cancelled_quantity ;`,
-				[authCtx.user.id, bill.id],
-			)
-				.useTransaction(trx)
-				.exec();
+					[authCtx.user.id, bill.id],
+				)
+					.useTransaction(trx)
+					.exec();
 
-			await Database.rawQuery(
-				`update bill_items set quantity = quantity - cancelled_quantity ,
+				await Database.rawQuery(
+					`update bill_items set quantity = quantity - cancelled_quantity ,
 total_value = (total_value - (total_value * (cancelled_quantity / quantity ) ) ),
 discount_value = (discount_value - (discount_value * (cancelled_quantity / quantity ) ) )
 where bill_id = ?
   and deleted_at is null
   and cancelled = 'S'
   and quantity > cancelled_quantity`,
-				[bill.id],
-			)
-				.useTransaction(trx)
-				.exec();
+					[bill.id],
+				)
+					.useTransaction(trx)
+					.exec();
 
-			await Database.rawQuery(
-				`update bills set total_value = total_value - coalesce(cancel_value_total,0),
+				await Database.rawQuery(
+					`update bills set total_value = total_value - coalesce(cancel_value_total,0),
 product_value = product_value - coalesce(cancel_value_products,0),
 service_value = service_value - coalesce(cancel_value_services,0),
 discount_value = (select sum(coalesce(discount_value,0)) from bill_items where bill_items.bill_id = bills.id and bill_items.deleted_at is null and bill_items.cancelled = 'S')
 where id = ?`,
-				[bill.id],
-			)
-				.useTransaction(trx)
-				.exec();
+					[bill.id],
+				)
+					.useTransaction(trx)
+					.exec();
+			}
 
 			await BillCancelation.query()
 				.where("bill_id", bill.id)

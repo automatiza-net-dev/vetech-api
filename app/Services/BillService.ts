@@ -4157,7 +4157,7 @@ where deposit_id = ?
 						.filter(Boolean)
 						.at(0),
 					authorization_type: "RC",
-					approved: row.approved,
+					approved: row.cancelled === "S",
 					cancelled_quantity: row.cancelledQuantity,
 					authorization_date: DateTime.now(),
 					authorization_observations: data.billItems.find(
@@ -4214,7 +4214,7 @@ where deposit_id = ?
 					bill_cancelation_id: existingBillCancellation?.id,
 					type: "cancel",
 					authorization_type: "RC",
-					approved: row.approved,
+					approved: row.cancelled === "S",
 					authorization_user_id: authCtx.user.id,
 					authorization_date: DateTime.now(),
 					authorization_observations: data.billPayments.find(

@@ -4464,7 +4464,8 @@ where bill_id = ?
 					`update bills set total_value = total_value - coalesce(cancel_value_total,0),
 product_value = product_value - coalesce(cancel_value_products,0),
 service_value = service_value - coalesce(cancel_value_services,0),
-discount_value = (select sum(coalesce(discount_value,0)) from bill_items where bill_items.bill_id = bills.id and bill_items.deleted_at is null and bill_items.cancelled = 'S')
+discount_value = (select sum(coalesce(discount_value,0)) from bill_items where bill_items.bill_id = bills.id and bill_items.deleted_at is null and bill_items.cancelled = 'S'),
+paid_value = (select sum(coalesce(total_value,0)) from bill_payments where bill_payments.bill_id = bills.id and bill_payments.deleted_at is null)
 where id = ?`,
 					[bill.id],
 				)

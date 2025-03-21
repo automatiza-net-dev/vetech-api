@@ -3965,23 +3965,7 @@ where deposit_id = ?
 					cancelled: null,
 				});
 
-			await BillCancelation.create(
-				{
-					bill_id: bill.id,
-					cancel_user_id: authCtx.user.id,
-					cancel_reason_id: bill.cancel_reason_id,
-
-					cancelled: "P",
-					cancelDate: DateTime.now(),
-					cancelReason: bill.cancelReason,
-					cancelValueTotal: bill.cancelValueTotal,
-					cancelValueProducts: bill.cancelValueProducts,
-					cancelValueServices: bill.cancelValueServices,
-				},
-				{ client: trx },
-			);
-
-			await bill
+			const updatedBill = await bill
 				.merge({
 					cancelled: "P",
 					cancel_user_id: authCtx.user.id,
@@ -4025,6 +4009,22 @@ where deposit_id = ?
 				})
 				.useTransaction(trx)
 				.save();
+
+			await BillCancelation.create(
+				{
+					bill_id: bill.id,
+					cancel_user_id: authCtx.user.id,
+					cancel_reason_id: updatedBill.cancel_reason_id,
+
+					cancelled: "P",
+					cancelDate: DateTime.now(),
+					cancelReason: updatedBill.cancelReason,
+					cancelValueTotal: updatedBill.cancelValueTotal,
+					cancelValueProducts: updatedBill.cancelValueProducts,
+					cancelValueServices: updatedBill.cancelValueServices,
+				},
+				{ client: trx },
+			);
 		});
 	}
 

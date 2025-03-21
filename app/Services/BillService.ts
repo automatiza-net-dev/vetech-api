@@ -3938,11 +3938,11 @@ where deposit_id = ?
 			const itemTasks = bill.items.map(async (item) => {
 				return item
 					.merge({
-						reviewer_cancel_user_id: authCtx.user.id,
-						reviewCancelDate: DateTime.now(),
-						reviewCancelNotes:
-							data.billItems.find((bi) => bi.id === item.id)?.notes ??
-							data.notes,
+						// reviewer_cancel_user_id: authCtx.user.id,
+						// reviewCancelDate: DateTime.now(),
+						// reviewCancelNotes:
+						// 	data.billItems.find((bi) => bi.id === item.id)?.notes ??
+						// 	data.notes,
 						cancelled: "P",
 						originalTotalValue: new Decimal(item.totalValue ?? 0),
 						originalQuantity: item.quantity,

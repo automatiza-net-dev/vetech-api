@@ -4211,6 +4211,7 @@ where deposit_id = ?
 					bill_id: data.billId,
 					bill_item_id: null,
 					bill_payment_id: row.id,
+					bill_cancelation_id: existingBillCancellation?.id,
 					type: "cancel",
 					authorization_type: "RC",
 					approved: row.approved,

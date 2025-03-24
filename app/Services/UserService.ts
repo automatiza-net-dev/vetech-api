@@ -108,7 +108,24 @@ export default class UserService {
 			}
 
 			const user = await User.create(
-				{ ...data, system_id: system.id, type: "user" },
+				{
+					system_id: system.id,
+					type: "user",
+					name: data.name,
+					email: data.name,
+					password: data.password,
+					document: data.document,
+					phone: data.phone,
+					postalCode: data.postalCode,
+					address: data.address,
+					number: data.number,
+					complement: data.complement,
+					district: data.district,
+					city: data.city,
+					state: data.state,
+					licensingJob: data.licensingJob,
+					onDuty: data.onDuty,
+				},
 				{
 					client: trx,
 				},

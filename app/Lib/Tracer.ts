@@ -1,6 +1,6 @@
-// import { Resource } from "@opentelemetry/resources";
+import { Resource } from "@opentelemetry/resources";
 import Logger from "@ioc:Adonis/Core/Logger";
-// import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
+import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { NodeSDK } from "@opentelemetry/sdk-node";
 import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentations-node";
@@ -19,9 +19,9 @@ class Tracer {
 	public init() {
 		try {
 			const sdk = new NodeSDK({
-				// resource: new Resource({
-				// 	[ATTR_SERVICE_NAME]: Env.get("AXIOM_LABEL"),
-				// }),
+				resource: new Resource({
+					[ATTR_SERVICE_NAME]: Env.get("AXIOM_LABEL"),
+				}),
 				traceExporter: this.exporter,
 				instrumentations: [
 					getNodeAutoInstrumentations({

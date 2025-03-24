@@ -1,7 +1,6 @@
 import { inject } from "@adonisjs/fold";
 import Mail from "@ioc:Adonis/Addons/Mail";
 import Encryption from "@ioc:Adonis/Core/Encryption";
-import Logger from "@ioc:Adonis/Core/Logger";
 import Database, {} from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import InternalErrorException from "App/Exceptions/InternalErrorException";
@@ -12,7 +11,6 @@ import { CheckingAccountType } from "App/Models/CheckingAccount";
 import ConfirmationToken from "App/Models/ConfirmationToken";
 import Deposit from "App/Models/Deposit";
 import { LicenceType } from "App/Models/Licence";
-import Plan from "App/Models/Plan";
 import System from "App/Models/System";
 import SystemPaymentMethod from "App/Models/SystemPaymentMethod";
 import SystemProduct from "App/Models/SystemProduct";
@@ -90,19 +88,7 @@ export default class UserService {
 
 			if (!system.default_role_id) {
 				throw new InternalErrorException(
-					"Erro na criação de usuário",
-					400,
-					"E_INTERNAL_SERVER_ERROR",
-				);
-			}
-
-			const trialPlan = await Plan.findBy("default", true, {
-				client: trx,
-			});
-			if (!trialPlan) {
-				Logger.error("No trial plan");
-				throw new InternalErrorException(
-					"Erro na criação de usuário",
+					"Não existe um grupo de acessos padrão para este sistema",
 					400,
 					"E_INTERNAL_SERVER_ERROR",
 				);

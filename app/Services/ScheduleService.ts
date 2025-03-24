@@ -2774,7 +2774,7 @@ export default class ScheduleService {
            when expiration_date::date < now()::date then 'Valores em Atraso'
            else 'Valores Futuros' end as tipoVencimento`),
 			)
-			.whereRaw("type = 'CREDITO")
+			.whereRaw("type = 'CREDITO'")
 			.whereRaw("deleted_at is null")
 			.whereRaw("economic_group_id = ?", [authCtx.group.id])
 			.whereRaw("business_unit_id = ?", [authCtx.unit.id])

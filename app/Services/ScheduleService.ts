@@ -2785,7 +2785,7 @@ export default class ScheduleService {
              when expiration_date::date = now()::date then 'Valores Vencimento Hoje'
              when expiration_date::date < now()::date then 'Valores em Atraso'
              else 'Valores Futuros' end`)
-			.orderBy("tipoVencimento");
+			.orderByRaw("tipoVencimento");
 
 		return result.map((row) => ({
 			[row.tipovencimento]: this.sharedService.formatter.format(

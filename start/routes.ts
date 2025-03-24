@@ -381,6 +381,7 @@ Route.group(() => {
 		"/schedules-attendances/:patientID",
 		"SchedulesController.schedulesAttendances",
 	);
+	Route.get("/finances/:clientID", "SchedulesController.finances");
 
 	Route.get("/", "SchedulesController.index");
 	Route.post("/create-contact", "SchedulesController.createContact");

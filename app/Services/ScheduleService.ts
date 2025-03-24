@@ -44,6 +44,7 @@ import { validate } from "uuid";
 import CrmStatus from "App/Models/CrmStatus";
 import TreatmentExecution from "App/Models/TreatmentExecution";
 import TreatmentExecutionReschedule from "App/Models/TreatmentExecutionReschedule";
+import Decimal from "decimal.js";
 
 interface ISearch {
 	pid?: string;
@@ -1490,7 +1491,12 @@ export default class ScheduleService {
 			usersQb.where("users.id", authCtx.user.id);
 		}
 
-		const users = await usersQb;
+		const users: {
+			id: string;
+			name: string;
+			on_duty: boolean;
+			schedule_sequence: boolean;
+		}[] = await usersQb;
 		const userIds = Array.from(new Set(users.map((u) => u.id)));
 
 		const days = Math.max(differenceInDays(refStart, refEnd), 1);
@@ -2327,7 +2333,7 @@ export default class ScheduleService {
 			}
 
 			const validChanges = VALID_CHANGES[schedule.serviceStatus.type];
-      // @ts-ignore -
+			// @ts-ignore -
 			if (!validChanges || !validChanges.includes(toStatus.type)) {
 				throw new BadRequestException("Mudança inválida", 400, "E_INVALID");
 			}
@@ -2444,7 +2450,7 @@ export default class ScheduleService {
 			}
 
 			const validChanges = VALID_CHANGES[schedule.serviceStatus.type];
-      // @ts-ignore -
+			// @ts-ignore -
 			if (!validChanges || !validChanges.includes(toStatus.type)) {
 				throw new BadRequestException("Mudança inválida", 400, "E_INVALID");
 			}
@@ -2744,6 +2750,47 @@ export default class ScheduleService {
 					name: r.user?.name,
 				},
 			})),
+		}));
+	}
+
+	public async finances(authCtx: AuthContext, clientID: string) {
+		if (!validate(clientID)) {
+			throw new BadRequestException("ID inválido", 400, "E_ERR");
+		}
+
+		const result: {
+			client_id: string;
+			total: string;
+			tipovencimento:
+				| "Valores Vencimento Hoje"
+				| "Valores em Atraso"
+				| "Valores Futuros";
+		}[] = await Database.from("finances")
+			.select(
+				Database.raw(`client_id,
+       sum(total_value) as total,
+       case
+           when expiration_date::date = now()::date then 'Valores Vencimento Hoje'
+           when expiration_date::date < now()::date then 'Valores em Atraso'
+           else 'Valores Futuros' end as tipoVencimento`),
+			)
+			.whereRaw("type = 'CREDITO")
+			.whereRaw("deleted_at is null")
+			.whereRaw("economic_group_id = ?", [authCtx.group.id])
+			.whereRaw("business_unit_id = ?", [authCtx.unit.id])
+			.whereRaw("client_id = ?", [clientID])
+			.whereRaw("payment_date is null")
+			.groupByRaw(`client_id,
+         case
+             when expiration_date::date = now()::date then 'Valores Vencimento Hoje'
+             when expiration_date::date < now()::date then 'Valores em Atraso'
+             else 'Valores Futuros' end`)
+			.orderBy("tipoVencimento");
+
+		return result.map((row) => ({
+			[row.tipovencimento]: this.sharedService.formatter.format(
+				new Decimal(row.total).toNumber(),
+			),
 		}));
 	}
 

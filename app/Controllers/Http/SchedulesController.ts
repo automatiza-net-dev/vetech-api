@@ -392,4 +392,15 @@ export default class SchedulesController {
 
 		return response.ok(result);
 	}
+
+	public async finances({ auth, request, response }: HttpContextContract) {
+		const authCtx = await this.sharedService.getAuthContext(auth);
+
+		const result = await this.service.finances(
+			authCtx,
+			request.param("clientID"),
+		);
+
+		return response.ok(result);
+	}
 }

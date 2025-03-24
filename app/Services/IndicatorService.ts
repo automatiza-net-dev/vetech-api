@@ -5575,7 +5575,7 @@ export default class IndicatorService {
         sum(coalesce(total.total_value, 0))       as total_orcamentos,
         count(confirmados.id)                     as qtd_confirmados,
         sum(coalesce(confirmados.total_value, 0)) as total_confirmados,
-        sum(coalesce(confirmados.total_value, 0)) / sum(coalesce(total.total_value, 0)) * 100 as conv_venda
+        sum(coalesce(confirmados.total_value, 0)) / sum(coalesce(nullif(total.total_value, 0), 1)) * 100 as conv_venda
           `,
 				),
 			)
@@ -7592,7 +7592,7 @@ export default class IndicatorService {
         sum(coalesce(total.total_value, 0))       as total_orcamentos,
         count(confirmados.id)                     as qtd_confirmados,
         sum(coalesce(confirmados.total_value, 0)) as total_confirmados,
-        sum(coalesce(confirmados.total_value, 0)) / sum(coalesce(total.total_value, 0)) * 100 as conv_venda
+        sum(coalesce(confirmados.total_value, 0)) / sum(coalesce(nullif(total.total_value, 0), 1)) * 100 as conv_venda
           `,
 				),
 			)

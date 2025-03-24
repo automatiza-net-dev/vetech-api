@@ -5,7 +5,7 @@ import BadRequestException from "App/Exceptions/BadRequestException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import Department from "App/Models/Department";
 import DepartmentProduct from "App/Models/DepartmentProduct";
-import {AuthContext } from "App/Services/SharedService";
+import { AuthContext } from "App/Services/SharedService";
 import { DateTime } from "luxon";
 import DepartmentItem from "App/Models/DepartmentItem";
 import { v4 } from "uuid";
@@ -13,6 +13,41 @@ import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 
 @inject()
 export default class DepartmentService {
+	async resume(
+		authCtx: AuthContext,
+		data: { type?: string; id?: string; description?: string },
+	) {
+		const qb = Department.query().where("system_id", authCtx.system.id);
+
+		if (data.type === "portal") {
+			qb.whereRaw("(economic_group_id is null and business_unit_id is null)");
+		}
+
+		if (data.type === "sistema") {
+			qb.whereRaw(
+				"((economic_group_id is null or economic_group_id = ?) and (business_unit_id is null or business_unit_id = ?))",
+				[authCtx.group.id, authCtx.unit.id],
+			);
+		}
+
+		if (data.id) {
+			qb.where("id", data.id);
+		}
+
+		if (data.description) {
+			qb.whereRaw("description ilike ?", [`%${data.description}%`]);
+		}
+
+		const result = await qb;
+
+		return result.map((r) => ({
+			systemId: r.system_id,
+			economicGroupId: r.economic_group_id,
+			businessUnitId: r.business_unit_id,
+			departmentId: r.id,
+			description: r.description,
+		}));
+	}
 
 	async index(
 		authCtx: AuthContext,

@@ -2024,6 +2024,7 @@ Route.group(() => {
 	);
 	Route.get("/list-products", "DepartmentsController.listProducts");
 	Route.get("/list-items", "DepartmentsController.listItems");
+	Route.get("/resume", "DepartmentsController.resume");
 	Route.get("/", "DepartmentsController.index");
 
 	Route.post("/store-products", "DepartmentsController.storeProducts");

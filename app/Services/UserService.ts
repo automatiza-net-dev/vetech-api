@@ -112,7 +112,7 @@ export default class UserService {
 					system_id: system.id,
 					type: "user",
 					name: data.name,
-					email: data.name,
+					email: data.email,
 					password: data.password,
 					document: data.document,
 					phone: data.phone,

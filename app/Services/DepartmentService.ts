@@ -353,7 +353,6 @@ json_agg(json_build_object('id', deptItems_temp.id, 'description', deptItems_tem
 			.whereRaw("departments.deleted_at is null")
 			.whereRaw("departments.active = true")
 			.whereRaw("departments.system_id = ?", [authCtx.system.id])
-			.whereRaw("departments.id = ?", [data.departmentId ?? "-1"])
 			.whereRaw(
 				"(departments.economic_group_id = ? or departments.economic_group_id is null)",
 				[authCtx.group.id],
@@ -407,7 +406,6 @@ json_agg(json_build_object('id', deptItems_temp.id, 'description', deptItems_tem
 			.whereRaw("departments.deleted_at is null")
 			.whereRaw("departments.active = true")
 			.whereRaw("departments.system_id = ?", [authCtx.system.id])
-			.whereRaw("departments.id = ?", [data.departmentId ?? "-1"])
 			.whereRaw(
 				"(departments.economic_group_id = ? or departments.economic_group_id is null)",
 				[authCtx.group.id],
@@ -417,6 +415,11 @@ json_agg(json_build_object('id', deptItems_temp.id, 'description', deptItems_tem
 				[authCtx.unit.id],
 			)
 			.groupByRaw("departments.id");
+
+		if (data.departmentId) {
+			itemsQb.whereRaw("departments.id = ?", [data.departmentId]);
+			productsQb.whereRaw("departments.id = ?", [data.departmentId]);
+		}
 
 		const [items, products] = await Promise.all([itemsQb, productsQb]);
 

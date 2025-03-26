@@ -334,7 +334,7 @@ export default class DepartmentService {
 	) {
 		const itemsQb = Database.from("departments")
 			.select(
-				Database.raw(`departments.id, departments.description ,
+				Database.raw(`departments.id, departments.description, departments.image,
 json_agg(json_build_object('id', deptItems_temp.id, 'description', deptItems_temp.description, 'photo', deptItems_temp.photo, 'requiresObservation', deptItems_temp.requires_observation, 'order', deptItems_temp.order )) as items`),
 			)
 			.joinRaw(`join (select department_items.department_id,
@@ -423,6 +423,7 @@ json_agg(json_build_object('id', deptItems_temp.id, 'description', deptItems_tem
 		return items.map((row) => ({
 			id: row.id,
 			description: row.description,
+			image: row.image,
 			items: row.items,
 			products: products.find((pr) => pr.id === row.id) ?? [],
 		}));

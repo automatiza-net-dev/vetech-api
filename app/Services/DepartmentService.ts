@@ -332,82 +332,96 @@ export default class DepartmentService {
 			departmentId?: string;
 		},
 	) {
-		const deptosQb = Department.query().where("system_id", authCtx.system.id);
-
-		const productsQb = Database.from("department_items")
+		const itemsQb = Database.from("departments")
 			.select(
-				Database.raw(`departments.id as depto_id,
-       products.id,
-       products.description,
-       products.type,
-       products.courtesy,
-       business_unit_products.stock,
-       business_unit_products.maximum_discount_percentage,
-       business_unit_products.price,
-       business_unit_products.cost_price`),
+				Database.raw(`departments.id, departments.description ,
+json_agg(json_build_object('id', deptItems_temp.id, 'description', deptItems_temp.description, 'photo', deptItems_temp.photo, 'requiresObservation', deptItems_temp.requires_observation, 'order', deptItems_temp.order )) as items`),
 			)
-			.joinRaw(
-				"join departments on department_items.department_id = departments.id and departments.system_id = ? and departments.economic_group_id = ?",
-				[authCtx.system.id, authCtx.group.id],
+			.joinRaw(`join (select department_items.department_id,
+                      department_items.id,
+                      department_items.description,
+                      department_items.photo,
+                      department_items.requires_observation,
+                      department_items.order
+
+               from department_items
+
+               where department_items.deleted_at is null
+                 and department_items.active = true
+
+               order by department_items.order) deptItems_temp on departments.id = deptItems_temp.department_id`)
+			.whereRaw("departments.deleted_at is null")
+			.whereRaw("departments.active = true")
+			.whereRaw("departments.system_id = ?", [authCtx.system.id])
+			.whereRaw("departments.id = ?", [data.departmentId ?? "-1"])
+			.whereRaw(
+				"(departments.economic_group_id = ? or departments.economic_group_id is null)",
+				[authCtx.group.id],
 			)
-			.joinRaw(`join department_products
-              on departments.id = department_products.department_id and department_products.deleted_at is null and
-                 department_products.active = true`)
-			.joinRaw(`join products on department_products.product_id = products.id and products.deleted_at is null and
-                          products.active is true`)
-			.joinRaw(`join product_variations
-              on products.id = product_variations.product_id and product_variations.deleted_at is null`)
-			.joinRaw(
-				`join business_unit_products on business_unit_products.product_variation_id = product_variations.id and
-                                        business_unit_products.deleted_at is null and
-                                        business_unit_products.businness_unit_id = ?`,
+			.whereRaw(
+				"(departments.business_unit_id = ? or departments.business_unit_id is null)",
 				[authCtx.unit.id],
 			)
-			.whereRaw("department_items.deleted_at is null")
-			.whereRaw("departments.deleted_at is null")
-			.whereRaw("department_products.deleted_at is null")
-			.whereRaw("products.deleted_at is null")
-			.whereRaw("product_variations.deleted_at is null")
-			.whereRaw("departments.active is true")
-			.whereRaw("department_items.active is true")
-			.whereRaw("department_products.active is true")
-			.whereRaw("products.active is true")
-			.whereRaw("products.purpose <> 'internal'");
+			.groupByRaw("departments.id");
 
-		const itemsQb = Database.from("department_items")
+		const productsQb = Database.from("departments")
 			.select(
-				Database.raw(`departments.id as depto_id,
-       department_items.id,
-       department_items.description,
-       department_items.photo,
-       department_items.requires_observation`),
+				Database.raw(`departments.id,
+       json_agg(json_build_object('id', deptProd_temp.id, 'description', deptProd_temp.description, 'type',
+                                  deptProd_temp.type, 'courtesy', deptProd_temp.courtesy, 'stock', deptProd_temp.stock,
+                                  'maximum_discount_percentage', deptProd_temp.maximum_discount_percentage, 'price',
+                                  deptProd_temp.price, 'cost_price', deptProd_temp.cost_price)) as products`),
 			)
-			.joinRaw(
-				"join departments on department_items.department_id = departments.id and departments.system_id = ? and departments.economic_group_id = ?",
-				[authCtx.system.id, authCtx.group.id],
+			.joinRaw(`join (select department_products.department_id,
+                      products.id,
+                      products.description,
+                      products.type,
+                      products.courtesy,
+                      business_unit_products.stock,
+
+                      business_unit_products.maximum_discount_percentage,
+                      business_unit_products.price,
+                      business_unit_products.cost_price
+
+               from department_products
+
+                        join products
+                             on department_products.product_id = products.id and products.deleted_at is null and
+                                products.active is true and products.purpose <> 'internal'
+
+                        join product_variations
+                             on products.id = product_variations.product_id and product_variations.deleted_at is null
+
+                        join business_unit_products
+                             on business_unit_products.product_variation_id = product_variations.id and
+                                business_unit_products.deleted_at is null
+                                 and business_unit_products.businness_unit_id = ?
+
+               where department_products.deleted_at is null
+                 and department_products.active = true
+
+               order by products.description) deptProd_temp on departments.id = deptProd_temp.department_id`)
+			.whereRaw("departments.deleted_at is null", [authCtx.unit.id])
+			.whereRaw("departments.active = true")
+			.whereRaw("departments.system_id = ?", [authCtx.system.id])
+			.whereRaw("departments.id = ?", [data.departmentId ?? "-1"])
+			.whereRaw(
+				"(departments.economic_group_id = ? or departments.economic_group_id is null)",
+				[authCtx.group.id],
 			)
-			.whereRaw("department_items.deleted_at is null")
-			.whereRaw("departments.deleted_at is null")
-			.whereRaw("departments.active is true")
-			.whereRaw("department_items.active is true");
+			.whereRaw(
+				"(departments.business_unit_id = ? or departments.business_unit_id is null)",
+				[authCtx.unit.id],
+			)
+			.groupByRaw("departments.id");
 
-		if (data.departmentId) {
-			deptosQb.whereRaw("id = ?", [data.departmentId]);
-			productsQb.whereRaw("departments.id = ?", [data.departmentId]);
-			itemsQb.whereRaw("departments.id = ?", [data.departmentId]);
-		}
+		const [items, products] = await Promise.all([itemsQb, productsQb]);
 
-		const [deptos, products, items] = await Promise.all([
-			deptosQb,
-			productsQb,
-			itemsQb,
-		]);
-
-		return deptos.map((row) => ({
+		return items.map((row) => ({
 			id: row.id,
 			description: row.description,
-			products: products.filter((pred) => pred.depto_id === row.id),
-			items: items.filter((pred) => pred.depto_id === row.id),
+			items: row.items,
+			products: products.find((pr) => pr.id === row.id) ?? [],
 		}));
 	}
 

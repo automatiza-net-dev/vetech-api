@@ -425,7 +425,7 @@ json_agg(json_build_object('id', deptItems_temp.id, 'description', deptItems_tem
 			description: row.description,
 			image: row.image,
 			items: row.items,
-			products: products.find((pr) => pr.id === row.id) ?? [],
+			products: products.find((pr) => pr.id === row.id)?.products ?? [],
 		}));
 	}
 

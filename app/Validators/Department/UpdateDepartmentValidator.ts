@@ -29,6 +29,7 @@ export default class UpdateDepartmentValidator {
 		]),
 
 		description: schema.string(),
+		image: schema.file.optional(),
 	});
 
 	/**

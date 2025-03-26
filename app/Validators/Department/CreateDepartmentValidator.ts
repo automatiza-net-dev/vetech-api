@@ -32,6 +32,7 @@ export default class CreateDepartmentValidator {
 		]),
 
 		description: schema.string(),
+		image: schema.file.optional(),
 	});
 
 	/**

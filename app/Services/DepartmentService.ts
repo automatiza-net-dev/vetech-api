@@ -1,4 +1,5 @@
 import { MultipartFileContract } from "@ioc:Adonis/Core/BodyParser";
+import Drive from "@ioc:Adonis/Core/Drive";
 import Database from "@ioc:Adonis/Lucid/Database";
 import { inject } from "@adonisjs/fold";
 import BadRequestException from "App/Exceptions/BadRequestException";
@@ -46,6 +47,7 @@ export default class DepartmentService {
 			businessUnitId: r.business_unit_id,
 			departmentId: r.id,
 			description: r.description,
+			image: r.image,
 		}));
 	}
 
@@ -99,6 +101,7 @@ export default class DepartmentService {
 			business_unit_id: r.business_unit_id,
 			id: r.id,
 			description: r.description,
+			image: r.image,
 			active: r.active,
 			created_at: r.createdAt,
 			create_user_id: r.creationUser.id,
@@ -122,8 +125,17 @@ export default class DepartmentService {
 			businessUnitId?: string;
 
 			description: string;
+			image?: MultipartFileContract;
 		},
 	) {
+		let img: string | null = null;
+
+		if (data.image) {
+			const s3Key = `${authCtx.unit.id}/${Date.now()}-${data.image.clientName}`;
+			await data.image.moveToDisk("departments", { name: s3Key }, "s3");
+			img = s3Key;
+		}
+
 		return Department.create({
 			economic_group_id: data.economicGroupId,
 			business_unit_id: data.businessUnitId,
@@ -131,6 +143,7 @@ export default class DepartmentService {
 			creation_user_id: authCtx.user.id,
 
 			description: data.description,
+			image: img,
 			active: true,
 		});
 	}
@@ -142,6 +155,7 @@ export default class DepartmentService {
 			businessUnitId?: string;
 
 			description: string;
+			image?: MultipartFileContract;
 		},
 	) {
 		const model = await Department.query()
@@ -165,11 +179,20 @@ export default class DepartmentService {
 			);
 		}
 
+		let img: string | null = model.image;
+
+		if (data.image) {
+			const s3Key = `${authCtx.unit.id}/${Date.now()}-${data.image.clientName}`;
+			await data.image.moveToDisk("departments", { name: s3Key }, "s3");
+			img = s3Key;
+		}
+
 		return model
 			.merge({
 				business_unit_id: data.businessUnitId,
 				updated_user_id: authCtx.user.id,
 				description: data.description,
+				image: img,
 			})
 			.save();
 	}

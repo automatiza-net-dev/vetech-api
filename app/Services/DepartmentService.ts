@@ -372,7 +372,8 @@ json_agg(json_build_object('id', deptItems_temp.id, 'description', deptItems_tem
                                   'maximum_discount_percentage', deptProd_temp.maximum_discount_percentage, 'price',
                                   deptProd_temp.price, 'cost_price', deptProd_temp.cost_price)) as products`),
 			)
-			.joinRaw(`join (select department_products.department_id,
+			.joinRaw(
+				`join (select department_products.department_id,
                       products.id,
                       products.description,
                       products.type,
@@ -400,8 +401,10 @@ json_agg(json_build_object('id', deptItems_temp.id, 'description', deptItems_tem
                where department_products.deleted_at is null
                  and department_products.active = true
 
-               order by products.description) deptProd_temp on departments.id = deptProd_temp.department_id`)
-			.whereRaw("departments.deleted_at is null", [authCtx.unit.id])
+               order by products.description) deptProd_temp on departments.id = deptProd_temp.department_id`,
+				[authCtx.unit.id],
+			)
+			.whereRaw("departments.deleted_at is null")
 			.whereRaw("departments.active = true")
 			.whereRaw("departments.system_id = ?", [authCtx.system.id])
 			.whereRaw("departments.id = ?", [data.departmentId ?? "-1"])

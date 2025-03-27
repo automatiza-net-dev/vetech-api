@@ -403,6 +403,8 @@ export default class BillService {
 
 		const jsonBill = bill.toJSON();
 
+		console.log({ departmentItemRows });
+
 		jsonBill.items = jsonBill.items.map((bi: BillItem) => {
 			// @ts-ignore yay
 			bi.treatmentExecutions = treatmentExecutionRows.filter(

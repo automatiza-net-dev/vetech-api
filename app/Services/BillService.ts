@@ -360,7 +360,7 @@ export default class BillService {
 			throw this.sharedService.ResourceNotFound();
 		}
 
-		const rows = await Database.from("bills")
+		const treatmentExecutionRows = await Database.from("bills")
 			.select(
 				Database.raw(
 					`bill_items.id as billitemid,
@@ -387,12 +387,34 @@ export default class BillService {
 			)
 			.whereRaw("bills.id = ?", [id]);
 
+		const departmentItemRows = await Database.from("bill_items")
+			.select(
+				Database.raw(
+					"d.id as department_id, d.description department_description, di.description department_item_description, di.id  as department_item_id, bid.observations, bill_items.product_variation_id",
+				),
+			)
+			.joinRaw(
+				"join ( bill_item_departments bid join departments d on bid.department_id = d.id join department_items di on bid.department_item_id = di.id ) on bi.bill_id = bid.bill_id and bi.id = bid.bill_item_id",
+			)
+			.whereRaw("bill_items.bill_id = ? and bill_items.business_unit_id = ?", [
+				bill.id,
+				authCtx.unit.id,
+			]);
+
 		const jsonBill = bill.toJSON();
 
-		jsonBill.items = jsonBill.items.map((bi) => {
-			bi.treatmentExecutions = rows.filter(
+		jsonBill.items = jsonBill.items.map((bi: BillItem) => {
+			// @ts-ignore yay
+			bi.treatmentExecutions = treatmentExecutionRows.filter(
 				(ro) => bi.id === ro.billitemid && !!ro.treatment_id,
 			);
+
+			// @ts-ignore yay
+			bi.departmentItems = this.deleteItemDepartments.filter(
+				(ro: { product_variation_id: string }) =>
+					bi.product_variation_id === ro.product_variation_id,
+			);
+
 			return bi;
 		});
 

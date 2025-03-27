@@ -394,7 +394,7 @@ export default class BillService {
 				),
 			)
 			.joinRaw(
-				"join ( bill_item_departments bid join departments d on bid.department_id = d.id join department_items di on bid.department_item_id = di.id ) on bill_items.bill_id = bid.bill_id and bi.id = bid.bill_item_id",
+				"join ( bill_item_departments bid join departments d on bid.department_id = d.id join department_items di on bid.department_item_id = di.id ) on bill_items.bill_id = bid.bill_id and bill_items.id = bid.bill_item_id",
 			)
 			.whereRaw("bill_items.bill_id = ? and bill_items.business_unit_id = ?", [
 				bill.id,

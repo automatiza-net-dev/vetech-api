@@ -1239,6 +1239,9 @@ Route.group(() => {
 
 Route.group(() => {
 	Route.post("/identification", "SystemUrlsController.search");
+	Route.post("/upload-images", "SystemUrlsController.uploadImages").middleware(
+		"auth",
+	);
 }).prefix("systems");
 
 Route.group(() => {

@@ -366,41 +366,20 @@ json_agg(json_build_object('id', deptItems_temp.id, 'description', deptItems_tem
 		const productsQb = Database.from("departments")
 			.select(
 				Database.raw(`departments.id,
-       json_agg(json_build_object('id', deptProd_temp.id, 'description', deptProd_temp.description, 'type',
-                                  deptProd_temp.type, 'courtesy', deptProd_temp.courtesy, 'stock', deptProd_temp.stock,
-                                  'maximum_discount_percentage', deptProd_temp.maximum_discount_percentage, 'price',
-                                  deptProd_temp.price, 'cost_price', deptProd_temp.cost_price)) as products`),
+       json_agg(json_build_object('id', deptProd_temp.id, 'product_variation_id', deptProd_temp.product_variation_id, 'description', deptProd_temp.description,  'type', deptProd_temp.type, 'courtesy', deptProd_temp.courtesy, 'stock', deptProd_temp.stock,
+       'maximum_discount_percentage', deptProd_temp.maximum_discount_percentage , 'price', deptProd_temp.price , 'cost_price', deptProd_temp.cost_price ) ) as products`),
 			)
 			.joinRaw(
-				`join (select department_products.department_id,
-                      products.id,
-                      products.description,
-                      products.type,
-                      products.courtesy,
-                      business_unit_products.stock,
-
-                      business_unit_products.maximum_discount_percentage,
-                      business_unit_products.price,
-                      business_unit_products.cost_price
-
-               from department_products
-
-                        join products
-                             on department_products.product_id = products.id and products.deleted_at is null and
-                                products.active is true and products.purpose <> 'internal'
-
-                        join product_variations
-                             on products.id = product_variations.product_id and product_variations.deleted_at is null
-
-                        join business_unit_products
-                             on business_unit_products.product_variation_id = product_variations.id and
-                                business_unit_products.deleted_at is null
-                                 and business_unit_products.businness_unit_id = ?
-
-               where department_products.deleted_at is null
-                 and department_products.active = true
-
-               order by products.description) deptProd_temp on departments.id = deptProd_temp.department_id`,
+				`join (
+    select department_products.department_id, products.id, product_variations.id AS product_variation_id, products.description, products.type, products.courtesy, business_unit_products.stock,
+             business_unit_products.maximum_discount_percentage , business_unit_products.price , business_unit_products.cost_price
+ from department_products
+   join products on department_products.product_id = products.id and products.deleted_at is null and products.active is true and products.purpose <> 'internal'
+   join product_variations on products.id = product_variations.product_id and product_variations.deleted_at is null
+   join business_unit_products on business_unit_products.product_variation_id = product_variations.id and business_unit_products.deleted_at is null
+   and business_unit_products.businness_unit_id = ?
+where department_products.deleted_at is null and department_products.active = true
+order by products.description ) deptProd_temp  on departments.id = deptProd_temp.department_id`,
 				[authCtx.unit.id],
 			)
 			.whereRaw("departments.deleted_at is null")

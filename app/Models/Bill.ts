@@ -279,6 +279,42 @@ export default class Bill extends BaseModel {
 	})
 	public cancelValueTotal: Decimal | null;
 
+	@column({
+		columnName: "original_total_value",
+		serializeAs: "originalTotalValue",
+		consume: (value) => (value ? new Decimal(value) : null),
+		prepare: (value) => value.toString(),
+		serialize: (value: Decimal) => (value ? value.toNumber() : 0),
+	})
+	public originalTotalValue: Decimal | null;
+
+	@column({
+		columnName: "original_products_value",
+		serializeAs: "originalProductsValue",
+		consume: (value) => (value ? new Decimal(value) : null),
+		prepare: (value) => value.toString(),
+		serialize: (value: Decimal) => (value ? value.toNumber() : 0),
+	})
+	public originalProductsValue: Decimal | null;
+
+	@column({
+		columnName: "original_services_value",
+		serializeAs: "originalServicesValue",
+		consume: (value) => (value ? new Decimal(value) : null),
+		prepare: (value) => value.toString(),
+		serialize: (value: Decimal) => (value ? value.toNumber() : 0),
+	})
+	public originalServicesValue: Decimal | null;
+
+	@column({
+		columnName: "original_discount_value",
+		serializeAs: "originalDiscountValue",
+		consume: (value) => (value ? new Decimal(value) : null),
+		prepare: (value) => value.toString(),
+		serialize: (value: Decimal) => (value ? value.toNumber() : 0),
+	})
+	public originalDiscountValue: Decimal | null;
+
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
 

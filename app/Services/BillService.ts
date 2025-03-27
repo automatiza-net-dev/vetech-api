@@ -4493,6 +4493,45 @@ where id = ?`,
 				)
 					.useTransaction(trx)
 					.exec();
+			} else {
+				const validPayments = await BillPayment.query()
+					.useTransaction(trx)
+					.where("bill_id", bill.id)
+					.whereNull("deleted_at");
+
+				await bill
+					.merge({
+						paidValue: validPayments
+							.reduce(
+								(acc, curr) => acc.plus(new Decimal(curr.totalValue)),
+								new Decimal(0),
+							)
+							.toNumber(),
+					})
+					.useTransaction(trx)
+					.save();
+
+				await Database.rawQuery(
+					`update bill_items set cancelled = 'N', reviewer_cancel_user_id = ?, review_cancel_notes = ? where bill_id = ? and cancelled = 'S'`,
+					[
+						authCtx.user.id,
+						`${data.note}\n${format(addHours(new Date(), -3), "dd/MM/yyyy HH:mm:ss")} - ${user.name}\n${data.note}`,
+						bill.id,
+					],
+				)
+					.useTransaction(trx)
+					.exec();
+
+				await Database.rawQuery(
+					`update bill_payments set cancelled = 'N', reviewer_cancel_user_id = ?, review_cancel_notes = ? where bill_id = ? and cancelled = 'S'`,
+					[
+						authCtx.user.id,
+						`${data.note}\n${format(addHours(new Date(), -3), "dd/MM/yyyy HH:mm:ss")} - ${user.name}\n${data.note}`,
+						bill.id,
+					],
+				)
+					.useTransaction(trx)
+					.exec();
 			}
 
 			await BillCancelation.query()

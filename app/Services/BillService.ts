@@ -412,7 +412,6 @@ export default class BillService {
 			// @ts-ignore yay
 			bi.departmentItems = departmentItemRows.filter(
 				(ro: { product_variation_id: string; bill_item_id: string }) => {
-					console.log({ ro, pvi: bi.productVariation });
 					return (
 						bi.id === ro.bill_item_id ||
 						bi.product_variation_id === ro.product_variation_id

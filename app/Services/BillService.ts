@@ -390,7 +390,7 @@ export default class BillService {
 		const departmentItemRows = await Database.from("bill_items")
 			.select(
 				Database.raw(
-					"d.id as department_id, d.description department_description, di.description department_item_description, di.id  as department_item_id, bid.observations, bill_items.product_variation_id",
+					"d.id as department_id, d.description department_description, di.description department_item_description, di.id  as department_item_id, bid.observations, bill_item_id, bill_items.product_variation_id",
 				),
 			)
 			.joinRaw(
@@ -403,8 +403,6 @@ export default class BillService {
 
 		const jsonBill = bill.toJSON();
 
-		console.log({ departmentItemRows });
-
 		jsonBill.items = jsonBill.items.map((bi: BillItem) => {
 			// @ts-ignore yay
 			bi.treatmentExecutions = treatmentExecutionRows.filter(
@@ -413,8 +411,13 @@ export default class BillService {
 
 			// @ts-ignore yay
 			bi.departmentItems = departmentItemRows.filter(
-				(ro: { product_variation_id: string }) =>
-					bi.product_variation_id === ro.product_variation_id,
+				(ro: { product_variation_id: string; bill_item_id: string }) => {
+					console.log({ ro, pvi: bi.productVariation });
+					return (
+						bi.id === ro.bill_item_id ||
+						bi.product_variation_id === ro.product_variation_id
+					);
+				},
 			);
 
 			return bi;

@@ -1,5 +1,4 @@
 import { MultipartFileContract } from "@ioc:Adonis/Core/BodyParser";
-import Drive from "@ioc:Adonis/Core/Drive";
 import Database from "@ioc:Adonis/Lucid/Database";
 import { inject } from "@adonisjs/fold";
 import BadRequestException from "App/Exceptions/BadRequestException";
@@ -133,7 +132,7 @@ export default class DepartmentService {
 		if (data.image) {
 			const s3Key = `${authCtx.unit.id}/${Date.now()}-${data.image.clientName}`;
 			await data.image.moveToDisk("departments", { name: s3Key }, "s3");
-			img = `/departments/${s3Key}`;
+			img = `departments/${s3Key}`;
 		}
 
 		return Department.create({
@@ -184,7 +183,7 @@ export default class DepartmentService {
 		if (data.image) {
 			const s3Key = `${authCtx.unit.id}/${Date.now()}-${data.image.clientName}`;
 			await data.image.moveToDisk("departments", { name: s3Key }, "s3");
-			img = `/departments/${s3Key}`;
+			img = `departments/${s3Key}`;
 		}
 
 		return model

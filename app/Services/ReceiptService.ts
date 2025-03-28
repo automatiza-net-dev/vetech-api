@@ -809,7 +809,7 @@ export default class ReceiptService {
 		},
 	) {
 		const key = `${authCtx.unit.id}/${data.file.clientName}`;
-		const s3Key = `${authCtx.unit.id}/${Date.now()}-${data.file.clientName}`;
+		const s3Key = `xml-imports/${authCtx.unit.id}/${Date.now()}-${data.file.clientName}`;
 
 		await data.file.moveToDisk(
 			"xml-imports",

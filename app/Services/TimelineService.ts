@@ -1587,10 +1587,10 @@ export default class TimelineService {
 			"s3",
 		);
 
-		const url = await Drive.getUrl(`timeline/${key}`);
+		// const url = await Drive.getUrl(`timeline/${key}`);
 
 		return {
-			url,
+			url: `timeline/${key}`,
 			filename: file.clientName,
 		};
 	}

@@ -133,7 +133,7 @@ export default class DepartmentService {
 		if (data.image) {
 			const s3Key = `${authCtx.unit.id}/${Date.now()}-${data.image.clientName}`;
 			await data.image.moveToDisk("departments", { name: s3Key }, "s3");
-			img = s3Key;
+			img = `/departments/${s3Key}`;
 		}
 
 		return Department.create({
@@ -184,7 +184,7 @@ export default class DepartmentService {
 		if (data.image) {
 			const s3Key = `${authCtx.unit.id}/${Date.now()}-${data.image.clientName}`;
 			await data.image.moveToDisk("departments", { name: s3Key }, "s3");
-			img = s3Key;
+			img = `/departments/${s3Key}`;
 		}
 
 		return model

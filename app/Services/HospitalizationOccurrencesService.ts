@@ -664,6 +664,6 @@ export default class HospitalizationOccurrencesService {
 			"s3",
 		);
 
-		return Drive.getUrl(`hospitalizations/${key}`);
+		return `hospitalizations/${key}`;
 	}
 }

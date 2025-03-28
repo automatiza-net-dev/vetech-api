@@ -412,6 +412,6 @@ export default class PatientExamService {
 			"s3",
 		);
 
-		return Drive.getUrl(`patients/${key}`);
+		return `patients/${key}`;
 	}
 }

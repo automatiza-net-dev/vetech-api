@@ -2540,7 +2540,7 @@ export default class PatientService {
 			{
 				name: key,
 			},
-			"local",
+			"s3",
 		);
 
 		return Drive.getUrl(`patients/${key}`);

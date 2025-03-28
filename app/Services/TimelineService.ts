@@ -1584,7 +1584,7 @@ export default class TimelineService {
 			{
 				name: key,
 			},
-			"local",
+			"s3",
 		);
 
 		const url = await Drive.getUrl(`timeline/${key}`);

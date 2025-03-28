@@ -837,7 +837,7 @@ export default class ReceiptService {
 			{
 				name: key,
 			},
-			"local",
+			"s3",
 		);
 
 		const fileContents = await Drive.get(`receipts/${key}`);

@@ -2543,7 +2543,7 @@ export default class PatientService {
 			"s3",
 		);
 
-		return Drive.getUrl(`patients/${key}`);
+		return `patients/${key}`;
 	}
 
 	private dateDiff(from: Date, to: Date) {

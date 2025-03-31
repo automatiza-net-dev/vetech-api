@@ -39,7 +39,7 @@ import Database, {
 } from "@ioc:Adonis/Lucid/Database";
 import BusinessUnitCheckingAccountPaymentMethod from "App/Models/BusinessUnitCheckingAccountPaymentMethod";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
-import { datetimeRegex } from "zod";
+import Decimal from "decimal.js";
 
 interface ISearch {
 	fromIssueDate?: string;
@@ -1149,7 +1149,29 @@ export default class FinanceService {
 				trx,
 			);
 
-			const discount = data.originalValue * (paymentMethod.fee / 100);
+			const feeRow: { fee: string | null } =
+				data.tefAcquirerId && data.tefFlagId
+					? await Database.from("payment_methods")
+							.useTransaction(trx)
+							.select(
+								Database.raw(
+									"coalesce(payment_method_flag_installments.installment, payment_methods.fee) as fee",
+								),
+							)
+							.joinRaw(
+								`left join payment_method_flags on payment_methods.id = payment_method_flags.payment_method_id and
+                                           payment_method_flags.tef_flag_id = ? and payment_method_flags.tef_acquirer_id = ?`,
+								[data.tefFlagId, data.tefAcquirerId],
+							)
+							.joinRaw(
+								`left join payment_method_flag_installments
+                   on payment_method_flags.id = payment_method_flag_installments.payment_method_flag_id and
+                      payment_method_flag_installments.installment = ?`,
+								[data.installment],
+							)
+							.first()
+					: { fee: paymentMethod.fee.toString() };
+			const discount = new Decimal(feeRow.fee ?? paymentMethod.fee);
 
 			const $checkingAccountMeta =
 				await BusinessUnitCheckingAccountPaymentMethod.query()
@@ -1165,7 +1187,7 @@ export default class FinanceService {
 					daily_cashier_id: dailyCashier?.id,
 					status: FinanceStatus.A,
 					feeDiscountPercentage: paymentMethod.fee,
-					feeDiscountValue: discount,
+					feeDiscountValue: discount.toNumber(),
 					economic_group_id: authCtx.group.id,
 					business_unit_id: authCtx.unit.id,
 					client_id: data.clientId,
@@ -1177,13 +1199,15 @@ export default class FinanceService {
 					issueDate: data.issueDate,
 					expirationDate: data.expirationDate,
 					originalValue: data.originalValue,
-					value: data.originalValue - discount,
-					totalValue:
+					value: new Decimal(data.originalValue).minus(discount).toNumber(),
+					totalValue: new Decimal(
 						data.originalValue +
-						(data.feeValue || 0) +
-						(data.increaseValue || 0) -
-						(data.discountValue || 0) -
-						discount,
+							(data.feeValue || 0) +
+							(data.increaseValue || 0) -
+							(data.discountValue || 0),
+					)
+						.minus(discount)
+						.toNumber(),
 					accept: data.accept,
 					installment: data.installment,
 					originFlag: data.originFlag,

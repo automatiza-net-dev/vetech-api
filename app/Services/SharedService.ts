@@ -1,4 +1,5 @@
 import { inject } from "@adonisjs/fold";
+import Drive from "@ioc:Adonis/Core/Drive";
 import { AuthContract } from "@ioc:Adonis/Addons/Auth";
 import Database, {
 	TransactionClientContract,
@@ -19,6 +20,7 @@ import { ValidationException } from "@ioc:Adonis/Core/Validator";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import PaymentMethod from "App/Models/PaymentMethod";
 import SystemUrl from "App/Models/SystemUrl";
+import S3Cache from "App/Models/S3Cache";
 
 type KeySelector<T> = (item: T) => any[];
 
@@ -110,6 +112,56 @@ export default class SharedService {
 		name: "Nome",
 		holders: "Tutores",
 	} as const;
+
+	public static async ComputePublicS3Link(
+		keys: string[],
+	): Promise<Record<string, string>> {
+		if (keys.length === 0) {
+			return {};
+		}
+
+		const existingKeys = await S3Cache.query()
+			.whereIn("key", keys)
+			.whereRaw("expires_at > now()");
+
+		const partialResult = existingKeys.reduce(
+			(acc, curr) => {
+				acc[curr.key] = curr.value;
+				return acc;
+			},
+			{} as Record<string, string>,
+		);
+
+		const missingKeys = keys.filter(
+			(k) => !Object.keys(partialResult).includes(k),
+		);
+
+		if (missingKeys.length > 0) {
+			const updatedKeyTasks = missingKeys.map(async (key) => {
+				return {
+					key,
+					value: await Drive.use("s3").getSignedUrl(key, {
+						expiresIn: "7d",
+					}),
+				};
+			});
+			const updatedResult = await Promise.all(updatedKeyTasks);
+
+			await S3Cache.createMany(
+				updatedResult.map((row) => ({
+					key: row.key,
+					value: row.value,
+					expiresAt: DateTime.now().plus({ days: 7 }),
+				})),
+			);
+
+			for (const row of updatedResult) {
+				partialResult[row.key] = row.value;
+			}
+		}
+
+		return partialResult;
+	}
 
 	public async errorHoc(
 		response: HttpContextContract["response"],

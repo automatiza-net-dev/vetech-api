@@ -14,7 +14,7 @@ export default class S3sController {
 			const data = await request.validate(CreateLinkValidator);
 
 			const link = await Drive.use("s3").getSignedUrl(data.key, {
-				expiresIn: "1h",
+				expiresIn: "7d",
 			});
 
 			return response.ok({

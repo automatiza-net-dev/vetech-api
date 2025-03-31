@@ -5,7 +5,7 @@ import BadRequestException from "App/Exceptions/BadRequestException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import Department from "App/Models/Department";
 import DepartmentProduct from "App/Models/DepartmentProduct";
-import { AuthContext } from "App/Services/SharedService";
+import SharedService, { AuthContext } from "App/Services/SharedService";
 import { DateTime } from "luxon";
 import DepartmentItem from "App/Models/DepartmentItem";
 import { v4 } from "uuid";
@@ -94,13 +94,22 @@ export default class DepartmentService {
 
 		const result = await qb;
 
+		const s3Urls = await SharedService.ComputePublicS3Link(
+			[
+				...result.map(
+					(r) => r.image,
+					...result.flatMap((r) => r.items.map((r2) => r2.photo)),
+				),
+			].filter(Boolean) as string[],
+		);
+
 		return result.map((r) => ({
 			system_id: r.system_id,
 			economic_group_id: r.economic_group_id,
 			business_unit_id: r.business_unit_id,
 			id: r.id,
 			description: r.description,
-			image: r.image,
+			image: r.image ? (s3Urls[r.image] ?? null) : null,
 			active: r.active,
 			created_at: r.createdAt,
 			create_user_id: r.creationUser.id,
@@ -111,7 +120,7 @@ export default class DepartmentService {
 			items: r.items.map((row) => ({
 				id: row.id,
 				description: row.description,
-				photo: row.photo,
+				photo: row.photo ? (s3Urls[row.photo] ?? null) : null,
 				requiresObservation: row.requiresObservation,
 			})),
 		}));
@@ -400,12 +409,21 @@ order by products.description ) deptProd_temp  on departments.id = deptProd_temp
 		}
 
 		const [items, products] = await Promise.all([itemsQb, productsQb]);
+		const s3Urls = await SharedService.ComputePublicS3Link(
+			[
+				...items.map((r) => r.image),
+				...items.flatMap((r) => r.items.map((r2) => r2.photo)),
+			].filter(Boolean),
+		);
 
 		return items.map((row) => ({
 			id: row.id,
 			description: row.description,
-			image: row.image,
-			items: row.items,
+			image: s3Urls[row.image] ?? null,
+			items: row.items.map((it) => ({
+				...it,
+				photo: s3Urls[it.photo] ?? null,
+			})),
 			products: products.find((pr) => pr.id === row.id)?.products ?? [],
 		}));
 	}

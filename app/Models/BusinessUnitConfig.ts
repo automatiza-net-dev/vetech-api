@@ -94,6 +94,10 @@ export const ConfigBudgetSchema = z.object({
 	budgets_payments_required: z.boolean().optional().nullable(),
 });
 
+export const ConfigTreatmentSchema = z.object({
+	minimum_percentage_paid_start_treatment: z.boolean().optional().nullable(),
+});
+
 export const ConfigSchema = z.object({
 	crm: z.optional(ConfigCrmSchema),
 	bills: z.optional(ConfigBillSchema),
@@ -103,6 +107,7 @@ export const ConfigSchema = z.object({
 	schedules: z.optional(ConfigSchedulesSchema),
 	businessUnits: z.optional(ConfigBusinessUnitsSchema),
 	budgets: z.optional(ConfigBudgetSchema),
+	treatments: z.optional(ConfigTreatmentSchema),
 });
 
 export type TConfigSchema = z.infer<typeof ConfigSchema>;

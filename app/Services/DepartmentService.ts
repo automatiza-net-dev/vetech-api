@@ -40,13 +40,17 @@ export default class DepartmentService {
 
 		const result = await qb;
 
+		const s3Urls = await SharedService.ComputePublicS3Link(
+			result.map((r) => r.image).filter(Boolean) as string[],
+		);
+
 		return result.map((r) => ({
 			systemId: r.system_id,
 			economicGroupId: r.economic_group_id,
 			businessUnitId: r.business_unit_id,
 			departmentId: r.id,
 			description: r.description,
-			image: r.image,
+			image: r.image ? (s3Urls[r.image] ?? null) : null,
 		}));
 	}
 
@@ -331,7 +335,19 @@ export default class DepartmentService {
 			qb.whereRaw("department_items.active is not true", []);
 		}
 
-		return qb.firstOrFail();
+		const row = await qb.firstOrFail();
+
+		const s3Urls = await SharedService.ComputePublicS3Link(
+			row.items.map((r2) => r2.photo).filter(Boolean) as string[],
+		);
+
+		return {
+			...row,
+			items: row.items.map((r2) => ({
+				...r2,
+				photo: r2.photo ? (s3Urls[r2.photo] ?? null) : null,
+			})),
+		};
 	}
 
 	async listDepartmentProductsForMovements(

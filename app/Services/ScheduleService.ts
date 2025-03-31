@@ -2767,12 +2767,9 @@ export default class ScheduleService {
 				| "Valores Futuros";
 		}[] = await Database.from("finances")
 			.select(
-				Database.raw(`client_id,
-       sum(total_value) as total,
-       case
-           when expiration_date::date = now()::date then 'Valores Vencimento Hoje'
-           when expiration_date::date < now()::date then 'Valores em Atraso'
-           else 'Valores Futuros' end as tipoVencimento`),
+				Database.raw(`client_id, sum(total_value),
+case when expiration_date::date = now()::date then 'Valores Vencimento Hoje'
+  when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores Futuros' end as tipoVencimento`),
 			)
 			.whereRaw("type = 'CREDITO'")
 			.whereRaw("deleted_at is null")
@@ -2780,17 +2777,12 @@ export default class ScheduleService {
 			.whereRaw("business_unit_id = ?", [authCtx.unit.id])
 			.whereRaw("client_id = ?", [clientID])
 			.whereRaw("payment_date is null")
-			.groupByRaw(`client_id,
-         case
-             when expiration_date::date = now()::date then 'Valores Vencimento Hoje'
-             when expiration_date::date < now()::date then 'Valores em Atraso'
-             else 'Valores Futuros' end`)
+			.groupByRaw(`client_id, case when expiration_date::date = now()::date then 'Valores Vencimento Hoje'
+when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores Futuros' end`)
 			.orderByRaw("tipoVencimento");
 
 		return result.map((row) => ({
-			[row.tipovencimento]: this.sharedService.formatter.format(
-				new Decimal(row.total).toNumber(),
-			),
+			[row.tipovencimento]: new Decimal(row.total).toNumber(),
 		}));
 	}
 

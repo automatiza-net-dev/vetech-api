@@ -771,6 +771,11 @@ export default class BusinessUnitService {
 				});
 
 			const tasks = configs.map((cfg) => {
+				if (cfg.config[data.key]) {
+					const updatedCfg = Object.assign(cfg.config[data.key], data.param);
+					return cfg.merge({ config: updatedCfg }).useTransaction(trx).save();
+				}
+
 				const updatedCfg = Object.assign(cfg.config, {
 					[data.key]: data.param,
 				});

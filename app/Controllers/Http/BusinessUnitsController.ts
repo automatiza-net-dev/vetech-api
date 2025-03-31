@@ -6,6 +6,7 @@ import UserRoleService from "App/Services/UserRoleService";
 import AddBusinessUnitCollaboratorValidator from "App/Validators/BusinessUnit/AddBusinessUnitCollaboratorValidator";
 import CreateBusinessUnitCollaboratorValidator from "App/Validators/BusinessUnit/CreateBusinessUnitCollaboratorValidator";
 import CreateBusinessUnitValidator from "App/Validators/BusinessUnit/CreateBusinessUnitValidator";
+import MergeConfigValidator from "App/Validators/BusinessUnit/MergeConfigValidator";
 import UpdateBusinessUnitAcquirerValidator from "App/Validators/BusinessUnit/UpdateBusinessUnitAcquirerValidator";
 import UpdateBusinessUnitValidator from "App/Validators/BusinessUnit/UpdateBusinessUnitValidator";
 import UpdateUnitUserValidator from "App/Validators/BusinessUnit/UpdateUnitUserValidator";
@@ -208,5 +209,16 @@ export default class BusinessUnitsController {
 		const result = await this.service.checkExistingDocument(document);
 
 		return response.ok(result);
+	}
+
+	public async mergeConfig({ auth, request, response }: HttpContextContract) {
+		const payload = await request.validate(MergeConfigValidator);
+
+		await this.service.mergeConfig(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.noContent();
 	}
 }

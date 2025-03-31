@@ -2,6 +2,7 @@ import { BaseModel, BelongsTo, belongsTo, column } from "@ioc:Adonis/Lucid/Orm";
 import VariationGroup from "App/Models/VariationGroup";
 import { DateTime } from "luxon";
 import * as z from "zod";
+import BusinessUnit from "./BusinessUnit";
 
 export const ConfigCrmSchema = z.object({
 	crm_useful_days: z.boolean().optional().nullable(),
@@ -338,6 +339,11 @@ export default class BusinessUnitConfig extends BaseModel {
 		serializeAs: null,
 	})
 	public business_unit_id: string;
+
+	@belongsTo(() => BusinessUnit, {
+		foreignKey: "business_unit_id",
+	})
+	businessUnit: BelongsTo<typeof BusinessUnit>;
 
 	@column({
 		serializeAs: null,

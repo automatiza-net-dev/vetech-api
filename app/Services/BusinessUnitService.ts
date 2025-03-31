@@ -5,7 +5,9 @@ import BadRequestException from "App/Exceptions/BadRequestException";
 import InternalErrorException from "App/Exceptions/InternalErrorException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import BusinessUnit from "App/Models/BusinessUnit";
-import { TConfigSchema } from "App/Models/BusinessUnitConfig";
+import BusinessUnitConfig, {
+	TConfigSchema,
+} from "App/Models/BusinessUnitConfig";
 import CheckingAccount, {
 	CheckingAccountType,
 } from "App/Models/CheckingAccount";
@@ -747,5 +749,34 @@ export default class BusinessUnitService {
 			.orderBy("state");
 
 		return result.map((r) => r.state);
+	}
+
+	public async mergeConfig(
+		_: AuthContext,
+		data: {
+			systemIDList: number[];
+			key: string;
+			param: {
+				[key: string]: unknown;
+			};
+		},
+	) {
+		await Database.transaction(async (trx) => {
+			const configs = await BusinessUnitConfig.query()
+				.useTransaction(trx)
+				.whereHas("businessUnit", (query) => {
+					query.whereHas("economicGroup", (query) => {
+						query.whereIn("system_id", data.systemIDList);
+					});
+				});
+
+			const tasks = configs.map((cfg) => {
+				const updatedCfg = Object.assign(cfg.config, {
+					[data.key]: data.param,
+				});
+				return cfg.merge({ config: updatedCfg }).useTransaction(trx).save();
+			});
+			await Promise.all(tasks);
+		});
 	}
 }

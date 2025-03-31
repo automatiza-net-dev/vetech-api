@@ -157,6 +157,9 @@ Route.group(() => {
 	Route.post("/sync-config", "BusinessUnitsController.syncConfig").middleware(
 		"auth",
 	);
+	Route.post("/merge-config", "BusinessUnitsController.mergeConfig").middleware(
+		"auth",
+	);
 
 	Route.post("", "BusinessUnitsController.store").middleware("auth");
 

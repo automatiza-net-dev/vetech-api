@@ -841,9 +841,22 @@ export default class ReceiptService {
 		);
 
 		const fileContents = await Drive.get(`receipts/${key}`);
+
+		return await this.processReceipt(
+			authCtx,
+			fileContents.toString(),
+			receiptXml,
+		);
+	}
+
+	async processReceipt(
+		authCtx: AuthContext,
+		contents: string,
+		receiptXml: ReceiptXml,
+	) {
 		let result = {};
 		try {
-			result = xmlParser.toJson(fileContents.toString(), { object: true });
+			result = xmlParser.toJson(contents, { object: true });
 		} catch (e) {
 			Logger.error(e);
 			throw new BadRequestException(

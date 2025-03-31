@@ -1,5 +1,6 @@
 import { inject } from "@adonisjs/fold";
 import Logger from "@ioc:Adonis/Core/Logger";
+import InternalErrorException from "App/Exceptions/InternalErrorException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import IssuedFiscalDocument from "App/Models/IssuedFiscalDocument";
 import axios, { AxiosError } from "axios";
@@ -915,6 +916,46 @@ export default class FocusNfeService {
 				status: (error as T).response?.data.status,
 				errors: (error as T).response?.data.erros,
 			};
+		}
+	}
+
+	public async listReceived(cnpj: string, token: string) {
+		try {
+			const { data } = await this.ax.get(`/v2/nfes_recebidas?cnpj=${cnpj}`, {
+				auth: {
+					username: token,
+					password: "",
+				},
+			});
+
+			return data;
+		} catch (error) {
+			Logger.error(JSON.stringify(error, null, 2));
+			throw new InternalErrorException(
+				"Falha ao buscar na focus",
+				500,
+				"E_ERR",
+			);
+		}
+	}
+
+	public async searchReceived(ref: string, token: string, ext: "pdf" | "xml") {
+		try {
+			const { data } = await this.ax.get(`/v2/nfes_recebidas/${ref}.${ext}`, {
+				auth: {
+					username: token,
+					password: "",
+				},
+			});
+
+			return data;
+		} catch (error) {
+			Logger.error(JSON.stringify(error, null, 2));
+			throw new InternalErrorException(
+				"Falha ao buscar na focus",
+				500,
+				"E_ERR",
+			);
 		}
 	}
 }

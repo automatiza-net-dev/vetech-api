@@ -1998,6 +1998,9 @@ Route.group(() => {
 
 Route.group(() => {
 	Route.get("/search", "FocusController.search");
+	Route.get("/list-received", "FocusController.listReceived");
+	Route.get("/search-received/:ref", "FocusController.searchReceived");
+	Route.post("/import-received/:ref", "FocusController.importReceived");
 })
 	.prefix("focus")
 	.middleware("auth");

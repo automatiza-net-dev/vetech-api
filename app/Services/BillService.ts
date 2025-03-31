@@ -3300,6 +3300,31 @@ where deposit_id = ?
 				);
 			}
 
+			if (
+				typeof authCtx.unit.unitConfig.config.bills
+					?.generate_treatment_opened_bill === "boolean"
+			) {
+				if (
+					authCtx.unit.unitConfig.config.bills.generate_treatment_opened_bill
+				) {
+					if (elem.status !== BillStatus.A && elem.status !== BillStatus.B) {
+						throw new BadRequestException(
+							"Venda precisa estar `ABERTA` ou `BAIXADA`",
+							400,
+							"E_ERR",
+						);
+					}
+				} else {
+					if (elem.status !== BillStatus.B) {
+						throw new BadRequestException(
+							"Venda precisa estar `BAIXADA`",
+							400,
+							"E_ERR",
+						);
+					}
+				}
+			}
+
 			const treatment = await Treatment.create(
 				{
 					economic_group_id: authCtx.group.id,

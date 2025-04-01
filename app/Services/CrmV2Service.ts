@@ -1,6 +1,7 @@
 import { inject } from "@adonisjs/fold";
 import Database from "@ioc:Adonis/Lucid/Database";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
+import CrmStatus, { CrmStatusType } from "App/Models/CrmStatus";
 import Kanban from "App/Models/Kanban";
 import KanbanUser from "App/Models/KanbanUser";
 import { DateTime } from "luxon";
@@ -26,7 +27,8 @@ export default class CrmV2Service {
 				query.whereNull("deleted_at");
 
 				query.preload("user");
-			});
+			})
+			.preload("crmStatuses");
 
 		if (data.businessUnitId) {
 			qb.where("kanbans.business_unit_id", data.businessUnitId);
@@ -71,6 +73,17 @@ export default class CrmV2Service {
 				user_name: inner.user.name,
 				active: inner.active,
 			})),
+			crm_statuses: row.crmStatuses.map((inner) => ({
+				id: inner.id,
+				description: inner.description,
+				type: inner.type,
+				tag: inner.tag,
+				ganho: inner.ganho,
+				perda: inner.perda,
+				sync_schedules: inner.syncSchedules,
+				order: inner.order,
+				active: inner.active,
+			})),
 		}));
 	}
 
@@ -81,6 +94,13 @@ export default class CrmV2Service {
 			users: string[];
 			description: string;
 			type?: "text";
+			crmStatuses: {
+				description: string;
+				order: number;
+				ganhoStatus: boolean;
+				perdaStatus: boolean;
+				syncSchedules: boolean;
+			}[];
 		},
 	) {
 		await Database.transaction(async (trx) => {
@@ -104,6 +124,23 @@ export default class CrmV2Service {
 				})),
 				{ client: trx },
 			);
+
+			await CrmStatus.createMany(
+				data.crmStatuses.map<Partial<CrmStatus>>((row) => ({
+					economic_group_id: authCtx.group.id,
+					kanban_id: kanban.id,
+					system_id: authCtx.system.id,
+					user_creation_id: authCtx.user.id,
+
+					description: row.description,
+					type: "OP" as CrmStatusType,
+					ganho: row.ganhoStatus,
+					perda: row.perdaStatus,
+					order: row.order,
+					syncSchedules: row.syncSchedules,
+				})),
+				{ client: trx },
+			);
 		});
 	}
 
@@ -116,6 +153,15 @@ export default class CrmV2Service {
 			description: string;
 			type?: "text";
 			active: boolean;
+			crmStatuses: {
+				id?: number;
+				description: string;
+				order: number;
+				ganhoStatus: boolean;
+				perdaStatus: boolean;
+				syncSchedules: boolean;
+				active: boolean;
+			}[];
 		},
 	) {
 		await Database.transaction(async (trx) => {
@@ -171,6 +217,41 @@ export default class CrmV2Service {
 				})),
 				{ client: trx },
 			);
+
+			const tasks = data.crmStatuses.map((row) => {
+				if (row.id) {
+					return CrmStatus.query()
+						.useTransaction(trx)
+						.where("id", row.id)
+						.update({
+							user_updated_id: authCtx.user.id,
+							description: row.description,
+							ganho: row.ganhoStatus,
+							perda: row.perdaStatus,
+							order: row.order,
+							sync_schedules: row.syncSchedules,
+							active: row.active,
+						});
+				}
+
+				return CrmStatus.create(
+					{
+						economic_group_id: authCtx.group.id,
+						kanban_id: kanban.id,
+						system_id: authCtx.system.id,
+						user_creation_id: authCtx.user.id,
+						description: row.description,
+						type: "OP",
+						ganho: row.ganhoStatus,
+						perda: row.perdaStatus,
+						order: row.order,
+						syncSchedules: row.syncSchedules,
+						active: row.active,
+					},
+					{ client: trx },
+				);
+			});
+			await Promise.all(tasks);
 		});
 	}
 

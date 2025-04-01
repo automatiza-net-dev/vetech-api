@@ -9,6 +9,7 @@ import {
 } from "@ioc:Adonis/Lucid/Orm";
 import KanbanUser from "./KanbanUser";
 import User from "./User";
+import CrmStatus from "./CrmStatus";
 
 export default class Kanban extends BaseModel {
 	@column({ isPrimary: true })
@@ -66,4 +67,9 @@ export default class Kanban extends BaseModel {
 		foreignKey: "kanban_id",
 	})
 	public users: HasMany<typeof KanbanUser>;
+
+	@hasMany(() => CrmStatus, {
+		foreignKey: "kanban_id",
+	})
+	public crmStatuses: HasMany<typeof CrmStatus>;
 }

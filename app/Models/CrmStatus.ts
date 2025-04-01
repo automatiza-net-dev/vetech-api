@@ -1,5 +1,6 @@
-import { BaseModel, column } from "@ioc:Adonis/Lucid/Orm";
+import { BaseModel, BelongsTo, belongsTo, column } from "@ioc:Adonis/Lucid/Orm";
 import { DateTime } from "luxon";
+import User from "./User";
 
 export const CrmStatusTypes = ["OP", "OPR"] as const;
 export type CrmStatusType = (typeof CrmStatusTypes)[number];
@@ -21,6 +22,9 @@ export default class CrmStatus extends BaseModel {
 	public active: boolean;
 
 	@column()
+	public order: number;
+
+	@column()
 	public ganho: boolean | null;
 
 	@column()
@@ -38,6 +42,9 @@ export default class CrmStatus extends BaseModel {
 	@column.dateTime({ autoCreate: true, autoUpdate: true })
 	public updatedAt: DateTime;
 
+	@column.dateTime({})
+	public deletedAt: DateTime;
+
 	@column({
 		serializeAs: null,
 	})
@@ -47,4 +54,33 @@ export default class CrmStatus extends BaseModel {
 		serializeAs: null,
 	})
 	public economic_group_id: string;
+
+	@column({
+		serializeAs: null,
+	})
+	public kanban_id: number | null;
+
+	@column({ serializeAs: null })
+	public user_creation_id: string;
+
+	@belongsTo(() => User, {
+		foreignKey: "user_creation_id",
+	})
+	public creationUser: BelongsTo<typeof User>;
+
+	@column({ serializeAs: null })
+	public user_updated_id: string;
+
+	@belongsTo(() => User, {
+		foreignKey: "user_updated_id",
+	})
+	public updatedUser: BelongsTo<typeof User>;
+
+	@column({ serializeAs: null })
+	public exclusion_user_id: string;
+
+	@belongsTo(() => User, {
+		foreignKey: "user_exclusion_id",
+	})
+	public exclusionUser: BelongsTo<typeof User>;
 }

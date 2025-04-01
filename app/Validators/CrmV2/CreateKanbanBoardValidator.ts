@@ -32,6 +32,15 @@ export default class CreateKanbanBoardValidator {
 			.members(schema.string([rules.exists({ table: "users", column: "id" })])),
 		description: schema.string(),
 		type: schema.enum.optional(["text"] as const),
+		crmStatuses: schema.array().members(
+			schema.object().members({
+				description: schema.string(),
+				order: schema.number(),
+				ganhoStatus: schema.boolean(),
+				perdaStatus: schema.boolean(),
+				syncSchedules: schema.boolean(),
+			}),
+		),
 	});
 
 	/**

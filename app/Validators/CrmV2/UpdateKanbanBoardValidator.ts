@@ -34,6 +34,19 @@ export default class UpdateKanbanBoardValidator {
 		description: schema.string(),
 		type: schema.enum.optional(["text"] as const),
 		active: schema.boolean(),
+		crmStatuses: schema.array().members(
+			schema.object().members({
+				id: schema.number.optional([
+					rules.exists({ table: "crm_statuses", column: "id" }),
+				]),
+				description: schema.string(),
+				order: schema.number(),
+				ganhoStatus: schema.boolean(),
+				perdaStatus: schema.boolean(),
+				syncSchedules: schema.boolean(),
+				active: schema.boolean(),
+			}),
+		),
 	});
 
 	/**

@@ -786,13 +786,15 @@ export default class PatientService {
 				.orderByRaw("created_at desc")
 				.first();
 
+		const s3Urls = await SharedService.ComputePublicS3Link(
+			patient.photo ? [patient.photo] : [],
+		);
+
 		const displayData = {
 			id: patient.id,
 			name: patient.name,
 			type: patient.type,
-			photo: patient.photo
-				? `${Env.get("FILE_UPLOAD_PREFIX")}${patient.photo}`
-				: null,
+			photo: s3Urls[patient?.photo ?? "NOT"] ?? null,
 			gender: patient.gender,
 			genderText: patient.gender,
 			tags: patient.tags,

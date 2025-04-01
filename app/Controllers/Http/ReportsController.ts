@@ -349,4 +349,17 @@ export default class ReportsController {
 			),
 		);
 	}
+
+	public async checkingAccountBankingReport({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		response.ok(
+			await this.service.checkingAccountBankingReport(
+				await this.sharedService.getAuthContext(auth),
+				request.qs(),
+			),
+		);
+	}
 }

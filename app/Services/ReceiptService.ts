@@ -459,10 +459,12 @@ const schema = z.object({
 				// 		vPag: z.string(),
 				// 	}),
 				// }),
-				infAdic: z.object({
-					infCpl: z.optional(z.string()),
-					infAdFisco: z.optional(z.string()),
-				}),
+				infAdic: z
+					.object({
+						infCpl: z.optional(z.string()),
+						infAdFisco: z.optional(z.string()),
+					})
+					.optional(),
 				// infRespTec: z.object({
 				// 	CNPJ: z.string(),
 				// 	xContato: z.string(),
@@ -995,8 +997,8 @@ export default class ReceiptService {
 						parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vICMSUFDest,
 					otherValue: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vOutro,
 					additionalInformation: [
-						parsed.data.nfeProc.NFe.infNFe.infAdic?.infCpl,
-						parsed.data.nfeProc.NFe.infNFe.infAdic?.infAdFisco,
+						parsed.data.nfeProc.NFe.infNFe?.infAdic?.infCpl,
+						parsed.data.nfeProc.NFe.infNFe?.infAdic?.infAdFisco,
 					]
 						.filter(Boolean)
 						.join(" - "),

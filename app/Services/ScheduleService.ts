@@ -2767,7 +2767,7 @@ export default class ScheduleService {
 				| "Valores Futuros";
 		}[] = await Database.from("finances")
 			.select(
-				Database.raw(`client_id, sum(total_value),
+				Database.raw(`client_id, sum(total_value) as total,
 case when expiration_date::date = now()::date then 'Valores Vencimento Hoje'
   when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores Futuros' end as tipoVencimento`),
 			)

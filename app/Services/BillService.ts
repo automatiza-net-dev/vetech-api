@@ -2622,10 +2622,10 @@ where deposit_id = ?
 						bill_id: bill.id,
 						bill_item_id: bi.id,
 						department_id: item.departmentId,
-						department_item_id: item.departmentId,
+						department_item_id: item.departmentItemId,
 						creation_user_id: authCtx.user.id,
 
-						observation: item.observation,
+						observations: item.observation,
 						createdAt: DateTime.now(),
 					},
 					{

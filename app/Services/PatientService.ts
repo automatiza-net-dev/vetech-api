@@ -985,14 +985,16 @@ export default class PatientService {
 			);
 		}
 
+		const s3Urls = await SharedService.ComputePublicS3Link(
+			patient.photo ? [patient.photo] : [],
+		);
+
 		return {
 			id: patient.id,
 			name: patient.name,
 			clientOriginId: patient.tutor.client_origin_id,
 			clientOriginItemDescription: patient.clientOriginItemDescription,
-			photo: patient.photo
-				? `${Env.get("FILE_UPLOAD_PREFIX")}${patient.photo ?? "#"}`
-				: null,
+			photo: patient.photo ? (s3Urls[patient.photo] ?? null) : null,
 			gender: patient.gender,
 			tags: patient.tags,
 			birthDate: patient.birthDate

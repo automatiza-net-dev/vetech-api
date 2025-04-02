@@ -6,9 +6,11 @@ import InternalErrorException from "App/Exceptions/InternalErrorException";
 import Attendance from "App/Models/Attendance";
 import Bill, { BillStatus } from "App/Models/Bill";
 import BillDocument from "App/Models/BillDocument";
-import { BillItemStatus } from "App/Models/BillItem";
+import BillItem, { BillItemStatus } from "App/Models/BillItem";
+import BillItemDepartment from "App/Models/BillItemDepartment";
 import Budget, { BudgetStatus } from "App/Models/Budget";
 import BudgetItem from "App/Models/BudgetItem";
+import BudgetItemDepartment from "App/Models/BudgetItemDepartment";
 import BudgetPayment, {
 	TBudgetPaymentExclusionOrigin,
 	TBudgetPaymentStatus,
@@ -16,6 +18,8 @@ import BudgetPayment, {
 import BusinessUnit from "App/Models/BusinessUnit";
 import Kit from "App/Models/Kit";
 import Patient, { PatientType } from "App/Models/Patient";
+import PaymentMethod from "App/Models/PaymentMethod";
+import PaymentMethodFlag from "App/Models/PaymentMethodFlag";
 import PaymentMethodFlagInstallment from "App/Models/PaymentMethodFlagInstallment";
 import { ProductType } from "App/Models/Product";
 import ProductVariation from "App/Models/ProductVariation";
@@ -38,12 +42,9 @@ import {
 } from "Contracts/interfaces/IBudgetData";
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
-import DepositService from "./DepositService";
 import { v4 } from "uuid";
-import PaymentMethod from "App/Models/PaymentMethod";
-import PaymentMethodFlag from "App/Models/PaymentMethodFlag";
+import DepositService from "./DepositService";
 import ScheduleMovementsService from "./ScheduleMovementsService";
-import BudgetItemDepartment from "App/Models/BudgetItemDepartment";
 
 interface ISearchPartial {
 	fromCreation?: string;
@@ -1937,33 +1938,38 @@ export default class BudgetService {
 				.useTransaction(trx)
 				.save();
 
-			await bill.related("items").createMany(
-				items
-					.filter((item) => !data.notConfirmedItems.includes(item.id))
-					.map((item) => {
-						const rule = rules.find(
-							(r) =>
-								r.taxation_group_id ===
-								item.productVariation.product.taxation_group_id,
-						);
-						const totalValue = item.quantity
-							.times(item.unitaryValue)
-							.minus(item.discountValue)
-							.toNumber();
-						const icmsBase = rule
-							? totalValue * ((100 - rule.icmsPercRedBaseCalculo) / 100)
-							: 0;
-						const icmsStBase = rule
-							? icmsBase + (icmsBase * rule.ivaIcmsSt) / 100
-							: 0;
-						const icmsValue = rule
-							? icmsBase *
-								((rule.icmsPercRedBaseCalculo *
-									((100 - rule.icmsPercRedAliquota) / 100)) /
-									100)
-							: 0;
+			const existingDepartmentItems = await BudgetItemDepartment.query()
+				.useTransaction(trx)
+				.where("budget_id", model.id)
+				.whereNotIn("budget_item_id", data.notConfirmedItems);
 
-						return {
+			const createdBillTasks = items
+				.filter((item) => !data.notConfirmedItems.includes(item.id))
+				.map(async (item) => {
+					const rule = rules.find(
+						(r) =>
+							r.taxation_group_id ===
+							item.productVariation.product.taxation_group_id,
+					);
+					const totalValue = item.quantity
+						.times(item.unitaryValue)
+						.minus(item.discountValue)
+						.toNumber();
+					const icmsBase = rule
+						? totalValue * ((100 - rule.icmsPercRedBaseCalculo) / 100)
+						: 0;
+					const icmsStBase = rule
+						? icmsBase + (icmsBase * rule.ivaIcmsSt) / 100
+						: 0;
+					const icmsValue = rule
+						? icmsBase *
+							((rule.icmsPercRedBaseCalculo *
+								((100 - rule.icmsPercRedAliquota) / 100)) /
+								100)
+						: 0;
+
+					const bi = await BillItem.create(
+						{
 							economic_group_id: authCtx.group.id,
 							business_unit_id: authCtx.unit.id,
 							bill_id: bill.id,
@@ -2056,14 +2062,31 @@ export default class BudgetService {
 							icmsPartitionOriginUfPercentage: rule?.icmsPerc,
 							icmsPartitionDestinationUfPercentage: rule?.icmsPercRedAliquota,
 							icmsPartitionInterUfPercentage: rule?.icmsPercRedAliquota,
-						};
-					}),
-				{
-					client: trx,
-				},
-			);
+						},
+						{ client: trx },
+					);
 
-			// TODO FIX
+					const deptoItem = existingDepartmentItems.find(
+						(r) => r.budget_item_id === item.id,
+					);
+					if (deptoItem) {
+						await BillItemDepartment.create(
+							{
+								bill_id: bill.id,
+								bill_item_id: bi.id,
+								department_id: deptoItem.department_id,
+								department_item_id: deptoItem.department_item_id,
+								creation_user_id: authCtx.user.id,
+								createdAt: DateTime.now(),
+							},
+							{
+								client: trx,
+							},
+						);
+					}
+				});
+			await Promise.all(createdBillTasks);
+
 			const itemsToUpdate = await model.related("items").query();
 			const tasks = itemsToUpdate.map((elem) => {
 				return elem

@@ -592,7 +592,42 @@ export default class BudgetService {
 			throw this.sharedService.ResourceNotFound("Orçamento não encontrado");
 		}
 
-		return result;
+		const departmentItemRows = await Database.from("budget_items")
+			.select(
+				Database.raw(
+					"d.id as department_id, d.description department_description, di.description department_item_description, di.id  as department_item_id, bid.observations, budget_item_id, budget_items.product_variation_id",
+				),
+			)
+			.joinRaw(
+				"join ( budget_item_departments bid join departments d on bid.department_id = d.id join department_items di on bid.department_item_id = di.id ) on budget_items.budget_id = bid.budget_id and budget_items.id = bid.budget_item_id",
+			)
+			.whereRaw(
+				"budget_items.budget_id = ? and budget_items.business_unit_id = ?",
+				[result.id, unitId],
+			);
+
+		const jsonData = result.toJSON();
+
+		jsonData.items = jsonData.items.map((bi: BudgetItem) => {
+			// // @ts-ignore yay
+			// bi.treatmentExecutions = treatmentExecutionRows.filter(
+			// 	(ro) => bi.id === ro.budgetitemid && !!ro.treatment_id,
+			// );
+
+			// @ts-ignore yay
+			bi.departmentItems = departmentItemRows.filter(
+				(ro: { product_variation_id: string; budget_item_id: string }) => {
+					return (
+						bi.id === ro.budget_item_id ||
+						bi.product_variation_id === ro.product_variation_id
+					);
+				},
+			);
+
+			return bi;
+		});
+
+		return jsonData;
 	}
 
 	public async searchProducts(unitId: string, data: ISearchProduct) {

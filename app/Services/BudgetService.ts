@@ -43,6 +43,7 @@ import { v4 } from "uuid";
 import PaymentMethod from "App/Models/PaymentMethod";
 import PaymentMethodFlag from "App/Models/PaymentMethodFlag";
 import ScheduleMovementsService from "./ScheduleMovementsService";
+import BudgetItemDepartment from "App/Models/BudgetItemDepartment";
 
 interface ISearchPartial {
 	fromCreation?: string;
@@ -864,7 +865,7 @@ export default class BudgetService {
 					);
 				}
 
-				await budget.related("items").create(
+				const bi = await budget.related("items").create(
 					{
 						economic_group_id: authCtx.group.id,
 						business_unit_id: authCtx.unit.id,
@@ -887,6 +888,24 @@ export default class BudgetService {
 						client: trx,
 					},
 				);
+
+				if (item.departmentId && item.departmentItemId) {
+					await BudgetItemDepartment.create(
+						{
+							budget_id: budget.id,
+							budget_item_id: bi.id,
+							department_id: item.departmentId,
+							department_item_id: item.departmentItemId,
+							creation_user_id: authCtx.user.id,
+
+							observations: item.observation,
+							createdAt: DateTime.now(),
+						},
+						{
+							client: trx,
+						},
+					);
+				}
 			}
 
 			const [productSum, serviceSum, discountSum] = data.items

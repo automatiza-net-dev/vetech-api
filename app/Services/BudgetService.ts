@@ -1661,6 +1661,13 @@ export default class BudgetService {
 				.useTransaction(trx)
 				.save();
 
+			await Database.rawQuery(
+				"update budget_item_departments set deleted_at = now(), deleted_user_id = ? where budget_item_id = ?",
+				[authCtx.user.id, id],
+			)
+				.useTransaction(trx)
+				.exec();
+
 			return updatedItem;
 		});
 	}

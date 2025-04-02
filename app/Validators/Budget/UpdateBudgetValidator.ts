@@ -64,6 +64,16 @@ export default class UpdateBudgetValidator {
 				quantity: schema.number(),
 				unitaryValue: schema.number(),
 				saleValue: schema.number.optional(),
+				budgetItemDepartmentId: schema.number.optional([
+					rules.exists({ table: "budget_item_departments", column: "id" }),
+				]),
+				departmentId: schema.number.optional([
+					rules.exists({ table: "departments", column: "id" }),
+				]),
+				departmentItemId: schema.number.optional([
+					rules.exists({ table: "department_items", column: "id" }),
+				]),
+				observation: schema.string.optional(),
 			}),
 		),
 	});

@@ -682,37 +682,36 @@ export default class BillService {
 									{ client: trx },
 								);
 
-						if (elem.departmentId && elem.departmentItemId) {
-							if (elem.billItemDepartmentId) {
-								await BillItemDepartment.query()
-									.useTransaction(trx)
-									.where("id", elem.billItemDepartmentId)
-									.where("bill_id", data.billId)
-									.where(
-										"bill_item_id",
-										elem.billItemId ? elem.billItemId : v4(),
-									)
-									.where("department_id", elem.departmentId)
-									.where("department_item_id", elem.departmentItemId)
-									.update({
-										observation: elem.observation,
-										updated_user_id: authCtx.user.id,
-									});
-								// } else {
-								// 	await BillItemDepartment.create(
-								// 		{
-								// 			bill_id: data.billId,
-								// 			bill_item_id: Array.isArray(bi)
-								// 				? (elem.billItemId ?? v4())
-								// 				: bi.id,
-								// 			department_id: elem.departmentItemId,
-								// 			department_item_id: elem.departmentItemId,
-								// 			creation_user_id: authCtx.user.id,
-								// 			observation: elem.observation,
-								// 		},
-								// 		{ client: trx },
-								// 	);
-							}
+						if (
+							elem.departmentId &&
+							elem.departmentItemId &&
+							elem.billItemDepartmentId
+						) {
+							await BillItemDepartment.query()
+								.useTransaction(trx)
+								.where("id", elem.billItemDepartmentId)
+								.where("bill_id", data.billId)
+								.where("bill_item_id", elem.billItemId ? elem.billItemId : v4())
+								.where("department_id", elem.departmentId)
+								.where("department_item_id", elem.departmentItemId)
+								.update({
+									observations: elem.observation,
+									updated_user_id: authCtx.user.id,
+								});
+							// } else {
+							// 	await BillItemDepartment.create(
+							// 		{
+							// 			bill_id: data.billId,
+							// 			bill_item_id: Array.isArray(bi)
+							// 				? (elem.billItemId ?? v4())
+							// 				: bi.id,
+							// 			department_id: elem.departmentItemId,
+							// 			department_item_id: elem.departmentItemId,
+							// 			creation_user_id: authCtx.user.id,
+							// 			observation: elem.observation,
+							// 		},
+							// 		{ client: trx },
+							// 	);
 						}
 					})
 				: [];

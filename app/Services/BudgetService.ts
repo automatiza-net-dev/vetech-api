@@ -972,6 +972,10 @@ export default class BudgetService {
 				quantity: number;
 				unitaryValue: number;
 				saleValue?: number;
+				budgetItemDepartmentId?: number;
+				departmentId?: number;
+				departmentItemId?: number;
+				observation?: string;
 			}[];
 			budgetDate: DateTime;
 			dailyMovementId: string;
@@ -1071,8 +1075,8 @@ export default class BudgetService {
 					);
 				}
 
-				return elem.budgetItemId
-					? BudgetItem.query()
+				elem.budgetItemId
+					? await BudgetItem.query()
 							.useTransaction(trx)
 							.where("budget_id", budget.id)
 							.where("id", elem.budgetItemId)
@@ -1091,7 +1095,7 @@ export default class BudgetService {
 									? 0
 									: elem.quantity * elem.unitaryValue - elem.discountValue,
 							})
-					: BudgetItem.create(
+					: await BudgetItem.create(
 							{
 								economic_group_id: authCtx.group.id,
 								business_unit_id: authCtx.unit.id,
@@ -1112,6 +1116,40 @@ export default class BudgetService {
 							},
 							{ client: trx },
 						);
+				if (
+					elem.departmentId &&
+					elem.departmentItemId &&
+					elem.budgetItemDepartmentId
+				) {
+					await BudgetItemDepartment.query()
+						.useTransaction(trx)
+						.where("id", elem.budgetItemDepartmentId)
+						.where("budget_id", budget.id)
+						.where(
+							"budget_item_id",
+							elem.budgetItemId ? elem.budgetItemId : v4(),
+						)
+						.where("department_id", elem.departmentId)
+						.where("department_item_id", elem.departmentItemId)
+						.update({
+							observations: elem.observation,
+							updated_user_id: authCtx.user.id,
+						});
+					// } else {
+					// 	await BillItemDepartment.create(
+					// 		{
+					// 			bill_id: data.billId,
+					// 			bill_item_id: Array.isArray(bi)
+					// 				? (elem.billItemId ?? v4())
+					// 				: bi.id,
+					// 			department_id: elem.departmentItemId,
+					// 			department_item_id: elem.departmentItemId,
+					// 			creation_user_id: authCtx.user.id,
+					// 			observation: elem.observation,
+					// 		},
+					// 		{ client: trx },
+					// 	);
+				}
 			});
 			await Promise.all(tasks);
 

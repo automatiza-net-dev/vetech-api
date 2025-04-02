@@ -2866,4 +2866,36 @@ export default class BudgetService {
 			return null;
 		});
 	}
+
+	async deleteBudgetItemDepartments(
+		authCtx: AuthContext,
+		data: {
+			items: {
+				budgetId: string;
+				budgetItemId: string;
+				budgetItemDepartmentId: number;
+				departmentId: number;
+				departmentItemId: number;
+			}[];
+		},
+	) {
+		await Database.transaction(async (trx) => {
+			const tasks = data.items.map((row) => {
+				return Database.rawQuery(
+					"update budget_item_departments set deleted_at = now(), deleted_user_id = ? where budget_id = ? and budget_item_id = ? and id = ? and department_id = ? and department_item_id = ? and deleted_at is null",
+					[
+						authCtx.user.id,
+						row.budgetId,
+						row.budgetItemId,
+						row.budgetItemDepartmentId,
+						row.departmentId,
+						row.departmentItemId,
+					],
+				)
+					.useTransaction(trx)
+					.exec();
+			});
+			await Promise.all(tasks);
+		});
+	}
 }

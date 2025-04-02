@@ -1027,6 +1027,10 @@ Route.group(() => {
 	Route.put("/exclude-payment", "BudgetsController.excludeBudgetPayment");
 	Route.put("/cancel/:id", "BudgetsController.cancelBudget");
 	Route.put("/confirm/:id", "BudgetsController.confirmBudget");
+	Route.put(
+		"/delete-item-departments",
+		"BudgetsController.deleteBudgetItemDepartments",
+	);
 	Route.delete("/delete/:id", "BudgetsController.deleteBudget");
 
 	// Route.delete('/delete/:id', 'BudgetsController.deleteBudget');

@@ -59,7 +59,6 @@ import ScheduleMovementsService from "./ScheduleMovementsService";
 import BillItemDepartment from "App/Models/BillItemDepartment";
 import BillAuthorization from "App/Models/BillAuthorization";
 import BillCancelation from "App/Models/BillCancelation";
-import { datetimeRegex } from "zod";
 import { addHours, format } from "date-fns";
 
 interface ISearch {

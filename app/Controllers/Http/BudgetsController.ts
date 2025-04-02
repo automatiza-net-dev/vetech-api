@@ -10,6 +10,7 @@ import CreateBudgetItemsValidator from "App/Validators/Budget/CreateBudgetItemsV
 import CreateBudgetItemValidator from "App/Validators/Budget/CreateBudgetItemValidator";
 import CreateBudgetPaymentValidator from "App/Validators/Budget/CreateBudgetPaymentValidator";
 import CreateBudgetValidator from "App/Validators/Budget/CreateBudgetValidator";
+import DeleteBudgetItemDepartmentValidator from "App/Validators/Budget/DeleteBudgetItemDepartmentValidator";
 import ExcludeBudgetPaymentValidator from "App/Validators/Budget/ExcludeBudgetPaymentValidator";
 import UpdateBudgetItemValidator from "App/Validators/Budget/UpdateBudgetItemValidator";
 import UpdateBudgetObservationValidator from "App/Validators/Budget/UpdateBudgetObservationValidator";
@@ -322,6 +323,19 @@ export default class BudgetsController {
 		);
 
 		await this.service.approveCourtesyOrMaxDiscount(authCtx, payload);
+
+		return response.noContent();
+	}
+
+	public async deleteBudgetItemDepartments({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const authCtx = await this.sharedService.getAuthContext(auth);
+		const payload = await request.validate(DeleteBudgetItemDepartmentValidator);
+
+		await this.service.deleteBudgetItemDepartments(authCtx, payload);
 
 		return response.noContent();
 	}

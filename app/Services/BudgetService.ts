@@ -249,6 +249,24 @@ export default class BudgetService {
 			.where("business_unit_id", authCtx.unit.id)
 			.orderByRaw("created_at desc");
 
+		const departmentItemRows: {
+			id: string;
+			department_id: number;
+			department_description: string;
+			department_item_id: number;
+			department_item_description: string;
+			observations: string;
+		}[] = await Database.from("budget_items")
+			.select(
+				Database.raw(
+					"budget_items.id, d.id as department_id, d.description department_description, di.description department_item_description, di.id  as department_item_id, bid.observations",
+				),
+			)
+			.joinRaw(
+				"join ( budget_item_departments bid join departments d on bid.department_id = d.id join department_items di on bid.department_item_id = di.id ) on budget_items.budget_id = bid.budget_id and budget_items.id = bid.budget_item_id",
+			)
+			.whereRaw("budget_items.business_unit_id = ?", [authCtx.unit.id]);
+
 		return Promise.all(
 			attendances.map(async (elem) => {
 				const jsonObj = elem.toJSON();
@@ -257,6 +275,14 @@ export default class BudgetService {
 					budgets: elem.budgets.map((b) => ({
 						...b.toJSON(),
 						status: statuses.find((s) => s.id === b.id)?.status ?? b.status,
+						items: b.items.map((row) => {
+							const jsonItem = row.toJSON();
+
+							return {
+								...jsonItem,
+								department_items: departmentItemRows.filter((row) => row.id),
+							};
+						}),
 					})),
 				});
 

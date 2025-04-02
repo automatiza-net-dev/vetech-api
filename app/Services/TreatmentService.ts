@@ -1370,7 +1370,7 @@ export default class TreatmentService {
         treatment_executions.schedule_id,
         products.description           as produto,
         productivity_items.description as item_produtividade,
-        (select coalesce(sum(payment_value), 0) / coalesce(nullif(sum(total_value), 0), 1) * 100 > ?
+        (select coalesce(sum(payment_value), 0) / coalesce(nullif(sum(total_value), 0), 1) * 100 < ?
                 from finances
                 where origin_id in (select bp.id
                 from bills join bill_payments bp on bills.id = bp.bill_id and bills.treatment_id = treatments.id) ) as finance_blocked`,

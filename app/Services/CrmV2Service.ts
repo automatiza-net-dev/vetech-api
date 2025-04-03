@@ -472,9 +472,11 @@ export default class CrmV2Service {
 		const statusMap = new Map<string, any[]>();
 		// eslint-disable-next-line
 		for (const op of result) {
-			const key = ["Faltou", "Desmarcou"].includes(op.status?.description ?? "-")
+			const key = ["Faltou", "Desmarcou"].includes(
+				op.status?.description ?? "Não específicado",
+			)
 				? "Faltou-Desmarcou"
-				: op.status.description;
+				: (op.status?.description ?? "Não específicado");
 
 			if (!statusMap.has(key)) {
 				statusMap.set(key, []);

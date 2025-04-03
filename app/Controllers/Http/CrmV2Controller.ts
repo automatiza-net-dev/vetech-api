@@ -12,6 +12,21 @@ export default class CrmV2Controller {
 		private service: CrmV2Service,
 	) {}
 
+	public async searchKanbanOpportunities({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const authCtx = await this.sharedService.getAuthContext(auth);
+
+		const result = await this.service.searchKanbanOpportunities(
+			authCtx,
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
+
 	public async listKanbans({ auth, request, response }: HttpContextContract) {
 		const authCtx = await this.sharedService.getAuthContext(auth);
 

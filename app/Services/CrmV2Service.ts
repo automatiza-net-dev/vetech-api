@@ -4,11 +4,15 @@ import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException"
 import CrmStatus, { CrmStatusType } from "App/Models/CrmStatus";
 import Kanban from "App/Models/Kanban";
 import KanbanUser from "App/Models/KanbanUser";
+import Opportunity from "App/Models/Opportunity";
+import { PatientType } from "App/Models/Patient";
 import { DateTime } from "luxon";
-import { AuthContext } from "./SharedService";
+import SharedService, { AuthContext } from "./SharedService";
 
 @inject()
 export default class CrmV2Service {
+	constructor(private sharedService: SharedService) {}
+
 	public async listKanbans(
 		authCtx: AuthContext,
 		data: {
@@ -284,5 +288,265 @@ export default class CrmV2Service {
 				.useTransaction(trx)
 				.save();
 		});
+	}
+
+	public async searchKanbanOpportunities(
+		authCtx: AuthContext,
+		data: {
+			kanban?: string;
+			openingFrom?: string;
+			openingTo?: string;
+			contactFrom?: string;
+			contactTo?: string;
+			dateFrom?: string;
+			dateTo?: string;
+			contactName?: string;
+			contactPhone?: string;
+			patientName?: string;
+			description?: string;
+			clientName?: string;
+			technician?: string;
+			status?: string;
+			units?: string[];
+			orderBy?: string;
+		},
+	) {
+		const qb = Opportunity.query()
+			.where("economic_group_id", authCtx.group.id)
+			.whereNull("closing_date")
+			.orderByRaw("opening_date desc")
+			.preload("client", (query) => {
+				query.select(
+					"id",
+					"name",
+					"weight",
+					"gender",
+					"client_origin_item_description",
+				);
+
+				query.preload("tutor");
+
+				query.preload("patientAnimal", (query) => {
+					query.select("id", "castrated", "race_id");
+					query.preload("race", (query) => {
+						query.select("id", "description", "specie_id");
+						query.preload("specie", (query) => {
+							query.select("id", "description");
+						});
+					});
+				});
+			})
+			.preload("contact", (query) => {
+				query.preload("tutor", (query) => {
+					query.select("id", "email", "cellphone", "telephone");
+				});
+			})
+			.preload("contactType")
+			.preload("contactSubject")
+			.preload("clientOrigin")
+			.preload("status", (query) => {
+				if (data.kanban) {
+					query.where("kanban_id", data.kanban);
+				}
+			})
+			.preload("user")
+			.preload("unit")
+			.preload("reason")
+			.preload("schedule", (query) => {
+				query.select("id", "start_hour");
+			})
+			.preload("activities", (query) => {
+				query.where("status", "Aberta");
+
+				query.preload("executionUser");
+				query.preload("activity");
+				query.preload("openingUser");
+			});
+
+		if (data.clientName) {
+			qb.whereHas("client", (query) => {
+				query
+					.whereRaw("name ilike ?", [
+						`%${data.clientName!.replaceAll(" ", "%")}%`,
+					])
+					.where("type", PatientType.ANIMAL);
+			});
+		}
+
+		if (data.description) {
+			qb.whereRaw(
+				"lower(unaccent(opportunities.description)) ~* lower(unaccent(?))",
+				[data.description],
+			);
+		}
+
+		if (data.technician) {
+			qb.where("user_id", data.technician);
+		}
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereIn("business_unit_id", data.units);
+		}
+
+		if (data.openingFrom) {
+			qb.whereRaw("opening_date::date >= ?", [data.openingFrom]);
+		}
+
+		if (data.openingTo) {
+			qb.whereRaw("opening_date::date <= ?", [data.openingTo]);
+		}
+
+		if (data.contactFrom) {
+			qb.whereRaw("contact_date::date >= ?", [data.contactFrom]);
+		}
+
+		if (data.contactTo) {
+			qb.whereRaw("contact_date::date <= ?", [data.contactTo]);
+		}
+
+		if (data.dateFrom && data.dateTo) {
+			qb.whereRaw(
+				`(
+    (opportunities.opening_date::date between ? and ?)
+        or (opportunities.id in (select distinct opportunity_id
+                                 from schedules
+                                          left join (schedule_status_changes join schedule_statuses
+                                                     on schedule_status_changes.schedule_status_id =
+                                                        schedule_statuses.id and schedule_statuses.type in ('REC'))
+                                                    on schedules.id = schedule_status_changes.schedule_id
+                                 where schedules.opportunity_id = opportunities.id
+                                   and (schedules.start_hour::date between ? and ?
+                                     or
+                                        schedule_status_changes.created_at::date between ? and ?)))
+                              or (opportunities.id in (select distinct opportunity_id
+                             from opportunity_logs ol
+                                      join crm_statuses cs on ol.status_id = cs.id and cs.tag = 'A'
+                             where ol.created_at::date between ? and ?)
+           )
+      )`,
+				[
+					data.dateFrom,
+					data.dateTo,
+					data.dateFrom,
+					data.dateTo,
+					data.dateFrom,
+					data.dateTo,
+					data.dateFrom,
+					data.dateTo,
+				],
+			);
+		}
+
+		if (data.contactName) {
+			qb.whereHas("contact", (query) => {
+				if (data.contactName) {
+					query.whereRaw("name ilike ?", [
+						`%${data.contactName!.replaceAll(" ", "%")}%`,
+					]);
+				}
+			});
+		}
+
+		if (data.patientName) {
+			qb.whereHas("client", (query) => {
+				if (data.patientName) {
+					query.whereRaw("name ilike ?", [
+						`%${data.patientName!.replaceAll(" ", "%")}%`,
+					]);
+				}
+			});
+		}
+
+		if (data.contactPhone) {
+			qb.whereHas("contact", (query) => {
+				if (data.contactPhone) {
+					query.whereHas("tutor", (query) => {
+						query.where("cellphone", "ilike", `%${data.contactPhone}%`);
+					});
+				}
+			});
+		}
+
+		const result = await qb;
+
+		const statusMap = new Map<string, any[]>();
+		// eslint-disable-next-line
+		for (const op of result) {
+			const key = ["Faltou", "Desmarcou"].includes(op.status.description)
+				? "Faltou-Desmarcou"
+				: op.status.description;
+
+			if (!statusMap.has(key)) {
+				statusMap.set(key, []);
+			}
+
+			statusMap.get(key)?.push({
+				id: op.id,
+				marketingCampaignId: op.marketing_campaign_id,
+				openingDate: op.openingDate,
+				description: op.description,
+				balance: op.balance,
+
+				status: this.sharedService.captureGroup(op.status, (v) => ({
+					id: v.id,
+					description: v.description,
+					ganho: v.ganho,
+					perda: v.perda,
+					syncSchedules: v.syncSchedules,
+				})),
+				contact: this.sharedService.captureGroup(op.contact, (v) => ({
+					id: v.id,
+					name: v.name,
+					cellphone: v.tutor?.cellphone ?? null,
+				})),
+				contactDate: op.contactDate,
+				client: this.sharedService.captureGroup(op.client, (v) => ({
+					id: v.id,
+					name: v.name,
+					clientOriginItemDescription: v.clientOriginItemDescription ?? null,
+				})),
+				clientOrigin: op.clientOrigin,
+				user: this.sharedService.captureGroup(op?.user, (v) => ({
+					id: v.id,
+					name: v.name,
+				})),
+				unit: {
+					id: op.unit.id,
+					identification: op.unit.identification,
+					companyName: op.unit.companyName,
+					fantasyName: op.unit.fantasyName,
+				},
+				schedule: this.sharedService.captureGroup(op.schedule, (v) => ({
+					id: v.id,
+					startHour: v.startHour,
+				})),
+
+				activities: op.activities.map((elem) => ({
+					id: elem.id,
+					description: elem.description,
+					observation: elem.observation,
+					executionDate: elem.executionDate,
+					duration: elem.duration,
+					activity: {
+						id: elem.activity.id,
+						description: elem.activity.description,
+						duration: elem.activity.duration,
+					},
+					user: this.sharedService.captureGroup(elem.openingUser, (v) => ({
+						id: v.id,
+						name: v.name,
+					})),
+				})),
+			});
+			// statusMap.set(op.status.description, updatedData);
+		}
+
+		return Array.from(statusMap.entries()).reduce(
+			(mappedResult, [key, value]) => {
+				mappedResult[key] = value;
+				return mappedResult;
+			},
+			{} as Record<string, unknown>,
+		);
 	}
 }

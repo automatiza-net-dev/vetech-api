@@ -109,9 +109,12 @@ export default class DocumentTemplateService {
 		await Drive.use("local").delete(template.sourceFile);
 
 		const key = `generated/${Date.now()}-${template.id}.pdf`;
-		await Drive.use("local").put(key, responseBuffer);
+		await Drive.use("s3").put(key, responseBuffer);
+
+		const urlMap = await SharedService.ComputePublicS3Link([key]);
+
 		return {
-			url: key,
+			url: urlMap[key] ?? null,
 		};
 	}
 

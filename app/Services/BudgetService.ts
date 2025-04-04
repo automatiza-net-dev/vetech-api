@@ -291,10 +291,26 @@ export default class BudgetService {
 						"id",
 						elem.budgets.map((b) => b.bill_id),
 					)
-					.select("id", "tag", "documents_status", "created_at", "budget_id");
+					.select(
+						"id",
+						"tag",
+						"documents_status",
+						"status",
+						"created_at",
+						"budget_id",
+						"seller_id",
+					)
+					.preload("seller");
 				Object.assign(jsonObj, {
 					bills: bills.map((b) => {
-						return { ...b.toJSON(), budget_id: b.budget_id };
+						return {
+							...b.toJSON(),
+							budget_id: b.budget_id,
+							seller: this.sharedService.captureGroup(b.seller, (sel) => ({
+								id: sel.id,
+								name: sel.name,
+							})),
+						};
 					}),
 				});
 
@@ -337,6 +353,37 @@ export default class BudgetService {
 							});
 						});
 
+					const departmentTreatmentItems: {
+						treatment_id: number;
+						treatment_item_id: number;
+						department_id: number;
+						department_description: string;
+						department_item_id: number;
+						department_item_description: string;
+						observations: string;
+					}[] = await Database.from("treatments")
+						.select(
+							Database.raw(`treatments.id           as   treatment_id,
+       treatment_items.id      as   treatment_item_id,
+       departments.id          as   department_id,
+       departments.description as   department_description,
+       department_items.description department_item_description,
+       department_items.id     as   department_item_id,
+       bill_item_departments.observations`),
+						)
+						.joinRaw(`join treatment_items
+              on treatments.id = treatment_items.treatment_id and
+                 treatments.business_unit_id = treatment_items.business_unit_id`)
+						.joinRaw(`join (bill_item_departments join departments on bill_item_departments.department_id = departments.id join department_items
+               on bill_item_departments.department_item_id = department_items.id)
+              on treatments.bill_id = bill_item_departments.bill_id and
+                 treatment_items.bill_item_id = bill_item_departments.bill_item_id`)
+						.whereRaw("treatments.business_unit_id = ?", [authCtx.unit.id])
+						.whereIn(
+							"treatments.id",
+							treatments.map((r) => r.id),
+						);
+
 					Object.assign(jsonObj, {
 						treatments: treatments.map((elem) => ({
 							id: elem.id,
@@ -353,6 +400,20 @@ export default class BudgetService {
 								scheduled_quantity: item.scheduledQuantity,
 								observations: item.observations,
 								status: item.status,
+								treatmentItems: departmentTreatmentItems
+									.filter(
+										(ro) =>
+											ro.treatment_id === elem.id &&
+											ro.treatment_item_id === item.id,
+									)
+									.map((r) => ({
+										department_id: r.department_id,
+										department_description: r.department_description,
+										department_item_id: r.department_item_id,
+										department_item_description: r.department_item_description,
+										observations: r.observations,
+									})),
+
 								executions: item.executions
 									.filter(
 										(ex) =>

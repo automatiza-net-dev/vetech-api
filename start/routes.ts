@@ -125,7 +125,7 @@ Route.group(() => {
 		"BusinessUnitsController.checkDocument",
 	);
 
-	Route.get(
+	Route.post(
 		"/test-form/:form",
 		"BusinessUnitsController.testDynamicForm",
 	).middleware("auth");

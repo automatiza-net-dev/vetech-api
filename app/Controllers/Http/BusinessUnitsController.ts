@@ -239,7 +239,7 @@ export default class BusinessUnitsController {
 		const formEntry = authCtx.unit.unitConfig.formFields[request.param("form")];
 		if (!formEntry) {
 			throw new BadRequestException(
-				`Valores possíveis: ${Object.keys(formEntry).join(", ")}`,
+				`Valores possíveis: ${Object.keys(authCtx.unit.unitConfig.formFields).join(", ")}`,
 				400,
 				"E_ERR",
 			);

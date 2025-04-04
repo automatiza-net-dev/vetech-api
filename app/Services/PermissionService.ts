@@ -343,6 +343,7 @@ export default class PermissionService {
 
 			const deleteTasks = permissions.map(async (permission) => {
 				return Database.from("systems_permissions")
+					.useTransaction(trx)
 					.where("permission_id", permission.id)
 					.delete();
 			});

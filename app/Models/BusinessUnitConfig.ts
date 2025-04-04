@@ -111,7 +111,40 @@ export const ConfigSchema = z.object({
 	treatments: z.optional(ConfigTreatmentSchema),
 });
 
+const baseFieldSchema = z.object({
+	title: z.string(),
+	required: z.boolean(),
+	type: z
+		.literal("string")
+		.or(z.literal("date"))
+		.or(z.literal("object"))
+		.or(z.literal("array")),
+	error_message: z.string().optional(),
+});
+
+const fieldWithPropsSchema = baseFieldSchema.extend({
+	prop: z.array(
+		z.object({
+			title: z.string(),
+			key: z.string(),
+			required: z.boolean(),
+			type: z
+				.literal("string")
+				.or(z.literal("date"))
+				.or(z.literal("object"))
+				.or(z.literal("array")),
+		}),
+	),
+});
+
+const fieldSchema = z.union([baseFieldSchema, fieldWithPropsSchema]);
+
+const shapeSchema = z.record(fieldSchema);
+
+export const FormValidatorSchema = z.record(shapeSchema);
+
 export type TConfigSchema = z.infer<typeof ConfigSchema>;
+export type TDynamicForm = z.infer<typeof FormValidatorSchema>;
 
 export default class BusinessUnitConfig extends BaseModel {
 	@column({ isPrimary: true })
@@ -328,6 +361,18 @@ export default class BusinessUnitConfig extends BaseModel {
 		// },
 	})
 	public config: TConfigSchema;
+
+	@column({
+		columnName: "form_fields",
+		serializeAs: "formFields",
+		consume(rawValue) {
+			return FormValidatorSchema.parse(rawValue);
+		},
+		serialize(zodValue: TDynamicForm) {
+			return JSON.stringify(zodValue);
+		},
+	})
+	public formFields: TDynamicForm;
 
 	@column({
 		columnName: "budgets_payments_required",

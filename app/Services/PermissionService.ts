@@ -350,10 +350,12 @@ export default class PermissionService {
 
 			const syncTasks = permissions.map(async (permission) => {
 				return permission.$systems.map(async (system) => {
-					return Database.table("systems_permissions").insert({
-						system_id: system,
-						permission_id: permission.id,
-					});
+					return Database.table("systems_permissions")
+						.insert({
+							system_id: system,
+							permission_id: permission.id,
+						})
+						.useTransaction(trx);
 				});
 			});
 			await Promise.all(syncTasks);

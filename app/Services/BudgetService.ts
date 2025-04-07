@@ -280,7 +280,7 @@ export default class BudgetService {
 
 							return {
 								...jsonItem,
-								department_items: departmentItemRows.filter((row) => row.id),
+								departmentItems: departmentItemRows.filter((row) => row.id),
 							};
 						}),
 					})),

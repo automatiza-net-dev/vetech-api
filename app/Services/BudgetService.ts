@@ -400,7 +400,7 @@ export default class BudgetService {
 								scheduled_quantity: item.scheduledQuantity,
 								observations: item.observations,
 								status: item.status,
-								departmentItens: departmentTreatmentItems
+								departmentItems: departmentTreatmentItems
 									.filter(
 										(ro) =>
 											ro.treatment_id === elem.id &&

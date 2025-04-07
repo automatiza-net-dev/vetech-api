@@ -30,13 +30,15 @@ export default class VariationGroupsController {
 	}
 
 	public async store({ auth, request, response }: HttpContextContract) {
-		const payload = await request.validate(CreateVariationGroupValidator);
-		const result = await this.service.store(
-			await this.sharedService.getAuthContext(auth),
-			payload,
-		);
+		await this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(CreateVariationGroupValidator);
+			const result = await this.service.store(
+				await this.sharedService.getAuthContext(auth),
+				payload,
+			);
 
-		return response.created(result);
+			return response.created(result);
+		});
 	}
 
 	public async assign({ auth, request, response }: HttpContextContract) {
@@ -62,15 +64,17 @@ export default class VariationGroupsController {
 		request,
 		response,
 	}: HttpContextContract) {
-		const payload = await request.validate(UpdateVariationGroupValidator);
+		await this.sharedService.errorHoc(response, async () => {
+			const payload = await request.validate(UpdateVariationGroupValidator);
 
-		const result = await this.service.update(
-			await this.sharedService.getAuthContext(auth),
-			params.id,
-			payload,
-		);
+			const result = await this.service.update(
+				await this.sharedService.getAuthContext(auth),
+				params.id,
+				payload,
+			);
 
-		return response.ok(result);
+			return response.ok(result);
+		});
 	}
 
 	public async destroy({ auth, params, response }: HttpContextContract) {

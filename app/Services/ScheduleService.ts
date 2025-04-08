@@ -2987,7 +2987,7 @@ when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores 
 	public async publicConfirmationUpdate(data: {
 		scheduleId: string;
 		confirmationType: "AC" | "CANC";
-		observation;
+		observation?: string;
 	}) {
 		if (!validate(data.scheduleId)) {
 			throw new BadRequestException("ID inválido", 400, "E_ERR");

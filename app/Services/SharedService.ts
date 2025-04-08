@@ -1,10 +1,5 @@
 import { inject } from "@adonisjs/fold";
-import {
-	validator,
-	schema,
-	type TypedSchema,
-	StringType,
-} from "@ioc:Adonis/Core/Validator";
+import { schema, type TypedSchema } from "@ioc:Adonis/Core/Validator";
 import Drive from "@ioc:Adonis/Core/Drive";
 import { AuthContract } from "@ioc:Adonis/Addons/Auth";
 import Database, {
@@ -147,9 +142,12 @@ export default class SharedService {
 			const updatedKeyTasks = missingKeys.map(async (key) => {
 				return {
 					key,
-					value: await Drive.use("s3").getSignedUrl(key, {
-						expiresIn: "7d",
-					}),
+					value: await Drive.use("s3").getSignedUrl(
+						key.startsWith("/uploads/") ? key.slice(9) : key,
+						{
+							expiresIn: "7d",
+						},
+					),
 				};
 			});
 			const updatedResult = await Promise.all(updatedKeyTasks);

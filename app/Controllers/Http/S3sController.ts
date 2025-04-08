@@ -1,7 +1,6 @@
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import { inject } from "@adonisjs/fold";
 import CreateLinkValidator from "App/Validators/S3/CreateLinkValidator";
-import Drive from "@ioc:Adonis/Core/Drive";
 import { DateTime } from "luxon";
 import SharedService from "App/Services/SharedService";
 
@@ -13,12 +12,10 @@ export default class S3sController {
 		return this.sharedService.errorHoc(response, async () => {
 			const data = await request.validate(CreateLinkValidator);
 
-			const link = await Drive.use("s3").getSignedUrl(data.key, {
-				expiresIn: "7d",
-			});
+			const linkMap = await SharedService.ComputePublicS3Link([data.key]);
 
 			return response.ok({
-				link,
+				link: linkMap[data.key] ?? null,
 				expiration: DateTime.now().plus({ hours: 1 }),
 			});
 		});

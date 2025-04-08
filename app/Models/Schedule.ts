@@ -73,6 +73,24 @@ export default class Schedule extends BaseModel {
 	})
 	public finishedAt?: DateTime;
 
+	@column.dateTime({
+		columnName: "confirmation_date",
+		serializeAs: "confirmationDate",
+	})
+	public confirmationDate: DateTime | null;
+
+	@column.dateTime({
+		columnName: "confirmation_conference_date",
+		serializeAs: "confirmationConferenceDate",
+	})
+	public confirmationConferenceDate: DateTime | null;
+
+	@column({
+		columnName: "confirmation_origin",
+		serializeAs: "confirmationOrigin",
+	})
+	public confirmationOrigin: "usuario" | "externa" | null;
+
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
 
@@ -280,4 +298,9 @@ export default class Schedule extends BaseModel {
 		serializeAs: null,
 	})
 	public treatment_execution_id: number | null;
+
+	@column({
+		serializeAs: null,
+	})
+	public confirmation_user_id: string | null;
 }

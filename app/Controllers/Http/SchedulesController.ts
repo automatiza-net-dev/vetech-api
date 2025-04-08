@@ -13,6 +13,7 @@ import ReopenScheduleValidator from "App/Validators/Schedule/ReopenScheduleValid
 import UpsertScheduleStatusValidator from "App/Validators/Schedule/UpsertScheduleStatusValidator";
 import Schedule from "App/Models/Schedule";
 import ExcludeSchedulingValidator from "App/Validators/Schedule/ExcludeSchedulingValidator";
+import ConfirmPublicScheduleValidator from "App/Validators/Schedule/ConfirmPublicScheduleValidator";
 
 @inject()
 export default class SchedulesController {
@@ -413,5 +414,15 @@ export default class SchedulesController {
 		);
 
 		return response.ok(result);
+	}
+
+	public async publicConfirmationUpdate({
+		request,
+		response,
+	}: HttpContextContract) {
+		const payload = await request.validate(ConfirmPublicScheduleValidator);
+		await this.service.publicConfirmationUpdate(payload);
+
+		return response.ok(null);
 	}
 }

@@ -45,6 +45,7 @@ import CrmStatus from "App/Models/CrmStatus";
 import TreatmentExecution from "App/Models/TreatmentExecution";
 import TreatmentExecutionReschedule from "App/Models/TreatmentExecutionReschedule";
 import Decimal from "decimal.js";
+import ScheduleStatusChange from "App/Models/ScheduleStatusChange";
 
 interface ISearch {
 	pid?: string;
@@ -2981,6 +2982,79 @@ when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores 
 				}),
 			),
 		};
+	}
+
+	public async publicConfirmationUpdate(data: {
+		scheduleId: string;
+		confirmationType: "AC" | "CANC";
+		observation;
+	}) {
+		if (!validate(data.scheduleId)) {
+			throw new BadRequestException("ID inválido", 400, "E_ERR");
+		}
+
+		await Database.transaction(async (trx) => {
+			const schedule = await Schedule.query()
+				.useTransaction(trx)
+				.where("id", data.scheduleId)
+				.first();
+
+			if (!schedule) {
+				throw new ResourceNotFoundException(
+					"Agenda não encontrada",
+					404,
+					"E_ERR",
+				);
+			}
+
+			if (schedule.confirmationOrigin) {
+				throw new BadRequestException("Agenda já confirmada", 400, "E_ERR");
+			}
+
+			const updatedStatus: { id: string } | null = await Database.from(
+				"schedules",
+			)
+				.useTransaction(trx)
+				.select(Database.raw("schedule_statuses.id as id"))
+				.joinRaw(
+					"join business_units on schedules.business_unit_id = business_units.id",
+				)
+				.joinRaw(
+					"join schedule_statuses on schedule_statuses.system_id = business_units.system_id",
+				)
+				.whereRaw(`(
+    schedule_statuses.economic_group_id is null or schedule_statuses.economic_group_id =
+                                                   business_units.economic_group_id)`)
+				.whereRaw("schedule_statuses.type = ?", [data.confirmationType])
+				.whereRaw("schedules.id = ?", [data.scheduleId])
+				.first();
+			if (!updatedStatus) {
+				throw new BadRequestException(
+					"Não tem status novo a ser colocado",
+					400,
+					"E_ERR",
+				);
+			}
+
+			await schedule
+				.merge({
+					schedule_status_id: updatedStatus.id,
+					confirmationDate: DateTime.now(),
+					confirmationOrigin: "externa",
+				})
+				.useTransaction(trx)
+				.save();
+
+			await ScheduleStatusChange.create(
+				{
+					schedule_id: data.scheduleId,
+					schedule_status_id: updatedStatus.id,
+					observation: data.observation,
+					confirmationOrigin: "externa",
+				},
+				{ client: trx },
+			);
+		});
 	}
 
 	private snakeToCamelDeep<T extends object>(

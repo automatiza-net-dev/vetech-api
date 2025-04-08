@@ -412,6 +412,10 @@ Route.get(
 	"schedules/confirmation/:scheduleID",
 	"SchedulesController.publicConfirmationInfo",
 );
+Route.post(
+	"schedules/confirmation",
+	"SchedulesController.publicConfirmationUpdate",
+);
 
 Route.group(() => {
 	Route.get("/", "GroupsController.index");

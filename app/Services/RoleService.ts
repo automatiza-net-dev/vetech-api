@@ -5,6 +5,7 @@ import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException"
 import Permission, { TPermissionType } from "App/Models/Permission";
 import Role, { TRoleType } from "App/Models/Role";
 import RoleProfileAccess from "App/Models/RoleProfileAccess";
+import Screen from "App/Models/Screen";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import IManageRolePermissions from "Contracts/interfaces/IManageRolePermissions";
 import IRoleData from "Contracts/interfaces/IRoleData";
@@ -322,6 +323,9 @@ export default class RoleService {
 	) {
 		const role = await Role.query()
 			// .where("economic_group_id", authCtx.group.id)
+			.preload("accesses", (query) => {
+				query.preload("profile");
+			})
 			.where("system_id", systemID)
 			.where("id", id)
 			.first();
@@ -329,12 +333,6 @@ export default class RoleService {
 		if (!role) {
 			throw this.sharedService.ResourceNotFound();
 		}
-
-		// .preload('permissions', query => {
-		//     query.where('active', true);
-		//     query.preload('screen').pivotColumns(['active']);
-		//   })
-
 		const qb = role
 			.related("permissions")
 			.query()
@@ -370,26 +368,49 @@ export default class RoleService {
 		const permissions = await qb;
 
 		const screens = permissions.map((p) => p.screen).filter(Boolean);
-		const uniqueScreens = screens.filter(
-			(v, i, a) => a.findIndex((t) => t.id === v.id) === i,
-		);
+		const uniqueScreens = screens.reduce((acc, curr) => {
+			if (!acc.find((se) => se.id === curr.id)) {
+				acc.push(curr);
+			}
 
-		return uniqueScreens.map((screen) => {
-			const screenPermissions = permissions.filter(
-				(p) => p.screen.id === screen.id,
-			);
+			return acc;
+		}, [] as Screen[]);
 
-			return {
-				id: screen.id,
-				name: screen.name,
-				permissions: screenPermissions.map((p) => ({
-					id: p.id,
-					description: p.description,
-					controlId: p.control_id,
-					active: p.$extras.pivot_status,
-				})),
-			};
-		});
+		return {
+			id: role.id,
+			name: role.name,
+			active: role.active,
+			externalAccess: role.externalAccess,
+			profiles: role.accesses.map((r) => ({
+				id: r.profile.id,
+				description: r.profile.description,
+				active: r.profile.active,
+			})),
+			screens: uniqueScreens.map((us) => ({
+				id: us.id,
+				name: us.name,
+				permissions: permissions.reduce(
+					(acc, curr) => {
+						if (curr.screen_id === us.id) {
+							acc.push({
+								id: curr.id,
+								description: curr.description,
+								controlId: curr.control_id,
+								active: true,
+							});
+						}
+
+						return acc;
+					},
+					[] as {
+						id: number;
+						description: string;
+						controlId: string;
+						active: boolean;
+					}[],
+				),
+			})),
+		};
 	}
 
 	public async addPermissionsToRole(

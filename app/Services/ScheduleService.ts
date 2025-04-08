@@ -2366,6 +2366,22 @@ export default class ScheduleService {
 					schedule_status_id: data.statusId,
 					reason_id: data.reasonId,
 					observation: data.observation,
+					confirmation_user_id:
+						toStatus.type === "AC" || toStatus.type === "CANC"
+							? authCtx.user.id
+							: undefined,
+					confirmationConferenceDate:
+						toStatus.type === "AC" || toStatus.type === "CANC"
+							? DateTime.now()
+							: undefined,
+					confirmationDate:
+						toStatus.type === "AC" || toStatus.type === "CANC"
+							? DateTime.now()
+							: undefined,
+					confirmationOrigin:
+						toStatus.type === "AC" || toStatus.type === "CANC"
+							? "usuario"
+							: undefined,
 				},
 				{
 					client: trx,
@@ -2389,6 +2405,22 @@ export default class ScheduleService {
 						toStatus.type === "ATEND"
 							? DateTime.now().minus({ hours: 3 })
 							: schedule.startedAt,
+					confirmation_user_id:
+						toStatus.type === "AC" || toStatus.type === "CANC"
+							? authCtx.user.id
+							: undefined,
+					confirmationConferenceDate:
+						toStatus.type === "AC" || toStatus.type === "CANC"
+							? DateTime.now()
+							: undefined,
+					confirmationDate:
+						toStatus.type === "AC" || toStatus.type === "CANC"
+							? DateTime.now()
+							: undefined,
+					confirmationOrigin:
+						toStatus.type === "AC" || toStatus.type === "CANC"
+							? "usuario"
+							: undefined,
 				})
 				.useTransaction(trx)
 				.save();

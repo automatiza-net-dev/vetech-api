@@ -286,6 +286,10 @@ export default class ScheduleService {
 				"end_hour",
 				"major_complaint",
 				"observation",
+        "confirmation_user_id",
+        "confirmation_conference_date",
+        "confirmation_date",
+        "confirmation_origin",
 			)
 			.where("business_unit_id", data.unit ?? authCtx.unit.id)
 			.whereHas("serviceStatus", (query) => {
@@ -306,6 +310,9 @@ export default class ScheduleService {
 				query.select(["id", "name", "type", "photo", "gender", "tag"]);
 			})
 			.preload("user", (query) => {
+				query.select(["id", "name"]);
+			})
+			.preload("confirmationUser", (query) => {
 				query.select(["id", "name"]);
 			})
 			.preload("holder", (query) => {
@@ -336,6 +343,11 @@ export default class ScheduleService {
 				"end_hour",
 				"major_complaint",
 				"observation",
+
+        "confirmation_user_id",
+        "confirmation_conference_date",
+        "confirmation_date",
+        "confirmation_origin",
 			)
 			.where("business_unit_id", data.unit ?? authCtx.unit.id)
 			.whereHas("serviceStatus", (query) => {
@@ -356,6 +368,9 @@ export default class ScheduleService {
 				query.select(["id", "name", "type", "photo", "gender", "tag"]);
 			})
 			.preload("user", (query) => {
+				query.select(["id", "name"]);
+			})
+			.preload("confirmationUser", (query) => {
 				query.select(["id", "name"]);
 			})
 			.preload("holder", (query) => {
@@ -1579,6 +1594,13 @@ export default class ScheduleService {
 					color: string;
 					type: string;
 				};
+				confirmation_user: {
+					userId: string;
+					userName: string;
+					confirmationConferenceDate: string;
+					confirmationDate: string;
+					confirmationOrigin: string;
+				} | null;
 				reason: {
 					id: string;
 					description: string;
@@ -1637,6 +1659,16 @@ export default class ScheduleService {
                'color', ss.color,
                'type', ss.type
        )       as service_status,
+       case
+           when schedules.confirmation_user_id is not null then
+               json_build_object(
+                       'userId', schedules.confirmation_user_id,
+                       'userName', cs.name,
+                       'confirmationConferenceDate', schedules.confirmation_conference_date,
+                       'confirmationDate', schedules.confirmation_date,
+                       'confirmationOrigin', schedules.confirmation_origin
+               )
+           end    as confirmation_user,
        CASE
            WHEN schedules.reason_id IS NOT NULL THEN
                json_build_object(
@@ -1718,6 +1750,7 @@ export default class ScheduleService {
 			.joinRaw("left join patient_tutors pt2 on p.id = pt2.patient_id")
 			.joinRaw("left join races rc on pa.race_id = rc.id")
 			.joinRaw("left join species sp on rc.specie_id = sp.id")
+			.joinRaw("left join users cs on schedules.confirmation_user_id = cs.id")
 			.groupByRaw(`schedules.id,
          schedules.user_id,
          schedules.start_hour,
@@ -1748,7 +1781,8 @@ export default class ScheduleService {
          sp.description,
          h.id,
          h.name,
-         pt2.cellphone`)
+         pt2.cellphone,
+         cs.id`)
 			.where("schedules.business_unit_id", authCtx.unit.id)
 			.whereRaw("schedules.start_hour::date between ? and ?", [
 				refStart,

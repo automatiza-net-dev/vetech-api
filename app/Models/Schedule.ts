@@ -303,4 +303,10 @@ export default class Schedule extends BaseModel {
 		serializeAs: null,
 	})
 	public confirmation_user_id: string | null;
+
+	@belongsTo(() => User, {
+		localKey: "id",
+		foreignKey: "confirmation_user_id",
+	})
+	public confirmationUser: BelongsTo<typeof User>;
 }

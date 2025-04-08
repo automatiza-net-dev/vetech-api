@@ -8,7 +8,7 @@ export default class extends BaseSchema {
 			table
 				.integer("system_id")
 				.notNullable()
-				.references("systems_id")
+				.references("systems.id")
 				.defaultTo(1);
 		});
 	}

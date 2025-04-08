@@ -323,9 +323,6 @@ export default class RoleService {
 	) {
 		const role = await Role.query()
 			// .where("economic_group_id", authCtx.group.id)
-			.preload("accesses", (query) => {
-				query.preload("profile");
-			})
 			.where("system_id", systemID)
 			.where("id", id)
 			.first();
@@ -333,20 +330,30 @@ export default class RoleService {
 		if (!role) {
 			throw this.sharedService.ResourceNotFound();
 		}
-		const qb = role
-			.related("permissions")
-			.query()
-			.preload("screen")
-			.pivotColumns(["active", "status"]);
 
-		if (data.newItems === "true") {
-			qb.whereRaw("role_permissions.status is null");
-		} else if (data.newItems === "false") {
-			qb.whereRaw("role_permissions.status is not null");
-		}
+		const qb = Database.from("profile_accesses")
+			.select(
+				Database.raw(`profile_accesses.id,
+       profile_accesses.description,
+       case when role_profile_accesses.role_id is not null then true else false end as active`),
+			)
+			.joinRaw(
+				`left join role_profile_accesses
+                   on profile_accesses.id = role_profile_accesses.profile_access_id and
+                      role_profile_accesses.role_id = ?`,
+				[id],
+			)
+			.whereRaw(`profile_accesses.system_id = ?`, [systemID])
+			.orderByRaw("profile_accesses.description");
+
+		// if (data.newItems === "true") {
+		// 	qb.whereRaw("role_permissions.status is null");
+		// } else if (data.newItems === "false") {
+		// 	qb.whereRaw("role_permissions.status is not null");
+		// }
 
 		if (data.type === "user") {
-			qb.whereIn("permissions.type", [
+			qb.whereIn("profile_accesses.type", [
 				"user",
 				"both",
 				"all",
@@ -354,7 +361,7 @@ export default class RoleService {
 		}
 
 		if (data.type === "controller") {
-			qb.whereIn("permissions.type", [
+			qb.whereIn("profile_accesses.type", [
 				"controller",
 				"both",
 				"all",
@@ -362,54 +369,79 @@ export default class RoleService {
 		}
 
 		if (data.type === "system") {
-			qb.whereIn("permissions.type", ["system", "all"] as TPermissionType[]);
+			qb.whereIn("profile_accesses.type", [
+				"system",
+				"all",
+			] as TPermissionType[]);
 		}
 
-		const permissions = await qb;
+		const roleProfiles: { id: number; description: string; active: boolean }[] =
+			await qb;
 
-		const screens = permissions.map((p) => p.screen).filter(Boolean);
-		const uniqueScreens = screens.reduce((acc, curr) => {
-			if (!acc.find((se) => se.id === curr.id)) {
-				acc.push(curr);
-			}
-
-			return acc;
-		}, [] as Screen[]);
+		const screensWithPermissions: {
+			sid: number;
+			sname: string;
+			pid: number;
+			description: string;
+			control_id: string;
+			active: boolean;
+		}[] = await Database.from("screens")
+			.select(
+				Database.raw(`screens.id as sid,
+       screens.name as sname,
+       permissions.id as pid,
+       permissions.description,
+       permissions.control_id,
+       role_permissions.active`),
+			)
+			.joinRaw("join permissions on screens.id = permissions.screen_id")
+			.joinRaw(
+				"join role_permissions on permissions.id = role_permissions.permission_id and role_id = ?",
+				[id],
+			)
+			.orderByRaw("screens.name, control_id");
 
 		return {
 			id: role.id,
 			name: role.name,
 			active: role.active,
 			externalAccess: role.externalAccess,
-			profiles: role.accesses.map((r) => ({
-				id: r.profile.id,
-				description: r.profile.description,
-				active: r.profile.active,
-			})),
-			screens: uniqueScreens.map((us) => ({
-				id: us.id,
-				name: us.name,
-				permissions: permissions.reduce(
-					(acc, curr) => {
-						if (curr.screen_id === us.id) {
-							acc.push({
-								id: curr.id,
-								description: curr.description,
-								controlId: curr.control_id,
-								active: true,
-							});
+			profiles: roleProfiles,
+			screens: screensWithPermissions.reduce(
+				(acc, curr) => {
+					if (!acc.some((sc) => sc.id === curr.sid)) {
+						acc.push({
+							id: curr.sid,
+							name: curr.sname,
+							permissions: [],
+						});
+					}
+
+					return acc.map((sc) => {
+						if (sc.id !== curr.sid) {
+							return sc;
 						}
 
-						return acc;
-					},
-					[] as {
+						sc.permissions.push({
+							id: curr.pid,
+							description: curr.description,
+							controlId: curr.control_id,
+							active: curr.active,
+						});
+						return sc;
+					});
+				},
+				[] as {
+					id: number;
+					name: string;
+					permissions: {
 						id: number;
 						description: string;
 						controlId: string;
 						active: boolean;
-					}[],
-				),
-			})),
+					}[];
+				}[],
+			),
 		};
 	}
 

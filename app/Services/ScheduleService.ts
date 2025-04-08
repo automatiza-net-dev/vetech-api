@@ -1210,6 +1210,30 @@ export default class ScheduleService {
 					});
 			}
 
+			if (schedule.serviceStatus.type === "AC" && toStatus.type === "AN") {
+				await schedule
+					.merge({
+						confirmation_user_id: null,
+						confirmationConferenceDate: null,
+						confirmationDate: null,
+						confirmationOrigin: null,
+					})
+					.useTransaction(trx)
+					.save();
+			}
+
+			if (schedule.serviceStatus.type === "CANC") {
+				await schedule
+					.merge({
+						confirmation_user_id: null,
+						confirmationConferenceDate: null,
+						confirmationDate: null,
+						confirmationOrigin: null,
+					})
+					.useTransaction(trx)
+					.save();
+			}
+
 			await schedule.related("statusChanges").create(
 				{
 					user_id: authCtx.user.id,
@@ -1217,6 +1241,22 @@ export default class ScheduleService {
 					schedule_status_id: data.statusId, // status novo da agenda
 					reason_id: data.reasonId,
 					observation: data.observation,
+					confirmation_user_id:
+						toStatus.type === "AC" || toStatus.type === "CANC"
+							? authCtx.user.id
+							: undefined,
+					confirmationConferenceDate:
+						toStatus.type === "AC" || toStatus.type === "CANC"
+							? DateTime.now()
+							: undefined,
+					confirmationDate:
+						toStatus.type === "AC" || toStatus.type === "CANC"
+							? DateTime.now()
+							: undefined,
+					confirmationOrigin:
+						toStatus.type === "AC" || toStatus.type === "CANC"
+							? "usuario"
+							: undefined,
 				},
 				{
 					client: trx,
@@ -1225,6 +1265,22 @@ export default class ScheduleService {
 			return schedule
 				.merge({
 					schedule_status_id: data.statusId,
+					confirmation_user_id:
+						toStatus.type === "AC" || toStatus.type === "CANC"
+							? authCtx.user.id
+							: undefined,
+					confirmationConferenceDate:
+						toStatus.type === "AC" || toStatus.type === "CANC"
+							? DateTime.now()
+							: undefined,
+					confirmationDate:
+						toStatus.type === "AC" || toStatus.type === "CANC"
+							? DateTime.now()
+							: undefined,
+					confirmationOrigin:
+						toStatus.type === "AC" || toStatus.type === "CANC"
+							? "usuario"
+							: undefined,
 				})
 				.useTransaction(trx)
 				.save();

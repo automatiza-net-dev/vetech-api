@@ -109,6 +109,7 @@ export default class BusinessUnitService {
 
 				const unit = await economicGroup.related("businessUnits").create(
 					{
+						system_id: authCtx.system.id,
 						...data,
 					},
 					{

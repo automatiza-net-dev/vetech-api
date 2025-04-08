@@ -403,4 +403,15 @@ export default class SchedulesController {
 
 		return response.ok(result);
 	}
+
+	public async publicConfirmationInfo({
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.publicConfirmationInfo(
+			request.param("scheduleID"),
+		);
+
+		return response.ok(result);
+	}
 }

@@ -408,6 +408,11 @@ Route.group(() => {
 	.prefix("schedules")
 	.middleware("auth");
 
+Route.get(
+	"schedules/confirmation/:scheduleID",
+	"SchedulesController.publicConfirmationInfo",
+);
+
 Route.group(() => {
 	Route.get("/", "GroupsController.index");
 	Route.post("/", "GroupsController.store");

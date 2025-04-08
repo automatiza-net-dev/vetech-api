@@ -2930,6 +2930,59 @@ when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores 
 		});
 	}
 
+	public async publicConfirmationInfo(scheduleID: string) {
+		if (!validate(scheduleID)) {
+			throw new BadRequestException("ID inválido", 400, "E_ERR");
+		}
+
+		const schedule = await Schedule.query()
+			.where("id", scheduleID)
+			.preload("businessUnit")
+			.preload("user")
+			.preload("serviceStatus")
+			.first();
+
+		if (!schedule) {
+			throw new ResourceNotFoundException(
+				"Agenda não encontrada",
+				404,
+				"E_ERR",
+			);
+		}
+
+		return {
+			businessUnit: {
+				id: schedule.businessUnit.id,
+				identification: schedule.businessUnit.id ?? null,
+				address: schedule.businessUnit.address ?? null,
+				number: schedule.businessUnit.number ?? null,
+				complement: schedule.businessUnit.complement ?? null,
+				city: schedule.businessUnit.city ?? null,
+				state: schedule.businessUnit.state ?? null,
+				district: schedule.businessUnit.district ?? null,
+				postalCode: schedule.businessUnit.postalCode ?? null,
+			},
+			user: this.sharedService.captureGroup(schedule.user, (usr) => ({
+				id: usr.id,
+				name: usr.name,
+			})),
+			startHour: schedule.startHour,
+			endHour: schedule.endHour,
+			confirmationDate: schedule.confirmationDate,
+			confirmationOrigin: schedule.confirmationOrigin,
+
+			status: this.sharedService.captureGroup(
+				schedule.serviceStatus,
+				(row) => ({
+					id: row.id,
+					description: row.description,
+					type: row.type,
+					color: row.type,
+				}),
+			),
+		};
+	}
+
 	private snakeToCamelDeep<T extends object>(
 		obj: T,
 	): {

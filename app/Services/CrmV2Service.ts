@@ -7,7 +7,8 @@ import Kanban from "App/Models/Kanban";
 import KanbanUser from "App/Models/KanbanUser";
 import Opportunity from "App/Models/Opportunity";
 import OpportunityActivity from "App/Models/OpportunityActivity";
-import { PatientType } from "App/Models/Patient";
+import OpportunityLog from "App/Models/OpportunityLog";
+import Patient, { PatientType } from "App/Models/Patient";
 import { DateTime } from "luxon";
 import SharedService, { AuthContext } from "./SharedService";
 
@@ -1022,5 +1023,110 @@ export default class CrmV2Service {
 				}),
 			),
 		}));
+	}
+
+	public async storeOpportunity(
+		authCtx: AuthContext,
+		data: {
+			kanbanId: number;
+
+			userId: string;
+			statusId: number;
+			contactDate: DateTime;
+
+			businessUnitId?: string;
+			clientId?: string;
+			contactId?: string;
+			contactTypeId?: number;
+			contactSubjectId?: number;
+			originId?: string;
+			raceId?: string;
+			marketingCampaignId?: number;
+
+			clientOriginItemDescription?: string;
+			description?: string;
+			observation?: string;
+			value?: number;
+			gender?: string;
+			weight?: number;
+			castrated?: boolean;
+		},
+	) {
+		await Database.transaction(async (trx) => {
+			const model = await Opportunity.create(
+				{
+					system_id: authCtx.system.id,
+					business_unit_id: data.businessUnitId ?? authCtx.unit.id,
+					economic_group_id: authCtx.group.id,
+					opening_user_id: authCtx.user.id,
+					user_id: data.userId,
+					client_id: data.clientId,
+					contact_id: data.contactId,
+					status_id: data.statusId,
+					contact_type_id: data.contactTypeId,
+					contact_subject_id: data.contactSubjectId,
+					client_origin_id: data.originId,
+					race_id: data.raceId,
+					marketing_campaign_id: data.marketingCampaignId ?? null,
+					kanban_id: data.kanbanId,
+
+					clientOriginItemDescription: data.clientOriginItemDescription ?? null,
+					origin: "crm",
+					openingDate: DateTime.now(),
+					contactDate: data.contactDate,
+					description: data.description,
+					observation: data.observation,
+					value: data.value,
+					gender: data.gender,
+					weight: data.weight,
+					castrated: data.castrated,
+				},
+				{
+					client: trx,
+				},
+			);
+
+			if (data.clientId && data.clientOriginItemDescription) {
+				await Patient.query()
+					.update({
+						client_origin_item_description: data.clientOriginItemDescription,
+					})
+					.where("id", data.clientId)
+					.useTransaction(trx)
+					.exec();
+			}
+
+			await OpportunityLog.create(
+				{
+					opportunity_id: model.id,
+
+					economic_group_id: model.economic_group_id,
+					business_unit_id: model.business_unit_id,
+					user_id: model.user_id,
+					client_id: model.client_id,
+					contact_subject_id: model.contact_subject_id,
+					contact_type_id: model.contact_type_id,
+					status_id: model.status_id,
+					contact_id: model.contact_id,
+					schedule_id: model.schedule_id,
+					closing_user_id: model.closing_user_id,
+					opening_user_id: model.opening_user_id,
+
+					balance: model.balance,
+					description: model.description,
+					observation: model.observation,
+					reason_id: model.reason_id,
+					profitValue: model.profitValue,
+					resultObservation: model.resultObservation,
+					value: model.value,
+					contactDate: model.contactDate,
+					openingDate: model.openingDate,
+					closingDate: model.closingDate,
+				},
+				{
+					client: trx,
+				},
+			);
+		});
 	}
 }

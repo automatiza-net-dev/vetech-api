@@ -4,6 +4,7 @@ import CrmV2Service from "App/Services/CrmV2Service";
 import SharedService from "App/Services/SharedService";
 import CreateKanbanBoardValidator from "App/Validators/CrmV2/CreateKanbanBoardValidator";
 import UpdateKanbanBoardValidator from "App/Validators/CrmV2/UpdateKanbanBoardValidator";
+import CreateOpportunityValidator from "App/Validators/CrmV2/CreateOpportunityValidator";
 
 @inject()
 export default class CrmV2Controller {
@@ -11,6 +12,19 @@ export default class CrmV2Controller {
 		private sharedService: SharedService,
 		private service: CrmV2Service,
 	) {}
+
+	public async createOpportunity({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const payload = await request.validate(CreateOpportunityValidator);
+		const authCtx = await this.sharedService.getAuthContext(auth);
+
+		await this.service.storeOpportunity(authCtx, payload);
+
+		return response.ok(null);
+	}
 
 	public async searchActivities({
 		auth,

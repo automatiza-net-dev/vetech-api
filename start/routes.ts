@@ -2076,18 +2076,13 @@ Route.group(() => {
 	.middleware("auth");
 
 Route.group(() => {
+	Route.post("/create-opportunity", "CrmV2Controller.createOpportunity");
 	Route.get(
 		"/search-kanban-opportunities",
 		"CrmV2Controller.searchKanbanOpportunities",
 	);
-	Route.get(
-		"/search-opportunities",
-		"CrmV2Controller.searchOpportunities",
-	);
-	Route.get(
-		"/search-activities",
-		"CrmV2Controller.searchActivities",
-	);
+	Route.get("/search-opportunities", "CrmV2Controller.searchOpportunities");
+	Route.get("/search-activities", "CrmV2Controller.searchActivities");
 	Route.get("/list-kanbans", "CrmV2Controller.listKanbans");
 	Route.post("/store-kanban", "CrmV2Controller.storeKanban");
 	Route.post("/update-kanban", "CrmV2Controller.updateKanban");

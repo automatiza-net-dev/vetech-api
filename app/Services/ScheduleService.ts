@@ -286,10 +286,10 @@ export default class ScheduleService {
 				"end_hour",
 				"major_complaint",
 				"observation",
-        "confirmation_user_id",
-        "confirmation_conference_date",
-        "confirmation_date",
-        "confirmation_origin",
+				"confirmation_user_id",
+				"confirmation_conference_date",
+				"confirmation_date",
+				"confirmation_origin",
 			)
 			.where("business_unit_id", data.unit ?? authCtx.unit.id)
 			.whereHas("serviceStatus", (query) => {
@@ -344,10 +344,10 @@ export default class ScheduleService {
 				"major_complaint",
 				"observation",
 
-        "confirmation_user_id",
-        "confirmation_conference_date",
-        "confirmation_date",
-        "confirmation_origin",
+				"confirmation_user_id",
+				"confirmation_conference_date",
+				"confirmation_date",
+				"confirmation_origin",
 			)
 			.where("business_unit_id", data.unit ?? authCtx.unit.id)
 			.whereHas("serviceStatus", (query) => {
@@ -3063,6 +3063,8 @@ when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores 
 			.preload("businessUnit")
 			.preload("user")
 			.preload("serviceStatus")
+			.preload("holder")
+			.preload("patient")
 			.first();
 
 		if (!schedule) {
@@ -3089,6 +3091,14 @@ when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores 
 				id: usr.id,
 				name: usr.name,
 			})),
+			holder: this.sharedService.captureGroup(schedule.holder, (row) => ({
+				id: row.id,
+				name: row.name,
+			})),
+			patient: this.sharedService.captureGroup(schedule.patient, (row) => ({
+				id: row.id,
+				name: row.name,
+			})),
 			startHour: schedule.startHour,
 			endHour: schedule.endHour,
 			confirmationDate: schedule.confirmationDate,
@@ -3100,7 +3110,7 @@ when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores 
 					id: row.id,
 					description: row.description,
 					type: row.type,
-					color: row.type,
+					color: row.color,
 				}),
 			),
 		};

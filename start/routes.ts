@@ -2080,6 +2080,10 @@ Route.group(() => {
 		"/search-kanban-opportunities",
 		"CrmV2Controller.searchKanbanOpportunities",
 	);
+	Route.get(
+		"/search-opportunities",
+		"CrmV2Controller.searchOpportunities",
+	);
 	Route.get("/list-kanbans", "CrmV2Controller.listKanbans");
 	Route.post("/store-kanban", "CrmV2Controller.storeKanban");
 	Route.post("/update-kanban", "CrmV2Controller.updateKanban");

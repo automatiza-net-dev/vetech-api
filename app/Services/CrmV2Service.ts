@@ -1,5 +1,6 @@
 import { inject } from "@adonisjs/fold";
 import Database from "@ioc:Adonis/Lucid/Database";
+import BadRequestException from "App/Exceptions/BadRequestException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import CrmStatus, { CrmStatusType } from "App/Models/CrmStatus";
 import Kanban from "App/Models/Kanban";
@@ -344,11 +345,7 @@ export default class CrmV2Service {
 			.preload("contactType")
 			.preload("contactSubject")
 			.preload("clientOrigin")
-			.preload("status", (query) => {
-				if (data.kanban) {
-					query.where("kanban_id", data.kanban);
-				}
-			})
+			.preload("status")
 			.preload("user")
 			.preload("unit")
 			.preload("reason")
@@ -362,6 +359,12 @@ export default class CrmV2Service {
 				query.preload("activity");
 				query.preload("openingUser");
 			});
+
+		if (data.kanban) {
+			qb.whereHas("status", (query) => {
+				query.where("kanban_id", data.kanban!);
+			});
+		}
 
 		if (data.clientName) {
 			qb.whereHas("client", (query) => {
@@ -550,5 +553,247 @@ export default class CrmV2Service {
 			},
 			{} as Record<string, unknown>,
 		);
+	}
+
+	public async searchOpportunities(
+		authCtx: AuthContext,
+		data: {
+			kanban?: string;
+			openingFrom?: string;
+			openingTo?: string;
+			contactFrom?: string;
+			contactTo?: string;
+			contactName?: string;
+			contactPhone?: string;
+			patientName?: string;
+			technician?: string;
+			description?: string;
+			clientName?: string;
+			unit?: string[];
+			status?: string[];
+			balance?: string[];
+		},
+	) {
+		if (!data.kanban) {
+			throw new BadRequestException(
+				"Parametro `kanban` é necessário",
+				400,
+				"E_ERR",
+			);
+		}
+
+		const qb = Opportunity.query()
+			.where("economic_group_id", authCtx.group.id)
+			.preload("client", (query) => {
+				query.select("id", "name", "weight", "gender");
+
+				query.preload("tutor");
+
+				query.preload("patientAnimal", (query) => {
+					query.select("id", "castrated", "race_id");
+					query.preload("race", (query) => {
+						query.select("id", "description", "specie_id");
+						query.preload("specie", (query) => {
+							query.select("id", "description");
+						});
+					});
+				});
+			})
+			.preload("contact", (query) => {
+				query.preload("tutor", (query) => {
+					query.select("id", "email", "cellphone", "telephone");
+				});
+			})
+			.preload("contactType")
+			.preload("contactSubject")
+			.preload("status")
+			.preload("user")
+			.preload("unit")
+			.preload("reason")
+			.preload("clientOrigin")
+			.preload("marketingCampaign", (query) => {
+				query.select("id", "description");
+			});
+
+		if (data.kanban) {
+			qb.whereHas("status", (query) => {
+				query.where("kanban_id", data.kanban!);
+			});
+		}
+
+		if (data.clientName) {
+			qb.whereHas("client", (query) => {
+				query
+					.whereRaw("name ~* ?", [
+						`(${data.clientName?.toLowerCase().split(" ").join("|")})`,
+					])
+					.where("type", PatientType.ANIMAL);
+			});
+		}
+
+		if (data.description) {
+			qb.whereRaw(
+				"lower(unaccent(opportunities.description)) ~* lower(unaccent(?))",
+				[data.description],
+			);
+		}
+
+		if (data.unit && Array.isArray(data.unit)) {
+			qb.whereIn("business_unit_id", data.unit);
+		}
+
+		if (data.technician) {
+			qb.where("user_id", data.technician);
+		}
+
+		if (data.openingFrom) {
+			qb.whereRaw("opening_date::date >= ?", [data.openingFrom]);
+		}
+
+		if (data.openingTo) {
+			qb.whereRaw("opening_date::date <= ?", [data.openingTo]);
+		}
+
+		if (data.contactFrom) {
+			qb.whereRaw("contact_date::date >= ?", [data.contactFrom]);
+		}
+
+		if (data.contactTo) {
+			qb.whereRaw("contact_date::date <= ?", [data.contactTo]);
+		}
+
+		if (data.status && Array.isArray(data.status)) {
+			qb.whereIn("status_id", data.status);
+		}
+
+		if (data.balance && Array.isArray(data.balance)) {
+			const hasEmAberto = data.balance.includes("Em Aberto");
+			const cleanOptions = data.balance.filter((v) => v !== "Em Aberto");
+			const sanitizedOptions = data.balance.filter((f) =>
+				["Ganho", "Perda"].includes(f),
+			);
+
+			if (hasEmAberto && sanitizedOptions.length > 0) {
+				qb.whereRaw(
+					`(balance = ANY('{${sanitizedOptions.join(
+						",",
+					)}}') or closing_date is null)`,
+					[],
+				);
+			}
+
+			if (hasEmAberto && cleanOptions.length === 0) {
+				qb.whereNull("closing_date");
+			}
+
+			if (!hasEmAberto && cleanOptions.length > 0) {
+				qb.whereIn("balance", cleanOptions);
+			}
+		}
+
+		if (data.contactName || data.contactPhone) {
+			qb.whereHas("contact", (query) => {
+				if (data.contactName) {
+					query.where("name", "ilike", `%${data.contactName}%`);
+				}
+
+				if (data.contactPhone) {
+					const clearPhone = data.contactPhone.replace(/\D/g, "");
+					query.whereHas("contacts", (query) => {
+						query.whereRaw(
+							`patient_contacts.type <> 'email'
+  and (
+    case
+        when length(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g')) = 10 and length(?) = 11 then
+            SUBSTRING(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g'), 1, 2) || '9' || SUBSTRING(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g'), 3, 8) ilike
+            ? -- add o 9
+        when length(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g')) = 11 and length(?) = 10 then regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g') ilike
+                                                                           '%' ||
+                                                                           SUBSTRING(?, 1, 2) ||
+                                                                           '9' ||
+                                                                           SUBSTRING(?, 3, 8) ||
+                                                                           '%' -- add o 9
+        else regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g') ilike ? end
+    )`,
+							[
+								clearPhone,
+								`%${clearPhone}%`,
+								clearPhone,
+								clearPhone,
+								clearPhone,
+								`%${clearPhone}%`,
+							],
+						);
+					});
+				}
+			});
+		}
+
+		if (data.patientName) {
+			qb.whereHas("client", (query) => {
+				if (data.patientName) {
+					query.where("name", "ilike", `%${data.patientName}%`);
+				}
+			});
+		}
+
+		const result = await qb;
+
+		return result.map((elem) => ({
+			id: elem.id,
+			marketingCampaignId: elem.marketing_campaign_id,
+			openingDate: elem.openingDate,
+			contactDate: elem.contactDate,
+			value: elem.value,
+			description: elem.description,
+			observation: elem.observation,
+			closingDate: elem.closingDate,
+			profitValue: elem.profitValue,
+			resultObservation: elem.resultObservation,
+			clientOriginItemDescription: elem.clientOriginItemDescription,
+			balance: elem.balance,
+			active: elem.active,
+			race: {
+				id: elem.race_id ?? null,
+			},
+			gender: elem.gender,
+			castrated: elem.castrated,
+			weight: elem.weight,
+
+			status: elem.status,
+			contact: this.sharedService.captureGroup(elem.contact, (v) => ({
+				id: v.id,
+				name: v.name,
+				email: v.tutor?.email ?? null,
+				cellphone: v.tutor?.cellphone ?? null,
+				telepone: v.tutor?.telephone ?? null,
+			})),
+
+			contactType: elem.contactType,
+			contactSubject: elem.contactSubject,
+			client: elem.client,
+			clientOrigin: elem.clientOrigin,
+
+			user: this.sharedService.captureGroup(elem?.user, (v) => ({
+				id: v.id,
+				name: v.name,
+			})),
+			unit: {
+				id: elem.unit.id,
+				identification: elem.unit.identification,
+				companyName: elem.unit.companyName,
+				fantasyName: elem.unit.fantasyName,
+			},
+			schedule: {
+				id: elem.schedule_id ?? null,
+			},
+			closingUser: {
+				id: elem.closing_user_id ?? null,
+			},
+			reason: this.sharedService.captureGroup(elem.reason, (v) => ({
+				id: v.id,
+				reason: v.reason,
+			})),
+		}));
 	}
 }

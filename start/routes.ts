@@ -186,6 +186,7 @@ Route.group(() => {
 Route.group(() => {
 	Route.get("/search", "RolesController.searchInfo");
 	Route.get("/metadata/:id", "RolesController.permissionMetadata");
+	Route.get("/schematics", "RolesController.permissionSchematics");
 	Route.post("/add-permissions", "RolesController.addPermissions");
 	Route.post("/permissions", "RolesController.managePermissions");
 	Route.post("/copy", "RolesController.copyRole");

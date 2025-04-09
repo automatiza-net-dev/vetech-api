@@ -343,14 +343,8 @@ export default class RoleService {
                       role_profile_accesses.role_id = ?`,
 				[id],
 			)
-			.whereRaw(`profile_accesses.system_id = ?`, [systemID])
+			.whereRaw("profile_accesses.system_id = ?", [systemID])
 			.orderByRaw("profile_accesses.description");
-
-		// if (data.newItems === "true") {
-		// 	qb.whereRaw("role_permissions.status is null");
-		// } else if (data.newItems === "false") {
-		// 	qb.whereRaw("role_permissions.status is not null");
-		// }
 
 		if (data.type === "user") {
 			qb.whereIn("profile_accesses.type", [
@@ -406,6 +400,112 @@ export default class RoleService {
 			name: role.name,
 			active: role.active,
 			externalAccess: role.externalAccess,
+			profiles: roleProfiles,
+			screens: screensWithPermissions.reduce(
+				(acc, curr) => {
+					if (!acc.some((sc) => sc.id === curr.sid)) {
+						acc.push({
+							id: curr.sid,
+							name: curr.sname,
+							permissions: [],
+						});
+					}
+
+					return acc.map((sc) => {
+						if (sc.id !== curr.sid) {
+							return sc;
+						}
+
+						sc.permissions.push({
+							id: curr.pid,
+							description: curr.description,
+							controlId: curr.control_id,
+							active: curr.active,
+						});
+						return sc;
+					});
+				},
+				[] as {
+					id: number;
+					name: string;
+					permissions: {
+						id: number;
+						description: string;
+						controlId: string;
+						active: boolean;
+					}[];
+				}[],
+			),
+		};
+	}
+
+	public async rolePermissionSchematics(
+		systemID: number,
+		data: { type?: string; newItems?: string },
+	) {
+		const qb = Database.from("profile_accesses")
+			.select(
+				Database.raw(`profile_accesses.id,
+       profile_accesses.description,
+       false as active`),
+			)
+			.whereRaw("profile_accesses.system_id = ?", [systemID])
+			.orderByRaw("profile_accesses.description");
+
+		if (data.type === "user") {
+			qb.whereIn("profile_accesses.type", [
+				"user",
+				"both",
+				"all",
+			] as TPermissionType[]);
+		}
+
+		if (data.type === "controller") {
+			qb.whereIn("profile_accesses.type", [
+				"controller",
+				"both",
+				"all",
+			] as TPermissionType[]);
+		}
+
+		if (data.type === "system") {
+			qb.whereIn("profile_accesses.type", [
+				"system",
+				"all",
+			] as TPermissionType[]);
+		}
+
+		const roleProfiles: { id: number; description: string; active: boolean }[] =
+			await qb;
+
+		const screensWithPermissions: {
+			sid: number;
+			sname: string;
+			pid: number;
+			description: string;
+			control_id: string;
+			active: boolean;
+		}[] = await Database.from("screens")
+			.select(
+				Database.raw(`screens.id as sid,
+       screens.name as sname,
+       permissions.id as pid,
+       permissions.description,
+       permissions.control_id,
+       true as active`),
+			)
+			.joinRaw("join permissions on screens.id = permissions.screen_id")
+			.joinRaw(
+				"join systems_permissions sp on permissions.id = sp.permission_id and sp.system_id = ?",
+				[systemID],
+			)
+			.orderByRaw("screens.name, control_id");
+
+		return {
+			id: null,
+			name: null,
+			active: false,
+			externalAccess: false,
 			profiles: roleProfiles,
 			screens: screensWithPermissions.reduce(
 				(acc, curr) => {

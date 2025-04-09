@@ -1,5 +1,5 @@
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
-import { CustomMessages, schema, rules } from "@ioc:Adonis/Core/Validator";
+import { CustomMessages, schema } from "@ioc:Adonis/Core/Validator";
 
 export default class UpdateRoleValidator {
 	constructor(protected ctx: HttpContextContract) {}
@@ -8,13 +8,21 @@ export default class UpdateRoleValidator {
 		name: schema.string({}, []),
 		externalAccess: schema.boolean(),
 		active: schema.boolean(),
-		profileAccessIdList: schema
-			.array([rules.minLength(1)])
-			.members(
-				schema.number([
-					rules.exists({ table: "profile_accesses", column: "id" }),
-				]),
-			),
+		profiles: schema.array().members(
+			schema.object().members({
+				id: schema.number(),
+			}),
+		),
+		screens: schema.array().members(
+			schema.object().members({
+				id: schema.number(),
+				permissions: schema.array().members(
+					schema.object().members({
+						id: schema.number(),
+					}),
+				),
+			}),
+		),
 	});
 
 	public messages: CustomMessages = {

@@ -5,7 +5,6 @@ import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException"
 import Permission, { TPermissionType } from "App/Models/Permission";
 import Role, { TRoleType } from "App/Models/Role";
 import RoleProfileAccess from "App/Models/RoleProfileAccess";
-import Screen from "App/Models/Screen";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import IManageRolePermissions from "Contracts/interfaces/IManageRolePermissions";
 import IRoleData from "Contracts/interfaces/IRoleData";
@@ -82,18 +81,8 @@ export default class RoleService {
 		return qb;
 	}
 
-	public async store(
-		authCtx: AuthContext,
-		data: Omit<IRoleData, "active">,
-	): Promise<Role> {
+	public async store(authCtx: AuthContext, data: IRoleData): Promise<Role> {
 		return Database.transaction(async (trx) => {
-			const permissions = await Permission.query()
-				.useTransaction(trx)
-				.whereIn("type", ["user", "both"] as TRoleType[])
-				.whereHas("systems", (query) => {
-					query.where("system_id", authCtx.system.id);
-				});
-
 			const newRole = await Role.create(
 				{
 					system_id: authCtx.system.id,
@@ -109,19 +98,30 @@ export default class RoleService {
 				},
 			);
 
-			await newRole.related("permissions").attach(
-				permissions.map((p) => p.id),
-				trx,
+			await Promise.all(
+				data.profiles.map((p) =>
+					Database.rawQuery(
+						`insert into role_profile_accesses (role_id, profile_access_id, active, created_at, type)
+values (?, ?, true, now(), 'user')`,
+						[newRole.id, p.id],
+					)
+						.useTransaction(trx)
+						.exec(),
+				),
 			);
 
-			await RoleProfileAccess.createMany(
-				data.profileAccessIdList.map((elem) => ({
-					role_id: newRole.id,
-					profile_access_id: elem,
-					active: true,
-				})),
-				{ client: trx },
-			);
+			const tasks = data.screens
+				.flatMap((s) => s.permissions.map((sp) => sp.id))
+				.map(async (permissionID) => {
+					return Database.rawQuery(
+						`insert into role_permissions (role_id, permission_id, created_at, updated_at)
+values (?, ?, now(), now())`,
+						[newRole.id, permissionID],
+					)
+						.useTransaction(trx)
+						.exec();
+				});
+			await Promise.all(tasks);
 
 			return newRole;
 		});
@@ -187,7 +187,7 @@ export default class RoleService {
 	public async update(
 		authCtx: AuthContext,
 		id: number,
-		data: IRoleData,
+		data: IRoleData & { active: boolean },
 	): Promise<Role> {
 		return Database.transaction(async (trx) => {
 			const role = await Role.query()
@@ -205,21 +205,44 @@ export default class RoleService {
 				);
 			}
 
-			await RoleProfileAccess.query()
+			await Database.rawQuery(
+				"delete from role_profile_accesses where role_id = ?",
+				[role.id],
+			)
 				.useTransaction(trx)
-				.where("role_id", role.id)
-				.delete();
+				.exec();
 
-			await RoleProfileAccess.createMany(
-				data.profileAccessIdList.map(
-					(elem) => ({
-						role_id: role.id,
-						profile_access_id: elem,
-						active: true,
-					}),
-					{ client: trx },
+			await Promise.all(
+				data.profiles.map((p) =>
+					Database.rawQuery(
+						`insert into role_profile_accesses (role_id, profile_access_id, active, created_at, type)
+values (?, ?, true, now(), 'user')`,
+						[role.id, p.id],
+					)
+						.useTransaction(trx)
+						.exec(),
 				),
 			);
+
+			await Database.rawQuery(
+				"delete from role_permissions where role_id = ?",
+				[role.id],
+			)
+				.useTransaction(trx)
+				.exec();
+
+			const tasks = data.screens
+				.flatMap((s) => s.permissions.map((sp) => sp.id))
+				.map(async (permissionID) => {
+					return Database.rawQuery(
+						`insert into role_permissions (role_id, permission_id, created_at, updated_at)
+values (?, ?, now(), now())`,
+						[role.id, permissionID],
+					)
+						.useTransaction(trx)
+						.exec();
+				});
+			await Promise.all(tasks);
 
 			return role
 				.merge({

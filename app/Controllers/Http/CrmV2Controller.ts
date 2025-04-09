@@ -12,6 +12,18 @@ export default class CrmV2Controller {
 		private service: CrmV2Service,
 	) {}
 
+	public async searchActivities({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const authCtx = await this.sharedService.getAuthContext(auth);
+
+		const result = await this.service.searchActivities(authCtx, request.qs());
+
+		return response.ok(result);
+	}
+
 	public async searchOpportunities({
 		auth,
 		request,

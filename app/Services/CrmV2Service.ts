@@ -6,6 +6,7 @@ import CrmStatus, { CrmStatusType } from "App/Models/CrmStatus";
 import Kanban from "App/Models/Kanban";
 import KanbanUser from "App/Models/KanbanUser";
 import Opportunity from "App/Models/Opportunity";
+import OpportunityActivity from "App/Models/OpportunityActivity";
 import { PatientType } from "App/Models/Patient";
 import { DateTime } from "luxon";
 import SharedService, { AuthContext } from "./SharedService";
@@ -794,6 +795,232 @@ export default class CrmV2Service {
 				id: v.id,
 				reason: v.reason,
 			})),
+		}));
+	}
+
+	public async searchActivities(
+		authCtx: AuthContext,
+		data: {
+			kanban?: string;
+			fromDate?: string;
+			toDate?: string;
+			description?: string;
+			contactName?: string;
+			contactPhone?: string;
+			patientName?: string;
+			technicianName?: string;
+			status?: string;
+			clientName?: string;
+			units?: string[];
+		},
+	) {
+		if (!data.kanban) {
+			throw new BadRequestException(
+				"Parametro `kanban` é necessário",
+				400,
+				"E_ERR",
+			);
+		}
+
+		const qb = OpportunityActivity.query()
+			.preload("activity")
+			.preload("opportunity", (query) => {
+				query
+					.preload("unit")
+					.preload("client")
+					.preload("contact", (query) => {
+						query.preload("tutor");
+					})
+					.preload("user")
+					.preload("reason");
+
+				if (data.kanban) {
+					query.whereHas("status", (query) => {
+						query.where("kanban_id", data.kanban!);
+					});
+				}
+			})
+			.preload("user")
+			.preload("executionUser")
+			.preload("openingUser")
+			.preload("exclusionUser")
+			.whereHas("opportunity", (query) => {
+				query.where("economic_group_id", authCtx.group.id);
+			});
+
+		if (data.units && Array.isArray(data.units)) {
+			qb.whereHas("opportunity", (query) => {
+				query.whereIn("business_unit_id", data.units ?? []);
+			});
+		} else {
+			qb.whereHas("opportunity", (query) => {
+				query.where("business_unit_id", authCtx.unit.id);
+			});
+		}
+
+		if (data.fromDate) {
+			qb.whereRaw("execution_date::date >= ?", [data.fromDate]);
+		}
+
+		if (data.toDate) {
+			qb.whereRaw("execution_date::date <= ?", [data.toDate]);
+		}
+
+		if (data.status) {
+			qb.where("status", data.status);
+		}
+
+		if (data.clientName) {
+			qb.whereHas("opportunity", (query) => {
+				query.whereHas("client", (query) => {
+					query
+						.whereRaw("name ~* ?", [
+							`(${data.clientName?.toLowerCase().split(" ").join("|")})`,
+						])
+						.where("type", PatientType.ANIMAL);
+				});
+			});
+		}
+
+		if (data.technicianName) {
+			qb.whereHas("user", (query) => {
+				query.whereILike("name", `%${data.technicianName!}%`);
+			});
+		}
+
+		if (data.description) {
+			qb.whereHas("activity", (query) => {
+				query.whereILike("description", `%${data.description!}%`);
+			});
+		}
+
+		if (data.patientName || data.contactName || data.contactPhone) {
+			qb.whereHas("opportunity", (query) => {
+				if (data.patientName) {
+					query.whereHas("client", (query) => {
+						query.whereILike("name", `%${data.patientName!}%`);
+					});
+				}
+
+				if (data.contactName || data.contactPhone) {
+					query.whereHas("contact", (query) => {
+						if (data.contactName) {
+							query.whereILike("name", `%${data.contactName!}%`);
+						}
+
+						if (data.contactPhone) {
+							const clearPhone = data.contactPhone.replace(/\D/g, "");
+							query.whereHas("contacts", (query) => {
+								query.whereRaw(
+									`patient_contacts.type <> 'email'
+  and (
+    case
+        when length(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g')) = 10 and length(?) = 11 then
+            SUBSTRING(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g'), 1, 2) || '9' || SUBSTRING(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g'), 3, 8) ilike
+            ? -- add o 9
+        when length(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g')) = 11 and length(?) = 10 then regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g') ilike
+                                                                           '%' ||
+                                                                           SUBSTRING(?, 1, 2) ||
+                                                                           '9' ||
+                                                                           SUBSTRING(?, 3, 8) ||
+                                                                           '%' -- add o 9
+        else regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g') ilike ? end
+    )`,
+									[
+										clearPhone,
+										`%${clearPhone}%`,
+										clearPhone,
+										clearPhone,
+										clearPhone,
+										`%${clearPhone}%`,
+									],
+								);
+							});
+						}
+					});
+				}
+			});
+		}
+
+		const result = await qb;
+
+		return result.map((elem) => ({
+			id: elem.id,
+			issueDate: elem.issueDate,
+			duration: elem.duration,
+			executionDate: elem.executionDate,
+			executedDate: elem.executedDate,
+			description: elem.description,
+			observation: elem.observation,
+			status: elem.status,
+
+			unit: this.sharedService.captureGroup(elem.opportunity.unit, (v) => ({
+				id: v.id,
+				identification: v.identification,
+				companyName: v.companyName,
+				fantasyName: v.fantasyName,
+			})),
+			opportunity: this.sharedService.captureGroup(elem.opportunity, (v) => ({
+				id: v.id,
+				description: v.description,
+				observation: v.observation,
+				balance: v.balance,
+			})),
+			activity: {
+				id: elem.activity.id,
+				description: elem.activity.description,
+			},
+			client: this.sharedService.captureGroup(
+				elem.opportunity?.client,
+				(v) => ({
+					id: v.id,
+					name: v.name,
+					cellphone: v?.tutor?.cellphone ?? null,
+					telephone: v?.tutor?.telephone ?? null,
+				}),
+			),
+			contact: this.sharedService.captureGroup(
+				elem.opportunity?.contact,
+				(v) => ({
+					id: v.id,
+					name: v.name,
+					cellphone: v?.tutor?.cellphone ?? null,
+					telephone: v?.tutor?.telephone ?? null,
+					email: v?.tutor?.email ?? null,
+				}),
+			),
+			user: this.sharedService.captureGroup(elem.user, (v) => ({
+				id: v.id,
+				name: v.name,
+			})),
+			openingUser: this.sharedService.captureGroup(
+				elem.opportunity?.openingUser,
+				(v) => ({
+					id: v.id,
+					name: v.name,
+				}),
+			),
+			closingUser: this.sharedService.captureGroup(
+				elem.opportunity?.closingUser,
+				(v) => ({
+					id: v.id,
+					name: v.name,
+				}),
+			),
+			exclusionUser: this.sharedService.captureGroup(
+				elem.opportunity?.exclusionUser,
+				(v) => ({
+					id: v.id,
+					name: v.name,
+				}),
+			),
+			reason: this.sharedService.captureGroup(
+				elem.opportunity?.reason,
+				(v) => ({
+					id: v.id,
+					reason: v.reason,
+				}),
+			),
 		}));
 	}
 }

@@ -2094,3 +2094,13 @@ Route.group(() => {
 })
 	.prefix("crm-v2")
 	.middleware("auth");
+
+Route.group(() => {
+	Route.get("/patient/:patientID", "PatientContractsController.forPatient");
+	Route.get("/", "PatientContractsController.index");
+	Route.post("/store", "PatientContractsController.store");
+	Route.put("/update", "PatientContractsController.update");
+	Route.delete("/delete/:id", "PatientContractsController.delete");
+})
+	.prefix("contracts")
+	.middleware("auth");

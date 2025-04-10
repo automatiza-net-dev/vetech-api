@@ -31,11 +31,11 @@ export default class PatientContract extends BaseModel {
 	})
 	public promotionalValue: number;
 
-	@column.dateTime({
+	@column({
 		columnName: "promotional_value_expiration",
 		serializeAs: "promotionalValueExpiration",
 	})
-	public promotionalValueExpiration: DateTime;
+	public promotionalValueExpiration: string;
 
 	@column({
 		columnName: "expiration_day",
@@ -52,7 +52,7 @@ export default class PatientContract extends BaseModel {
 	@column.dateTime({ autoCreate: true, autoUpdate: true })
 	public updatedAt: DateTime;
 
-	@column.dateTime({})
+	@column.dateTime({ serializeAs: null })
 	public deletedAt: DateTime;
 
 	@beforeFind()
@@ -86,5 +86,8 @@ export default class PatientContract extends BaseModel {
 	public user_creation_id: string;
 
 	@column({ serializeAs: null })
-	public user_exclusion_id: string;
+	public user_updated_id: string | null;
+
+	@column({ serializeAs: null })
+	public user_exclusion_id: string | null;
 }

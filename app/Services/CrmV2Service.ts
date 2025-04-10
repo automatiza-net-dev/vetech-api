@@ -1129,4 +1129,106 @@ export default class CrmV2Service {
 			);
 		});
 	}
+
+	public async searchSyncableOpportunities(
+		authCtx: AuthContext,
+		data: {
+			kanban?: string;
+			group?: string;
+			client?: string;
+			contact?: string;
+		},
+	) {
+		if (!data.kanban) {
+			throw new BadRequestException("Cliente não informado", 400, "E_ERR");
+		}
+
+		if (!data.client) {
+			throw new BadRequestException("Cliente não informado", 400, "E_ERR");
+		}
+
+		if (!data.contact) {
+			throw new BadRequestException("Contato não informado", 400, "E_ERR");
+		}
+
+		const qb = Database.from("opportunities")
+			.select(
+				"opportunities.id as opID",
+				"opportunities.description as opDescription",
+				"opportunities.contact_date as op_contact_date",
+				"contact.id as contactID",
+				"contact.name as contactName",
+				"client.id as clientID",
+				"client.name as clientName",
+				"crm_statuses.id as statusID",
+				"crm_statuses.description as statusDescription",
+			)
+			.joinRaw(
+				"left join patients client on client.id = opportunities.client_id",
+			)
+			.joinRaw(
+				"left join patients contact on contact.id = opportunities.contact_id",
+			)
+			.joinRaw(
+				"left join crm_statuses on crm_statuses.id = opportunities.status_id",
+			)
+			.where("opportunities.economic_group_id", data.group ?? authCtx.group.id)
+			.whereNull("opportunities.closing_date")
+			.whereRaw(
+				`
+              (
+                (opportunities.client_id = ?) or
+                (opportunities.contact_id = ? and opportunities.client_id is null)
+              )`,
+				[data.client, data.contact],
+			)
+			.whereRaw(
+				`("opportunities"."schedule_id" is null or ("opportunities"."schedule_id" in (select s.id
+                                                                                   from schedules s
+                                                                                            join schedule_statuses ss
+                                                                                                 on s.schedule_status_id = ss.id and ss.type in ('FAL', 'CANC'))))`,
+				[],
+			)
+			.whereNull("opportunities.deleted_at");
+
+		if (data.kanban) {
+			qb.where("crm_statuses.kanban_id", data.kanban);
+		}
+
+		const result: {
+			opID: string;
+			opDescription: string;
+			op_contact_date: string;
+			contactID: string | null;
+			contactName: string | null;
+			clientID: string | null;
+			clientName: string | null;
+			statusID: string | null;
+			statusDescription: string | null;
+		}[] = await qb;
+
+		return result.map((elem) => ({
+			id: elem.opID,
+			description: elem.opDescription ?? "-",
+			contactDate: elem.op_contact_date ?? "-",
+			contact: elem.contactID
+				? {
+						id: elem.contactID ?? null,
+						name: elem?.contactName ?? null,
+					}
+				: null,
+			client: elem?.clientID
+				? {
+						id: elem?.clientID ?? null,
+						name: elem?.clientName ?? null,
+					}
+				: null,
+			status: elem?.statusID
+				? {
+						id: elem?.statusID ?? null,
+						description: elem?.statusDescription ?? null,
+					}
+				: null,
+		}));
+	}
 }

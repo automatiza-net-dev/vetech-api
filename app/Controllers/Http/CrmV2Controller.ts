@@ -13,6 +13,20 @@ export default class CrmV2Controller {
 		private service: CrmV2Service,
 	) {}
 
+	public async searchSyncableOpportunities({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const authCtx = await this.sharedService.getAuthContext(auth);
+
+		const result = await this.service.searchSyncableOpportunities(
+			authCtx,
+			request.qs(),
+		);
+
+		return response.ok(result);
+	}
 	public async createOpportunity({
 		auth,
 		request,

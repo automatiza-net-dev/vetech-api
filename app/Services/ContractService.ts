@@ -22,6 +22,8 @@ export default class ContractService {
 		const patient = await Patient.query().where("id", patientID).firstOrFail();
 
 		const contracts = await PatientContract.query()
+			.preload("product")
+			.preload("paymentMethod")
 			.where("economic_group_id", authCtx.group.id)
 			.where("business_unit_id", authCtx.unit.id)
 			.where("patient_id", patientID);
@@ -29,7 +31,21 @@ export default class ContractService {
 		return {
 			id: patient.id,
 			name: patient.name,
-			contracts,
+			contracts: contracts.map((row) => ({
+				id: row.id,
+				product_id: row.product_id,
+				product_description: row.product.description,
+				product_variation_id: row.product_variation_id,
+				business_unit_product_id: row.business_unit_product_id,
+				quantity: row.quantity,
+				unitary_value: row.unitaryValue,
+				promotional_value: row.promotionalValue,
+				promotional_value_expiration: row.promotionalValueExpiration,
+				payment_method_id: row.payment_method_id,
+				payment_method_description: row.paymentMethod.description,
+				expiration_day: row.expirationDay,
+				active: row.active,
+			})),
 		};
 	}
 

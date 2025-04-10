@@ -3,10 +3,14 @@ import {
 	BaseModel,
 	beforeFetch,
 	beforeFind,
+	BelongsTo,
+	belongsTo,
 	column,
 } from "@ioc:Adonis/Lucid/Orm";
 import { softDeleteQuery } from "App/Services/SoftDelete";
 import Decimal from "decimal.js";
+import Product from "./Product";
+import PaymentMethod from "./PaymentMethod";
 
 export default class PatientContract extends BaseModel {
 	@column({ isPrimary: true })
@@ -73,6 +77,11 @@ export default class PatientContract extends BaseModel {
 	@column({ serializeAs: null })
 	public product_id: string;
 
+	@belongsTo(() => Product, {
+		foreignKey: "product_id",
+	})
+	public product: BelongsTo<typeof Product>;
+
 	@column({ serializeAs: null })
 	public product_variation_id: string;
 
@@ -81,6 +90,11 @@ export default class PatientContract extends BaseModel {
 
 	@column({ serializeAs: null })
 	public payment_method_id: string;
+
+	@belongsTo(() => PaymentMethod, {
+		foreignKey: "payment_method_id",
+	})
+	public paymentMethod: BelongsTo<typeof PaymentMethod>;
 
 	@column({ serializeAs: null })
 	public user_creation_id: string;

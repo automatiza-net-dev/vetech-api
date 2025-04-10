@@ -3078,7 +3078,7 @@ when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores 
 		return {
 			businessUnit: {
 				id: schedule.businessUnit.id,
-				identification: schedule.businessUnit.id ?? null,
+				identification: schedule.businessUnit.identification ?? null,
 				address: schedule.businessUnit.address ?? null,
 				number: schedule.businessUnit.number ?? null,
 				complement: schedule.businessUnit.complement ?? null,

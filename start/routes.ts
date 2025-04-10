@@ -363,6 +363,15 @@ Route.group(() => {
 	.prefix("unavailable-days")
 	.middleware("auth");
 
+Route.get(
+	"schedules/confirmation/:scheduleID",
+	"SchedulesController.publicConfirmationInfo",
+);
+Route.post(
+	"schedules/confirmation",
+	"SchedulesController.publicConfirmationUpdate",
+);
+
 Route.group(() => {
 	Route.get("/search-events", "SchedulesController.searchScheduleEvents");
 	Route.get(
@@ -408,15 +417,6 @@ Route.group(() => {
 })
 	.prefix("schedules")
 	.middleware("auth");
-
-Route.get(
-	"schedules/confirmation/:scheduleID",
-	"SchedulesController.publicConfirmationInfo",
-);
-Route.post(
-	"schedules/confirmation",
-	"SchedulesController.publicConfirmationUpdate",
-);
 
 Route.group(() => {
 	Route.get("/", "GroupsController.index");

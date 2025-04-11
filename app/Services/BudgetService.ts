@@ -106,7 +106,7 @@ export default class BudgetService {
 	public async listOpenNegotiations(authCtx: AuthContext, patientId: string) {
 		const attendances = await Attendance.query()
 			.orderByRaw("attendances.start_date desc")
-			.where("business_unit_id", "8bdfe6aa-7f8e-4414-9cde-075f27714fc6")
+			.where("business_unit_id", authCtx.unit.id)
 			.where("patient_id", patientId)
 			.whereHas("budgets", (query) => {
 				query.whereNot("status", BudgetStatus.N);

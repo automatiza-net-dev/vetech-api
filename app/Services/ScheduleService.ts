@@ -3075,6 +3075,31 @@ when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores 
 			);
 		}
 
+		const rows: {
+			servicoagenda: string;
+			itemtratamento: string | null;
+			itemprodutividade: string | null;
+		}[] = await Database.from("schedules")
+			.select(
+				Database.raw(
+					"sst.description as servicoAgenda, p.description as itemTratamento, pi2.description as itemProdutividade",
+				),
+			)
+			.joinRaw(
+				"join schedule_service_types sst on schedule_service_type_id = sst.id",
+			)
+			.joinRaw(`left join (treatment_executions te
+    join treatment_items ti on te.treatment_item_id = ti.id and te.treatment_id = ti.treatment_id
+    join bill_items bi on ti.bill_item_id = bi.id
+    join product_variations pv on bi.product_variation_id = pv.id
+    join products p on pv.product_id = p.id
+    join productivity_items pi2 on te.productivity_item_id = pi2.id
+    ) on schedules.id = te.schedule_id`)
+			.whereRaw('(schedules.id = ? and schedules."deleted_at" is null)', [
+				scheduleID,
+			])
+			.orderByRaw("p.description, pi2.description, ti.id, te.id");
+
 		return {
 			businessUnit: {
 				id: schedule.businessUnit.id,
@@ -3098,6 +3123,11 @@ when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores 
 			patient: this.sharedService.captureGroup(schedule.patient, (row) => ({
 				id: row.id,
 				name: row.name,
+			})),
+			scheduleServiceTypes: rows.map((row) => ({
+				description: row.servicoagenda,
+				treatmentItem: row.itemtratamento,
+				productivityItem: row.itemprodutividade,
 			})),
 			startHour: schedule.startHour,
 			endHour: schedule.endHour,

@@ -106,7 +106,7 @@ export default class BudgetService {
 	public async listOpenNegotiations(authCtx: AuthContext, patientId: string) {
 		const attendances = await Attendance.query()
 			.orderByRaw("attendances.start_date desc")
-			.where("business_unit_id", authCtx.unit.id)
+			.where("business_unit_id", "8bdfe6aa-7f8e-4414-9cde-075f27714fc6")
 			.where("patient_id", patientId)
 			.whereHas("budgets", (query) => {
 				query.whereNot("status", BudgetStatus.N);
@@ -296,22 +296,126 @@ export default class BudgetService {
 						"tag",
 						"documents_status",
 						"status",
+						"total_value",
+						"discount_value",
+						"pending",
+						"cancelled",
+						"cancelled_at",
+						"cancel_date",
+						"finish_cancel_date",
 						"created_at",
 						"budget_id",
 						"seller_id",
+						"financial_responsible_id",
+						"cancel_user_id",
+						"finish_cancel_user_id",
 					)
-					.preload("seller");
+					.preload("seller")
+					.preload("financialResponsible")
+					.preload("cancelUser")
+					.preload("finishCancelUser")
+					.preload("items", (query) => {
+						query.select(
+							"id",
+							"quantity",
+							"unitary_value",
+							"discount_value",
+							"total_value",
+							"status",
+							"product_variation_id",
+						);
+						query.whereNull("deleted_at");
+
+						query.preload("productVariation", (query) => {
+							query.select("id", "product_id");
+							query.preload("product", (query) => {
+								query.select("id", "description");
+							});
+						});
+					})
+
+					.preload("payments", (query) => {
+						query.select(
+							"id",
+							"block",
+							"total_value",
+							"installments",
+							"status",
+							"payment_method_id",
+							"tef_flag_id",
+							"tef_acquirer_id",
+						);
+
+						query.preload("paymentMethod", (query) => {
+							query.select("id", "description");
+						});
+
+						query.preload("flag", (query) => {
+							query.select("id", "description");
+						});
+
+						query.preload("acquirer", (query) => {
+							query.select("id", "description");
+						});
+					});
+
+				const billDepartmentItemRows: {
+					department_id: number;
+					department_description: string;
+					department_item_id: number;
+					department_item_description: string;
+					observations: string;
+					bill_id: string;
+					bill_item_id: string;
+					product_variation_id: string;
+				}[] = await Database.from("bill_items")
+					.select(
+						Database.raw(
+							"d.id as department_id, d.description department_description, di.description department_item_description, di.id  as department_item_id, bid.observations, bill_items.bill_id, bill_item_id, bill_items.product_variation_id",
+						),
+					)
+					.joinRaw(
+						"join ( bill_item_departments bid join departments d on bid.department_id = d.id join department_items di on bid.department_item_id = di.id ) on bill_items.bill_id = bid.bill_id and bill_items.id = bid.bill_item_id",
+					)
+					.whereRaw("bill_items.business_unit_id = ?", [authCtx.unit.id])
+					.whereIn(
+						"bill_items.bill_id",
+						bills.map((r) => r.id),
+					);
+
 				Object.assign(jsonObj, {
-					bills: bills.map((b) => {
-						return {
-							...b.toJSON(),
-							budget_id: b.budget_id,
-							seller: this.sharedService.captureGroup(b.seller, (sel) => ({
+					bills: bills.map((b) => ({
+						...b.toJSON(),
+						budget_id: b.budget_id,
+						seller: this.sharedService.captureGroup(b.seller, (sel) => ({
+							id: sel.id,
+							name: sel.name,
+						})),
+						cancelUser: this.sharedService.captureGroup(
+							b.cancelUser,
+							(sel) => ({
 								id: sel.id,
 								name: sel.name,
-							})),
-						};
-					}),
+							}),
+						),
+						finishCancelUser: this.sharedService.captureGroup(
+							b.finishCancelUser,
+							(sel) => ({
+								id: sel.id,
+								name: sel.name,
+							}),
+						),
+						financialResponsible: this.sharedService.captureGroup(
+							b.financialResponsible,
+							(sel) => ({
+								id: sel.id,
+								name: sel.name,
+							}),
+						),
+						departmentItems: billDepartmentItemRows.filter(
+							(ro) => ro.bill_id === b.id,
+						),
+					})),
 				});
 
 				const billDocuments = await BillDocument.query()

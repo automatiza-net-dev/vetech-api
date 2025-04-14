@@ -2,6 +2,7 @@ import { inject } from "@adonisjs/fold";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import ContractService from "App/Services/ContractService";
 import SharedService from "App/Services/SharedService";
+import CreateClientContractValidator from "App/Validators/PatientContracts/CreateClientContractValidator";
 import CreateContractValidator from "App/Validators/PatientContracts/CreateContractValidator";
 import UpdateContractValidator from "App/Validators/PatientContracts/UpdateContractValidator";
 
@@ -25,6 +26,21 @@ export default class PatientContractsController {
 		const result = await this.service.forPatient(
 			await this.sharedService.getAuthContext(auth),
 			request.param("patientID", "-"),
+		);
+
+		return response.ok(result);
+	}
+
+	public async clientContract({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const payload = await request.validate(CreateClientContractValidator);
+
+		const result = await this.service.storeClientContract(
+			await this.sharedService.getAuthContext(auth),
+			payload,
 		);
 
 		return response.ok(result);

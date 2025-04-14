@@ -2470,18 +2470,18 @@ where deposit_id = ?
 			.useTransaction(trx)
 			.save();
 
-		await Database.from("user_unit_roles")
-			.useTransaction(trx)
-			.select(
-				Database.raw(
-					"coalesce(user_unit_roles.default_sale_deposit_id, business_unit_configs.outgoing_deposit_id) as deposit_id",
-				),
-			)
-			.joinRaw(
-				"join business_unit_configs on user_unit_roles.unit_id = business_unit_configs.business_unit_id",
-			)
-			.where("user_unit_roles.user_id", authCtx.user.id)
-			.where("user_unit_roles.unit_id", authCtx.unit.id);
+		// await Database.from("user_unit_roles")
+		// 	.useTransaction(trx)
+		// 	.select(
+		// 		Database.raw(
+		// 			"coalesce(user_unit_roles.default_sale_deposit_id, business_unit_configs.outgoing_deposit_id) as deposit_id",
+		// 		),
+		// 	)
+		// 	.joinRaw(
+		// 		"join business_unit_configs on user_unit_roles.unit_id = business_unit_configs.business_unit_id",
+		// 	)
+		// 	.where("user_unit_roles.user_id", authCtx.user.id)
+		// 	.where("user_unit_roles.unit_id", authCtx.unit.id);
 
 		const tasks = data.items.map(async (item) => {
 			const variation = productVariations.find(

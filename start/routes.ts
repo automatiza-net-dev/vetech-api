@@ -2098,6 +2098,7 @@ Route.group(() => {
 Route.group(() => {
 	Route.get("/patient/:patientID", "PatientContractsController.forPatient");
 	Route.get("/", "PatientContractsController.index");
+	Route.post("/store-client", "PatientContractsController.clientContract");
 	Route.post("/store", "PatientContractsController.store");
 	Route.put("/update", "PatientContractsController.update");
 	Route.delete("/delete/:id", "PatientContractsController.delete");

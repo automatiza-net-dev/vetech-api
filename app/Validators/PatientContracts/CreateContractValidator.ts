@@ -39,6 +39,12 @@ export default class CreateContractValidator {
 		paymentMethodId: schema.string([
 			rules.exists({ table: "payment_methods", column: "id" }),
 		]),
+		paymentMethodTefFlagId: schema.string.optional([
+			rules.exists({ table: "tef_flags", column: "id" }),
+		]),
+		paymentMethodTefAcquirerId: schema.string.optional([
+			rules.exists({ table: "tef_acquirers", column: "id" }),
+		]),
 
 		quantity: schema.number(),
 		unitaryValue: schema.number(),

@@ -98,6 +98,8 @@ export default class ContractService {
 			productVariationId: string;
 			businessUnitProductId: string;
 			paymentMethodId: string;
+			paymentMethodTefFlagId?: string;
+			paymentMethodTefAcquirerId?: string;
 
 			quantity: number;
 			unitaryValue: number;
@@ -118,6 +120,8 @@ export default class ContractService {
 			business_unit_product_id: data.businessUnitProductId,
 			payment_method_id: data.paymentMethodId,
 			user_creation_id: authCtx.user.id,
+			payment_method_tef_flag_id: data.paymentMethodTefFlagId,
+			payment_method_tef_acquirer_id: data.paymentMethodTefAcquirerId,
 
 			quantity: new Decimal(data.quantity),
 			unitaryValue: data.unitaryValue,
@@ -132,6 +136,8 @@ export default class ContractService {
 		data: {
 			id: number;
 			paymentMethodId: string;
+			paymentMethodTefFlagId?: string;
+			paymentMethodTefAcquirerId?: string;
 
 			quantity: number;
 			unitaryValue: number;
@@ -165,6 +171,8 @@ export default class ContractService {
 					business_unit_id: authCtx.unit.id,
 					payment_method_id: data.paymentMethodId,
 					user_updated_id: authCtx.user.id,
+					payment_method_tef_flag_id: data.paymentMethodTefFlagId,
+					payment_method_tef_acquirer_id: data.paymentMethodTefAcquirerId,
 
 					quantity: new Decimal(data.quantity),
 					unitaryValue: data.unitaryValue,

@@ -11,6 +11,8 @@ import { softDeleteQuery } from "App/Services/SoftDelete";
 import Decimal from "decimal.js";
 import Product from "./Product";
 import PaymentMethod from "./PaymentMethod";
+import TefFlag from "./TefFlag";
+import TefAcquirer from "./TefAcquirer";
 
 export default class PatientContract extends BaseModel {
 	@column({ isPrimary: true })
@@ -104,4 +106,20 @@ export default class PatientContract extends BaseModel {
 
 	@column({ serializeAs: null })
 	public user_exclusion_id: string | null;
+
+	@column({ serializeAs: null })
+	public payment_method_tef_flag_id: string | null;
+
+	@belongsTo(() => TefFlag, {
+		foreignKey: "payment_method_tef_flag_id",
+	})
+	public tefFlag: BelongsTo<typeof TefFlag>;
+
+	@column({ serializeAs: null })
+	public payment_method_tef_acquirer_id: string | null;
+
+	@belongsTo(() => TefAcquirer, {
+		foreignKey: "payment_method_tef_acquirer_id",
+	})
+	public tefAcquirer: BelongsTo<typeof TefAcquirer>;
 }

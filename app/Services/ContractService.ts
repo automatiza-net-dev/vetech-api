@@ -2,6 +2,7 @@ import { inject } from "@adonisjs/fold";
 import Database from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
+import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import Patient from "App/Models/Patient";
 import PatientContract from "App/Models/PatientContract";
 import SharedService, { AuthContext } from "App/Services/SharedService";
@@ -15,6 +16,10 @@ export default class ContractService {
 	constructor(private sharedService: SharedService) {}
 
 	public async forPatient(authCtx: AuthContext, patientID: string) {
+		if (!authCtx.hasPermission("CON00")) {
+			throw new UnauthorizedException("Usuário sem permissão", 401, "E_ERR");
+		}
+
 		if (!validate(patientID)) {
 			throw new BadRequestException("ID inválido de paciente", 400, "E_ERR");
 		}
@@ -57,6 +62,10 @@ export default class ContractService {
 	}
 
 	public async index(authCtx: AuthContext, data: {}) {
+		if (!authCtx.hasPermission("CON00")) {
+			throw new UnauthorizedException("Usuário sem permissão", 401, "E_ERR");
+		}
+
 		const rows: {
 			economic_group_id: string;
 			businness_unit_id: string;
@@ -115,6 +124,10 @@ export default class ContractService {
 			expirationDay: number;
 		},
 	) {
+		if (!authCtx.hasPermission("CON01")) {
+			throw new UnauthorizedException("Usuário sem permissão", 401, "E_ERR");
+		}
+
 		const [month, year] = data.promotionalValueExpiration.split("/");
 		const expiration = endOfMonth(new Date(`${year}/${month}/10`));
 
@@ -154,6 +167,10 @@ export default class ContractService {
 			active: boolean;
 		},
 	) {
+		if (!authCtx.hasPermission("CON02")) {
+			throw new UnauthorizedException("Usuário sem permissão", 401, "E_ERR");
+		}
+
 		return Database.transaction(async (trx) => {
 			const existingContract = await PatientContract.query()
 				.useTransaction(trx)
@@ -198,6 +215,10 @@ export default class ContractService {
 			id: number;
 		},
 	) {
+		if (!authCtx.hasPermission("CON03")) {
+			throw new UnauthorizedException("Usuário sem permissão", 401, "E_ERR");
+		}
+
 		return Database.transaction(async (trx) => {
 			const existingContract = await PatientContract.query()
 				.useTransaction(trx)

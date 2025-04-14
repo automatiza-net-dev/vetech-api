@@ -24,6 +24,8 @@ export default class ContractService {
 		const contracts = await PatientContract.query()
 			.preload("product")
 			.preload("paymentMethod")
+			.preload("tefFlag")
+			.preload("tefAcquirer")
 			.where("economic_group_id", authCtx.group.id)
 			.where("business_unit_id", authCtx.unit.id)
 			.where("patient_id", patientID);
@@ -43,6 +45,11 @@ export default class ContractService {
 				promotional_value_expiration: row.promotionalValueExpiration,
 				payment_method_id: row.payment_method_id,
 				payment_method_description: row.paymentMethod.description,
+				payment_method_tef_flag_id: row.payment_method_tef_flag_id,
+				payment_method_tef_flag_description: row.tefFlag?.description ?? null,
+				payment_method_tef_acquirer_id: row.payment_method_tef_acquirer_id,
+				payment_method_tef_acquirer_description:
+					row.tefAcquirer?.description ?? null,
 				expiration_day: row.expirationDay,
 				active: row.active,
 			})),

@@ -31,6 +31,7 @@ export default class UpdateSanclaTutorForRegisterValidator {
 		name: schema.string({}),
 		corporateName: schema.string.optional({}),
 		document: schema.string({}, []),
+		tag: schema.string.optional({}),
 		inscription: schema.string.optional(),
 		photo: schema.file.optional({
 			extnames: ["jpg", "gif", "png", "jpeg"],

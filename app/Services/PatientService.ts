@@ -1709,6 +1709,7 @@ export default class PatientService {
 		authCtx: AuthContext,
 		id: string,
 		data: Omit<IPatientData, "holderId"> & {
+			tag?: string;
 			death: boolean;
 			deathDate?: DateTime;
 			technicianId?: string;
@@ -1752,6 +1753,7 @@ export default class PatientService {
 					photo,
 					gender: data.gender,
 					tags: data.tags,
+					tag: authCtx.hasPermission("TUT04") ? data.tag : patient.tag,
 					community: data.community,
 					birthDate: data.birthDate
 						? typeof data.birthDate === "string"
@@ -1965,6 +1967,7 @@ export default class PatientService {
 		authCtx: AuthContext,
 		id: string,
 		data: IPatientTutorData & {
+			tag?: string;
 			contacts?: {
 				main: boolean;
 				notGiven: boolean;
@@ -2098,6 +2101,7 @@ export default class PatientService {
 					photo,
 					gender: data.gender,
 					tags: data.tags,
+					tag: authCtx.hasPermission("TUT04") ? data.tag : tutor.tag,
 					birthDate: data.birthDate
 						? typeof data.birthDate === "string"
 							? DateTime.fromISO(data.birthDate).toJSDate()

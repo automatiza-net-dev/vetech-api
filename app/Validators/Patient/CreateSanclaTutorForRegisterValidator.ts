@@ -28,6 +28,7 @@ export default class CreateSanclaTutorForRegisterValidator {
 	public schema = schema.create({
 		name: schema.string({}),
 		corporateName: schema.string.optional({}),
+		tag: schema.string.optional({}),
 		document: schema.string({}, []),
 		inscription: schema.string.optional({}, []),
 		birthDate: schema.date({}),

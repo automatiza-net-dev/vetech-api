@@ -2,11 +2,13 @@ import { inject } from "@adonisjs/fold";
 import Database from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
+import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import CrmStatus, { CrmStatusType } from "App/Models/CrmStatus";
 import Kanban from "App/Models/Kanban";
 import KanbanUser from "App/Models/KanbanUser";
 import Opportunity from "App/Models/Opportunity";
 import OpportunityActivity from "App/Models/OpportunityActivity";
+import OpportunityKanbanLog from "App/Models/OpportunityKanbanLog";
 import OpportunityLog from "App/Models/OpportunityLog";
 import Patient, { PatientType } from "App/Models/Patient";
 import { DateTime } from "luxon";
@@ -15,6 +17,55 @@ import SharedService, { AuthContext } from "./SharedService";
 @inject()
 export default class CrmV2Service {
 	constructor(private sharedService: SharedService) {}
+
+	public async transferKanban(
+		authCtx: AuthContext,
+		data: {
+			economicGroupId: string;
+			businessUnitId: string;
+			opportunityId: number;
+			originKanbanId: number;
+			destinationKanbanId: number;
+		},
+	) {
+		if (!authCtx.hasPermission("CRM13")) {
+			throw new UnauthorizedException("Usuário sem permissão", 401, "E_ERR");
+		}
+
+		await Database.transaction(async (trx) => {
+			const opp = await Opportunity.query()
+				.useTransaction(trx)
+				.where("economic_group_id", data.economicGroupId)
+				.where("business_unit_id", data.businessUnitId)
+				.where("id", data.opportunityId)
+				.first();
+			if (!opp) {
+				throw new BadRequestException(
+					"Esta oportunidade não pertence a unidade de negocios enviada",
+					400,
+					"E_ERR",
+				);
+			}
+
+			await OpportunityKanbanLog.create(
+				{
+					economic_group_id: data.economicGroupId,
+					business_unit_id: data.businessUnitId,
+					opportunity_id: data.opportunityId,
+					origin_kanban_id: data.originKanbanId,
+					destination_kanban_id: data.destinationKanbanId,
+					user_id: authCtx.user.id,
+					createdAt: DateTime.now(),
+				},
+				{ client: trx },
+			);
+
+			await opp
+				.merge({ kanban_id: data.destinationKanbanId })
+				.useTransaction(trx)
+				.save();
+		});
+	}
 
 	public async listKanbans(
 		authCtx: AuthContext,

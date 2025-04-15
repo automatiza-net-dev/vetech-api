@@ -5,6 +5,7 @@ import SharedService from "App/Services/SharedService";
 import CreateKanbanBoardValidator from "App/Validators/CrmV2/CreateKanbanBoardValidator";
 import UpdateKanbanBoardValidator from "App/Validators/CrmV2/UpdateKanbanBoardValidator";
 import CreateOpportunityValidator from "App/Validators/CrmV2/CreateOpportunityValidator";
+import TransferOpportunityValidator from "App/Validators/CrmV2/TransferOpportunityValidator";
 
 @inject()
 export default class CrmV2Controller {
@@ -27,6 +28,20 @@ export default class CrmV2Controller {
 
 		return response.ok(result);
 	}
+
+	public async transferOpportunity({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const payload = await request.validate(TransferOpportunityValidator);
+		const authCtx = await this.sharedService.getAuthContext(auth);
+
+		await this.service.transferKanban(authCtx, payload);
+
+		return response.ok(null);
+	}
+
 	public async createOpportunity({
 		auth,
 		request,

@@ -2076,6 +2076,7 @@ Route.group(() => {
 	.middleware("auth");
 
 Route.group(() => {
+	Route.post("/transfer-opportunity", "CrmV2Controller.transferOpportunity");
 	Route.post("/create-opportunity", "CrmV2Controller.createOpportunity");
 	Route.get(
 		"/search-kanban-opportunities",

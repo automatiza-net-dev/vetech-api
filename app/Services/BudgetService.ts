@@ -341,13 +341,30 @@ export default class BudgetService {
 							"total_value",
 							"installments",
 							"status",
+							"pending",
+							"approved",
+							"approved_at",
+							"reason",
+							"cancelled",
+							"review_cancel_date",
+							"review_cancel_notes",
 							"payment_method_id",
 							"tef_flag_id",
 							"tef_acquirer_id",
+							"approved_user_id",
+							"reviewer_cancel_user_id",
 						);
 
 						query.preload("paymentMethod", (query) => {
 							query.select("id", "description");
+						});
+
+						query.preload("approvedUser", (query) => {
+							query.select("id", "name");
+						});
+
+						query.preload("reviewerCancelUser", (query) => {
+							query.select("id", "name");
 						});
 
 						query.preload("flag", (query) => {

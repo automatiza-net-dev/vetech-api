@@ -1511,11 +1511,13 @@ export default class ReceiptService {
 			dailyMovementId?: string;
 			reversalUserId?: string;
 			reversalReasonId?: string;
+			originBusinessUnitId?: string;
 			receiptDate: DateTime;
 			otherValue?: number;
 			additionalInformation?: string;
 			reversalObservation?: string;
 			reversedAt?: DateTime;
+			receiptType: "E" | "T" | "D";
 
 			items: Array<{
 				productVariationId: string;
@@ -1554,8 +1556,11 @@ export default class ReceiptService {
 					daily_movement_id: dailyMovement?.id,
 					reversal_user_id: data.reversalUserId,
 					reversal_reason_id: data.reversalReasonId,
+					origin_business_unit_id:
+						data.receiptType === "E" ? undefined : data.originBusinessUnitId,
 
 					origin: "Manual",
+					receiptType: data.receiptType,
 					tag: GenerateTag(counter.length + 1),
 					issueDate: DateTime.now(),
 					receiptDate: data.receiptDate,
@@ -1571,6 +1576,8 @@ export default class ReceiptService {
 			const tasks = data.items.map((elem) => {
 				return this.innerCreateItem(trx, authCtx, {
 					receiptId: receipt.id,
+					supplierId: data.supplierId,
+					receiptType: data.receiptType,
 					productVariationId: elem.productVariationId,
 					quantity: elem.quantity,
 					costValue: elem.unitaryValue,
@@ -1609,7 +1616,11 @@ export default class ReceiptService {
 				throw this.sharedService.ResourceNotFound();
 			}
 
-			await this.innerCreateItem(trx, authCtx, data);
+			await this.innerCreateItem(trx, authCtx, {
+				...data,
+				supplierId: receipt.supplier_id,
+				receiptType: receipt.receiptType,
+			});
 
 			await this.syncReceipt(trx, receipt);
 		});
@@ -1620,11 +1631,13 @@ export default class ReceiptService {
 		authCtx: AuthContext,
 		data: {
 			receiptId: string;
+			supplierId: string;
 			productVariationId: string;
 			quantity: number;
 			costValue: number;
 			unitaryValue: number;
 			discountValue: number;
+			receiptType: "E" | "T" | "D";
 		},
 	) {
 		const productVariation = await ProductVariation.query()
@@ -1641,11 +1654,17 @@ export default class ReceiptService {
 
 		if (!productVariation) {
 			throw new BadRequestException(
-				"Não foi possível encontrar um preço para esse produto",
+				"Não foi possível encontrar uma variação",
 				400,
 				"E_NO_VARIATION",
 			);
 		}
+
+		const supplier = await Patient.query()
+			.useTransaction(trx)
+			.preload("tutor")
+			.where("id", data.supplierId)
+			.firstOrFail();
 
 		const rule = await TaxationGroupRule.query()
 			.useTransaction(trx)
@@ -1653,9 +1672,17 @@ export default class ReceiptService {
 				query.where("id", productVariation.product.taxation_group_id);
 			})
 			.where("movementType", MovementType.E)
-			.where("movementCategory", MovementCategory.NE)
-			.where("fromUf", authCtx.unit.state ?? "-")
+			.where(
+				"movementCategory",
+				data.receiptType === "T" ? MovementCategory.TE : MovementCategory.NE,
+			)
 			.where("toUf", authCtx.unit.state ?? "-")
+			.where(
+				"fromUf",
+				data.receiptType === "T"
+					? (supplier?.tutor?.state ?? "-")
+					: (authCtx.unit.state ?? "-"),
+			)
 			.preload("taxationGroup")
 			.preload("taxOperation")
 			.first();

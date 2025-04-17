@@ -43,6 +43,7 @@ export default class CreateBillValidator {
 			rules.exists({ table: "bills", column: "id" }),
 		]),
 		billType: schema.enum(["V", "T", "D"] as const),
+		receiptType: schema.enum.optional(["E", "T", "D"] as const),
 
 		maxDiscount: schema.boolean([]),
 

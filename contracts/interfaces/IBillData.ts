@@ -30,6 +30,7 @@ export interface ICreateBillData {
 
 	destinyBusinessUnitId?: string;
 	billType: "V" | "T" | "D";
+	receiptType?: "E" | "T" | "D";
 }
 
 export interface ICreateBillItemData {

@@ -24,6 +24,7 @@ export const ReceiptStatus = [
 	"Estornada",
 	"PendenteXml",
 	"Excluida",
+	"NaoConfirmada",
 ] as const;
 export type TReceiptStatus = (typeof ReceiptStatus)[number];
 
@@ -193,6 +194,12 @@ export default class Receipt extends BaseModel {
 	@column()
 	public status: TReceiptStatus;
 
+	@column({
+		columnName: "receipt_type",
+		serializeAs: "receiptType",
+	})
+	public receiptType: "E" | "T" | "D";
+
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
 
@@ -296,4 +303,14 @@ export default class Receipt extends BaseModel {
 		foreignKey: "receipt_id",
 	})
 	public items: HasMany<typeof ReceiptItem>;
+
+	@column({
+		serializeAs: null,
+	})
+	public origin_business_unit_id: string | null;
+
+	@column({
+		serializeAs: null,
+	})
+	public related_bill_id: string | null;
 }

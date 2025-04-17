@@ -29,6 +29,7 @@ export default class CreateBillsValidator {
 				]),
 				billDate: schema.date(),
 				billType: schema.enum(["V", "T", "D"] as const),
+				receiptType: schema.enum.optional(["E", "T", "D"] as const),
 
 				additionalInformation: schema.string.optional(),
 				budgetId: schema.string.optional({}, [

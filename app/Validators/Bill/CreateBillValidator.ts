@@ -25,6 +25,10 @@ export default class CreateBillValidator {
 			rules.uuid(),
 			rules.exists({ table: "schedules", column: "id" }),
 		]),
+		destinyBusinessUnitId: schema.string.optional({}, [
+			rules.uuid(),
+			rules.exists({ table: "business_units", column: "id" }),
+		]),
 		billDate: schema.date(),
 
 		additionalInformation: schema.string.optional(),
@@ -38,6 +42,7 @@ export default class CreateBillValidator {
 			rules.uuid(),
 			rules.exists({ table: "bills", column: "id" }),
 		]),
+		billType: schema.enum(["V", "T", "D"] as const),
 
 		maxDiscount: schema.boolean([]),
 

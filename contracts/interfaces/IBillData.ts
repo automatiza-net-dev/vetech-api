@@ -27,6 +27,9 @@ export interface ICreateBillData {
 	internalCode?: string;
 	originBillId?: string;
 	maxDiscount: boolean;
+
+	destinyBusinessUnitId?: string;
+	billType: "V" | "T" | "D";
 }
 
 export interface ICreateBillItemData {

@@ -2260,7 +2260,15 @@ where deposit_id = ?
 	) {
 		if (authCtx.unit.unitConfig.requiresBillPatient && !data.patientId) {
 			throw new BadRequestException(
-				"É necessário informar o paciente para realizar o orçamento",
+				"É necessário informar o paciente para realizar a venda",
+				400,
+				"E_ERR",
+			);
+		}
+
+		if (data.billType === "T" && !data.destinyBusinessUnitId) {
+			throw new BadRequestException(
+				"Unidade de destino da transferencia não foi informada",
 				400,
 				"E_ERR",
 			);
@@ -2313,6 +2321,7 @@ where deposit_id = ?
 		const client = await Patient.query()
 			.useTransaction(trx)
 			.where("id", data.clientId)
+			.preload("tutor")
 			.preload("bills")
 			.firstOrFail();
 		if (client.bills.length === 0) {
@@ -2380,7 +2389,7 @@ where deposit_id = ?
 			}
 		}
 
-		const taxRules = await TaxationGroupRule.query()
+		const taxRulesQb = TaxationGroupRule.query()
 			.useTransaction(trx)
 			.whereHas("taxationGroup", (query) => {
 				query.whereIn(
@@ -2389,15 +2398,25 @@ where deposit_id = ?
 				);
 			})
 			.where("movement_type", MovementType.S)
-			.where("movement_category", MovementCategory.NS)
 			.where("fromUf", authCtx.unit.state ?? "")
-			.where("toUf", authCtx.unit.state ?? "")
 			.where(
 				"company_type",
 				authCtx.unit.simple ? CompanyType.S : CompanyType.N,
 			)
 			.preload("taxationGroup")
 			.preload("taxOperation");
+
+		if (data.billType === "T") {
+			taxRulesQb
+				.where("movement_category", MovementCategory.TS)
+				.where("toUf", client?.tutor?.state ?? "");
+		} else {
+			taxRulesQb
+				.where("movement_category", MovementCategory.NS)
+				.where("toUf", authCtx.unit.state ?? "");
+		}
+
+		const taxRules = await taxRulesQb;
 
 		const ufIcms = await UfIcms.query()
 			.whereIn(
@@ -2428,7 +2447,10 @@ where deposit_id = ?
 				client_id: data.clientId,
 				patient_id: data.patientId,
 				origin_bill_id: data.originBillId,
+				destiny_business_unit_id:
+					data.billType === "V" ? undefined : data.destinyBusinessUnitId,
 
+				billType: data.billType,
 				internalCode: dynamicInternalCode,
 				pending: data.items.some((i) => i.courtesy || i.maxDiscount),
 				billDate: data.billDate,
@@ -2438,7 +2460,7 @@ where deposit_id = ?
 				totalValue: 0,
 				deliveryValue: 0,
 				additionalInformation: data.additionalInformation,
-				status: BillStatus.A,
+				status: data.billType === "T" ? BillStatus.B : BillStatus.A,
 				documentStatus: "Não Gerados",
 
 				otherValue: 0,

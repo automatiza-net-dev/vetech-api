@@ -315,6 +315,12 @@ export default class Bill extends BaseModel {
 	})
 	public originalDiscountValue: Decimal | null;
 
+	@column({
+		columnName: "bill_type",
+		serializeAs: "billType",
+	})
+	public billType: "V" | "T" | "D" | null;
+
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
 
@@ -492,4 +498,14 @@ export default class Bill extends BaseModel {
 		serializeAs: "_cancelReason",
 	})
 	public _cancelReason: BelongsTo<typeof Reason>;
+
+	@column({
+		serializeAs: null,
+	})
+	public destiny_business_unit_id: string | null;
+
+	@column({
+		serializeAs: null,
+	})
+	public related_receipt_id: string | null;
 }

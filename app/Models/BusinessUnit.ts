@@ -133,6 +133,11 @@ export default class BusinessUnit extends BaseModel {
 	})
 	public system_id: number;
 
+	@column({
+		serializeAs: null,
+	})
+	public patient_id: string | null;
+
 	@belongsTo(() => EconomicGroup, {})
 	public economicGroup: BelongsTo<typeof EconomicGroup>;
 

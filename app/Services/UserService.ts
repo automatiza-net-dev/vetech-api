@@ -11,6 +11,8 @@ import { CheckingAccountType } from "App/Models/CheckingAccount";
 import ConfirmationToken from "App/Models/ConfirmationToken";
 import Deposit from "App/Models/Deposit";
 import { LicenceType } from "App/Models/Licence";
+import Patient, { PatientType } from "App/Models/Patient";
+import PatientContact from "App/Models/PatientContact";
 import System from "App/Models/System";
 import SystemPaymentMethod from "App/Models/SystemPaymentMethod";
 import SystemProduct from "App/Models/SystemProduct";
@@ -151,7 +153,7 @@ export default class UserService {
 			const newBusinessUnit = await newGroup.related("businessUnits").create(
 				{
 					id: v4(),
-          system_id: system.id,
+					system_id: system.id,
 					identification: `Clínica do(a) ${user.name}`,
 					companyName: `Clínica do(a) ${user.name}`,
 					fantasyName: `Clínica do(a) ${user.name}`,
@@ -171,6 +173,45 @@ export default class UserService {
 					client: trx,
 				},
 			);
+
+			const unitPatient = await Patient.create(
+				{
+					business_unit_id: newBusinessUnit.id,
+					type: PatientType.UNIT,
+					name: newBusinessUnit.identification,
+				},
+				{ client: trx },
+			);
+			await unitPatient
+				.related("tutor")
+				.create(
+					{ corporateName: newBusinessUnit.companyName },
+					{ client: trx },
+				);
+			await unitPatient.related("contacts").createMany(
+				[
+					{
+						main: true,
+						contact: data.email,
+						observation: "",
+						type: "email",
+						notGiven: false,
+					},
+					{
+						main: false,
+						contact: data.phone,
+						observation: "",
+						type: "celular",
+						notGiven: false,
+					},
+				].filter((r) => !!r.contact) as Partial<PatientContact>[],
+				{ client: trx },
+			);
+
+			await newBusinessUnit
+				.merge({ patient_id: unitPatient.id })
+				.useTransaction(trx)
+				.save();
 
 			const tefAcquirers = await TefAcquirer.query().useTransaction(trx);
 			await newBusinessUnit.related("acquirers").createMany(

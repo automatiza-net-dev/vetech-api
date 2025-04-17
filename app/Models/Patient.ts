@@ -26,6 +26,7 @@ export enum PatientType {
 	TUTOR = "tutor",
 	ANIMAL = "animal",
 	SUPPLIER = "supplier",
+	UNIT = "unit",
 }
 
 export enum PatientGender {
@@ -157,6 +158,11 @@ export default class Patient extends BaseModel {
 		serializeAs: null,
 	})
 	public exclusion_user_id: string;
+
+	@column({
+		serializeAs: null,
+	})
+	public business_unit_id: string | null;
 
 	@manyToMany(() => EconomicGroup, {
 		pivotTable: "patient_economic_groups",

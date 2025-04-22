@@ -321,6 +321,12 @@ export default class Bill extends BaseModel {
 	})
 	public billType: "V" | "T" | "D" | null;
 
+	@column.dateTime({
+		columnName: "transfer_confirmation_date",
+		serializeAs: "transferConfirmationDate",
+	})
+	public transferConfirmationDate: DateTime | null;
+
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
 
@@ -508,4 +514,9 @@ export default class Bill extends BaseModel {
 		serializeAs: null,
 	})
 	public related_receipt_id: string | null;
+
+	@column({
+		serializeAs: null,
+	})
+	public confirmation_user_id: string | null;
 }

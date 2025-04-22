@@ -200,6 +200,12 @@ export default class Receipt extends BaseModel {
 	})
 	public receiptType: "E" | "T" | "D";
 
+	@column.dateTime({
+		columnName: "transfer_confirmation_date",
+		serializeAs: "transferConfirmationDate",
+	})
+	public transferConfirmationDate: DateTime | null;
+
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
 
@@ -313,4 +319,9 @@ export default class Receipt extends BaseModel {
 		serializeAs: null,
 	})
 	public related_bill_id: string | null;
+
+	@column({
+		serializeAs: null,
+	})
+	public confirmation_user_id: string | null;
 }

@@ -1512,6 +1512,7 @@ Route.group(() => {
 Route.group(() => {
 	Route.post("/import-xml", "ReceiptsController.importFromXml");
 	Route.post("/update-xml-items", "ReceiptsController.updateXmlItems");
+	Route.post("/confirm-transference", "ReceiptsController.confirmTransference");
 
 	Route.post("/create", "ReceiptsController.createReceipt");
 	Route.post("/create-item", "ReceiptsController.createReceiptItem");
@@ -1524,6 +1525,10 @@ Route.group(() => {
 	Route.post("/delete-item", "ReceiptsController.deleteReceiptItem");
 	Route.post("/delete-payment", "ReceiptsController.deleteReceiptPayment");
 
+	Route.get(
+		"/pending-transferences",
+		"ReceiptsController.pendingTransferences",
+	);
 	Route.get("/", "ReceiptsController.index");
 	Route.get("/with-products", "ReceiptsController.productIndex");
 	Route.get("/show", "ReceiptsController.show");

@@ -1,4 +1,5 @@
 import { inject } from "@adonisjs/fold";
+import Hash from "@ioc:Adonis/Core/Hash";
 import { MultipartFileContract } from "@ioc:Adonis/Core/BodyParser";
 import Drive from "@ioc:Adonis/Core/Drive";
 import Logger from "@ioc:Adonis/Core/Logger";
@@ -46,6 +47,7 @@ import TaxationGroupRule, {
 	MovementCategory,
 	MovementType,
 } from "App/Models/TaxationGroupRule";
+import User from "App/Models/User";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import { GenerateTag } from "App/Utils/GenerateTag";
 import { format } from "date-fns";
@@ -2867,6 +2869,151 @@ and product_variation_id in (
 					deleted_user_id: authCtx.user.id,
 					deletedAt: DateTime.now(),
 				});
+		});
+	}
+
+	public async pendingTransferences(authCtx: AuthContext) {
+		const qb1 = Database.from("bills")
+			.select(
+				Database.raw(`business_units.id as bid,
+       business_units.identification,
+       bills.id,
+       bills.tag,
+       bills.bill_date,
+       receipts.id as rid,
+       receipts.tag as rtag,
+       receipts.receipt_date`),
+			)
+			.joinRaw("join receipts on receipts.related_bill_id = bills.id")
+			.joinRaw(
+				"join business_units on bills.business_unit_id = business_units.id",
+			)
+			.whereRaw("bills.transfer_confirmation_date is null")
+			.whereRaw("bills.bill_type = 'T'")
+			.whereRaw("bills.business_unit_id = ?", [authCtx.unit.id])
+			.whereRaw("bills.deleted_at is null")
+			.orderByRaw("bills.bill_date");
+
+		const qb2 = Database.from("receipts")
+			.select(
+				Database.raw(`business_units.id as bid,
+       business_units.identification,
+       bills.id,
+       bills.tag,
+       bills.bill_date,
+       receipts.id as rid,
+       receipts.tag as rtag,
+       receipts.receipt_date`),
+			)
+			.joinRaw("join bills on receipts.related_bill_id = bills.id")
+			.joinRaw(
+				"join business_units on receipts.business_unit_id = business_units.id",
+			)
+			.whereRaw("receipts.transfer_confirmation_date is null")
+			.whereRaw("receipts.receipt_type = 'T'")
+			.whereRaw("receipts.business_unit_id = ?", [authCtx.unit.id])
+			.whereRaw("receipts.deleted_at is null")
+			.orderByRaw("receipts.receipt_date");
+
+		const [bills, receipts] = await Promise.all([qb1, qb2]);
+
+		return {
+			bills: bills.map((r) => ({
+				billId: r.bid,
+				billTag: r.tag,
+				billDate: r.bill_date,
+				receiptId: r.rid,
+				receiptTag: r.rtag,
+				receiptDate: r.receipt_date,
+				receiptBusinessUnitID: r.bid,
+				receiptBusinessUnitIdentification: r.identification,
+			})),
+			receipts: receipts.map((r) => ({
+				billId: r.bid,
+				billTag: r.tag,
+				billDate: r.bill_date,
+				receiptId: r.rid,
+				receiptTag: r.rtag,
+				receiptDate: r.receipt_date,
+				receiptBusinessUnitID: r.bid,
+				receiptBusinessUnitIdentification: r.identification,
+			})),
+		};
+	}
+
+	public async confirmTransference(
+		authCtx: AuthContext,
+		data: {
+			receiptId: string;
+			confirmationUserEmail: string;
+			confirmationUserPwd: string;
+		},
+	) {
+		await Database.transaction(async (trx) => {
+			const user = await User.query()
+				.useTransaction(trx)
+				.whereILike("email", data.confirmationUserEmail)
+				.where("system_id", authCtx.system.id)
+				.first();
+
+			if (!user) {
+				throw new BadRequestException(
+					"Credenciais inválidas",
+					400,
+					"E_BAD_CREDENTIALS",
+				);
+			}
+
+			if (!(await Hash.verify(user.password, data.confirmationUserPwd))) {
+				throw new BadRequestException(
+					"Credenciais inválidas",
+					400,
+					"E_BAD_CREDENTIALS",
+				);
+			}
+
+			const hasPermissions = await this.sharedService.userHasPermission(
+				{ ...authCtx, user },
+				"ENT12",
+			);
+			if (!hasPermissions) {
+				throw new UnauthorizedException(
+					"Usuário sem permissão de fazer a operação",
+					400,
+					"E_ERR",
+				);
+			}
+
+			const receipt = await Receipt.query()
+				.useTransaction(trx)
+				.where("id", data.receiptId)
+				.where("business_unit_id", authCtx.unit.id)
+				.firstOrFail();
+
+			if (receipt.transferConfirmationDate) {
+				throw new BadRequestException(
+					"Nota de Entrada já foi confirmada para transferência",
+					400,
+					"E_ERR",
+				);
+			}
+
+			await receipt
+				.merge({
+					confirmation_user_id: authCtx.user.id,
+					transferConfirmationDate: DateTime.now(),
+				})
+				.useTransaction(trx)
+				.save();
+
+			if (receipt.related_bill_id) {
+				await Database.rawQuery(
+					"update bills set confirmation_user_id = ?, transfer_confirmation_date = now() where id = ?",
+					[authCtx.user.id, receipt.related_bill_id],
+				)
+					.useTransaction(trx)
+					.exec();
+			}
 		});
 	}
 

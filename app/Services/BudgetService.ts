@@ -142,6 +142,8 @@ export default class BudgetService {
 					"observation",
 					"pending",
 					"internal_observation",
+					"paid_value",
+					"discount_value",
 					"client_id",
 					"patient_id",
 					"user_id",
@@ -275,6 +277,7 @@ export default class BudgetService {
 					budgets: elem.budgets.map((b) => ({
 						...b.toJSON(),
 						status: statuses.find((s) => s.id === b.id)?.status ?? b.status,
+						nonPaidValue: b.totalValue - b.paidValue,
 						items: b.items.map((row) => {
 							const jsonItem = row.toJSON();
 
@@ -298,6 +301,7 @@ export default class BudgetService {
 						"status",
 						"total_value",
 						"discount_value",
+						"paid_value",
 						"pending",
 						"cancelled",
 						"cancelled_at",
@@ -404,6 +408,7 @@ export default class BudgetService {
 					bills: bills.map((b) => ({
 						...b.toJSON(),
 						budget_id: b.budget_id,
+						nonPaidValue: b.totalValue - b.paidValue,
 						seller: this.sharedService.captureGroup(b.seller, (sel) => ({
 							id: sel.id,
 							name: sel.name,

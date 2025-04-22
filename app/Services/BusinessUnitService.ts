@@ -160,7 +160,7 @@ export default class BusinessUnitService {
 				);
 
 				await unit
-					.merge({ patient_id: unitPatient.id })
+					.merge({ unit_patient_id: unitPatient.id })
 					.useTransaction(trx)
 					.save();
 
@@ -432,7 +432,7 @@ export default class BusinessUnitService {
 				}
 			}
 
-			if (!unit.patient_id) {
+			if (!unit.unit_patient_id) {
 				const unitPatient = await Patient.create(
 					{
 						business_unit_id: unit.id,
@@ -465,7 +465,7 @@ export default class BusinessUnitService {
 				);
 
 				await unit
-					.merge({ patient_id: unitPatient.id })
+					.merge({ unit_patient_id: unitPatient.id })
 					.useTransaction(trx)
 					.save();
 			} else {
@@ -473,13 +473,13 @@ export default class BusinessUnitService {
 					.update({
 						name: data.identification,
 					})
-					.where("id", unit.patient_id)
+					.where("id", unit.unit_patient_id)
 					.useTransaction(trx);
 				await Database.from("patient_tutors")
 					.update({
 						corporate_name: data.companyName,
 					})
-					.where("patient_id", unit.patient_id)
+					.where("patient_id", unit.unit_patient_id)
 					.useTransaction(trx);
 			}
 

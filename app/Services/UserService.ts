@@ -209,7 +209,7 @@ export default class UserService {
 			);
 
 			await newBusinessUnit
-				.merge({ patient_id: unitPatient.id })
+				.merge({ unit_patient_id: unitPatient.id })
 				.useTransaction(trx)
 				.save();
 

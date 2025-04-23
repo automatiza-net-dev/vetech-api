@@ -274,22 +274,32 @@ export default class ScheduleService {
 
 		const confirmedQb = Schedule.query()
 			.select(
-				"patient_id",
-				"holder_id",
-				"schedule_service_type_id",
-				"schedule_status_id",
-				"user_id",
-				"id",
-				"patient_name",
-				"patient_phone",
-				"start_hour",
-				"end_hour",
-				"major_complaint",
-				"observation",
-				"confirmation_user_id",
-				"confirmation_conference_date",
-				"confirmation_date",
-				"confirmation_origin",
+				Database.raw(`patient_id,
+				holder_id,
+				schedule_service_type_id,
+				schedule_status_id,
+				user_id,
+				id,
+				patient_name,
+				patient_phone,
+				start_hour,
+				end_hour,
+				major_complaint,
+				observation,
+
+				confirmation_user_id,
+				confirmation_conference_date,
+				confirmation_date,
+				confirmation_origin,
+        coalesce((select sum(total_value) as total
+from "finances"
+where type = 'CREDITO'
+  and deleted_at is null
+  and business_unit_id = schedules.business_unit_id
+  and client_id = coalesce(schedules.holder_id, schedules.patient_id)
+  and payment_date is null
+  and expiration_date < now()
+group by client_id),0) as financesExpired`),
 			)
 			.where("business_unit_id", data.unit ?? authCtx.unit.id)
 			.whereHas("serviceStatus", (query) => {
@@ -331,23 +341,32 @@ export default class ScheduleService {
 
 		const nonConfirmedQb = Schedule.query()
 			.select(
-				"patient_id",
-				"holder_id",
-				"schedule_service_type_id",
-				"schedule_status_id",
-				"user_id",
-				"id",
-				"patient_name",
-				"patient_phone",
-				"start_hour",
-				"end_hour",
-				"major_complaint",
-				"observation",
+				Database.raw(`patient_id,
+				holder_id,
+				schedule_service_type_id,
+				schedule_status_id,
+				user_id,
+				id,
+				patient_name,
+				patient_phone,
+				start_hour,
+				end_hour,
+				major_complaint,
+				observation,
 
-				"confirmation_user_id",
-				"confirmation_conference_date",
-				"confirmation_date",
-				"confirmation_origin",
+				confirmation_user_id,
+				confirmation_conference_date,
+				confirmation_date,
+				confirmation_origin,
+        coalesce((select sum(total_value) as total
+from "finances"
+where type = 'CREDITO'
+  and deleted_at is null
+  and business_unit_id = schedules.business_unit_id
+  and client_id = coalesce(schedules.holder_id, schedules.patient_id)
+  and payment_date is null
+  and expiration_date < now()
+group by client_id),0) as financesExpired`),
 			)
 			.where("business_unit_id", data.unit ?? authCtx.unit.id)
 			.whereHas("serviceStatus", (query) => {

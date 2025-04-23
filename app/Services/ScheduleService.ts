@@ -290,16 +290,7 @@ export default class ScheduleService {
 				confirmation_user_id,
 				confirmation_conference_date,
 				confirmation_date,
-				confirmation_origin,
-        coalesce((select sum(total_value) as total
-from "finances"
-where type = 'CREDITO'
-  and deleted_at is null
-  and business_unit_id = schedules.business_unit_id
-  and client_id = coalesce(schedules.holder_id, schedules.patient_id)
-  and payment_date is null
-  and expiration_date < now()
-group by client_id),0) as finances_expired`),
+				confirmation_origin`),
 			)
 			.where("business_unit_id", data.unit ?? authCtx.unit.id)
 			.whereHas("serviceStatus", (query) => {
@@ -357,16 +348,7 @@ group by client_id),0) as finances_expired`),
 				confirmation_user_id,
 				confirmation_conference_date,
 				confirmation_date,
-				confirmation_origin,
-        coalesce((select sum(total_value) as total
-from "finances"
-where type = 'CREDITO'
-  and deleted_at is null
-  and business_unit_id = schedules.business_unit_id
-  and client_id = coalesce(schedules.holder_id, schedules.patient_id)
-  and payment_date is null
-  and expiration_date < now()
-group by client_id),0) as finances_expired`),
+				confirmation_origin`),
 			)
 			.where("business_unit_id", data.unit ?? authCtx.unit.id)
 			.whereHas("serviceStatus", (query) => {
@@ -418,10 +400,17 @@ group by client_id),0) as finances_expired`),
 			nonConfirmedQb.whereRaw("schedules.start_hour::date >= now()::date", []);
 		}
 
-		const [confirmedSchedules, nonConfirmedSchedules] = await Promise.all([
-			confirmedQb,
-			nonConfirmedQb,
-		]);
+		const missingQb = Database.from("finances")
+			.select(Database.raw("client_id, coalesce(sum(total_value), 0) as total"))
+			.whereRaw("type = 'CREDITO'")
+			.whereNull("deleted_at")
+			.whereRaw("business_unit_id = ?", [data.unit ?? authCtx.unit.id])
+			.whereRaw("payment_date is null")
+			.whereRaw("expiration_date < now()")
+			.groupByRaw("client_id");
+
+		const [confirmedSchedules, nonConfirmedSchedules, missing] =
+			await Promise.all([confirmedQb, nonConfirmedQb, missingQb]);
 
 		const executions: {
 			tipo_registro: string;
@@ -477,7 +466,13 @@ group by client_id),0) as finances_expired`),
 				.map((day) => ({
 					start: day.startHour.toString(),
 					end: day.endHour.toString(),
-					event: day,
+					event: {
+						...day.toJSON(),
+						financesExpired:
+							missing.find(
+								(r) => r.client_id === day.holder_id ?? day.patient_id,
+							)?.total ?? 0,
+					},
 					name: day.user?.name ?? "-",
 					date: day.startHour.setLocale("pt-BR").toFormat("dd/MM/yy - HH:mm"),
 					late:
@@ -502,7 +497,13 @@ group by client_id),0) as finances_expired`),
 				.map((day) => ({
 					start: day.startHour.toString(),
 					end: day.endHour.toString(),
-					event: day,
+					event: {
+						...day.toJSON(),
+						financesExpired:
+							missing.find(
+								(r) => r.client_id === day.holder_id ?? day.patient_id,
+							)?.total ?? 0,
+					},
 					name: day.user?.name ?? "-",
 					date: day.startHour.setLocale("pt-BR").toFormat("dd/MM/yy - HH:mm"),
 					late:

@@ -2933,9 +2933,27 @@ case when expiration_date::date = now()::date then 'Valores Vencimento Hoje'
 when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores Futuros' end`)
 			.orderByRaw("tipoVencimento");
 
-		return result.map((row) => ({
-			[row.tipovencimento]: new Decimal(row.total).toNumber(),
-		}));
+		const lateFees: { total: string }[] = await Database.from("finances")
+			.select(Database.raw("sum(total_value) as total"))
+			.whereRaw("type = 'CREDITO'")
+			.whereNull("deleted_at")
+			.where("economic_group_id", authCtx.group.id)
+			.where("business_unit_id", authCtx.unit.id)
+			.where("client_id", clientID)
+			.whereNull("payment_date")
+			.whereRaw("expiration_date < now()")
+			.groupBy("client_id");
+
+		const starter: Record<string, number> =
+			lateFees.length === 0
+				? { "Valores em Atraso": new Decimal(lateFees[0].total).toNumber() }
+				: {};
+
+		return result.reduce((acc, row) => {
+			acc[row.tipovencimento] = new Decimal(row.total).toNumber();
+
+			return acc;
+		}, starter);
 	}
 
 	static async RunSyncLateOrMissingSchedules() {

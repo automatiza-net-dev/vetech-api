@@ -2025,6 +2025,14 @@ where deposit_id = ?
 			throw this.sharedService.ResourceNotFound();
 		}
 
+		if (bill.billType === "T" && bill.transferConfirmationDate) {
+			throw new BadRequestException(
+				"Não é permitido que uma transferencia que esteja confirmada seja reaberta",
+				400,
+				"E_ERR",
+			);
+		}
+
 		if (bill.status !== BillStatus.B) {
 			throw new BadRequestException(
 				"Apenas notas de saídas fechadas podem ser abertas",

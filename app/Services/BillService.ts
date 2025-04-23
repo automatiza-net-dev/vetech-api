@@ -4254,6 +4254,14 @@ where deposit_id = ?
 				);
 			}
 
+			if (bill.billType === "T") {
+				throw new BadRequestException(
+					"Não é permitido o cancelamento de uma transferencia, ela deve ser excluida",
+					400,
+					"E_ERR",
+				);
+			}
+
 			// não permitir se tiver cancelled e cancelled <> 'N'
 			if (bill.cancelled && bill.cancelled !== "N") {
 				throw new BadRequestException("Nota já cancelada", 400, "E_ERR");

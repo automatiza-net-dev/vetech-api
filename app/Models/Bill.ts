@@ -22,6 +22,7 @@ import Patient from "App/Models/Patient";
 import User from "App/Models/User";
 import Decimal from "decimal.js";
 import Reason from "./Reason";
+import Receipt from "./Receipt";
 
 export enum BillStatus {
 	A = "ABERTA",
@@ -510,13 +511,28 @@ export default class Bill extends BaseModel {
 	})
 	public destiny_business_unit_id: string | null;
 
+	@belongsTo(() => BusinessUnit, {
+		foreignKey: "destiny_business_unit_id",
+	})
+	public destinationUnit: BelongsTo<typeof BusinessUnit>;
+
 	@column({
 		serializeAs: null,
 	})
 	public related_receipt_id: string | null;
 
+	@belongsTo(() => Receipt, {
+		foreignKey: "related_receipt_id",
+	})
+	public relatedReceipt: BelongsTo<typeof Receipt>;
+
 	@column({
 		serializeAs: null,
 	})
 	public confirmation_user_id: string | null;
+
+	@belongsTo(() => User, {
+		foreignKey: "confirmation_user_id",
+	})
+	public confirmationUser: BelongsTo<typeof User>;
 }

@@ -129,6 +129,8 @@ export default class BillService {
        bills.cancelled_at,
        bills.cancelled,
        bills.cancellation_observation,
+       bills.bill_type,
+       bills.transfer_confirmation_date,
        case
            when
                (select true
@@ -164,12 +166,31 @@ export default class BillService {
                json_build_object('id', patient.id, 'name', patient.name, 'type', patient.type)
            end                                                   as patient,
        json_build_object('id', seller.id, 'name', seller.name)   as seller,
-       json_build_object('id', creator.id, 'name', creator.name) as creator`),
+       json_build_object('id', creator.id, 'name', creator.name) as creator,
+              case
+           when bills.confirmation_user_id is not null then json_build_object('id', confirmation_user.id, 'name',
+                                                                              confirmation_user.name)
+           end                                                   as confirmation_user,
+       case
+           when bills.destiny_business_unit_id is not null then json_build_object('id', destination_unit.id, 'identification',
+                                                                    destination_unit.identification)
+           end                                                   as destination_unit,
+       case
+           when bills.related_receipt_id is not null then json_build_object('id', receipts.id, 'tag',
+                                                            receipts.tag)
+           end                                                   as receipts`),
 			)
 			.joinRaw("join patients client on bills.client_id = client.id")
 			.joinRaw("left join patients patient on bills.patient_id = patient.id")
 			.joinRaw("join users seller on bills.seller_id = seller.id")
 			.joinRaw("join users creator on bills.seller_id = creator.id")
+			.joinRaw(
+				"left join users confirmation_user on bills.confirmation_user_id = confirmation_user.id",
+			)
+			.joinRaw(
+				"left join business_units destination_unit on bills.destiny_business_unit_id = destination_unit.id",
+			)
+			.joinRaw("left join receipts on receipts.id = bills.related_receipt_id")
 			.orderByRaw("bill_date desc, tag desc")
 			.whereRaw("bills.economic_group_id = ? and bills.business_unit_id = ?", [
 				authCtx.group.id,
@@ -272,11 +293,20 @@ export default class BillService {
 			.preload("financialResponsible", (query) => {
 				query.select("id", "name");
 			})
+			.preload("destinationUnit", (query) => {
+				query.select("id", "identification");
+			})
 			.preload("cancelUser", (query) => {
 				query.select("id", "name");
 			})
 			.preload("finishCancelUser", (query) => {
 				query.select("id", "name");
+			})
+			.preload("confirmationUser", (query) => {
+				query.select("id", "name");
+			})
+			.preload("relatedReceipt", (query) => {
+				query.select("id", "tag");
 			})
 			.preload("_cancelReason", (query) => {
 				query.select("id", "reason");

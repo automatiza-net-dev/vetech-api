@@ -1729,7 +1729,16 @@ export default class ScheduleService {
        )       as holder,
        '[]'::json as reschedules,
        '[]'::json as contacts,
-       '[]'::json as status_changes`),
+       '[]'::json as status_changes,
+       coalesce((select sum(total_value) as total
+from "finances"
+where type = 'CREDITO'
+  and deleted_at is null
+  and business_unit_id = schedules.business_unit_id
+  and client_id = coalesce(schedules.holder_id, schedules.patient_id)
+  and payment_date is null
+  and expiration_date < now()
+group by client_id),0) as finances_expired`),
 			)
 			.joinRaw(
 				"join schedule_service_types sst on schedules.schedule_service_type_id = sst.id",
@@ -1814,6 +1823,7 @@ export default class ScheduleService {
 			holder: elem.holder,
 			race: elem.race,
 			specie: elem.specie,
+			financesExpired: elem.finances_expired,
 			reschedules: elem.reschedules.filter((f) => Boolean(f.id)),
 			contacts: elem.contacts.filter((f) => Boolean(f.id)),
 			statusChanges: elem.status_changes.filter((f) => Boolean(f.id)),

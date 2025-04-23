@@ -2805,6 +2805,14 @@ and product_variation_id in (
 				);
 			}
 
+			if (receipt.receiptType === "T") {
+				throw new BadRequestException(
+					"Não é permitida a exclusao de uma nota de entrada de transferencia. Você deve excluir a Saída Original da transferencia",
+					400,
+					"E_ERR",
+				);
+			}
+
 			const invalidFinances = await Finance.query()
 				.useTransaction(trx)
 				.whereIn(

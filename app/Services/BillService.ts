@@ -61,7 +61,8 @@ import BillAuthorization from "App/Models/BillAuthorization";
 import BillCancelation from "App/Models/BillCancelation";
 import { addHours, format } from "date-fns";
 import Receipt from "App/Models/Receipt";
-import { ReceiptItemStatus } from "App/Models/ReceiptItem";
+import ReceiptItem, { ReceiptItemStatus } from "App/Models/ReceiptItem";
+import ReceiptPayment from "App/Models/ReceiptPayment";
 
 interface ISearch {
 	fromBill?: string;
@@ -1927,6 +1928,7 @@ where deposit_id = ?
 				.preload("items", (query) => {
 					query.where("status", BillItemStatus.A);
 				})
+				.preload("relatedReceipt")
 				// .preload("payments")
 				.first();
 
@@ -1936,6 +1938,14 @@ where deposit_id = ?
 
 			if (bill.status === BillStatus.EX) {
 				throw new BadRequestException("Venda já excluída", 400, "E_ERR");
+			}
+
+			if (bill.billType === "T" && bill.transferConfirmationDate) {
+				throw new BadRequestException(
+					"Não é permitida a exclusao de uma transferencia que esteja confirmada",
+					400,
+					"E_ERR",
+				);
 			}
 
 			const rows = await Database.from("bills")
@@ -1990,6 +2000,45 @@ where deposit_id = ?
 				.useTransaction(trx)
 				.where("bill_id", bill.id)
 				.delete();
+
+			if (bill.billType === "T" && bill.related_receipt_id) {
+				await Receipt.query()
+					.useTransaction(trx)
+					.update({
+						deleted_at: DateTime.now(),
+					})
+					.whereNull("deleted_at")
+					.where("id", bill.related_receipt_id);
+
+				await ReceiptItem.query()
+					.useTransaction(trx)
+					.update({
+						disabled_user_id: authCtx.user.id,
+						status: "Excluido",
+						disabledDate: DateTime.now(),
+					})
+					.where("receipt_id", bill.related_receipt_id);
+
+				await ReceiptPayment.query()
+					.useTransaction(trx)
+					.update({
+						deleted_at: DateTime.now(),
+					})
+					.whereNull("deleted_at")
+					.where("receipt_id", bill.related_receipt_id);
+
+				await Finance.query()
+					.useTransaction(trx)
+					.where("business_unit_id", authCtx.unit.id)
+					.where("origin_flag", FinanceOriginFlag.S)
+					.whereILike("document", `%NFE-${bill.relatedReceipt.tag}%`)
+					// .where("block", payment.block)
+					// .where("origin_id", payment.id)
+					.update({
+						deleted_at: DateTime.now(),
+						status: FinanceStatus.E,
+					});
+			}
 
 			if (bill.items.length > 0) {
 				const tasks = bill.items.map(async (item) => {
@@ -2807,7 +2856,7 @@ where deposit_id = ?
 					user_id: authCtx.user.id,
 					seller_id: authCtx.user.id,
 					daily_movement_id: bill.daily_movement_id,
-					origin_business_unit_id: bill.id,
+					origin_business_unit_id: authCtx.unit.id,
 
 					receiptType: data.receiptType,
 					origin: "Manual",

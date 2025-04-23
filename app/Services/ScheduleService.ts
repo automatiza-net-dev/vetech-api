@@ -299,7 +299,7 @@ where type = 'CREDITO'
   and client_id = coalesce(schedules.holder_id, schedules.patient_id)
   and payment_date is null
   and expiration_date < now()
-group by client_id),0) as financesExpired`),
+group by client_id),0) as finances_expired`),
 			)
 			.where("business_unit_id", data.unit ?? authCtx.unit.id)
 			.whereHas("serviceStatus", (query) => {
@@ -366,7 +366,7 @@ where type = 'CREDITO'
   and client_id = coalesce(schedules.holder_id, schedules.patient_id)
   and payment_date is null
   and expiration_date < now()
-group by client_id),0) as financesExpired`),
+group by client_id),0) as finances_expired`),
 			)
 			.where("business_unit_id", data.unit ?? authCtx.unit.id)
 			.whereHas("serviceStatus", (query) => {

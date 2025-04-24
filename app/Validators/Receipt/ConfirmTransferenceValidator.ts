@@ -24,7 +24,7 @@ export default class ConfirmTransferenceValidator {
 	 *    ```
 	 */
 	public schema = schema.create({
-		receiptId: schema.string(),
+		billId: schema.string(),
 		confirmationUserEmail: schema.string(),
 		confirmationUserPwd: schema.string(),
 	});

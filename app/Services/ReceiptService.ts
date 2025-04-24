@@ -3002,9 +3002,9 @@ and product_variation_id in (
 						query.preload("product").preload("businessUnitProducts");
 					});
 				})
-				.preload("payments", query => {
-          query.preload('paymentMethod')
-        })
+				.preload("payments", (query) => {
+					query.preload("paymentMethod");
+				})
 				.where("id", data.billId)
 				.where("business_unit_id", authCtx.unit.id)
 				.firstOrFail();
@@ -3017,14 +3017,6 @@ and product_variation_id in (
 				);
 			}
 
-			await bill
-				.merge({
-					confirmation_user_id: authCtx.user.id,
-					transferConfirmationDate: DateTime.now(),
-				})
-				.useTransaction(trx)
-				.save();
-
 			const newReceipt = await Receipt.create(
 				{
 					economic_group_id: authCtx.group.id,
@@ -3035,6 +3027,7 @@ and product_variation_id in (
 					daily_movement_id: bill.daily_movement_id,
 					origin_business_unit_id: authCtx.unit.id,
 					confirmation_user_id: authCtx.user.id,
+					related_bill_id: data.billId,
 
 					receiptType: "T",
 					origin: "Manual",
@@ -3064,6 +3057,15 @@ and product_variation_id in (
 				},
 				{ client: trx },
 			);
+
+			await bill
+				.merge({
+					confirmation_user_id: authCtx.user.id,
+					related_receipt_id: newReceipt.id,
+					transferConfirmationDate: DateTime.now(),
+				})
+				.useTransaction(trx)
+				.save();
 
 			const receiptTaxRulesQb = TaxationGroupRule.query()
 				.useTransaction(trx)

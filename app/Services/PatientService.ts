@@ -1735,6 +1735,22 @@ export default class PatientService {
 				);
 			}
 
+			if (data.tag && data.tag !== patient.tag) {
+				const row = await Database.from("patients")
+					.select("id")
+					.whereRaw("type = 'patient'")
+					.whereRaw("tag = ?", [data.tag])
+					.whereRaw("deleted_at is null", [])
+					.first();
+				if (row) {
+					throw new BadRequestException(
+						"Nova tag já está em uso",
+						400,
+						"E_ERR",
+					);
+				}
+			}
+
 			if (!patient?.patientAnimal.death && data.death) {
 				await this.$declareDeath(trx, authCtx, patient, {
 					deathDate: data.deathDate ?? DateTime.now(),
@@ -1988,6 +2004,22 @@ export default class PatientService {
 
 			if (!tutor) {
 				throw new BadRequestException("Tutor inválido", 400, "E_BAD_REQUEST");
+			}
+
+			if (data.tag && data.tag !== tutor.tag) {
+				const row = await Database.from("patients")
+					.select("id")
+					.whereRaw("type = 'tutor'")
+					.whereRaw("tag = ?", [data.tag])
+					.whereRaw("deleted_at is null", [])
+					.first();
+				if (row) {
+					throw new BadRequestException(
+						"Nova tag já está em uso",
+						400,
+						"E_ERR",
+					);
+				}
 			}
 
 			if (data.document && data.document !== tutor.tutor.document) {

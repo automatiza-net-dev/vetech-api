@@ -116,6 +116,12 @@ export default class Patient extends BaseModel {
 	})
 	public weightOrigin?: PatientWeightOrigin;
 
+	@column({
+		columnName: "external_code",
+		serializeAs: "externalCode",
+	})
+	public externalCode?: string | null;
+
 	@column()
 	public hypertension: boolean;
 

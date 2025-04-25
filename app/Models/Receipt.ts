@@ -16,6 +16,7 @@ import User from "App/Models/User";
 import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
 import { DateTime } from "luxon";
 import { v4 } from "uuid";
+import Bill from "./Bill";
 import EconomicGroup from "./EconomicGroup";
 
 export const ReceiptStatus = [
@@ -315,13 +316,28 @@ export default class Receipt extends BaseModel {
 	})
 	public origin_business_unit_id: string | null;
 
+	@belongsTo(() => BusinessUnit, {
+		foreignKey: "origin_business_unit_id",
+	})
+	public originUnit: BelongsTo<typeof BusinessUnit>;
+
 	@column({
 		serializeAs: null,
 	})
 	public related_bill_id: string | null;
 
+	@belongsTo(() => Bill, {
+		foreignKey: "related_bill_id",
+	})
+	public relatedBill: BelongsTo<typeof Bill>;
+
 	@column({
 		serializeAs: null,
 	})
 	public confirmation_user_id: string | null;
+
+	@belongsTo(() => User, {
+		foreignKey: "confirmation_user_id",
+	})
+	public confirmationUser: BelongsTo<typeof User>;
 }

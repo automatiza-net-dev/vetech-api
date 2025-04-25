@@ -548,6 +548,15 @@ export default class ReceiptService {
 			.preload("supplier", (query) => {
 				query.select("id", "name");
 			})
+			.preload("confirmationUser", (query) => {
+				query.select("id", "name");
+			})
+			.preload("originUnit", (query) => {
+				query.select("id", "identification");
+			})
+			.preload("relatedBill", (query) => {
+				query.select("id", "tag");
+			})
 			.where("economic_group_id", authCtx.group.id)
 			.where("business_unit_id", authCtx.unit.id)
 			.orderByRaw("receipt_date desc");
@@ -585,9 +594,14 @@ export default class ReceiptService {
 			totalValue: elem.totalValue,
 			paidValue: elem.paidValue,
 			status: elem.status,
+			receiptType: elem.receiptType,
+			transferConfirmationDate: elem.transferConfirmationDate,
 			user: elem.user,
 			seller: elem.seller,
 			supplier: elem.supplier,
+			confirmationUser: elem.confirmationUser,
+			originUnit: elem.originUnit,
+			relatedBill: elem.relatedBill,
 		}));
 	}
 
@@ -694,6 +708,15 @@ export default class ReceiptService {
 			})
 			.preload("businessUnit", (query) => {
 				query.select("id", "identification");
+			})
+			.preload("confirmationUser", (query) => {
+				query.select("id", "name");
+			})
+			.preload("originUnit", (query) => {
+				query.select("id", "identification");
+			})
+			.preload("relatedBill", (query) => {
+				query.select("id", "tag");
 			})
 			.preload("payments", (query) => {
 				query.preload("acquirer", (query) => {
@@ -2285,6 +2308,14 @@ and product_variation_id in (
 
 			if (!thing) {
 				throw this.sharedService.ResourceNotFound("Item não encontrado");
+			}
+
+			if (thing.receipt.receiptType === "T") {
+				throw new BadRequestException(
+					"Não é permitida a exclusao de itens de uma nota de entrada de transferencia. Você deve excluir na Saída Original da transferencia",
+					400,
+					"E_ERR",
+				);
 			}
 
 			await thing

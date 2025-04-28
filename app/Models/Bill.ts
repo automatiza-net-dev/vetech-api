@@ -23,6 +23,7 @@ import User from "App/Models/User";
 import Decimal from "decimal.js";
 import Reason from "./Reason";
 import Receipt from "./Receipt";
+import BillRelatedType from "./BillRelatedType";
 
 export enum BillStatus {
 	A = "ABERTA",
@@ -540,4 +541,9 @@ export default class Bill extends BaseModel {
 		serializeAs: null,
 	})
 	public bill_related_type_id: number | null;
+
+	@belongsTo(() => BillRelatedType, {
+		foreignKey: "bill_related_type_id",
+	})
+	public billRelatedType: BelongsTo<typeof BillRelatedType>;
 }

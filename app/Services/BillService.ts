@@ -179,7 +179,11 @@ export default class BillService {
        case
            when bills.related_receipt_id is not null then json_build_object('id', receipts.id, 'tag',
                                                             receipts.tag)
-           end                                                   as receipts`),
+           end                                                   as receipts,
+      case
+           when bills.bill_related_type_id is not null then json_build_object('id', bill_related_types.id, 'description',
+                                                            bill_related_types.description)
+           end                                                   as bill_related_type`),
 			)
 			.joinRaw("join patients client on bills.client_id = client.id")
 			.joinRaw("left join patients patient on bills.patient_id = patient.id")
@@ -192,6 +196,9 @@ export default class BillService {
 				"left join business_units destination_unit on bills.destiny_business_unit_id = destination_unit.id",
 			)
 			.joinRaw("left join receipts on receipts.id = bills.related_receipt_id")
+			.joinRaw(
+				"left join bill_related_types on bill_related_types.id = bills.bill_related_type_id",
+			)
 			.orderByRaw("bill_date desc, tag desc")
 			.whereRaw("bills.economic_group_id = ? and bills.business_unit_id = ?", [
 				authCtx.group.id,
@@ -311,6 +318,9 @@ export default class BillService {
 			})
 			.preload("_cancelReason", (query) => {
 				query.select("id", "reason");
+			})
+			.preload("billRelatedType", (query) => {
+				query.select("id", "description");
 			})
 			.preload("patient")
 			.preload("seller")
@@ -2538,6 +2548,7 @@ where deposit_id = ?
 				origin_bill_id: data.originBillId,
 				destiny_business_unit_id:
 					data.billType === "V" ? undefined : data.destinyBusinessUnitId,
+				bill_related_type_id: data.billRelatedTypeId,
 
 				billType: data.billType,
 				internalCode: dynamicInternalCode,

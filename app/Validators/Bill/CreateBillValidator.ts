@@ -29,6 +29,9 @@ export default class CreateBillValidator {
 			rules.uuid(),
 			rules.exists({ table: "business_units", column: "id" }),
 		]),
+		billRelatedTypeId: schema.number.optional([
+			rules.exists({ table: "bill_related_types", column: "id" }),
+		]),
 		billDate: schema.date(),
 
 		additionalInformation: schema.string.optional(),

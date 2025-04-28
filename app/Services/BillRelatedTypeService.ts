@@ -97,7 +97,7 @@ export default class BillRelatedTypeService {
 
 			return brt
 				.merge({
-					update_user_id: authCtx.user.id,
+					exclusion_user_id: authCtx.user.id,
 					deletedAt: DateTime.now(),
 				})
 				.useTransaction(trx)

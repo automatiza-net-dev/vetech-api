@@ -2111,3 +2111,12 @@ Route.group(() => {
 })
 	.prefix("contracts")
 	.middleware("auth");
+
+Route.group(() => {
+	Route.get("/", "BillRelatedTypesController.index");
+	Route.post("/store", "BillRelatedTypesController.store");
+	Route.put("/update", "BillRelatedTypesController.update");
+	Route.delete("/delete/:id", "BillRelatedTypesController.delete");
+})
+	.prefix("bill-related-types")
+	.middleware("auth");

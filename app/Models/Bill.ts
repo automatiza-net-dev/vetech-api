@@ -535,4 +535,9 @@ export default class Bill extends BaseModel {
 		foreignKey: "confirmation_user_id",
 	})
 	public confirmationUser: BelongsTo<typeof User>;
+
+	@column({
+		serializeAs: null,
+	})
+	public bill_related_type_id: number | null;
 }

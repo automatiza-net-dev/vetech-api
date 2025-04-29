@@ -21,6 +21,7 @@ import BusinessUnit from "App/Models/BusinessUnit";
 import Attendance from "App/Models/Attendance";
 import BudgetPayment from "App/Models/BudgetPayment";
 import Bill from "App/Models/Bill";
+import BillRelatedType from "./BillRelatedType";
 
 export enum BudgetStatus {
 	A = "ABERTO",
@@ -257,4 +258,24 @@ export default class Budget extends BaseModel {
 		foreignKey: "budget_id",
 	})
 	public payments: HasMany<typeof BudgetPayment>;
+
+	@column({
+		// serializeAs: null,
+	})
+	public origin_budget_id: string | null;
+
+	@belongsTo(() => Budget, {
+		foreignKey: "origin_budget_id",
+	})
+	public originBudget: BelongsTo<typeof Budget>;
+
+	@column({
+		serializeAs: null,
+	})
+	public budget_related_type_id: number | null;
+
+	@belongsTo(() => BillRelatedType, {
+		foreignKey: "budget_related_type_id",
+	})
+	public budgetRelatedType: BelongsTo<typeof BillRelatedType>;
 }

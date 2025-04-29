@@ -23,6 +23,8 @@ export interface ICreateBudgetData {
 	dailyMovementId?: string;
 	attendanceId?: number;
 	scheduleId?: string;
+	originBudgetId?: string;
+	budgetRelatedTypeId?: number;
 	internalCode?: string;
 	budgetDate: DateTime;
 	expirationDate: DateTime;

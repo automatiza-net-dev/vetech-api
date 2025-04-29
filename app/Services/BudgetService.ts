@@ -594,6 +594,9 @@ export default class BudgetService {
 			.preload("reviewer", (query) => {
 				query.select("id", "name");
 			})
+			.preload("budgetRelatedType", (query) => {
+				query.select("id", "description");
+			})
 			.preload("dailyMovement")
 			.preload("conclusionUser")
 			.preload("cancelationReason")
@@ -769,6 +772,9 @@ export default class BudgetService {
 			})
 			.preload("reviewer", (query) => {
 				query.select("id", "name");
+			})
+			.preload("budgetRelatedType", (query) => {
+				query.select("id", "description");
 			})
 			.preload("conclusionUser")
 			.preload("cancelationReason")
@@ -1009,19 +1015,57 @@ export default class BudgetService {
 				);
 			}
 
-			if (data.internalCode) {
-				const existingBudget = await Budget.query()
-					.useTransaction(trx)
-					.where("business_unit_id", authCtx.unit.id)
-					.where("internal_code", data.internalCode)
+			if (data.originBudgetId) {
+				const existingRow = await Database.from("budgets")
+					.select("tag", "origin_budget_id")
+					.whereRaw("id = ?", [data.originBudgetId])
 					.first();
-				if (existingBudget) {
+				if (existingRow && !!existingRow.origin_budget_id) {
 					throw new BadRequestException(
-						`Código '${data.internalCode}' já está sendo usado pelo orçamento'${existingBudget.tag}', e não é possível repetir.`,
+						`Orçamento ${existingRow.tag} já está sendo usada como origem`,
 						400,
 						"E_ERR",
 					);
 				}
+			}
+
+			// if (data.internalCode) {
+			// 	const existingBudget = await Budget.query()
+			// 		.useTransaction(trx)
+			// 		.where("business_unit_id", authCtx.unit.id)
+			// 		.where("internal_code", data.internalCode)
+			// 		.first();
+			// 	if (existingBudget) {
+			// 		throw new BadRequestException(
+			// 			`Código '${data.internalCode}' já está sendo usado pelo orçamento'${existingBudget.tag}', e não é possível repetir.`,
+			// 			400,
+			// 			"E_ERR",
+			// 		);
+			// 	}
+			// }
+
+			const existingBudgetWithInternalCode = await Budget.query()
+				.useTransaction(trx)
+				.where("business_unit_id", authCtx.unit.id)
+				.whereRaw("internal_code ilike ?", [`%${data.internalCode ?? v4()}%`])
+				.first();
+
+			let dynamicInternalCode = data.internalCode;
+			if (data.internalCode && existingBudgetWithInternalCode) {
+				if (!data.originBudgetId) {
+					throw new BadRequestException(
+						`Código '${data.internalCode}' já está sendo usado peço orçamento '${existingBudgetWithInternalCode.tag}', e não é possível repetir.`,
+						400,
+						"E_ERR",
+					);
+				}
+
+				const count = await Budget.query()
+					.useTransaction(trx)
+					.select("id")
+					.where("business_unit_id", authCtx.unit.id)
+					.whereRaw("internal_code ilike ?", [`${data.internalCode}%`]);
+				dynamicInternalCode = `${data.internalCode} / ${count.length.toString().padStart(3, "0")}`;
 			}
 
 			const items = await ProductVariation.query()
@@ -1063,8 +1107,10 @@ export default class BudgetService {
 					daily_movement_id: data.dailyMovementId,
 					attendance_id: data.attendanceId,
 					reviewer_id: data.reviewerId,
+					origin_budget_id: data.originBudgetId,
+					budget_related_type_id: data.budgetRelatedTypeId,
 
-					internalCode: data.internalCode,
+					internalCode: dynamicInternalCode,
 					budgetDate: data.budgetDate,
 					expirationDate: data.expirationDate,
 					productValue: 0,
@@ -1208,6 +1254,7 @@ export default class BudgetService {
 			expirationDate: DateTime;
 			sellerId: string;
 			reviewerId?: string;
+			budgetRelatedTypeId?: number;
 			observation?: string;
 			internalObservation?: string;
 			internalCode?: string;
@@ -1445,6 +1492,7 @@ export default class BudgetService {
 					client_id: data.clientId,
 					reviewer_id: data.reviewerId,
 					daily_movement_id: data.dailyMovementId,
+					budget_related_type_id: data.budgetRelatedTypeId,
 
 					clientName: data.clientName,
 					pending: pendingItems.length > 0,
@@ -2408,6 +2456,19 @@ export default class BudgetService {
 			if (model.status !== BudgetStatus.A) {
 				throw new BadRequestException(
 					"Orçamento com status inválido para inclusão",
+					400,
+					"E_ERR",
+				);
+			}
+
+			const existingRows = await Database.from("budgets")
+				.select("id")
+				.whereRaw("origin_budget_id = ?", [model.id])
+				.whereNull("deleted_at")
+				.first();
+			if (existingRows) {
+				throw new BadRequestException(
+					"Este Orçamento não pode ser excluido pois foi utilizado como Referencia para outros orçamentos",
 					400,
 					"E_ERR",
 				);

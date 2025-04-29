@@ -3107,7 +3107,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
             FROM
                 account_plans filho
             WHERE
-                parent_id = account_plans.id
+                parent_id = account_plans.id and (filho.business_unit_id is null or filho.business_unit_id = account_plans.business_unit_id)
             LIMIT
                 1
         ) IS NULL
@@ -3120,7 +3120,7 @@ left join crm_statuses cs on opportunities.status_id = cs.id) on marketing_campa
             FROM
                 account_plans filho
             WHERE
-                parent_id = account_plans.id
+                parent_id = account_plans.id and (filho.business_unit_id is null or filho.business_unit_id = account_plans.business_unit_id)
             LIMIT
                 1
         ) IS NULL

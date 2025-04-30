@@ -81,6 +81,7 @@ export interface IUpdateBillData {
 	maxDiscount: boolean;
 	additionalInformation?: string;
 	internalCode?: string;
+	billDate?: DateTime;
 	items?: {
 		billItemId?: string;
 		productVariationId: string;

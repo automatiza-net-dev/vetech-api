@@ -769,6 +769,8 @@ export default class BillService {
 					financial_responsible_id: data.financialResponsibleId,
 					additionalInformation: data.additionalInformation,
 					internalCode: data.internalCode,
+
+					billDate: data.billDate,
 				})
 				.useTransaction(trx)
 				.save();

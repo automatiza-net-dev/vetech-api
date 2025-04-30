@@ -14,6 +14,7 @@ export const ConfigBillSchema = z.object({
 	other_exit_account_plan_id: z.string().uuid().optional().nullable(),
 	requires_bill_patient: z.boolean().optional().nullable(),
 	generate_treatment_opened_bill: z.boolean().optional().nullable(),
+	allow_select_bill_date: z.boolean().optional().nullable(),
 });
 
 export const ConfigReceiptSchema = z.object({

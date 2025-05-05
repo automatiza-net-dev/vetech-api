@@ -15,4 +15,4 @@ Scheduler.call(async () => {
 
 Scheduler.call(async () => {
 	await ProductInventoryService.ProcessItems();
-}).cron("0 0 4 * *");
+}).cron("0 4 1 * *");

@@ -15,6 +15,12 @@ export default class System extends BaseModel {
 	@column({})
 	public type: string;
 
+	@column({
+		columnName: "email_schedule_confirmation",
+		serializeAs: "emailScheduleConfirmation",
+	})
+	public emailScheduleConfirmation: string | null;
+
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
 

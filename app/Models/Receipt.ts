@@ -16,6 +16,7 @@ import User from "App/Models/User";
 import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
 import { DateTime } from "luxon";
 import { v4 } from "uuid";
+import Bill from "./Bill";
 import EconomicGroup from "./EconomicGroup";
 
 export const ReceiptStatus = [
@@ -24,6 +25,7 @@ export const ReceiptStatus = [
 	"Estornada",
 	"PendenteXml",
 	"Excluida",
+	"NaoConfirmada",
 ] as const;
 export type TReceiptStatus = (typeof ReceiptStatus)[number];
 
@@ -193,6 +195,18 @@ export default class Receipt extends BaseModel {
 	@column()
 	public status: TReceiptStatus;
 
+	@column({
+		columnName: "receipt_type",
+		serializeAs: "receiptType",
+	})
+	public receiptType: "E" | "T" | "D";
+
+	@column.dateTime({
+		columnName: "transfer_confirmation_date",
+		serializeAs: "transferConfirmationDate",
+	})
+	public transferConfirmationDate: DateTime | null;
+
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
 
@@ -296,4 +310,34 @@ export default class Receipt extends BaseModel {
 		foreignKey: "receipt_id",
 	})
 	public items: HasMany<typeof ReceiptItem>;
+
+	@column({
+		serializeAs: null,
+	})
+	public origin_business_unit_id: string | null;
+
+	@belongsTo(() => BusinessUnit, {
+		foreignKey: "origin_business_unit_id",
+	})
+	public originUnit: BelongsTo<typeof BusinessUnit>;
+
+	@column({
+		serializeAs: null,
+	})
+	public related_bill_id: string | null;
+
+	@belongsTo(() => Bill, {
+		foreignKey: "related_bill_id",
+	})
+	public relatedBill: BelongsTo<typeof Bill>;
+
+	@column({
+		serializeAs: null,
+	})
+	public confirmation_user_id: string | null;
+
+	@belongsTo(() => User, {
+		foreignKey: "confirmation_user_id",
+	})
+	public confirmationUser: BelongsTo<typeof User>;
 }

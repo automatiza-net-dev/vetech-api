@@ -116,17 +116,27 @@ export default class BusinessUnit extends BaseModel {
 	@column()
 	public status: TUnitStatus;
 
+	@column.dateTime({ autoCreate: true })
+	public createdAt: DateTime;
+
+	@column.dateTime({ autoCreate: true, autoUpdate: true })
+	public updatedAt: DateTime;
+
 	@column({
 		columnName: "economic_group_id",
 		serializeAs: null,
 	})
 	public economicGroupId: string;
 
-	@column.dateTime({ autoCreate: true })
-	public createdAt: DateTime;
+	@column({
+		serializeAs: null,
+	})
+	public system_id: number;
 
-	@column.dateTime({ autoCreate: true, autoUpdate: true })
-	public updatedAt: DateTime;
+	@column({
+		serializeAs: null,
+	})
+	public unit_patient_id: string | null;
 
 	@belongsTo(() => EconomicGroup, {})
 	public economicGroup: BelongsTo<typeof EconomicGroup>;

@@ -28,6 +28,7 @@ export default class CreateLiftOneTutorForRegisterValidator {
 	public schema = schema.create({
 		name: schema.string({}),
 		corporateName: schema.string.optional({}),
+		tag: schema.string.optional({}),
 		document: schema.string({}, []),
 		inscription: schema.string.optional({}, []),
 		photo: schema.file.optional({

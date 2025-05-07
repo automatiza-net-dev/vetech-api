@@ -22,6 +22,8 @@ import Patient from "App/Models/Patient";
 import User from "App/Models/User";
 import Decimal from "decimal.js";
 import Reason from "./Reason";
+import Receipt from "./Receipt";
+import BillRelatedType from "./BillRelatedType";
 
 export enum BillStatus {
 	A = "ABERTA",
@@ -201,7 +203,7 @@ export default class Bill extends BaseModel {
 	@column({
 		columnName: "cancelled_at",
 	})
-	public cancelledAt: DateTime;
+	public cancelledAt: DateTime | null;
 
 	@column({
 		columnName: "cancellation_observation",
@@ -278,6 +280,54 @@ export default class Bill extends BaseModel {
 		serialize: (value: Decimal) => (value ? value.toNumber() : 0),
 	})
 	public cancelValueTotal: Decimal | null;
+
+	@column({
+		columnName: "original_total_value",
+		serializeAs: "originalTotalValue",
+		consume: (value) => (value ? new Decimal(value) : null),
+		prepare: (value) => value.toString(),
+		serialize: (value: Decimal) => (value ? value.toNumber() : 0),
+	})
+	public originalTotalValue: Decimal | null;
+
+	@column({
+		columnName: "original_products_value",
+		serializeAs: "originalProductsValue",
+		consume: (value) => (value ? new Decimal(value) : null),
+		prepare: (value) => value.toString(),
+		serialize: (value: Decimal) => (value ? value.toNumber() : 0),
+	})
+	public originalProductsValue: Decimal | null;
+
+	@column({
+		columnName: "original_services_value",
+		serializeAs: "originalServicesValue",
+		consume: (value) => (value ? new Decimal(value) : null),
+		prepare: (value) => value.toString(),
+		serialize: (value: Decimal) => (value ? value.toNumber() : 0),
+	})
+	public originalServicesValue: Decimal | null;
+
+	@column({
+		columnName: "original_discount_value",
+		serializeAs: "originalDiscountValue",
+		consume: (value) => (value ? new Decimal(value) : null),
+		prepare: (value) => value.toString(),
+		serialize: (value: Decimal) => (value ? value.toNumber() : 0),
+	})
+	public originalDiscountValue: Decimal | null;
+
+	@column({
+		columnName: "bill_type",
+		serializeAs: "billType",
+	})
+	public billType: "V" | "T" | "D" | null;
+
+	@column.dateTime({
+		columnName: "transfer_confirmation_date",
+		serializeAs: "transferConfirmationDate",
+	})
+	public transferConfirmationDate: DateTime | null;
 
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
@@ -456,4 +506,44 @@ export default class Bill extends BaseModel {
 		serializeAs: "_cancelReason",
 	})
 	public _cancelReason: BelongsTo<typeof Reason>;
+
+	@column({
+		serializeAs: null,
+	})
+	public destiny_business_unit_id: string | null;
+
+	@belongsTo(() => BusinessUnit, {
+		foreignKey: "destiny_business_unit_id",
+	})
+	public destinationUnit: BelongsTo<typeof BusinessUnit>;
+
+	@column({
+		serializeAs: null,
+	})
+	public related_receipt_id: string | null;
+
+	@belongsTo(() => Receipt, {
+		foreignKey: "related_receipt_id",
+	})
+	public relatedReceipt: BelongsTo<typeof Receipt>;
+
+	@column({
+		serializeAs: null,
+	})
+	public confirmation_user_id: string | null;
+
+	@belongsTo(() => User, {
+		foreignKey: "confirmation_user_id",
+	})
+	public confirmationUser: BelongsTo<typeof User>;
+
+	@column({
+		serializeAs: null,
+	})
+	public bill_related_type_id: number | null;
+
+	@belongsTo(() => BillRelatedType, {
+		foreignKey: "bill_related_type_id",
+	})
+	public billRelatedType: BelongsTo<typeof BillRelatedType>;
 }

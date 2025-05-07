@@ -13,6 +13,7 @@ import ReopenScheduleValidator from "App/Validators/Schedule/ReopenScheduleValid
 import UpsertScheduleStatusValidator from "App/Validators/Schedule/UpsertScheduleStatusValidator";
 import Schedule from "App/Models/Schedule";
 import ExcludeSchedulingValidator from "App/Validators/Schedule/ExcludeSchedulingValidator";
+import ConfirmPublicScheduleValidator from "App/Validators/Schedule/ConfirmPublicScheduleValidator";
 
 @inject()
 export default class SchedulesController {
@@ -391,5 +392,37 @@ export default class SchedulesController {
 		const result = await ScheduleService.RunSyncLateOrMissingSchedules();
 
 		return response.ok(result);
+	}
+
+	public async finances({ auth, request, response }: HttpContextContract) {
+		const authCtx = await this.sharedService.getAuthContext(auth);
+
+		const result = await this.service.finances(
+			authCtx,
+			request.param("clientID"),
+		);
+
+		return response.ok(result);
+	}
+
+	public async publicConfirmationInfo({
+		request,
+		response,
+	}: HttpContextContract) {
+		const result = await this.service.publicConfirmationInfo(
+			request.param("scheduleID"),
+		);
+
+		return response.ok(result);
+	}
+
+	public async publicConfirmationUpdate({
+		request,
+		response,
+	}: HttpContextContract) {
+		const payload = await request.validate(ConfirmPublicScheduleValidator);
+		await this.service.publicConfirmationUpdate(payload);
+
+		return response.ok(null);
 	}
 }

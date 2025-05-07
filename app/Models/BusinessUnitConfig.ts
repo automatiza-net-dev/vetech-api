@@ -2,6 +2,7 @@ import { BaseModel, BelongsTo, belongsTo, column } from "@ioc:Adonis/Lucid/Orm";
 import VariationGroup from "App/Models/VariationGroup";
 import { DateTime } from "luxon";
 import * as z from "zod";
+import BusinessUnit from "./BusinessUnit";
 
 export const ConfigCrmSchema = z.object({
 	crm_useful_days: z.boolean().optional().nullable(),
@@ -12,6 +13,8 @@ export const ConfigBillSchema = z.object({
 	sale_exit_account_plan_id: z.string().uuid().optional().nullable(),
 	other_exit_account_plan_id: z.string().uuid().optional().nullable(),
 	requires_bill_patient: z.boolean().optional().nullable(),
+	generate_treatment_opened_bill: z.boolean().optional().nullable(),
+	allow_select_bill_date: z.boolean().optional().nullable(),
 });
 
 export const ConfigReceiptSchema = z.object({
@@ -93,6 +96,10 @@ export const ConfigBudgetSchema = z.object({
 	budgets_payments_required: z.boolean().optional().nullable(),
 });
 
+export const ConfigTreatmentSchema = z.object({
+	minimum_percentage_paid_start_treatment: z.boolean().optional().nullable(),
+});
+
 export const ConfigSchema = z.object({
 	crm: z.optional(ConfigCrmSchema),
 	bills: z.optional(ConfigBillSchema),
@@ -102,9 +109,43 @@ export const ConfigSchema = z.object({
 	schedules: z.optional(ConfigSchedulesSchema),
 	businessUnits: z.optional(ConfigBusinessUnitsSchema),
 	budgets: z.optional(ConfigBudgetSchema),
+	treatments: z.optional(ConfigTreatmentSchema),
 });
 
+const baseFieldSchema = z.object({
+	title: z.string(),
+	required: z.boolean(),
+	type: z
+		.literal("string")
+		.or(z.literal("date"))
+		.or(z.literal("object"))
+		.or(z.literal("array")),
+	error_message: z.string().optional(),
+});
+
+const fieldWithPropsSchema = baseFieldSchema.extend({
+	prop: z.array(
+		z.object({
+			title: z.string(),
+			key: z.string(),
+			required: z.boolean(),
+			type: z
+				.literal("string")
+				.or(z.literal("date"))
+				.or(z.literal("object"))
+				.or(z.literal("array")),
+		}),
+	),
+});
+
+const fieldSchema = z.union([baseFieldSchema, fieldWithPropsSchema]);
+
+const shapeSchema = z.record(fieldSchema);
+
+export const FormValidatorSchema = z.record(shapeSchema);
+
 export type TConfigSchema = z.infer<typeof ConfigSchema>;
+export type TDynamicForm = z.infer<typeof FormValidatorSchema>;
 
 export default class BusinessUnitConfig extends BaseModel {
 	@column({ isPrimary: true })
@@ -323,6 +364,18 @@ export default class BusinessUnitConfig extends BaseModel {
 	public config: TConfigSchema;
 
 	@column({
+		columnName: "form_fields",
+		serializeAs: "formFields",
+		consume(rawValue) {
+			return FormValidatorSchema.parse(rawValue);
+		},
+		serialize(zodValue: TDynamicForm) {
+			return JSON.stringify(zodValue);
+		},
+	})
+	public formFields: TDynamicForm;
+
+	@column({
 		columnName: "budgets_payments_required",
 		serializeAs: "budgetsPaymentsRequired",
 	})
@@ -338,6 +391,11 @@ export default class BusinessUnitConfig extends BaseModel {
 		serializeAs: null,
 	})
 	public business_unit_id: string;
+
+	@belongsTo(() => BusinessUnit, {
+		foreignKey: "business_unit_id",
+	})
+	businessUnit: BelongsTo<typeof BusinessUnit>;
 
 	@column({
 		serializeAs: null,

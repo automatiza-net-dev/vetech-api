@@ -8,6 +8,7 @@ export default class UpdatePatientWithTutorValidator {
 
 	public schema = schema.create({
 		name: schema.string({}),
+		tag: schema.string.optional({}),
 		corporateName: schema.string.optional({}),
 		clientOriginItemDescription: schema.string.optional({}, []),
 		photo: schema.file.optional({

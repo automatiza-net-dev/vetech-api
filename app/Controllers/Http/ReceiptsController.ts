@@ -2,6 +2,7 @@ import { inject } from "@adonisjs/fold";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import ReceiptService from "App/Services/ReceiptService";
 import SharedService from "App/Services/SharedService";
+import ConfirmTransferenceValidator from "App/Validators/Receipt/ConfirmTransferenceValidator";
 import CreateReceiptItemValidator from "App/Validators/Receipt/CreateReceiptItemValidator";
 import CreateReceiptPaymentValidator from "App/Validators/Receipt/CreateReceiptPaymentValidator";
 import CreateReceiptProductValidator from "App/Validators/Receipt/CreateReceiptProductValidator";
@@ -47,6 +48,29 @@ export default class ReceiptsController {
 		);
 
 		return response.ok(result);
+	}
+
+	public async pendingTransferences({ response, auth }: HttpContextContract) {
+		const result = await this.service.pendingTransferences(
+			await this.sharedService.getAuthContext(auth),
+		);
+
+		return response.ok(result);
+	}
+
+	public async confirmTransference({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const payload = await request.validate(ConfirmTransferenceValidator);
+
+		await this.service.confirmTransference(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.noContent();
 	}
 
 	public async updateXmlItems({

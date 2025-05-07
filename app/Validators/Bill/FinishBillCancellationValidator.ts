@@ -30,6 +30,9 @@ export default class FinishBillCancellationValidator {
 			rules.uuid(),
 			rules.exists({ table: "bills", column: "id" }),
 		]),
+		depositId: schema.number.optional([
+			rules.exists({ table: "deposits", column: "id" }),
+		]),
 		cancelled: schema.boolean(),
 		note: schema.string(),
 	});

@@ -341,20 +341,25 @@ export default class PermissionService {
 				.preload("systems")
 				.preload("roles");
 
-			const deleteTasks = permissions.map(async (permission) => {
-				return Database.from("systems_permissions")
-					.where("permission_id", permission.id)
-					.delete();
-			});
-			await Promise.all(deleteTasks);
+			await Database.from("systems_permissions")
+				.useTransaction(trx)
+				.whereIn(
+					"permission_id",
+					permissions.map((p) => p.id),
+				)
+				.delete();
 
 			const syncTasks = permissions.map(async (permission) => {
-				return permission.$systems.map(async (system) => {
-					return Database.table("systems_permissions").insert({
-						system_id: system,
-						permission_id: permission.id,
-					});
-				});
+				return Database.table("systems_permissions")
+					.multiInsert(
+						permission.$systems
+							.filter((s) => !Number.isNaN(s))
+							.map((s) => ({
+								system_id: s,
+								permission_id: permission.id,
+							})),
+					)
+					.useTransaction(trx);
 			});
 			await Promise.all(syncTasks);
 

@@ -53,6 +53,31 @@ export default class RolesController {
 		);
 	}
 
+	public async permissionSchematics({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		if (!auth.user) {
+			return new response.unauthorized();
+		}
+
+		if (auth.user instanceof User) {
+			return response.ok(
+				await this.roleService.rolePermissionSchematics(auth.user.system_id, {
+					type: auth.user.type,
+					newItems: request.qs().newItems,
+				}),
+			);
+		}
+
+		return response.ok(
+			await this.roleService.rolePermissionSchematics(auth.user.system_id, {
+				newItems: request.qs().newItems,
+			}),
+		);
+	}
+
 	public async permissionMetadata({
 		params,
 		request,

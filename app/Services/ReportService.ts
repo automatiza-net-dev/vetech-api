@@ -2778,9 +2778,8 @@ ON bills.patient_id = Dep."id"`,
 			.joinRaw(
 				"join holder_dependents on p.id = holder_dependents.dependent_id and holder_dependents.is_main = true",
 			)
-			.joinRaw("join patients t on holder_dependents.holder_id = t.id ")
 			.joinRaw(
-				"left join patient_contacts on t.id = patient_contacts.patient_id and patient_contacts.type = 'celular'",
+				`join (patients t left join patient_contacts on t.id = patient_contacts.patient_id and patient_contacts.type = 'celular') on holder_dependents.holder_id = t.id `,
 			)
 			.joinRaw(
 				"join business_units on patient_vaccines.business_unit_id = business_units.id",
@@ -2789,8 +2788,8 @@ ON bills.patient_id = Dep."id"`,
 				"business_units.identification, vaccines.name, vaccine_protocols.name, p.name, vaccine_calendars.scheduling_date",
 			)
 			.where("vaccines.system_id", authCtx.system.id)
+			.where("business_units.economic_group_id", authCtx.group.id)
 			.where("vaccines.type", data.type);
-		// .where("business_units.economic_group_id", authCtx.group.id)
 
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("patient_vaccines.business_unit_id", data.units);
@@ -2839,16 +2838,24 @@ ON bills.patient_id = Dep."id"`,
 
 		if (data.status && Array.isArray(data.status)) {
 			for (const status of data.status) {
-				if (status === "Dose aplicada") {
+				if (status.toLowerCase() === "doses aplicadas") {
 					qb.whereRaw("vaccine_calendars.application_date is not null");
-				} else if (status === "Dose pendente - atrasada") {
+				}
+
+				if (status.toLowerCase() === "doses atrasadas") {
 					qb.whereRaw(
 						"(vaccine_calendars.application_date is null and vaccine_calendars.scheduling_date::date < now()::date)",
 					);
-				} else if (status === "Dose pendente - em dia") {
+				}
+
+				if (status.toLowerCase() === "doses futuras") {
 					qb.whereRaw(
 						"(vaccine_calendars.application_date is null and vaccine_calendars.scheduling_date::date >= now()::date)",
 					);
+				}
+
+				if (status.toLowerCase() === "doses não aplicadas") {
+					qb.whereRaw("vaccine_calendars.application_date is null");
 				}
 			}
 		}
@@ -3708,6 +3715,88 @@ account_plans.tag, ' + ' || tag as ref`),
 				})),
 			},
 		];
+	}
+
+	public async checkingAccountBankingReport(
+		authCtx: AuthContext,
+		data: {
+			businessUnits?: string[];
+			checkingAccountId?: string;
+		},
+	): Promise<
+		{
+			id: string;
+			identification: string;
+			account_number: string;
+			bank_code: string;
+			bank_name: string;
+			agency: string;
+			type: string;
+			bankings: unknown[];
+		}[]
+	> {
+		const qb = Database.from("checking_accounts")
+			.select(
+				Database.raw(`checking_accounts.id,
+       checking_accounts.description,
+       business_units.identification,
+       checking_accounts.account_number,
+       checking_accounts.bank_code,
+       checking_accounts.bank_name,
+       checking_accounts.agency,
+       case
+           when checking_accounts.type = 'CONTA_CAIXA_UNIDADE_NEGOCIO' then 'Conta Cofre Unidade'
+           when checking_accounts.type = 'CONTA_CORRENTE' then 'Conta Corrente'
+           when checking_accounts.type = 'CONTA_POUPANCA' then 'Conta Poupança'
+           when checking_accounts.type = 'CONTA_INVESTIMENTO' then 'Conta Investimento' end as type,
+       COALESCE(
+                       json_agg(
+                       DISTINCT jsonb_build_object(
+                               'id', bankings.id,
+                               'accountPlan', account_plans.description,
+                               'paymentMethod', payment_methods.description,
+                               'clientName', patients.name,
+                               'type', bankings.type,
+                               'document', bankings.document,
+                               'historic', bankings.historic,
+                               'issueDate', bankings.issue_date,
+                               'competenceDate', bankings.competence_date,
+                               'totalValue', bankings.total_value,
+                               'originFlag', bankings.origin_flag,
+                               'reconciled', bankings.reconciled,
+                               'balance', bankings.balance,
+                               'prevBalance', bankings.prev_balance
+                                )
+                               ) FILTER (WHERE bankings.id IS NOT NULL),
+                       '[]':: json
+       )                                                                                    as bankings`),
+			)
+			.joinRaw(
+				"join business_units on checking_accounts.business_unit_id = business_units.id",
+			)
+			.joinRaw(
+				"left join bankings on checking_accounts.id = bankings.checking_account_id",
+			)
+			.joinRaw(
+				"left join account_plans on bankings.account_plan_id = account_plans.id",
+			)
+			.joinRaw(
+				"left join payment_methods on checking_accounts.id = payment_methods.checking_account_id",
+			)
+			.joinRaw("left join patients on bankings.client_id = patients.id")
+			.groupByRaw("checking_accounts.id, business_units.id")
+			.orderByRaw("checking_accounts.description")
+			.whereRaw("checking_accounts.economic_group_id = ?", [authCtx.group.id]);
+
+		if (data.businessUnits && Array.isArray(data.businessUnits)) {
+			qb.whereIn("checking_accounts.business_unit_id", data.businessUnits);
+		}
+
+		if (data.checkingAccountId) {
+			qb.whereRaw("checking_accounts.id = ?", [data.checkingAccountId]);
+		}
+
+		return qb;
 	}
 
 	private calculateDailyFlow(finances: Finance[]) {

@@ -4359,19 +4359,16 @@ export default class IndicatorService {
 			);
 		}
 
-		if (authCtx.system.name === "Sanclá" || authCtx.system.type === "Vet") {
+		if (authCtx.system.type === "Vet") {
 			return this.sanclaChartsIndicators(authCtx, data);
 		}
 
-		if (
-			authCtx.system.name === "LiftOne" ||
-			authCtx.system.type === "Clinicas"
-		) {
+		if (authCtx.system.type !== "Vet") {
 			return this.liftOneChartsIndicators(authCtx, data);
 		}
 
 		throw new InternalErrorException(
-			`Sistema '${authCtx.system.name}' não tem gráficos definidos`,
+			`Sistema '${authCtx.system.type}' não tem gráficos definidos`,
 			400,
 			"E_ERR",
 		);
@@ -5751,7 +5748,7 @@ export default class IndicatorService {
 		// const salesResult = await salesQb;
 		const generalResult = await qb;
 
-		if (authCtx.system.name === "Sanclá" || authCtx.system.type === "Vet") {
+		if (authCtx.system.type === "Vet") {
 			const _agendados = Number.parseInt(
 				generalResult.at(0)?.agendados ?? "0",
 				10,

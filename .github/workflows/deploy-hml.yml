@@ -1,0 +1,42 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.HML_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p 41239 ${{ secrets.HML_HOST }} >> ~/.ssh/known_hosts
+          sudo apt-get install sshpass
+
+      - name: Deploy Application
+        run: |
+          sshpass -p '${{ secrets.HML_PSWD }}' ssh -v -o StrictHostKeyChecking=no -p 42239 ${{ secrets.SSH_USER }}@${{ secrets.HML_HOST }} <<'ENDSSH'
+          cd ${{ secrets.FOLDER }}
+          git pull origin main
+          yarn
+          yarn build
+          cp .env build/.env
+          cp -r public build/public
+          node ace migration:run
+          pm2 restart api
+          pm2 restart cron
+          ENDSSH
+
+      - name: Notify Discord
+        if: always()
+        run: |
+          STATUS="🔴 Falhou [dev]"
+          if [ "${{ job.status }}" == "success" ]; then STATUS="✅ Sucesso [hml]"; fi
+          curl -H "Content-Type: application/json" -d "{\"content\": \"$STATUS - ${{ github.workflow }}\"}" \
+          ${{ secrets.HML_DISCORD_WEBHOOK }}

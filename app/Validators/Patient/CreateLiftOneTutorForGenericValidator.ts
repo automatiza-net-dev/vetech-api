@@ -26,6 +26,7 @@ export default class CreateLiftOneTutorForGenericValidator {
 	 */
 	public schema = schema.create({
 		name: schema.string({}),
+		tag: schema.string.optional({}),
 		corporateName: schema.string.optional({}),
 		document: schema.string.optional({}),
 		cellphone: schema.string.optional(),

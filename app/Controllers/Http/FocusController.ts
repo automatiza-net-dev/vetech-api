@@ -20,4 +20,37 @@ export default class FocusController {
 			}),
 		});
 	}
+
+	public async listReceived({ response, auth }: HttpContextContract) {
+		const authCtx = await this.sharedService.getAuthContext(auth);
+
+		return response.ok(await this.service.listReceived(authCtx));
+	}
+
+	public async searchReceived({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const authCtx = await this.sharedService.getAuthContext(auth);
+
+		const result = await this.service.searchReceived(
+			authCtx,
+			request.param("ref"),
+		);
+
+		return response.ok(Buffer.from(result));
+	}
+
+	public async importReceived({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const authCtx = await this.sharedService.getAuthContext(auth);
+
+		await this.service.importReceived(authCtx, request.param("ref"));
+
+		return response.ok(null);
+	}
 }

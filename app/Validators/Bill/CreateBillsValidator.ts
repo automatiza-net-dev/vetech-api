@@ -19,11 +19,20 @@ export default class CreateBillsValidator {
 					rules.uuid(),
 					rules.exists({ table: "daily_movements", column: "id" }),
 				]),
+				destinyBusinessUnitId: schema.string.optional({}, [
+					rules.uuid(),
+					rules.exists({ table: "business_units", column: "id" }),
+				]),
 				scheduleId: schema.string.optional({}, [
 					rules.uuid(),
 					rules.exists({ table: "schedules", column: "id" }),
 				]),
+				billRelatedTypeId: schema.number.optional([
+					rules.exists({ table: "bill_related_types", column: "id" }),
+				]),
 				billDate: schema.date(),
+				billType: schema.enum(["V", "T", "D"] as const),
+				receiptType: schema.enum.optional(["E", "T", "D"] as const),
 
 				additionalInformation: schema.string.optional(),
 				budgetId: schema.string.optional({}, [

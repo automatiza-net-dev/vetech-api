@@ -125,6 +125,11 @@ Route.group(() => {
 		"BusinessUnitsController.checkDocument",
 	);
 
+	Route.post(
+		"/test-form/:form",
+		"BusinessUnitsController.testDynamicForm",
+	).middleware("auth");
+
 	Route.get("/users", "BusinessUnitsController.users").middleware("auth");
 	Route.get("/user/:id", "BusinessUnitsController.searchUser").middleware(
 		"auth",
@@ -157,6 +162,9 @@ Route.group(() => {
 	Route.post("/sync-config", "BusinessUnitsController.syncConfig").middleware(
 		"auth",
 	);
+	Route.post("/merge-config", "BusinessUnitsController.mergeConfig").middleware(
+		"auth",
+	);
 
 	Route.post("", "BusinessUnitsController.store").middleware("auth");
 
@@ -178,6 +186,7 @@ Route.group(() => {
 Route.group(() => {
 	Route.get("/search", "RolesController.searchInfo");
 	Route.get("/metadata/:id", "RolesController.permissionMetadata");
+	Route.get("/schematics", "RolesController.permissionSchematics");
 	Route.post("/add-permissions", "RolesController.addPermissions");
 	Route.post("/permissions", "RolesController.managePermissions");
 	Route.post("/copy", "RolesController.copyRole");
@@ -354,6 +363,15 @@ Route.group(() => {
 	.prefix("unavailable-days")
 	.middleware("auth");
 
+Route.get(
+	"schedules/confirmation/:scheduleID",
+	"SchedulesController.publicConfirmationInfo",
+);
+Route.post(
+	"schedules/confirmation",
+	"SchedulesController.publicConfirmationUpdate",
+);
+
 Route.group(() => {
 	Route.get("/search-events", "SchedulesController.searchScheduleEvents");
 	Route.get(
@@ -381,6 +399,7 @@ Route.group(() => {
 		"/schedules-attendances/:patientID",
 		"SchedulesController.schedulesAttendances",
 	);
+	Route.get("/finances/:clientID", "SchedulesController.finances");
 
 	Route.get("/", "SchedulesController.index");
 	Route.post("/create-contact", "SchedulesController.createContact");
@@ -1023,6 +1042,10 @@ Route.group(() => {
 	Route.put("/exclude-payment", "BudgetsController.excludeBudgetPayment");
 	Route.put("/cancel/:id", "BudgetsController.cancelBudget");
 	Route.put("/confirm/:id", "BudgetsController.confirmBudget");
+	Route.put(
+		"/delete-item-departments",
+		"BudgetsController.deleteBudgetItemDepartments",
+	);
 	Route.delete("/delete/:id", "BudgetsController.deleteBudget");
 
 	// Route.delete('/delete/:id', 'BudgetsController.deleteBudget');
@@ -1238,6 +1261,9 @@ Route.group(() => {
 
 Route.group(() => {
 	Route.post("/identification", "SystemUrlsController.search");
+	Route.post("/upload-images", "SystemUrlsController.uploadImages").middleware(
+		"auth",
+	);
 }).prefix("systems");
 
 Route.group(() => {
@@ -1486,6 +1512,7 @@ Route.group(() => {
 Route.group(() => {
 	Route.post("/import-xml", "ReceiptsController.importFromXml");
 	Route.post("/update-xml-items", "ReceiptsController.updateXmlItems");
+	Route.post("/confirm-transference", "ReceiptsController.confirmTransference");
 
 	Route.post("/create", "ReceiptsController.createReceipt");
 	Route.post("/create-item", "ReceiptsController.createReceiptItem");
@@ -1498,6 +1525,10 @@ Route.group(() => {
 	Route.post("/delete-item", "ReceiptsController.deleteReceiptItem");
 	Route.post("/delete-payment", "ReceiptsController.deleteReceiptPayment");
 
+	Route.get(
+		"/pending-transferences",
+		"ReceiptsController.pendingTransferences",
+	);
 	Route.get("/", "ReceiptsController.index");
 	Route.get("/with-products", "ReceiptsController.productIndex");
 	Route.get("/show", "ReceiptsController.show");
@@ -1583,6 +1614,10 @@ Route.group(() => {
 	Route.get(
 		"/comission-seller-conference",
 		"ReportsController.comissionSellerConference",
+	);
+	Route.get(
+		"/checking-account-bankings",
+		"ReportsController.checkingAccountBankingReport",
 	);
 })
 	.prefix("reports")
@@ -1991,6 +2026,9 @@ Route.group(() => {
 
 Route.group(() => {
 	Route.get("/search", "FocusController.search");
+	Route.get("/list-received", "FocusController.listReceived");
+	Route.get("/search-received/:ref", "FocusController.searchReceived");
+	Route.post("/import-received/:ref", "FocusController.importReceived");
 })
 	.prefix("focus")
 	.middleware("auth");
@@ -2024,6 +2062,7 @@ Route.group(() => {
 	);
 	Route.get("/list-products", "DepartmentsController.listProducts");
 	Route.get("/list-items", "DepartmentsController.listItems");
+	Route.get("/resume", "DepartmentsController.resume");
 	Route.get("/", "DepartmentsController.index");
 
 	Route.post("/store-products", "DepartmentsController.storeProducts");
@@ -2039,4 +2078,45 @@ Route.group(() => {
 	Route.delete("/:id", "DepartmentsController.destroy");
 })
 	.prefix("departments")
+	.middleware("auth");
+
+Route.group(() => {
+	Route.post("/transfer-opportunity", "CrmV2Controller.transferOpportunity");
+	Route.post("/create-opportunity", "CrmV2Controller.createOpportunity");
+	Route.get(
+		"/search-kanban-opportunities",
+		"CrmV2Controller.searchKanbanOpportunities",
+	);
+	Route.get("/search-opportunities", "CrmV2Controller.searchOpportunities");
+	Route.get("/search-activities", "CrmV2Controller.searchActivities");
+	Route.get(
+		"/search-syncable-opportunities",
+		"CrmV2Controller.searchSyncableOpportunities",
+	);
+	Route.get("/list-kanbans", "CrmV2Controller.listKanbans");
+	Route.post("/store-kanban", "CrmV2Controller.storeKanban");
+	Route.post("/update-kanban", "CrmV2Controller.updateKanban");
+	Route.delete("/delete-kanban/:kanbanID", "CrmV2Controller.deleteKanban");
+})
+	.prefix("crm-v2")
+	.middleware("auth");
+
+Route.group(() => {
+	Route.get("/patient/:patientID", "PatientContractsController.forPatient");
+	Route.get("/", "PatientContractsController.index");
+	Route.post("/store-client", "PatientContractsController.clientContract");
+	Route.post("/store", "PatientContractsController.store");
+	Route.put("/update", "PatientContractsController.update");
+	Route.delete("/delete/:id", "PatientContractsController.delete");
+})
+	.prefix("contracts")
+	.middleware("auth");
+
+Route.group(() => {
+	Route.get("/", "BillRelatedTypesController.index");
+	Route.post("/store", "BillRelatedTypesController.store");
+	Route.put("/update", "BillRelatedTypesController.update");
+	Route.delete("/delete/:id", "BillRelatedTypesController.delete");
+})
+	.prefix("bill-related-types")
 	.middleware("auth");

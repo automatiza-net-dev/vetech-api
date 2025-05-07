@@ -1,4 +1,6 @@
 import { inject } from "@adonisjs/fold";
+import { schema, type TypedSchema } from "@ioc:Adonis/Core/Validator";
+import Drive from "@ioc:Adonis/Core/Drive";
 import { AuthContract } from "@ioc:Adonis/Addons/Auth";
 import Database, {
 	TransactionClientContract,
@@ -19,6 +21,8 @@ import { ValidationException } from "@ioc:Adonis/Core/Validator";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import PaymentMethod from "App/Models/PaymentMethod";
 import SystemUrl from "App/Models/SystemUrl";
+import S3Cache from "App/Models/S3Cache";
+import { TDynamicForm } from "App/Models/BusinessUnitConfig";
 
 type KeySelector<T> = (item: T) => any[];
 
@@ -110,6 +114,59 @@ export default class SharedService {
 		name: "Nome",
 		holders: "Tutores",
 	} as const;
+
+	public static async ComputePublicS3Link(
+		keys: string[],
+	): Promise<Record<string, string>> {
+		if (keys.length === 0) {
+			return {};
+		}
+
+		const existingKeys = await S3Cache.query()
+			.whereIn("key", keys)
+			.whereRaw("expires_at > now()");
+
+		const partialResult = existingKeys.reduce(
+			(acc, curr) => {
+				acc[curr.key] = curr.value;
+				return acc;
+			},
+			{} as Record<string, string>,
+		);
+
+		const missingKeys = keys.filter(
+			(k) => !Object.keys(partialResult).includes(k),
+		);
+
+		if (missingKeys.length > 0) {
+			const updatedKeyTasks = missingKeys.map(async (key) => {
+				return {
+					key,
+					value: await Drive.use("s3").getSignedUrl(
+						key.startsWith("/uploads/") ? key.slice(9) : key,
+						{
+							expiresIn: "7d",
+						},
+					),
+				};
+			});
+			const updatedResult = await Promise.all(updatedKeyTasks);
+
+			await S3Cache.createMany(
+				updatedResult.map((row) => ({
+					key: row.key,
+					value: row.value,
+					expiresAt: DateTime.now().plus({ days: 7 }),
+				})),
+			);
+
+			for (const row of updatedResult) {
+				partialResult[row.key] = row.value;
+			}
+		}
+
+		return partialResult;
+	}
 
 	public async errorHoc(
 		response: HttpContextContract["response"],
@@ -548,5 +605,98 @@ export default class SharedService {
 			},
 			{} as Record<string, T[]>,
 		);
+	}
+
+	private static reduceSimpleValidator(row: TDynamicForm["cadastro"][string]) {
+		switch (row.type) {
+			case "string":
+				return row.required ? schema.string() : schema.string.optional();
+			case "date":
+				return row.required ? schema.date() : schema.date.optional();
+			default:
+				console.log({ row });
+				throw new Error("Não deveria chegar aqui?");
+		}
+	}
+
+	private static reduceValidatorObject(rows: TDynamicForm[string]["prop"]) {
+		const memberProps = (Array.isArray(rows) ? rows : [rows])
+			.flat()
+			.reduce((acc, curr) => {
+				acc[curr.key] = SharedService.reduceSimpleValidator(curr);
+
+				return acc;
+			}, {} as TypedSchema);
+
+		return schema.object().members(memberProps);
+	}
+
+	private static reduceValidatorArray(rows: TDynamicForm[string]["prop"]) {
+		const memberProps = (Array.isArray(rows) ? rows : [rows])
+			.flat()
+			.reduce((acc, curr) => {
+				acc[curr.key] = SharedService.reduceSimpleValidator(curr);
+
+				return acc;
+			}, {} as TypedSchema);
+
+		return schema.array().members(schema.object().members(memberProps));
+	}
+
+	static CreateDynamicValidator(form: TDynamicForm["cadastro"]) {
+		return Object.entries(form).reduce((acc, [key, prop]) => {
+			if (prop.type === "array" && "prop" in prop) {
+				acc[key] = SharedService.reduceValidatorArray(prop.prop);
+			} else if (prop.type === "object" && "prop" in prop) {
+				acc[key] = SharedService.reduceValidatorObject(prop.prop);
+			} else if (prop.type === "string" || prop.type === "date") {
+				acc[key] = SharedService.reduceSimpleValidator(prop);
+			}
+
+			return acc;
+		}, {} as TypedSchema);
+	}
+
+	static CreateDynamicErrorMessages(form: TDynamicForm[string]) {
+		return {
+			"*": (field: string) => {
+				const tokens = field.split(".");
+
+				let root: unknown = form;
+				for (const token of tokens) {
+					const isNumeric = token === "0" || Number.isNaN(new Number(token));
+
+					if (!root[token]) {
+						if (root.prop) {
+							if (isNumeric) {
+								const dynamicField = root.prop[Number.parseInt(token)];
+								if (dynamicField) {
+									return (
+										dynamicField?.error_message ?? "Campo é obrigatório [3]"
+									);
+								}
+
+								return "Campo é obrigatório [4]";
+							}
+
+							const dynamicField = root.prop.find((f) => f.title === token);
+							if (dynamicField) {
+								return dynamicField?.error_message ?? "Campo é obrigatório [3]";
+							}
+						}
+
+						return "Campo é obrigatório [1]";
+					}
+
+					if (root[token]?.error_message) {
+						return root[token]?.error_message;
+					}
+
+					root = root[token];
+				}
+
+				return "Campo é obrigatório [2]";
+			},
+		};
 	}
 }

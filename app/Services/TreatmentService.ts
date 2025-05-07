@@ -694,6 +694,37 @@ export default class TreatmentService {
 				query.preload("patientAnimal");
 			});
 
+		const departmentItems: {
+			treatment_id: number;
+			treatment_item_id: number;
+			department_id: number;
+			department_description: string;
+			department_item_id: number;
+			department_item_description: string;
+			observations: string;
+		}[] = await Database.from("treatments")
+			.select(
+				Database.raw(`treatments.id           as   treatment_id,
+       treatment_items.id      as   treatment_item_id,
+       departments.id          as   department_id,
+       departments.description as   department_description,
+       department_items.description department_item_description,
+       department_items.id     as   department_item_id,
+       bill_item_departments.observations`),
+			)
+			.joinRaw(`join treatment_items
+              on treatments.id = treatment_items.treatment_id and
+                 treatments.business_unit_id = treatment_items.business_unit_id`)
+			.joinRaw(`join (bill_item_departments join departments on bill_item_departments.department_id = departments.id join department_items
+               on bill_item_departments.department_item_id = department_items.id)
+              on treatments.bill_id = bill_item_departments.bill_id and
+                 treatment_items.bill_item_id = bill_item_departments.bill_item_id`)
+			.whereRaw("treatments.business_unit_id = ?", [authCtx.unit.id])
+			.whereIn(
+				"treatments.id",
+				treatments.map((r) => r.id),
+			);
+
 		return treatments.map((elem) => ({
 			id: elem.id,
 			bill: elem.bill
@@ -753,6 +784,18 @@ export default class TreatmentService {
 
 				observations: inner.observations,
 				status: inner.status,
+				departmentItems: departmentItems
+					.filter(
+						(ro) =>
+							ro.treatment_id === elem.id && ro.treatment_item_id === inner.id,
+					)
+					.map((r) => ({
+						department_id: r.department_id,
+						department_description: r.department_description,
+						department_item_id: r.department_item_id,
+						department_item_description: r.department_item_description,
+						observations: r.observations,
+					})),
 			})),
 			executions: elem.executions.map((inner) => ({
 				id: inner.id,
@@ -1360,7 +1403,8 @@ export default class TreatmentService {
 
 		const qb = Database.from("treatments")
 			.select(
-				Database.raw(`treatment_executions.treatment_id,
+				Database.raw(
+					`treatment_executions.treatment_id,
         treatment_executions.treatment_item_id,
         treatment_executions.id        as treatment_execution_id,
         treatment_executions.execution_date,
@@ -1368,7 +1412,16 @@ export default class TreatmentService {
         treatment_executions.productivity_item_id,
         treatment_executions.schedule_id,
         products.description           as produto,
-        productivity_items.description as item_produtividade`),
+        productivity_items.description as item_produtividade,
+        (select coalesce(sum(payment_value), 0) / coalesce(nullif(sum(total_value), 0), 1) * 100 < ?
+                from finances
+                where origin_id in (select bp.id
+                from bills join bill_payments bp on bills.id = bp.bill_id and bills.treatment_id = treatments.id) ) as finance_blocked`,
+					[
+						authCtx.unit.unitConfig.config.treatments
+							?.minimum_percentage_paid_start_treatment ?? 0,
+					],
+				),
 			)
 			.joinRaw(`join (treatment_items
     join product_variations on treatment_items.product_variation_id = product_variations.id
@@ -1403,6 +1456,7 @@ export default class TreatmentService {
 			schedule_id: string;
 			produto: string;
 			item_produtividade: string;
+			finance_blocked: boolean;
 		}[] = await qb;
 
 		return result.map((elem) => ({
@@ -1419,6 +1473,7 @@ export default class TreatmentService {
 				? `agendado dia ${DateTime.fromJSDate(new Date(elem.schedule_date)).toFormat("dd/MM/yyyy")}`
 				: "-",
 			scheduleId: elem.schedule_id,
+			financeBlocked: elem.finance_blocked,
 		}));
 	}
 }

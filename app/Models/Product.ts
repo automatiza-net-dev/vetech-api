@@ -124,6 +124,9 @@ export default class Product extends BaseModel {
 	public courtesy: boolean;
 
 	@column()
+	public contract: "S" | "N" | "A" | null;
+
+	@column()
 	public active: boolean;
 
 	@column.dateTime({ autoCreate: true })

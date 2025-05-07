@@ -1,6 +1,8 @@
 export default interface IRoleData {
 	name: string;
 	externalAccess: boolean;
-	active: boolean;
-	profileAccessIdList: number[];
+	profiles: {
+		id: number;
+	}[];
+	screens: { id: number; permissions: { id: number }[] }[];
 }

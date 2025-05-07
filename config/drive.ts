@@ -104,6 +104,17 @@ export default driveConfig({
 			// For minio to work
 			// forcePathStyle: true,
 		},
+		"s3-cdn": {
+			driver: "s3",
+			visibility: "public",
+			key: Env.get("AWS_S3_KEY"),
+			secret: Env.get("AWS_S3_SECRET"),
+			region: Env.get("AWS_S3_REGION"),
+			bucket: Env.get("AWS_S3_CDN_BUCKET"),
+			// endpoint: Env.get("AWS_S3_ENDPOINT"),
+			// For minio to work
+			// forcePathStyle: true,
+		},
 
 		/*
     |--------------------------------------------------------------------------

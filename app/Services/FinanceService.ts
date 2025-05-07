@@ -39,6 +39,7 @@ import Database, {
 } from "@ioc:Adonis/Lucid/Database";
 import BusinessUnitCheckingAccountPaymentMethod from "App/Models/BusinessUnitCheckingAccountPaymentMethod";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
+import Decimal from "decimal.js";
 
 interface ISearch {
 	fromIssueDate?: string;
@@ -1125,7 +1126,7 @@ export default class FinanceService {
 	async createFinance(authCtx: AuthContext, data: IUpsertFinance) {
 		if (authCtx.unit.unitConfig.requiresFinanceClient && !data.clientId) {
 			throw new BadRequestException(
-				"É preciso adicionar cliente na nota para essa unidade",
+				"É necessário informar a o titular responsavel do titulo",
 				400,
 				"BAD_REQUEST",
 			);
@@ -1148,7 +1149,29 @@ export default class FinanceService {
 				trx,
 			);
 
-			const discount = data.originalValue * (paymentMethod.fee / 100);
+			const feeRow: { fee: string | null } =
+				data.tefAcquirerId && data.tefFlagId
+					? await Database.from("payment_methods")
+							.useTransaction(trx)
+							.select(
+								Database.raw(
+									"coalesce(payment_method_flag_installments.installment, payment_methods.fee) as fee",
+								),
+							)
+							.joinRaw(
+								`left join payment_method_flags on payment_methods.id = payment_method_flags.payment_method_id and
+                                           payment_method_flags.tef_flag_id = ? and payment_method_flags.tef_acquirer_id = ?`,
+								[data.tefFlagId, data.tefAcquirerId],
+							)
+							.joinRaw(
+								`left join payment_method_flag_installments
+                   on payment_method_flags.id = payment_method_flag_installments.payment_method_flag_id and
+                      payment_method_flag_installments.installment = ?`,
+								[data.installment],
+							)
+							.first()
+					: { fee: paymentMethod.fee.toString() };
+			const discount = new Decimal(feeRow.fee ?? paymentMethod.fee);
 
 			const $checkingAccountMeta =
 				await BusinessUnitCheckingAccountPaymentMethod.query()
@@ -1164,7 +1187,7 @@ export default class FinanceService {
 					daily_cashier_id: dailyCashier?.id,
 					status: FinanceStatus.A,
 					feeDiscountPercentage: paymentMethod.fee,
-					feeDiscountValue: discount,
+					feeDiscountValue: discount.toNumber(),
 					economic_group_id: authCtx.group.id,
 					business_unit_id: authCtx.unit.id,
 					client_id: data.clientId,
@@ -1176,13 +1199,15 @@ export default class FinanceService {
 					issueDate: data.issueDate,
 					expirationDate: data.expirationDate,
 					originalValue: data.originalValue,
-					value: data.originalValue - discount,
-					totalValue:
+					value: new Decimal(data.originalValue).minus(discount).toNumber(),
+					totalValue: new Decimal(
 						data.originalValue +
-						(data.feeValue || 0) +
-						(data.increaseValue || 0) -
-						(data.discountValue || 0) -
-						discount,
+							(data.feeValue || 0) +
+							(data.increaseValue || 0) -
+							(data.discountValue || 0),
+					)
+						.minus(discount)
+						.toNumber(),
 					accept: data.accept,
 					installment: data.installment,
 					originFlag: data.originFlag,
@@ -1228,7 +1253,7 @@ export default class FinanceService {
 			data.some((item) => !item.clientId)
 		) {
 			throw new BadRequestException(
-				"É preciso adicionar cliente na nota para essa unidade",
+				"É necessário informar a o titular responsavel dos titulos",
 				400,
 				"BAD_REQUEST",
 			);
@@ -1918,6 +1943,39 @@ export default class FinanceService {
 
 	async acceptMany(authCtx: AuthContext, data: { ids: string[] }) {
 		await Database.transaction(async (trx) => {
+			const accessResult: { control_id: string; erro: string }[] =
+				await Database.from("role_permissions")
+					.select(
+						Database.raw(
+							`p.control_id, case when p.control_id = 'TRC06' then 'Usuário não possui permissão para realizar o aceite de titulos de Credito' else 'Usuário não possui permissão para realizar o aceite de titulos de Debito' end as erro`,
+						),
+					)
+					.useTransaction(trx)
+					.joinRaw(
+						"join permissions p on role_permissions.permission_id = p.id",
+					)
+					.joinRaw(
+						"join user_unit_roles uur on role_permissions.role_id = uur.role_id and uur.unit_id = ? and user_id = ?",
+						[authCtx.unit.id, authCtx.user.id],
+					)
+					.where("uur.unit_id", authCtx.unit.id)
+					.where("user_id", authCtx.user.id)
+					.whereRaw(
+						`( p.control_id = 'TPG06' and coalesce(role_permissions.status, false) = false
+
+  and exists (select id from finances where type = 'DEBITO' and id in (${data.ids.map((id) => `'${id}'`).join(", ")}) ) )
+
+or
+
+ ( p.control_id = 'TRC06' and coalesce(role_permissions.status, false) = false
+
+   and exists (select id from finances where type = 'CREDITO' and id in (${data.ids.map((id) => `'${id}'`).join(", ")}) ) )`,
+						[],
+					);
+			if (accessResult.length > 0) {
+				throw new UnauthorizedException(accessResult[0].erro, 400, "E_ERR");
+			}
+
 			const finances = await Finance.query()
 				.useTransaction(trx)
 				.whereIn("id", data.ids)
@@ -1939,6 +1997,8 @@ export default class FinanceService {
 				.where("business_unit_id", authCtx.unit.id)
 				.update({
 					accept: FinanceAccept.S,
+					accept_user_id: authCtx.user.id,
+					accepted_date: DateTime.now(),
 				});
 		});
 	}
@@ -1984,8 +2044,7 @@ case when p.control_id = 'TRC11' then 'Usuário não possui permissão para reti
    or ( p.control_id = 'TRC11' and coalesce(role_permissions.status, false) = false
 
         and exists (select id from finances where type = 'CREDITO' and id in (${data.ids.map((id) => `'${id}'`).join(", ")}) ) )`,
-						[
-						],
+						[],
 					);
 			if (accessResult.length > 0) {
 				throw new UnauthorizedException(accessResult[0].erro, 400, "E_ERR");
@@ -2012,6 +2071,8 @@ case when p.control_id = 'TRC11' then 'Usuário não possui permissão para reti
 				.where("business_unit_id", authCtx.unit.id)
 				.update({
 					accept: FinanceAccept.N,
+					unaccept_user_id: authCtx.user.id,
+					unaccepted_date: DateTime.now(),
 				});
 		});
 	}

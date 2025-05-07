@@ -26,6 +26,7 @@ export default class UpsertClinicsTutorValidator {
 	public schema = schema.create({
 		name: schema.string({}),
 		corporateName: schema.string.optional({}),
+		tag: schema.string.optional({}),
 		document: schema.string({}, []),
 	});
 

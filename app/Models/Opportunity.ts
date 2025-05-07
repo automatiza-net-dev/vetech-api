@@ -274,4 +274,7 @@ export default class Opportunity extends BaseModel {
 		foreignKey: "marketing_campaign_id",
 	})
 	public marketingCampaign: BelongsTo<typeof MarketingCampaign>;
+
+	@column({ serializeAs: null })
+	public kanban_id: number | null;
 }

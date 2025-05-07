@@ -81,18 +81,8 @@ export default class RoleService {
 		return qb;
 	}
 
-	public async store(
-		authCtx: AuthContext,
-		data: Omit<IRoleData, "active">,
-	): Promise<Role> {
+	public async store(authCtx: AuthContext, data: IRoleData): Promise<Role> {
 		return Database.transaction(async (trx) => {
-			const permissions = await Permission.query()
-				.useTransaction(trx)
-				.whereIn("type", ["user", "both"] as TRoleType[])
-				.whereHas("systems", (query) => {
-					query.where("system_id", authCtx.system.id);
-				});
-
 			const newRole = await Role.create(
 				{
 					system_id: authCtx.system.id,
@@ -108,19 +98,30 @@ export default class RoleService {
 				},
 			);
 
-			await newRole.related("permissions").attach(
-				permissions.map((p) => p.id),
-				trx,
+			await Promise.all(
+				data.profiles.map((p) =>
+					Database.rawQuery(
+						`insert into role_profile_accesses (role_id, profile_access_id, active, created_at, type)
+values (?, ?, true, now(), 'user')`,
+						[newRole.id, p.id],
+					)
+						.useTransaction(trx)
+						.exec(),
+				),
 			);
 
-			await RoleProfileAccess.createMany(
-				data.profileAccessIdList.map((elem) => ({
-					role_id: newRole.id,
-					profile_access_id: elem,
-					active: true,
-				})),
-				{ client: trx },
-			);
+			const tasks = data.screens
+				.flatMap((s) => s.permissions.map((sp) => sp.id))
+				.map(async (permissionID) => {
+					return Database.rawQuery(
+						`insert into role_permissions (role_id, permission_id, created_at, updated_at)
+values (?, ?, now(), now())`,
+						[newRole.id, permissionID],
+					)
+						.useTransaction(trx)
+						.exec();
+				});
+			await Promise.all(tasks);
 
 			return newRole;
 		});
@@ -186,7 +187,7 @@ export default class RoleService {
 	public async update(
 		authCtx: AuthContext,
 		id: number,
-		data: IRoleData,
+		data: IRoleData & { active: boolean },
 	): Promise<Role> {
 		return Database.transaction(async (trx) => {
 			const role = await Role.query()
@@ -204,21 +205,44 @@ export default class RoleService {
 				);
 			}
 
-			await RoleProfileAccess.query()
+			await Database.rawQuery(
+				"delete from role_profile_accesses where role_id = ?",
+				[role.id],
+			)
 				.useTransaction(trx)
-				.where("role_id", role.id)
-				.delete();
+				.exec();
 
-			await RoleProfileAccess.createMany(
-				data.profileAccessIdList.map(
-					(elem) => ({
-						role_id: role.id,
-						profile_access_id: elem,
-						active: true,
-					}),
-					{ client: trx },
+			await Promise.all(
+				data.profiles.map((p) =>
+					Database.rawQuery(
+						`insert into role_profile_accesses (role_id, profile_access_id, active, created_at, type)
+values (?, ?, true, now(), 'user')`,
+						[role.id, p.id],
+					)
+						.useTransaction(trx)
+						.exec(),
 				),
 			);
+
+			await Database.rawQuery(
+				"delete from role_permissions where role_id = ?",
+				[role.id],
+			)
+				.useTransaction(trx)
+				.exec();
+
+			const tasks = data.screens
+				.flatMap((s) => s.permissions.map((sp) => sp.id))
+				.map(async (permissionID) => {
+					return Database.rawQuery(
+						`insert into role_permissions (role_id, permission_id, created_at, updated_at)
+values (?, ?, now(), now())`,
+						[role.id, permissionID],
+					)
+						.useTransaction(trx)
+						.exec();
+				});
+			await Promise.all(tasks);
 
 			return role
 				.merge({
@@ -330,25 +354,23 @@ export default class RoleService {
 			throw this.sharedService.ResourceNotFound();
 		}
 
-		// .preload('permissions', query => {
-		//     query.where('active', true);
-		//     query.preload('screen').pivotColumns(['active']);
-		//   })
-
-		const qb = role
-			.related("permissions")
-			.query()
-			.preload("screen")
-			.pivotColumns(["active", "status"]);
-
-		if (data.newItems === "true") {
-			qb.whereRaw("role_permissions.status is null");
-		} else if (data.newItems === "false") {
-			qb.whereRaw("role_permissions.status is not null");
-		}
+		const qb = Database.from("profile_accesses")
+			.select(
+				Database.raw(`profile_accesses.id,
+       profile_accesses.description,
+       case when role_profile_accesses.role_id is not null then true else false end as active`),
+			)
+			.joinRaw(
+				`left join role_profile_accesses
+                   on profile_accesses.id = role_profile_accesses.profile_access_id and
+                      role_profile_accesses.role_id = ?`,
+				[id],
+			)
+			.whereRaw("profile_accesses.system_id = ?", [systemID])
+			.orderByRaw("profile_accesses.description");
 
 		if (data.type === "user") {
-			qb.whereIn("permissions.type", [
+			qb.whereIn("profile_accesses.type", [
 				"user",
 				"both",
 				"all",
@@ -356,7 +378,7 @@ export default class RoleService {
 		}
 
 		if (data.type === "controller") {
-			qb.whereIn("permissions.type", [
+			qb.whereIn("profile_accesses.type", [
 				"controller",
 				"both",
 				"all",
@@ -364,32 +386,186 @@ export default class RoleService {
 		}
 
 		if (data.type === "system") {
-			qb.whereIn("permissions.type", ["system", "all"] as TPermissionType[]);
+			qb.whereIn("profile_accesses.type", [
+				"system",
+				"all",
+			] as TPermissionType[]);
 		}
 
-		const permissions = await qb;
+		const roleProfiles: { id: number; description: string; active: boolean }[] =
+			await qb;
 
-		const screens = permissions.map((p) => p.screen).filter(Boolean);
-		const uniqueScreens = screens.filter(
-			(v, i, a) => a.findIndex((t) => t.id === v.id) === i,
-		);
+		const screensWithPermissions: {
+			sid: number;
+			sname: string;
+			pid: number;
+			description: string;
+			control_id: string;
+			active: boolean;
+		}[] = await Database.from("screens")
+			.select(
+				Database.raw(`screens.id as sid,
+       screens.name as sname,
+       permissions.id as pid,
+       permissions.description,
+       permissions.control_id,
+       role_permissions.active`),
+			)
+			.joinRaw("join permissions on screens.id = permissions.screen_id")
+			.joinRaw(
+				"join role_permissions on permissions.id = role_permissions.permission_id and role_id = ?",
+				[id],
+			)
+			.orderByRaw("screens.name, control_id");
 
-		return uniqueScreens.map((screen) => {
-			const screenPermissions = permissions.filter(
-				(p) => p.screen.id === screen.id,
-			);
+		return {
+			id: role.id,
+			name: role.name,
+			active: role.active,
+			externalAccess: role.externalAccess,
+			profiles: roleProfiles,
+			screens: screensWithPermissions.reduce(
+				(acc, curr) => {
+					if (!acc.some((sc) => sc.id === curr.sid)) {
+						acc.push({
+							id: curr.sid,
+							name: curr.sname,
+							permissions: [],
+						});
+					}
 
-			return {
-				id: screen.id,
-				name: screen.name,
-				permissions: screenPermissions.map((p) => ({
-					id: p.id,
-					description: p.description,
-					controlId: p.control_id,
-					active: p.$extras.pivot_status,
-				})),
-			};
-		});
+					return acc.map((sc) => {
+						if (sc.id !== curr.sid) {
+							return sc;
+						}
+
+						sc.permissions.push({
+							id: curr.pid,
+							description: curr.description,
+							controlId: curr.control_id,
+							active: curr.active,
+						});
+						return sc;
+					});
+				},
+				[] as {
+					id: number;
+					name: string;
+					permissions: {
+						id: number;
+						description: string;
+						controlId: string;
+						active: boolean;
+					}[];
+				}[],
+			),
+		};
+	}
+
+	public async rolePermissionSchematics(
+		systemID: number,
+		data: { type?: string; newItems?: string },
+	) {
+		const qb = Database.from("profile_accesses")
+			.select(
+				Database.raw(`profile_accesses.id,
+       profile_accesses.description,
+       false as active`),
+			)
+			.whereRaw("profile_accesses.system_id = ?", [systemID])
+			.orderByRaw("profile_accesses.description");
+
+		if (data.type === "user") {
+			qb.whereIn("profile_accesses.type", [
+				"user",
+				"both",
+				"all",
+			] as TPermissionType[]);
+		}
+
+		if (data.type === "controller") {
+			qb.whereIn("profile_accesses.type", [
+				"controller",
+				"both",
+				"all",
+			] as TPermissionType[]);
+		}
+
+		if (data.type === "system") {
+			qb.whereIn("profile_accesses.type", [
+				"system",
+				"all",
+			] as TPermissionType[]);
+		}
+
+		const roleProfiles: { id: number; description: string; active: boolean }[] =
+			await qb;
+
+		const screensWithPermissions: {
+			sid: number;
+			sname: string;
+			pid: number;
+			description: string;
+			control_id: string;
+			active: boolean;
+		}[] = await Database.from("screens")
+			.select(
+				Database.raw(`screens.id as sid,
+       screens.name as sname,
+       permissions.id as pid,
+       permissions.description,
+       permissions.control_id,
+       true as active`),
+			)
+			.joinRaw("join permissions on screens.id = permissions.screen_id")
+			.joinRaw(
+				"join systems_permissions sp on permissions.id = sp.permission_id and sp.system_id = ?",
+				[systemID],
+			)
+			.orderByRaw("screens.name, control_id");
+
+		return {
+			id: null,
+			name: null,
+			active: false,
+			externalAccess: false,
+			profiles: roleProfiles,
+			screens: screensWithPermissions.reduce(
+				(acc, curr) => {
+					if (!acc.some((sc) => sc.id === curr.sid)) {
+						acc.push({
+							id: curr.sid,
+							name: curr.sname,
+							permissions: [],
+						});
+					}
+
+					return acc.map((sc) => {
+						if (sc.id !== curr.sid) {
+							return sc;
+						}
+
+						sc.permissions.push({
+							id: curr.pid,
+							description: curr.description,
+							controlId: curr.control_id,
+							active: curr.active,
+						});
+						return sc;
+					});
+				},
+				[] as {
+					id: number;
+					name: string;
+					permissions: {
+						id: number;
+						description: string;
+						controlId: string;
+						active: boolean;
+					}[];
+				}[],
+			),
+		};
 	}
 
 	public async addPermissionsToRole(

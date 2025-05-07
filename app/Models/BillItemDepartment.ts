@@ -15,7 +15,7 @@ export default class BillItemDepartment extends BaseModel {
 	public id: number;
 
 	@column()
-	public observation: string;
+	public observations: string;
 
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;

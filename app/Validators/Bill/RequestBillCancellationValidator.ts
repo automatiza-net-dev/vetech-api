@@ -40,6 +40,7 @@ export default class RequestBillCancellationValidator {
 					rules.exists({ table: "bill_items", column: "id" }),
 				]),
 				quantity: schema.number([]),
+				notes: schema.string.optional(),
 			}),
 		),
 		billPayments: schema

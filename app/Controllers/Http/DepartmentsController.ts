@@ -16,6 +16,14 @@ export default class DepartmentsController {
 		private service: DepartmentService,
 	) {}
 
+	public async resume({ auth, request, response }: HttpContextContract) {
+		const authCtx = await this.sharedService.getAuthContext(auth);
+
+		const data = await this.service.resume(authCtx, request.qs());
+
+		return response.ok(data);
+	}
+
 	public async index({ auth, request, response }: HttpContextContract) {
 		const authCtx = await this.sharedService.getAuthContext(auth);
 

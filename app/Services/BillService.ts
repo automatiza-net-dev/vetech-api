@@ -58,6 +58,11 @@ import PaymentMethodFlag from "App/Models/PaymentMethodFlag";
 import ScheduleMovementsService from "./ScheduleMovementsService";
 import BillItemDepartment from "App/Models/BillItemDepartment";
 import BillAuthorization from "App/Models/BillAuthorization";
+import BillCancelation from "App/Models/BillCancelation";
+import { addHours, format } from "date-fns";
+import Receipt from "App/Models/Receipt";
+import ReceiptItem, { ReceiptItemStatus } from "App/Models/ReceiptItem";
+import ReceiptPayment from "App/Models/ReceiptPayment";
 
 interface ISearch {
 	fromBill?: string;
@@ -125,6 +130,8 @@ export default class BillService {
        bills.cancelled_at,
        bills.cancelled,
        bills.cancellation_observation,
+       bills.bill_type,
+       bills.transfer_confirmation_date,
        case
            when
                (select true
@@ -160,12 +167,38 @@ export default class BillService {
                json_build_object('id', patient.id, 'name', patient.name, 'type', patient.type)
            end                                                   as patient,
        json_build_object('id', seller.id, 'name', seller.name)   as seller,
-       json_build_object('id', creator.id, 'name', creator.name) as creator`),
+       json_build_object('id', creator.id, 'name', creator.name) as creator,
+              case
+           when bills.confirmation_user_id is not null then json_build_object('id', confirmation_user.id, 'name',
+                                                                              confirmation_user.name)
+           end                                                   as confirmation_user,
+       case
+           when bills.destiny_business_unit_id is not null then json_build_object('id', destination_unit.id, 'identification',
+                                                                    destination_unit.identification)
+           end                                                   as destination_unit,
+       case
+           when bills.related_receipt_id is not null then json_build_object('id', receipts.id, 'tag',
+                                                            receipts.tag)
+           end                                                   as receipts,
+      case
+           when bills.bill_related_type_id is not null then json_build_object('id', bill_related_types.id, 'description',
+                                                            bill_related_types.description)
+           end                                                   as bill_related_type`),
 			)
 			.joinRaw("join patients client on bills.client_id = client.id")
 			.joinRaw("left join patients patient on bills.patient_id = patient.id")
 			.joinRaw("join users seller on bills.seller_id = seller.id")
 			.joinRaw("join users creator on bills.seller_id = creator.id")
+			.joinRaw(
+				"left join users confirmation_user on bills.confirmation_user_id = confirmation_user.id",
+			)
+			.joinRaw(
+				"left join business_units destination_unit on bills.destiny_business_unit_id = destination_unit.id",
+			)
+			.joinRaw("left join receipts on receipts.id = bills.related_receipt_id")
+			.joinRaw(
+				"left join bill_related_types on bill_related_types.id = bills.bill_related_type_id",
+			)
 			.orderByRaw("bill_date desc, tag desc")
 			.whereRaw("bills.economic_group_id = ? and bills.business_unit_id = ?", [
 				authCtx.group.id,
@@ -268,14 +301,26 @@ export default class BillService {
 			.preload("financialResponsible", (query) => {
 				query.select("id", "name");
 			})
+			.preload("destinationUnit", (query) => {
+				query.select("id", "identification");
+			})
 			.preload("cancelUser", (query) => {
 				query.select("id", "name");
 			})
 			.preload("finishCancelUser", (query) => {
 				query.select("id", "name");
 			})
+			.preload("confirmationUser", (query) => {
+				query.select("id", "name");
+			})
+			.preload("relatedReceipt", (query) => {
+				query.select("id", "tag");
+			})
 			.preload("_cancelReason", (query) => {
 				query.select("id", "reason");
+			})
+			.preload("billRelatedType", (query) => {
+				query.select("id", "description");
 			})
 			.preload("patient")
 			.preload("seller")
@@ -288,7 +333,11 @@ export default class BillService {
 				query.preload("documentTemplate");
 			})
 			.preload("payments", (query) => {
-				query.orderByRaw("block, bill_payments.installments");
+				query
+					.whereRaw(
+						`( bill_payments.deleted_at is null or (bill_payments.deleted_at is not null and bill_payments.cancelled = 'S'))`,
+					)
+					.orderByRaw("block, bill_payments.installments");
 
 				query.preload("approvedUser", (query) => {
 					query.select("id", "name");
@@ -317,7 +366,11 @@ export default class BillService {
 				});
 			})
 			.preload("items", (query) => {
-				query.where("status", BillItemStatus.A);
+				query
+					.where("status", BillItemStatus.A)
+					.whereRaw(
+						`( bill_items.deleted_at is null or (bill_items.deleted_at is not null and bill_items.cancelled = 'S') )`,
+					);
 
 				query.preload("taxRule", (query) => {
 					query.select(["id"]);
@@ -349,7 +402,7 @@ export default class BillService {
 			throw this.sharedService.ResourceNotFound();
 		}
 
-		const rows = await Database.from("bills")
+		const treatmentExecutionRows = await Database.from("bills")
 			.select(
 				Database.raw(
 					`bill_items.id as billitemid,
@@ -376,12 +429,38 @@ export default class BillService {
 			)
 			.whereRaw("bills.id = ?", [id]);
 
+		const departmentItemRows = await Database.from("bill_items")
+			.select(
+				Database.raw(
+					"d.id as department_id, d.description department_description, di.description department_item_description, di.id  as department_item_id, bid.observations, bill_item_id, bill_items.product_variation_id",
+				),
+			)
+			.joinRaw(
+				"join ( bill_item_departments bid join departments d on bid.department_id = d.id join department_items di on bid.department_item_id = di.id ) on bill_items.bill_id = bid.bill_id and bill_items.id = bid.bill_item_id",
+			)
+			.whereRaw("bill_items.bill_id = ? and bill_items.business_unit_id = ?", [
+				bill.id,
+				authCtx.unit.id,
+			]);
+
 		const jsonBill = bill.toJSON();
 
-		jsonBill.items = jsonBill.items.map((bi) => {
-			bi.treatmentExecutions = rows.filter(
+		jsonBill.items = jsonBill.items.map((bi: BillItem) => {
+			// @ts-ignore yay
+			bi.treatmentExecutions = treatmentExecutionRows.filter(
 				(ro) => bi.id === ro.billitemid && !!ro.treatment_id,
 			);
+
+			// @ts-ignore yay
+			bi.departmentItems = departmentItemRows.filter(
+				(ro: { product_variation_id: string; bill_item_id: string }) => {
+					return (
+						bi.id === ro.bill_item_id ||
+						bi.product_variation_id === ro.product_variation_id
+					);
+				},
+			);
+
 			return bi;
 		});
 
@@ -645,37 +724,36 @@ export default class BillService {
 									{ client: trx },
 								);
 
-						if (elem.departmentId && elem.departmentItemId) {
-							if (elem.billItemDepartmentId) {
-								await BillItemDepartment.query()
-									.useTransaction(trx)
-									.where("id", elem.billItemDepartmentId)
-									.where("bill_id", data.billId)
-									.where(
-										"bill_item_id",
-										elem.billItemId ? elem.billItemId : v4(),
-									)
-									.where("department_id", elem.departmentId)
-									.where("department_item_id", elem.departmentItemId)
-									.update({
-										observation: elem.observation,
-										updated_user_id: authCtx.user.id,
-									});
-								// } else {
-								// 	await BillItemDepartment.create(
-								// 		{
-								// 			bill_id: data.billId,
-								// 			bill_item_id: Array.isArray(bi)
-								// 				? (elem.billItemId ?? v4())
-								// 				: bi.id,
-								// 			department_id: elem.departmentItemId,
-								// 			department_item_id: elem.departmentItemId,
-								// 			creation_user_id: authCtx.user.id,
-								// 			observation: elem.observation,
-								// 		},
-								// 		{ client: trx },
-								// 	);
-							}
+						if (
+							elem.departmentId &&
+							elem.departmentItemId &&
+							elem.billItemDepartmentId
+						) {
+							await BillItemDepartment.query()
+								.useTransaction(trx)
+								.where("id", elem.billItemDepartmentId)
+								.where("bill_id", data.billId)
+								.where("bill_item_id", elem.billItemId ? elem.billItemId : v4())
+								.where("department_id", elem.departmentId)
+								.where("department_item_id", elem.departmentItemId)
+								.update({
+									observations: elem.observation,
+									updated_user_id: authCtx.user.id,
+								});
+							// } else {
+							// 	await BillItemDepartment.create(
+							// 		{
+							// 			bill_id: data.billId,
+							// 			bill_item_id: Array.isArray(bi)
+							// 				? (elem.billItemId ?? v4())
+							// 				: bi.id,
+							// 			department_id: elem.departmentItemId,
+							// 			department_item_id: elem.departmentItemId,
+							// 			creation_user_id: authCtx.user.id,
+							// 			observation: elem.observation,
+							// 		},
+							// 		{ client: trx },
+							// 	);
 						}
 					})
 				: [];
@@ -691,6 +769,8 @@ export default class BillService {
 					financial_responsible_id: data.financialResponsibleId,
 					additionalInformation: data.additionalInformation,
 					internalCode: data.internalCode,
+
+					billDate: data.billDate,
 				})
 				.useTransaction(trx)
 				.save();
@@ -1860,6 +1940,7 @@ where deposit_id = ?
 				.preload("items", (query) => {
 					query.where("status", BillItemStatus.A);
 				})
+				.preload("relatedReceipt")
 				// .preload("payments")
 				.first();
 
@@ -1869,6 +1950,14 @@ where deposit_id = ?
 
 			if (bill.status === BillStatus.EX) {
 				throw new BadRequestException("Venda já excluída", 400, "E_ERR");
+			}
+
+			if (bill.billType === "T" && bill.transferConfirmationDate) {
+				throw new BadRequestException(
+					"Não é permitida a exclusao de uma transferencia que esteja confirmada",
+					400,
+					"E_ERR",
+				);
 			}
 
 			const rows = await Database.from("bills")
@@ -1924,6 +2013,45 @@ where deposit_id = ?
 				.where("bill_id", bill.id)
 				.delete();
 
+			if (bill.billType === "T" && bill.related_receipt_id) {
+				await Receipt.query()
+					.useTransaction(trx)
+					.update({
+						deleted_at: DateTime.now(),
+					})
+					.whereNull("deleted_at")
+					.where("id", bill.related_receipt_id);
+
+				await ReceiptItem.query()
+					.useTransaction(trx)
+					.update({
+						disabled_user_id: authCtx.user.id,
+						status: "Excluido",
+						disabledDate: DateTime.now(),
+					})
+					.where("receipt_id", bill.related_receipt_id);
+
+				await ReceiptPayment.query()
+					.useTransaction(trx)
+					.update({
+						deleted_at: DateTime.now(),
+					})
+					.whereNull("deleted_at")
+					.where("receipt_id", bill.related_receipt_id);
+
+				await Finance.query()
+					.useTransaction(trx)
+					.where("business_unit_id", authCtx.unit.id)
+					.where("origin_flag", FinanceOriginFlag.S)
+					.whereILike("document", `%NFE-${bill.relatedReceipt.tag}%`)
+					// .where("block", payment.block)
+					// .where("origin_id", payment.id)
+					.update({
+						deleted_at: DateTime.now(),
+						status: FinanceStatus.E,
+					});
+			}
+
 			if (bill.items.length > 0) {
 				const tasks = bill.items.map(async (item) => {
 					return Database.rawQuery(
@@ -1956,6 +2084,14 @@ where deposit_id = ?
 
 		if (!bill) {
 			throw this.sharedService.ResourceNotFound();
+		}
+
+		if (bill.billType === "T" && bill.transferConfirmationDate) {
+			throw new BadRequestException(
+				"Não é permitido que uma transferencia que esteja confirmada seja reaberta",
+				400,
+				"E_ERR",
+			);
 		}
 
 		if (bill.status !== BillStatus.B) {
@@ -2225,7 +2361,15 @@ where deposit_id = ?
 	) {
 		if (authCtx.unit.unitConfig.requiresBillPatient && !data.patientId) {
 			throw new BadRequestException(
-				"É necessário informar o paciente para realizar o orçamento",
+				"É necessário informar o paciente para realizar a venda",
+				400,
+				"E_ERR",
+			);
+		}
+
+		if (data.billType === "T" && !data.destinyBusinessUnitId) {
+			throw new BadRequestException(
+				"Unidade de destino da transferencia não foi informada",
 				400,
 				"E_ERR",
 			);
@@ -2278,6 +2422,7 @@ where deposit_id = ?
 		const client = await Patient.query()
 			.useTransaction(trx)
 			.where("id", data.clientId)
+			.preload("tutor")
 			.preload("bills")
 			.firstOrFail();
 		if (client.bills.length === 0) {
@@ -2345,7 +2490,7 @@ where deposit_id = ?
 			}
 		}
 
-		const taxRules = await TaxationGroupRule.query()
+		const taxRulesQb = TaxationGroupRule.query()
 			.useTransaction(trx)
 			.whereHas("taxationGroup", (query) => {
 				query.whereIn(
@@ -2354,15 +2499,25 @@ where deposit_id = ?
 				);
 			})
 			.where("movement_type", MovementType.S)
-			.where("movement_category", MovementCategory.NS)
 			.where("fromUf", authCtx.unit.state ?? "")
-			.where("toUf", authCtx.unit.state ?? "")
 			.where(
 				"company_type",
 				authCtx.unit.simple ? CompanyType.S : CompanyType.N,
 			)
 			.preload("taxationGroup")
 			.preload("taxOperation");
+
+		if (data.billType === "T") {
+			taxRulesQb
+				.where("movement_category", MovementCategory.TS)
+				.where("toUf", client?.tutor?.state ?? "");
+		} else {
+			taxRulesQb
+				.where("movement_category", MovementCategory.NS)
+				.where("toUf", authCtx.unit.state ?? "");
+		}
+
+		const taxRules = await taxRulesQb;
 
 		const ufIcms = await UfIcms.query()
 			.whereIn(
@@ -2393,7 +2548,11 @@ where deposit_id = ?
 				client_id: data.clientId,
 				patient_id: data.patientId,
 				origin_bill_id: data.originBillId,
+				destiny_business_unit_id:
+					data.billType === "V" ? undefined : data.destinyBusinessUnitId,
+				bill_related_type_id: data.billRelatedTypeId,
 
+				billType: data.billType,
 				internalCode: dynamicInternalCode,
 				pending: data.items.some((i) => i.courtesy || i.maxDiscount),
 				billDate: data.billDate,
@@ -2403,7 +2562,7 @@ where deposit_id = ?
 				totalValue: 0,
 				deliveryValue: 0,
 				additionalInformation: data.additionalInformation,
-				status: BillStatus.A,
+				status: data.billType === "T" ? BillStatus.B : BillStatus.A,
 				documentStatus: "Não Gerados",
 
 				otherValue: 0,
@@ -2435,18 +2594,18 @@ where deposit_id = ?
 			.useTransaction(trx)
 			.save();
 
-		await Database.from("user_unit_roles")
-			.useTransaction(trx)
-			.select(
-				Database.raw(
-					"coalesce(user_unit_roles.default_sale_deposit_id, business_unit_configs.outgoing_deposit_id) as deposit_id",
-				),
-			)
-			.joinRaw(
-				"join business_unit_configs on user_unit_roles.unit_id = business_unit_configs.business_unit_id",
-			)
-			.where("user_unit_roles.user_id", authCtx.user.id)
-			.where("user_unit_roles.unit_id", authCtx.unit.id);
+		// await Database.from("user_unit_roles")
+		// 	.useTransaction(trx)
+		// 	.select(
+		// 		Database.raw(
+		// 			"coalesce(user_unit_roles.default_sale_deposit_id, business_unit_configs.outgoing_deposit_id) as deposit_id",
+		// 		),
+		// 	)
+		// 	.joinRaw(
+		// 		"join business_unit_configs on user_unit_roles.unit_id = business_unit_configs.business_unit_id",
+		// 	)
+		// 	.where("user_unit_roles.user_id", authCtx.user.id)
+		// 	.where("user_unit_roles.unit_id", authCtx.unit.id);
 
 		const tasks = data.items.map(async (item) => {
 			const variation = productVariations.find(
@@ -2456,6 +2615,13 @@ where deposit_id = ?
 			const rule = taxRules.find(
 				(rule) => rule.taxationGroup.id === variation.product.taxation_group_id,
 			);
+			if (!rule) {
+				throw new BadRequestException(
+					`Não foi possível encontrar uma regra de imposto para o produto; ${variation.product.description}`,
+					400,
+					"E_ERR",
+				);
+			}
 
 			const price = variation.businessUnitProducts.find(
 				(bup) => bup.businness_unit_id === authCtx.unit.id,
@@ -2471,10 +2637,10 @@ where deposit_id = ?
 				totalValue * ((100 - (rule?.icmsPercRedBaseCalculo ?? 0)) / 100);
 			const icmsValue = (icmsBase * (rule?.icmsPerc ?? 0)) / 100;
 			const icmsStBase_1 = this.isValidNumber(rule?.ivaIcmsSt)
-				? icmsBase + (icmsBase * rule!.ivaIcmsSt) / 100
+				? icmsBase + (icmsBase * rule.ivaIcmsSt) / 100
 				: 0;
 			const icmsStPercentageRedBase = this.isValidNumber(rule?.ivaIcmsSt)
-				? rule!.icmsPercRedBaseCalculoST
+				? rule.icmsPercRedBaseCalculoST
 				: undefined;
 			const icmsStBase_2 = this.isValidNumber(rule?.ivaIcmsSt)
 				? icmsStBase_1 - (icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
@@ -2585,10 +2751,10 @@ where deposit_id = ?
 						bill_id: bill.id,
 						bill_item_id: bi.id,
 						department_id: item.departmentId,
-						department_item_id: item.departmentId,
+						department_item_id: item.departmentItemId,
 						creation_user_id: authCtx.user.id,
 
-						observation: item.observation,
+						observations: item.observation,
 						createdAt: DateTime.now(),
 					},
 					{
@@ -2596,6 +2762,8 @@ where deposit_id = ?
 					},
 				);
 			}
+
+			return bi;
 		});
 
 		await Promise.all(tasks);
@@ -2689,6 +2857,8 @@ where deposit_id = ?
 			})
 			.useTransaction(trx)
 			.save();
+
+		await bill.refresh();
 
 		await this.depositService.updateDepositItems(trx, authCtx, bill.id);
 
@@ -3261,6 +3431,31 @@ where deposit_id = ?
 					400,
 					"E_ERR",
 				);
+			}
+
+			if (
+				typeof authCtx.unit.unitConfig.config.bills
+					?.generate_treatment_opened_bill === "boolean"
+			) {
+				if (
+					authCtx.unit.unitConfig.config.bills.generate_treatment_opened_bill
+				) {
+					if (elem.status !== BillStatus.A && elem.status !== BillStatus.B) {
+						throw new BadRequestException(
+							"Venda precisa estar `ABERTA` ou `BAIXADA`",
+							400,
+							"E_ERR",
+						);
+					}
+				} else {
+					if (elem.status !== BillStatus.B) {
+						throw new BadRequestException(
+							"Venda precisa estar `BAIXADA`",
+							400,
+							"E_ERR",
+						);
+					}
+				}
 			}
 
 			const treatment = await Treatment.create(
@@ -3843,7 +4038,7 @@ where deposit_id = ?
 			reasonId?: string;
 			cancelReason?: string;
 			billId: string;
-			billItems: { id: string; quantity: number }[];
+			billItems: { id: string; quantity: number; notes?: string }[];
 			billPayments: string[];
 
 			notes?: string;
@@ -3919,15 +4114,29 @@ where deposit_id = ?
 				);
 			}
 
-			if (bill.cancelled) {
+			if (bill.billType === "T") {
+				throw new BadRequestException(
+					"Não é permitido o cancelamento de uma transferencia, ela deve ser excluida",
+					400,
+					"E_ERR",
+				);
+			}
+
+			// não permitir se tiver cancelled e cancelled <> 'N'
+			if (bill.cancelled && bill.cancelled !== "N") {
 				throw new BadRequestException("Nota já cancelada", 400, "E_ERR");
 			}
 
 			const itemTasks = bill.items.map(async (item) => {
 				return item
 					.merge({
+						// reviewer_cancel_user_id: authCtx.user.id,
+						// reviewCancelDate: DateTime.now(),
+						// reviewCancelNotes:
+						// 	data.billItems.find((bi) => bi.id === item.id)?.notes ??
+						// 	data.notes,
 						cancelled: "P",
-						originalTotalValue: new Decimal(item.totalValue),
+						originalTotalValue: new Decimal(item.totalValue ?? 0),
 						originalQuantity: item.quantity,
 						cancelledQuantity:
 							data.billItems.find((bi) => bi.id === item.id)?.quantity ?? 0,
@@ -3937,25 +4146,27 @@ where deposit_id = ?
 			});
 			const cancelledItems = await Promise.all(itemTasks);
 
-			const paymentTasks = bill.payments.map(async (payment) => {
-				return payment
-					.merge({
-						cancelled: "P",
-					})
-					.useTransaction(trx)
-					.save();
-			});
-			await Promise.all(paymentTasks);
+			await BillPayment.query()
+				.useTransaction(trx)
+				.where("bill_id", bill.id)
+				.whereNull("deleted_at")
+				.update({
+					reviewer_cancel_user_id: null,
+					review_cancel_date: null,
+					review_cancel_notes: null,
+					cancelled: null,
+				});
 
-			await bill
+			const updatedBill = await bill
 				.merge({
-					cancel_user_id: authCtx.user.id,
-					cancel_reason_id: data.reasonId,
-
-					cancelReason: data.cancelReason,
 					cancelled: "P",
-					cancelledAt: DateTime.now(),
-					cancelNotes: data.notes,
+					cancel_user_id: authCtx.user.id,
+					finish_cancel_user_id: null,
+					cancel_reason_id: data.reasonId ?? null,
+					cancelDate: DateTime.now(),
+					cancelReason: data.reasonId,
+					finishCancelDate: null,
+					cancelNotes: null,
 					cancelValueTotal: cancelledItems.reduce(
 						(acc, curr) =>
 							acc.plus(
@@ -3990,6 +4201,22 @@ where deposit_id = ?
 				})
 				.useTransaction(trx)
 				.save();
+
+			await BillCancelation.create(
+				{
+					bill_id: bill.id,
+					cancel_user_id: authCtx.user.id,
+					cancel_reason_id: updatedBill.cancel_reason_id,
+
+					cancelled: "P",
+					cancelDate: DateTime.now(),
+					cancelReason: updatedBill.cancelReason,
+					cancelValueTotal: updatedBill.cancelValueTotal,
+					cancelValueProducts: updatedBill.cancelValueProducts,
+					cancelValueServices: updatedBill.cancelValueServices,
+				},
+				{ client: trx },
+			);
 		});
 	}
 
@@ -4087,7 +4314,7 @@ where deposit_id = ?
 							reviewCancelNotes: note
 								? [
 										elem.reviewCancelNotes,
-										`${DateTime.now()} - ${authCtx.user.name}\n${note}`,
+										`${format(addHours(new Date(), -3), "dd/MM/yyyy HH:mm:ss")} - ${authCtx.user.name}\n${note}`,
 									]
 										.filter(Boolean)
 										.join("\n")
@@ -4096,11 +4323,22 @@ where deposit_id = ?
 						.save();
 				});
 			const updatedItems = await Promise.all(itemTasks);
+
+			const existingBillCancellation = await BillCancelation.query()
+				.useTransaction(trx)
+				.where("bill_id", bill.id)
+				.whereNull("finish_cancel_date")
+				.orderByRaw("cancel_date desc")
+				.first();
+
 			await BillAuthorization.createMany(
 				updatedItems.map<Partial<BillAuthorization>>((row) => ({
 					bill_id: data.billId,
 					bill_item_id: row.id,
 					bill_payment_id: null,
+					authorization_user_id: authCtx.user.id,
+					bill_cancelation_id: existingBillCancellation?.id,
+
 					type: (
 						[
 							row.courtesy && "courtesy",
@@ -4111,9 +4349,8 @@ where deposit_id = ?
 						.filter(Boolean)
 						.at(0),
 					authorization_type: "RC",
-					approved: row.approved,
+					approved: row.cancelled === "S",
 					cancelled_quantity: row.cancelledQuantity,
-					authorization_user_id: authCtx.user.id,
 					authorization_date: DateTime.now(),
 					authorization_observations: data.billItems.find(
 						(bi) => bi.id === row.id,
@@ -4152,7 +4389,7 @@ where deposit_id = ?
 							reviewCancelNotes: note
 								? [
 										elem.reviewCancelNotes,
-										`${DateTime.now()} - ${authCtx.user.name}\n${note}`,
+										`${format(addHours(new Date(), -3), "dd/MM/yyyy HH:mm:ss")} - ${authCtx.user.name}\n${note}`,
 									]
 										.filter(Boolean)
 										.join("\n")
@@ -4166,9 +4403,10 @@ where deposit_id = ?
 					bill_id: data.billId,
 					bill_item_id: null,
 					bill_payment_id: row.id,
-					type: "maxParcelas",
-					authorization_type: "P",
-					approved: row.approved,
+					bill_cancelation_id: existingBillCancellation?.id,
+					type: "cancel",
+					authorization_type: "RC",
+					approved: row.cancelled === "S",
 					authorization_user_id: authCtx.user.id,
 					authorization_date: DateTime.now(),
 					authorization_observations: data.billPayments.find(
@@ -4188,7 +4426,7 @@ where deposit_id = ?
 					.union((query) => {
 						query
 							.from("bill_items")
-							.select(Database.raw("'F' as status, 3 as ordem"))
+							.select(Database.raw("'F' as status, 4 as ordem"))
 							.whereIn("cancelled", ["S", "N"])
 							.where("bill_id", bill.id)
 							.whereNull("deleted_at");
@@ -4205,6 +4443,19 @@ where deposit_id = ?
 							.whereRaw(
 								"coalesce(bill_payments.cancelled, '') not in ('P', '')",
 							)
+							.whereRaw("bill_items.deleted_at is null")
+							.whereRaw("bill_payments.deleted_at is null");
+					})
+					.union((query) => {
+						query
+							.from("bill_items")
+							.select(Database.raw("'A' as status, 3 as ordem"))
+							.joinRaw(
+								"join bill_payments on bill_items.bill_id = bill_payments.bill_id",
+							)
+							.where("bill_items.bill_id", bill.id)
+							.whereRaw("coalesce(bill_items.cancelled, '') in ('N')")
+							.whereRaw("coalesce(bill_payments.cancelled, '') in ('')")
 							.whereRaw("bill_items.deleted_at is null")
 							.whereRaw("bill_payments.deleted_at is null");
 					})
@@ -4225,9 +4476,10 @@ where deposit_id = ?
 	async finishBillCancellation(
 		authCtx: AuthContext,
 		data: {
+			billId: string;
+			depositId?: number;
 			userEmail: string;
 			userPwd: string;
-			billId: string;
 			cancelled: boolean;
 			note: string;
 		},
@@ -4284,12 +4536,191 @@ where deposit_id = ?
 				);
 			}
 
+			if (
+				data.cancelled &&
+				authCtx.unit.unitConfig.config.businessUnits?.controls_deposit
+			) {
+				const invalidRows = await Database.from("products")
+					.useTransaction(trx)
+					.select("products.id")
+					.joinRaw(
+						"join product_variations on products.id = product_variations.product_id",
+					)
+					.where("products.type", ProductType.PRODUCT)
+					.whereRaw(
+						`product_variations.id in (select bi.product_variation_id from bill_items bi where bill_id = ? and cancelled = 'S' and deleted_at is null )`,
+						[bill.id],
+					);
+
+				if (invalidRows.length > 0 && !data.depositId) {
+					throw new UnauthorizedException(
+						"É necessário informar o Depósito para onde serão devolvidos os produtos cancelados desta venda",
+						400,
+						"E_ERR",
+					);
+				}
+			}
+
+			if (data.cancelled) {
+				const pendingFinances = await Database.from("finances")
+					.select(Database.raw("1"))
+					.where("finances.business_unit_id", authCtx.unit.id)
+					.whereNotNull("finances.down_date")
+					.whereRaw(
+						`origin_id in (
+select id from bill_payments
+where bill_id = ?
+       and bill_payments.cancelled = 'S'
+       and deleted_at is null
+);`,
+						[bill.id],
+					);
+				if (pendingFinances.length > 0) {
+					throw new BadRequestException(
+						"Existem títulos desta venda que já foram baixados e estão selecionados para cancelamento. Será necessário estorná-los para finalizar o cancelamento desta venda",
+						400,
+						"E_ERR",
+					);
+				}
+
+				await Database.from("finances")
+					.useTransaction(trx)
+					.update({
+						exclusion_user_id: authCtx.user.id,
+						deleted_at: DateTime.now(),
+					})
+					.whereNull("finances.down_date")
+					.whereRaw(
+						`origin_id in (
+select id from bill_payments
+where bill_id = ?
+       and bill_payments.cancelled = 'S'
+       and deleted_at is null
+)`,
+						[bill.id],
+					);
+
+				await Database.from("bill_payments")
+					.useTransaction(trx)
+					.update({
+						exclusion_user_id: authCtx.user.id,
+						deleted_at: DateTime.now(),
+					})
+					.where("bill_payments.bill_id", bill.id)
+					.where("bill_payments.cancelled", "S")
+					.whereNull("bill_payments.deleted_at");
+
+				if (data.depositId) {
+					await Database.rawQuery(
+						`update deposit_items set quantity = (
+select (deposit_items.quantity + bi.cancelled_quantity )
+from bill_items bi
+join product_variations pv on bi.product_variation_id = pv.id
+join products p on pv.product_id = p.id and p.type <> 'service'
+where deposit_items.product_variation_id = bi.product_variation_id
+ and bi.bill_id = ?
+)
+where deposit_items.deposit_id = ?
+  and deposit_items.status = 'Ativo'`,
+						[bill.id, data.depositId],
+					)
+						.useTransaction(trx)
+						.exec();
+				}
+
+				await Database.rawQuery(
+					`update bill_items set deleted_at = now(), exclusion_user_id = ?
+where bill_id = ?
+  and deleted_at is null
+  and cancelled = 'S'
+  and quantity = cancelled_quantity ;`,
+					[authCtx.user.id, bill.id],
+				)
+					.useTransaction(trx)
+					.exec();
+
+				await Database.rawQuery(
+					`update bill_items set quantity = quantity - cancelled_quantity ,
+total_value = (total_value - (total_value * (cancelled_quantity / quantity ) ) ),
+discount_value = (discount_value - (discount_value * (cancelled_quantity / quantity ) ) )
+where bill_id = ?
+  and deleted_at is null
+  and cancelled = 'S'
+  and quantity > cancelled_quantity`,
+					[bill.id],
+				)
+					.useTransaction(trx)
+					.exec();
+
+				await Database.rawQuery(
+					`update bills set total_value = total_value - coalesce(cancel_value_total,0),
+product_value = product_value - coalesce(cancel_value_products,0),
+service_value = service_value - coalesce(cancel_value_services,0),
+discount_value = (select sum(coalesce(discount_value,0)) from bill_items where bill_items.bill_id = bills.id and bill_items.deleted_at is null and bill_items.cancelled = 'S'),
+paid_value = (select sum(coalesce(total_value,0)) from bill_payments where bill_payments.bill_id = bills.id and bill_payments.deleted_at is null)
+where id = ?`,
+					[bill.id],
+				)
+					.useTransaction(trx)
+					.exec();
+			} else {
+				const validPayments = await BillPayment.query()
+					.useTransaction(trx)
+					.where("bill_id", bill.id)
+					.whereNull("deleted_at");
+
+				await bill
+					.merge({
+						paidValue: validPayments
+							.reduce(
+								(acc, curr) => acc.plus(new Decimal(curr.totalValue)),
+								new Decimal(0),
+							)
+							.toNumber(),
+					})
+					.useTransaction(trx)
+					.save();
+
+				await Database.rawQuery(
+					`update bill_items set cancelled = 'N', reviewer_cancel_user_id = ?, review_cancel_notes = ? where bill_id = ? and cancelled = 'S'`,
+					[
+						authCtx.user.id,
+						`${data.note}\n${format(addHours(new Date(), -3), "dd/MM/yyyy HH:mm:ss")} - ${user.name}\n${data.note}`,
+						bill.id,
+					],
+				)
+					.useTransaction(trx)
+					.exec();
+
+				await Database.rawQuery(
+					`update bill_payments set cancelled = 'N', reviewer_cancel_user_id = ?, review_cancel_notes = ? where bill_id = ? and cancelled = 'S'`,
+					[
+						authCtx.user.id,
+						`${data.note}\n${format(addHours(new Date(), -3), "dd/MM/yyyy HH:mm:ss")} - ${user.name}\n${data.note}`,
+						bill.id,
+					],
+				)
+					.useTransaction(trx)
+					.exec();
+			}
+
+			await BillCancelation.query()
+				.where("bill_id", bill.id)
+				.useTransaction(trx)
+				.update({
+					deposit_id: data.depositId,
+					finish_cancel_user_id: user.id,
+					cancelled: data.cancelled ? "S" : "N",
+					finishCancelDate: DateTime.now(),
+					cancelNotes: `${bill.cancelNotes}\n${format(addHours(new Date(), -3), "dd/MM/yyyy HH:mm:ss")} - ${user.name}\n${data.note}`,
+				});
+
 			await bill
 				.merge({
 					finish_cancel_user_id: user.id,
 					cancelled: data.cancelled ? "S" : "N",
 					finishCancelDate: DateTime.now(),
-					cancelNotes: `${bill.cancelNotes}\n${DateTime.now()} - ${user.name}\n${data.note}}`,
+					cancelNotes: `${bill.cancelNotes}\n${format(addHours(new Date(), -3), "dd/MM/yyyy HH:mm:ss")} - ${user.name}\n${data.note}}`,
 				})
 				.useTransaction(trx)
 				.save();

@@ -1,4 +1,10 @@
 import { inject } from "@adonisjs/fold";
+import {
+	validator,
+	schema,
+	type TypedSchema,
+	StringType,
+} from "@ioc:Adonis/Core/Validator";
 import { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import BusinessUnitService from "App/Services/BusinessUnitService";
 import SharedService from "App/Services/SharedService";
@@ -6,10 +12,12 @@ import UserRoleService from "App/Services/UserRoleService";
 import AddBusinessUnitCollaboratorValidator from "App/Validators/BusinessUnit/AddBusinessUnitCollaboratorValidator";
 import CreateBusinessUnitCollaboratorValidator from "App/Validators/BusinessUnit/CreateBusinessUnitCollaboratorValidator";
 import CreateBusinessUnitValidator from "App/Validators/BusinessUnit/CreateBusinessUnitValidator";
+import MergeConfigValidator from "App/Validators/BusinessUnit/MergeConfigValidator";
 import UpdateBusinessUnitAcquirerValidator from "App/Validators/BusinessUnit/UpdateBusinessUnitAcquirerValidator";
 import UpdateBusinessUnitValidator from "App/Validators/BusinessUnit/UpdateBusinessUnitValidator";
 import UpdateUnitUserValidator from "App/Validators/BusinessUnit/UpdateUnitUserValidator";
 import UpdateUsersRoleValidator from "App/Validators/Role/UpdateUsersRoleValidator";
+import BadRequestException from "App/Exceptions/BadRequestException";
 
 @inject()
 export default class BusinessUnitsController {
@@ -206,6 +214,42 @@ export default class BusinessUnitsController {
 	public async checkDocument({ params, response }: HttpContextContract) {
 		const { document } = params;
 		const result = await this.service.checkExistingDocument(document);
+
+		return response.ok(result);
+	}
+
+	public async mergeConfig({ auth, request, response }: HttpContextContract) {
+		const payload = await request.validate(MergeConfigValidator);
+
+		await this.service.mergeConfig(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.noContent();
+	}
+
+	public async testDynamicForm({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const authCtx = await this.sharedService.getAuthContext(auth);
+
+		const formEntry = authCtx.unit.unitConfig.formFields[request.param("form")];
+		if (!formEntry) {
+			throw new BadRequestException(
+				`Valores possíveis: ${Object.keys(authCtx.unit.unitConfig.formFields).join(", ")}`,
+				400,
+				"E_ERR",
+			);
+		}
+
+		const result = await validator.validate({
+			schema: schema.create(SharedService.CreateDynamicValidator(formEntry)),
+			messages: SharedService.CreateDynamicErrorMessages(formEntry),
+			data: request.body(),
+		});
 
 		return response.ok(result);
 	}

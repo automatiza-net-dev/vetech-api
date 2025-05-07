@@ -769,9 +769,7 @@ export default class PatientService {
 			.where("status", HospitalizationStatus.ACTIVE);
 		const sales = await Bill.query()
 			.where(
-				authCtx.system.name === "LiftOne" || authCtx.system.type === "Clinicas"
-					? "client_id"
-					: "patient_id",
+				authCtx.system.type !== "Vet" ? "client_id" : "patient_id",
 				patient.id,
 			)
 			.where("status", BillStatus.A);
@@ -788,13 +786,15 @@ export default class PatientService {
 				.orderByRaw("created_at desc")
 				.first();
 
+		const s3Urls = await SharedService.ComputePublicS3Link(
+			patient.photo ? [patient.photo] : [],
+		);
+
 		const displayData = {
 			id: patient.id,
 			name: patient.name,
 			type: patient.type,
-			photo: patient.photo
-				? `${Env.get("FILE_UPLOAD_PREFIX")}${patient.photo}`
-				: null,
+			photo: s3Urls[patient?.photo ?? "NOT"] ?? null,
 			gender: patient.gender,
 			genderText: patient.gender,
 			tags: patient.tags,
@@ -985,14 +985,16 @@ export default class PatientService {
 			);
 		}
 
+		const s3Urls = await SharedService.ComputePublicS3Link(
+			patient.photo ? [patient.photo] : [],
+		);
+
 		return {
 			id: patient.id,
 			name: patient.name,
 			clientOriginId: patient.tutor.client_origin_id,
 			clientOriginItemDescription: patient.clientOriginItemDescription,
-			photo: patient.photo
-				? `${Env.get("FILE_UPLOAD_PREFIX")}${patient.photo ?? "#"}`
-				: null,
+			photo: patient.photo ? (s3Urls[patient.photo] ?? null) : null,
 			gender: patient.gender,
 			tags: patient.tags,
 			birthDate: patient.birthDate
@@ -1050,10 +1052,7 @@ export default class PatientService {
 			);
 		}
 
-		const key =
-			authCtx.system.name === "LiftOne" || authCtx.system.type === "Clinicas"
-				? "client_id"
-				: "patient_id";
+		const key = authCtx.system.type !== "Vet" ? "client_id" : "patient_id";
 		const sales = await Bill.query()
 			.where(key, patient.id)
 			.where("status", BillStatus.A);
@@ -1068,10 +1067,7 @@ export default class PatientService {
 	}
 
 	public async salesMetadata(authCtx: AuthContext, patientId: string) {
-		const key =
-			authCtx.system.name === "LiftOne" || authCtx.system.type === "Clinicas"
-				? "client_id"
-				: "patient_id";
+		const key = authCtx.system.type !== "Vet" ? "client_id" : "patient_id";
 
 		const patient = await authCtx.group
 			.related("patients")
@@ -1713,6 +1709,7 @@ export default class PatientService {
 		authCtx: AuthContext,
 		id: string,
 		data: Omit<IPatientData, "holderId"> & {
+			tag?: string;
 			death: boolean;
 			deathDate?: DateTime;
 			technicianId?: string;
@@ -1738,6 +1735,22 @@ export default class PatientService {
 				);
 			}
 
+			if (data.tag && data.tag !== patient.tag) {
+				const row = await Database.from("patients")
+					.select("id")
+					.whereRaw("type = 'patient'")
+					.whereRaw("tag = ?", [data.tag])
+					.whereRaw("deleted_at is null", [])
+					.first();
+				if (row) {
+					throw new BadRequestException(
+						"Nova tag já está em uso",
+						400,
+						"E_ERR",
+					);
+				}
+			}
+
 			if (!patient?.patientAnimal.death && data.death) {
 				await this.$declareDeath(trx, authCtx, patient, {
 					deathDate: data.deathDate ?? DateTime.now(),
@@ -1756,6 +1769,7 @@ export default class PatientService {
 					photo,
 					gender: data.gender,
 					tags: data.tags,
+					tag: authCtx.hasPermission("TUT04") ? data.tag : patient.tag,
 					community: data.community,
 					birthDate: data.birthDate
 						? typeof data.birthDate === "string"
@@ -1969,6 +1983,7 @@ export default class PatientService {
 		authCtx: AuthContext,
 		id: string,
 		data: IPatientTutorData & {
+			tag?: string;
 			contacts?: {
 				main: boolean;
 				notGiven: boolean;
@@ -1989,6 +2004,22 @@ export default class PatientService {
 
 			if (!tutor) {
 				throw new BadRequestException("Tutor inválido", 400, "E_BAD_REQUEST");
+			}
+
+			if (data.tag && data.tag !== tutor.tag) {
+				const row = await Database.from("patients")
+					.select("id")
+					.whereRaw("type = 'tutor'")
+					.whereRaw("tag = ?", [data.tag])
+					.whereRaw("deleted_at is null", [])
+					.first();
+				if (row) {
+					throw new BadRequestException(
+						"Nova tag já está em uso",
+						400,
+						"E_ERR",
+					);
+				}
 			}
 
 			if (data.document && data.document !== tutor.tutor.document) {
@@ -2102,6 +2133,7 @@ export default class PatientService {
 					photo,
 					gender: data.gender,
 					tags: data.tags,
+					tag: authCtx.hasPermission("TUT04") ? data.tag : tutor.tag,
 					birthDate: data.birthDate
 						? typeof data.birthDate === "string"
 							? DateTime.fromISO(data.birthDate).toJSDate()
@@ -2548,10 +2580,10 @@ export default class PatientService {
 			{
 				name: key,
 			},
-			"local",
+			"s3",
 		);
 
-		return Drive.getUrl(`patients/${key}`);
+		return `patients/${key}`;
 	}
 
 	private dateDiff(from: Date, to: Date) {

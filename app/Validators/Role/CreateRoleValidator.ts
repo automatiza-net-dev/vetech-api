@@ -4,16 +4,28 @@ import { CustomMessages, schema, rules } from "@ioc:Adonis/Core/Validator";
 export default class CreateRoleValidator {
 	constructor(protected ctx: HttpContextContract) {}
 
+	// profiles: {
+	// 	id: number;
+	// 	screens: { id: number; permissions: { id: number }[] }[];
+	// }[];
 	public schema = schema.create({
 		name: schema.string({}, []),
 		externalAccess: schema.boolean(),
-		profileAccessIdList: schema
-			.array([rules.minLength(1)])
-			.members(
-				schema.number([
-					rules.exists({ table: "profile_accesses", column: "id" }),
-				]),
-			),
+		profiles: schema.array().members(
+			schema.object().members({
+				id: schema.number(),
+			}),
+		),
+		screens: schema.array().members(
+			schema.object().members({
+				id: schema.number(),
+				permissions: schema.array().members(
+					schema.object().members({
+						id: schema.number(),
+					}),
+				),
+			}),
+		),
 	});
 
 	public messages: CustomMessages = {

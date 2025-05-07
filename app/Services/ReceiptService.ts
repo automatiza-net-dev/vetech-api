@@ -1,4 +1,5 @@
 import { inject } from "@adonisjs/fold";
+import Hash from "@ioc:Adonis/Core/Hash";
 import { MultipartFileContract } from "@ioc:Adonis/Core/BodyParser";
 import Drive from "@ioc:Adonis/Core/Drive";
 import Logger from "@ioc:Adonis/Core/Logger";
@@ -43,9 +44,11 @@ import ReceiptXml from "App/Models/ReceiptXml";
 import SupplierProduct from "App/Models/SupplierProduct";
 import TaxationGroup from "App/Models/TaxationGroup";
 import TaxationGroupRule, {
+	CompanyType,
 	MovementCategory,
 	MovementType,
 } from "App/Models/TaxationGroupRule";
+import User from "App/Models/User";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import { GenerateTag } from "App/Utils/GenerateTag";
 import { format } from "date-fns";
@@ -53,6 +56,8 @@ import { Decimal } from "decimal.js";
 import { DateTime } from "luxon";
 import xmlParser from "xml2json";
 import { z } from "zod";
+import Bill from "App/Models/Bill";
+import UfIcms from "App/Models/UfIcms";
 
 const detSchema = z.object({
 	prod: z.object({
@@ -543,6 +548,15 @@ export default class ReceiptService {
 			.preload("supplier", (query) => {
 				query.select("id", "name");
 			})
+			.preload("confirmationUser", (query) => {
+				query.select("id", "name");
+			})
+			.preload("originUnit", (query) => {
+				query.select("id", "identification");
+			})
+			.preload("relatedBill", (query) => {
+				query.select("id", "tag");
+			})
 			.where("economic_group_id", authCtx.group.id)
 			.where("business_unit_id", authCtx.unit.id)
 			.orderByRaw("receipt_date desc");
@@ -580,9 +594,14 @@ export default class ReceiptService {
 			totalValue: elem.totalValue,
 			paidValue: elem.paidValue,
 			status: elem.status,
+			receiptType: elem.receiptType,
+			transferConfirmationDate: elem.transferConfirmationDate,
 			user: elem.user,
 			seller: elem.seller,
 			supplier: elem.supplier,
+			confirmationUser: elem.confirmationUser,
+			originUnit: elem.originUnit,
+			relatedBill: elem.relatedBill,
 		}));
 	}
 
@@ -689,6 +708,15 @@ export default class ReceiptService {
 			})
 			.preload("businessUnit", (query) => {
 				query.select("id", "identification");
+			})
+			.preload("confirmationUser", (query) => {
+				query.select("id", "name");
+			})
+			.preload("originUnit", (query) => {
+				query.select("id", "identification");
+			})
+			.preload("relatedBill", (query) => {
+				query.select("id", "tag");
 			})
 			.preload("payments", (query) => {
 				query.preload("acquirer", (query) => {
@@ -811,7 +839,7 @@ export default class ReceiptService {
 		},
 	) {
 		const key = `${authCtx.unit.id}/${data.file.clientName}`;
-		const s3Key = `${authCtx.unit.id}/${Date.now()}-${data.file.clientName}`;
+		const s3Key = `xml-imports/${authCtx.unit.id}/${Date.now()}-${data.file.clientName}`;
 
 		await data.file.moveToDisk(
 			"xml-imports",
@@ -843,9 +871,22 @@ export default class ReceiptService {
 		);
 
 		const fileContents = await Drive.get(`receipts/${key}`);
+
+		return await this.processReceipt(
+			authCtx,
+			fileContents.toString(),
+			receiptXml,
+		);
+	}
+
+	async processReceipt(
+		authCtx: AuthContext,
+		contents: string,
+		receiptXml: ReceiptXml,
+	) {
 		let result = {};
 		try {
-			result = xmlParser.toJson(fileContents.toString(), { object: true });
+			result = xmlParser.toJson(contents, { object: true });
 		} catch (e) {
 			Logger.error(e);
 			throw new BadRequestException(
@@ -1498,11 +1539,13 @@ export default class ReceiptService {
 			dailyMovementId?: string;
 			reversalUserId?: string;
 			reversalReasonId?: string;
+			originBusinessUnitId?: string;
 			receiptDate: DateTime;
 			otherValue?: number;
 			additionalInformation?: string;
 			reversalObservation?: string;
 			reversedAt?: DateTime;
+			receiptType: "E" | "T" | "D";
 
 			items: Array<{
 				productVariationId: string;
@@ -1541,8 +1584,11 @@ export default class ReceiptService {
 					daily_movement_id: dailyMovement?.id,
 					reversal_user_id: data.reversalUserId,
 					reversal_reason_id: data.reversalReasonId,
+					origin_business_unit_id:
+						data.receiptType === "E" ? undefined : data.originBusinessUnitId,
 
 					origin: "Manual",
+					receiptType: data.receiptType,
 					tag: GenerateTag(counter.length + 1),
 					issueDate: DateTime.now(),
 					receiptDate: data.receiptDate,
@@ -1558,6 +1604,8 @@ export default class ReceiptService {
 			const tasks = data.items.map((elem) => {
 				return this.innerCreateItem(trx, authCtx, {
 					receiptId: receipt.id,
+					supplierId: data.supplierId,
+					receiptType: data.receiptType,
 					productVariationId: elem.productVariationId,
 					quantity: elem.quantity,
 					costValue: elem.unitaryValue,
@@ -1596,7 +1644,11 @@ export default class ReceiptService {
 				throw this.sharedService.ResourceNotFound();
 			}
 
-			await this.innerCreateItem(trx, authCtx, data);
+			await this.innerCreateItem(trx, authCtx, {
+				...data,
+				supplierId: receipt.supplier_id,
+				receiptType: receipt.receiptType,
+			});
 
 			await this.syncReceipt(trx, receipt);
 		});
@@ -1607,11 +1659,13 @@ export default class ReceiptService {
 		authCtx: AuthContext,
 		data: {
 			receiptId: string;
+			supplierId: string;
 			productVariationId: string;
 			quantity: number;
 			costValue: number;
 			unitaryValue: number;
 			discountValue: number;
+			receiptType: "E" | "T" | "D";
 		},
 	) {
 		const productVariation = await ProductVariation.query()
@@ -1628,11 +1682,17 @@ export default class ReceiptService {
 
 		if (!productVariation) {
 			throw new BadRequestException(
-				"Não foi possível encontrar um preço para esse produto",
+				"Não foi possível encontrar uma variação",
 				400,
 				"E_NO_VARIATION",
 			);
 		}
+
+		const supplier = await Patient.query()
+			.useTransaction(trx)
+			.preload("tutor")
+			.where("id", data.supplierId)
+			.firstOrFail();
 
 		const rule = await TaxationGroupRule.query()
 			.useTransaction(trx)
@@ -1640,9 +1700,17 @@ export default class ReceiptService {
 				query.where("id", productVariation.product.taxation_group_id);
 			})
 			.where("movementType", MovementType.E)
-			.where("movementCategory", MovementCategory.NE)
-			.where("fromUf", authCtx.unit.state ?? "-")
+			.where(
+				"movementCategory",
+				data.receiptType === "T" ? MovementCategory.TE : MovementCategory.NE,
+			)
 			.where("toUf", authCtx.unit.state ?? "-")
+			.where(
+				"fromUf",
+				data.receiptType === "T"
+					? (supplier?.tutor?.state ?? "-")
+					: (authCtx.unit.state ?? "-"),
+			)
 			.preload("taxationGroup")
 			.preload("taxOperation")
 			.first();
@@ -2242,6 +2310,14 @@ and product_variation_id in (
 				throw this.sharedService.ResourceNotFound("Item não encontrado");
 			}
 
+			if (thing.receipt.receiptType === "T") {
+				throw new BadRequestException(
+					"Não é permitida a exclusao de itens de uma nota de entrada de transferencia. Você deve excluir na Saída Original da transferencia",
+					400,
+					"E_ERR",
+				);
+			}
+
 			await thing
 				.merge({
 					disabled_user_id: authCtx.user.id,
@@ -2763,6 +2839,14 @@ and product_variation_id in (
 				);
 			}
 
+			if (receipt.receiptType === "T") {
+				throw new BadRequestException(
+					"Não é permitida a exclusao de uma nota de entrada de transferencia. Você deve excluir a Saída Original da transferencia",
+					400,
+					"E_ERR",
+				);
+			}
+
 			const invalidFinances = await Finance.query()
 				.useTransaction(trx)
 				.whereIn(
@@ -2827,6 +2911,395 @@ and product_variation_id in (
 					deleted_user_id: authCtx.user.id,
 					deletedAt: DateTime.now(),
 				});
+		});
+	}
+
+	public async pendingTransferences(authCtx: AuthContext) {
+		const qb1 = Database.from("bills")
+			.select(
+				Database.raw(`business_units.id as bid,
+       business_units.identification,
+       bills.id,
+       bills.tag,
+       bills.bill_date,
+       receipts.id as rid,
+       receipts.tag as rtag,
+       receipts.receipt_date`),
+			)
+			.joinRaw("join receipts on receipts.related_bill_id = bills.id")
+			.joinRaw(
+				"join business_units on bills.business_unit_id = business_units.id",
+			)
+			.whereRaw("bills.transfer_confirmation_date is null")
+			.whereRaw("bills.bill_type = 'T'")
+			.whereRaw("bills.business_unit_id = ?", [authCtx.unit.id])
+			.whereRaw("bills.deleted_at is null")
+			.orderByRaw("bills.bill_date");
+
+		const qb2 = Database.from("receipts")
+			.select(
+				Database.raw(`business_units.id as bid,
+       business_units.identification,
+       bills.id,
+       bills.tag,
+       bills.bill_date,
+       receipts.id as rid,
+       receipts.tag as rtag,
+       receipts.receipt_date`),
+			)
+			.joinRaw("join bills on receipts.related_bill_id = bills.id")
+			.joinRaw(
+				"join business_units on receipts.business_unit_id = business_units.id",
+			)
+			.whereRaw("receipts.transfer_confirmation_date is null")
+			.whereRaw("receipts.receipt_type = 'T'")
+			.whereRaw("receipts.business_unit_id = ?", [authCtx.unit.id])
+			.whereRaw("receipts.deleted_at is null")
+			.orderByRaw("receipts.receipt_date");
+
+		const [bills, receipts] = await Promise.all([qb1, qb2]);
+
+		return {
+			bills: bills.map((r) => ({
+				billId: r.bid,
+				billTag: r.tag,
+				billDate: r.bill_date,
+				receiptId: r.rid,
+				receiptTag: r.rtag,
+				receiptDate: r.receipt_date,
+				receiptBusinessUnitID: r.bid,
+				receiptBusinessUnitIdentification: r.identification,
+			})),
+			receipts: receipts.map((r) => ({
+				billId: r.bid,
+				billTag: r.tag,
+				billDate: r.bill_date,
+				receiptId: r.rid,
+				receiptTag: r.rtag,
+				receiptDate: r.receipt_date,
+				receiptBusinessUnitID: r.bid,
+				receiptBusinessUnitIdentification: r.identification,
+			})),
+		};
+	}
+
+	public async confirmTransference(
+		authCtx: AuthContext,
+		data: {
+			billId: string;
+			confirmationUserEmail: string;
+			confirmationUserPwd: string;
+		},
+	) {
+		await Database.transaction(async (trx) => {
+			const user = await User.query()
+				.useTransaction(trx)
+				.whereILike("email", data.confirmationUserEmail)
+				.where("system_id", authCtx.system.id)
+				.first();
+
+			if (!user) {
+				throw new BadRequestException(
+					"Credenciais inválidas",
+					400,
+					"E_BAD_CREDENTIALS",
+				);
+			}
+
+			if (!(await Hash.verify(user.password, data.confirmationUserPwd))) {
+				throw new BadRequestException(
+					"Credenciais inválidas",
+					400,
+					"E_BAD_CREDENTIALS",
+				);
+			}
+
+			const hasPermissions = await this.sharedService.userHasPermission(
+				{ ...authCtx, user },
+				"ENT12",
+			);
+			if (!hasPermissions) {
+				throw new UnauthorizedException(
+					"Usuário sem permissão de fazer a operação",
+					400,
+					"E_ERR",
+				);
+			}
+
+			const bill = await Bill.query()
+				.useTransaction(trx)
+				.preload("items", (query) => {
+					query.preload("productVariation", (query) => {
+						query.preload("product").preload("businessUnitProducts");
+					});
+				})
+				.preload("payments", (query) => {
+					query.preload("paymentMethod");
+				})
+				.where("id", data.billId)
+				.where("business_unit_id", authCtx.unit.id)
+				.firstOrFail();
+
+			if (bill.transferConfirmationDate) {
+				throw new BadRequestException(
+					"Nota de Entrada já foi confirmada para transferência",
+					400,
+					"E_ERR",
+				);
+			}
+
+			const newReceipt = await Receipt.create(
+				{
+					economic_group_id: authCtx.group.id,
+					business_unit_id: authCtx.unit.id,
+					// supplier_id: supplierId,
+					user_id: authCtx.user.id,
+					seller_id: authCtx.user.id,
+					daily_movement_id: bill.daily_movement_id,
+					origin_business_unit_id: authCtx.unit.id,
+					confirmation_user_id: authCtx.user.id,
+					related_bill_id: data.billId,
+
+					receiptType: "T",
+					origin: "Manual",
+					issueDate: DateTime.now(),
+					receiptDate: DateTime.now(),
+					// tag: GenerateTag(receiptsCounter.length + 1),
+					productValue: bill.productValue,
+					discountValue: bill.discountValue,
+					deliveryValue: bill.deliveryValue,
+					totalValue: bill.totalValue,
+					icmsBase: bill.icmsBase,
+					icmsValue: bill.icmsValue,
+					icmsStBase: bill.icmsStBase,
+					icmsStValue: bill.icmsStValue,
+					pisBase: bill.pisBase,
+					pisValue: bill.pisValue,
+					cofinsBase: bill.cofinsBase,
+					cofinsValue: bill.cofinsValue,
+					ipiBase: bill.ipiBase,
+					ipiValue: bill.ipiValue,
+					icmsFcpValue: bill.icmsFcpValue,
+					icmsUfDestinationValue: bill.icmsUfDestinationValue,
+					otherValue: bill.otherValue,
+					additionalInformation: bill.additionalInformation,
+					status: "Baixada",
+					transferConfirmationDate: DateTime.now(),
+				},
+				{ client: trx },
+			);
+
+			await bill
+				.merge({
+					confirmation_user_id: authCtx.user.id,
+					related_receipt_id: newReceipt.id,
+					transferConfirmationDate: DateTime.now(),
+				})
+				.useTransaction(trx)
+				.save();
+
+			const receiptTaxRulesQb = TaxationGroupRule.query()
+				.useTransaction(trx)
+				.whereHas("taxationGroup", (query) => {
+					query.whereIn(
+						"id",
+						bill.items.map(
+							(item) => item.productVariation.product.taxation_group_id,
+						),
+					);
+				})
+				.where("movement_type", MovementType.E)
+				.where("movement_category", MovementCategory.TE)
+				.where("fromUf", authCtx.unit.state ?? "")
+				.where(
+					"company_type",
+					authCtx.unit.simple ? CompanyType.S : CompanyType.N,
+				)
+				.preload("taxationGroup")
+				.preload("taxOperation");
+
+			const taxRules = await receiptTaxRulesQb;
+
+			const ufIcms = await UfIcms.query()
+				.whereIn(
+					"origin_uf",
+					taxRules.map((rule) => rule.toUf),
+				)
+				.whereIn(
+					"destination_uf",
+					taxRules.map((rule) => rule.toUf),
+				);
+
+			await newReceipt.related("items").createMany(
+				bill.items.map((item) => {
+					const rule = taxRules.find(
+						(rule) =>
+							rule.taxationGroup.id ===
+							item.productVariation.product.taxation_group_id,
+					);
+					if (!rule) {
+						throw new BadRequestException(
+							`Não foi possível encontrar uma regra de imposto para o produto; ${item.productVariation.product.description}`,
+							400,
+							"E_ERR",
+						);
+					}
+
+					const price = item.productVariation.businessUnitProducts.find(
+						(bup) => bup.businness_unit_id === authCtx.unit.id,
+					);
+
+					const ufIcmsRule = ufIcms.find(
+						(ufIcms) =>
+							ufIcms.originUf === rule?.toUf &&
+							ufIcms.destinationUf === rule?.toUf,
+					);
+
+					const totalValue =
+						item.unitaryValue * item.quantity.toNumber() - item.discountValue;
+					const icmsBase =
+						totalValue * ((100 - (rule?.icmsPercRedBaseCalculo ?? 0)) / 100);
+					const icmsValue = (icmsBase * (rule?.icmsPerc ?? 0)) / 100;
+					const icmsStBase_1 = this.isValidNumber(rule?.ivaIcmsSt)
+						? icmsBase + (icmsBase * rule.ivaIcmsSt) / 100
+						: 0;
+					const icmsStPercentageRedBase = this.isValidNumber(rule?.ivaIcmsSt)
+						? rule.icmsPercRedBaseCalculoST
+						: undefined;
+					const icmsStBase_2 = this.isValidNumber(rule?.ivaIcmsSt)
+						? icmsStBase_1 -
+							(icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
+						: 0;
+
+					return {
+						economic_group_id: authCtx.group.id,
+						business_unit_id: authCtx.unit.id,
+						bill_id: bill.id,
+						product_variation_id: item.product_variation_id,
+						tax_rule_id: rule?.id,
+						deposit_id: undefined,
+						courtesy_issued_user_id:
+							item.courtesy || item.maxDiscount ? authCtx.user.id : undefined,
+
+						courtesy: item.courtesy,
+						maxDiscount: item.maxDiscount,
+						quantity: new Decimal(item.quantity),
+						costValue: price?.costPrice,
+						saleValue: price?.price,
+						unitaryValue: item.courtesy ? 0 : item.unitaryValue,
+						discountValue: item.courtesy ? 0 : item.discountValue,
+						totalValue: item.courtesy ? 0 : totalValue,
+						status: "Ativo",
+						// createdAt: bill.createdAt,
+
+						fiscalOperationCode: rule?.taxOperation.code,
+						icmsOriginProduct: item.productVariation.product.icmsOrigin,
+						icmsCst:
+							item.productVariation.product.type === ProductType.PRODUCT
+								? rule?.icmsCst
+								: undefined,
+						icmsBase:
+							item.productVariation.product.type === ProductType.PRODUCT
+								? icmsBase
+								: undefined,
+						icmsPercentage:
+							item.productVariation.product.type === ProductType.PRODUCT
+								? rule?.icmsPerc
+								: undefined,
+						icmsValue:
+							item.productVariation.product.type === ProductType.PRODUCT
+								? icmsValue
+								: undefined,
+						icmsPercentageRedAliquot: rule?.icmsPercRedAliquota,
+						icmsPercentageRedBase: rule?.icmsPercRedBaseCalculo,
+						icmsStBase: this.isValidNumber(rule?.ivaIcmsSt)
+							? icmsStBase_2
+							: undefined,
+						icmsStPercentageRedBase: this.isValidNumber(rule?.ivaIcmsSt)
+							? rule?.icmsPercRedBaseCalculoST
+							: undefined,
+						icmsStIva: this.isValidNumber(rule?.ivaIcmsSt),
+						icmsStPercentageUfDestination: this.isValidNumber(rule?.ivaIcmsSt)
+							? ufIcmsRule?.icmsPercentage
+							: undefined,
+						icmsStValue: this.isValidNumber(rule?.ivaIcmsSt)
+							? icmsStBase_2 * ((ufIcmsRule?.icmsPercentage ?? 100) / 100) -
+								icmsValue
+							: undefined,
+						issCst:
+							item.productVariation.product.type === ProductType.SERVICE
+								? rule?.icmsCst
+								: undefined,
+						issBase:
+							item.productVariation.product.type === ProductType.SERVICE
+								? icmsBase
+								: undefined,
+						issPercentage:
+							item.productVariation.product.type === ProductType.SERVICE
+								? rule?.icmsPerc
+								: undefined,
+						issValue:
+							item.productVariation.product.type === ProductType.SERVICE
+								? (icmsBase * (rule?.icmsPerc ?? 0)) / 100
+								: undefined,
+						pisCst: rule?.pisCst,
+						cofinsCst: rule?.cofinsCst,
+						pisBase: totalValue,
+						pisPercentage: rule?.pisPerc,
+						pisValue: (totalValue * (rule?.pisPerc ?? 1)) / 100,
+						pisRetentionValue: 0,
+						cofinsBase: totalValue,
+						cofinsPercentage: rule?.cofinsPerc,
+						cofinsValue: (totalValue * (rule?.cofinsPerc ?? 1)) / 100,
+						cofinsRetentionValue: 0,
+						ipiCst: rule?.ipiCst,
+						ipiBase: totalValue,
+						ipiPercentage: rule?.ipiPerc,
+						ipiValue: (totalValue * (rule?.ipiPerc ?? 1)) / 100,
+						icmsDeferredValue: 0,
+						icmsPartitionValue: 0,
+						icmsFcpPercentage: rule?.fcpPerc,
+						icmsFcpValue: (icmsBase * (rule?.fcpPerc ?? 0)) / 100,
+						icmsPartitionOriginUfPercentage: rule?.icmsPerc,
+						icmsPartitionDestinationUfPercentage: rule?.icmsPercRedAliquota,
+						icmsPartitionInterUfPercentage: rule?.icmsPercRedAliquota,
+					};
+				}),
+			);
+
+			await ReceiptPayment.createMany(
+				bill.payments.map<Partial<ReceiptPayment>>((row, idx) => ({
+					economic_group_id: authCtx.group.id,
+					business_unit_id: authCtx.unit.id,
+					receipt_id: newReceipt.id,
+					payment_method_id: row.payment_method_id ?? undefined,
+					tef_acquirer_id: row.tef_acquirer_id,
+					tef_flag_id: row.tef_flag_id,
+
+					installment: idx + 1,
+					block: idx + 1 + newReceipt.payments.length,
+					blockInstallments: row.installments,
+					installmentValue: row.installmentValue / row.installments,
+					// issueDate: row.issueDate,
+					expirationDate: SharedService.CalculateDateOffset(
+						idx,
+						row.expirationDate,
+						row.paymentMethod,
+					),
+					nsuDocument: row.nsuDocument,
+					status: "Ativo",
+				})),
+				{ client: trx },
+			);
+
+			// if (bill.related_bill_id) {
+			// 	await Database.rawQuery(
+			// 		"update bills set confirmation_user_id = ?, transfer_confirmation_date = now() where id = ?",
+			// 		[authCtx.user.id, bill.related_bill_id],
+			// 	)
+			// 		.useTransaction(trx)
+			// 		.exec();
+			// }
 		});
 	}
 
@@ -2978,5 +3451,21 @@ and product_variation_id in (
 			})
 			.useTransaction(trx)
 			.save();
+	}
+
+	isValidNumber(data: number | undefined) {
+		if (!data) {
+			return undefined;
+		}
+
+		if (typeof data !== "number") {
+			return undefined;
+		}
+
+		if (data === 0) {
+			return undefined;
+		}
+
+		return data;
 	}
 }

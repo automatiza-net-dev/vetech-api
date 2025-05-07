@@ -454,25 +454,31 @@ export default class TemplateReplacementService {
 		}
 
 		const [head, ...tail] = templates;
+		// console.log(head.origin, head.attribute, head.replacer)
 
 		const elem = data[head.origin];
 		if (!elem) {
+			// console.log("no elem", head.origin);
 			return this.parseTextTemplate(raw, data, tail);
 		}
 
 		const value = this.$getValue(head.attribute, elem);
+		console.log("value?", value);
 		if (!value) {
 			return this.parseTextTemplate(raw, data, tail);
 		}
 
 		if (Array.isArray(value)) {
+			console.log("value is array", value);
 			const updated = this.parseHtmlTemplate(raw, head, value);
 			return this.parseTextTemplate(updated, data, tail);
 		}
 
 		const value$ = value ? (this.$toString(value) ?? head.attribute) : "";
+		// console.log("value string-like", value$);
 
 		const updated = raw.replaceAll(head.replacer, value$);
+		// console.log("updated", updated);
 
 		return this.parseTextTemplate(updated, data, tail);
 	}

@@ -12,6 +12,7 @@ export default class UpdatePatientValidator {
 			extnames: ["jpg", "gif", "png", "jpeg"],
 		}),
 		gender: schema.string.optional(),
+		tag: schema.string.optional({}, []),
 		tags: schema.string.optional({}, []),
 		birthDate: schema.date({}),
 		active: schema.boolean([]),

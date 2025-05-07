@@ -21,6 +21,9 @@ export default class Department extends BaseModel {
 	public description: string;
 
 	@column()
+	public image: string | null;
+
+	@column()
 	public active: boolean;
 
 	@column.dateTime({ autoCreate: true })

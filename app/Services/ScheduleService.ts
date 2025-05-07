@@ -44,6 +44,8 @@ import { validate } from "uuid";
 import CrmStatus from "App/Models/CrmStatus";
 import TreatmentExecution from "App/Models/TreatmentExecution";
 import TreatmentExecutionReschedule from "App/Models/TreatmentExecutionReschedule";
+import Decimal from "decimal.js";
+import ScheduleStatusChange from "App/Models/ScheduleStatusChange";
 
 interface ISearch {
 	pid?: string;
@@ -272,18 +274,23 @@ export default class ScheduleService {
 
 		const confirmedQb = Schedule.query()
 			.select(
-				"patient_id",
-				"holder_id",
-				"schedule_service_type_id",
-				"schedule_status_id",
-				"user_id",
-				"id",
-				"patient_name",
-				"patient_phone",
-				"start_hour",
-				"end_hour",
-				"major_complaint",
-				"observation",
+				Database.raw(`patient_id,
+				holder_id,
+				schedule_service_type_id,
+				schedule_status_id,
+				user_id,
+				id,
+				patient_name,
+				patient_phone,
+				start_hour,
+				end_hour,
+				major_complaint,
+				observation,
+
+				confirmation_user_id,
+				confirmation_conference_date,
+				confirmation_date,
+				confirmation_origin`),
 			)
 			.where("business_unit_id", data.unit ?? authCtx.unit.id)
 			.whereHas("serviceStatus", (query) => {
@@ -306,6 +313,9 @@ export default class ScheduleService {
 			.preload("user", (query) => {
 				query.select(["id", "name"]);
 			})
+			.preload("confirmationUser", (query) => {
+				query.select(["id", "name"]);
+			})
 			.preload("holder", (query) => {
 				query.preload("tutor", (query) => {
 					query.select(["id", "cellphone", "telephone"]);
@@ -322,18 +332,23 @@ export default class ScheduleService {
 
 		const nonConfirmedQb = Schedule.query()
 			.select(
-				"patient_id",
-				"holder_id",
-				"schedule_service_type_id",
-				"schedule_status_id",
-				"user_id",
-				"id",
-				"patient_name",
-				"patient_phone",
-				"start_hour",
-				"end_hour",
-				"major_complaint",
-				"observation",
+				Database.raw(`patient_id,
+				holder_id,
+				schedule_service_type_id,
+				schedule_status_id,
+				user_id,
+				id,
+				patient_name,
+				patient_phone,
+				start_hour,
+				end_hour,
+				major_complaint,
+				observation,
+
+				confirmation_user_id,
+				confirmation_conference_date,
+				confirmation_date,
+				confirmation_origin`),
 			)
 			.where("business_unit_id", data.unit ?? authCtx.unit.id)
 			.whereHas("serviceStatus", (query) => {
@@ -354,6 +369,9 @@ export default class ScheduleService {
 				query.select(["id", "name", "type", "photo", "gender", "tag"]);
 			})
 			.preload("user", (query) => {
+				query.select(["id", "name"]);
+			})
+			.preload("confirmationUser", (query) => {
 				query.select(["id", "name"]);
 			})
 			.preload("holder", (query) => {
@@ -382,10 +400,17 @@ export default class ScheduleService {
 			nonConfirmedQb.whereRaw("schedules.start_hour::date >= now()::date", []);
 		}
 
-		const [confirmedSchedules, nonConfirmedSchedules] = await Promise.all([
-			confirmedQb,
-			nonConfirmedQb,
-		]);
+		const missingQb = Database.from("finances")
+			.select(Database.raw("client_id, coalesce(sum(total_value), 0) as total"))
+			.whereRaw("type = 'CREDITO'")
+			.whereNull("deleted_at")
+			.whereRaw("business_unit_id = ?", [data.unit ?? authCtx.unit.id])
+			.whereRaw("payment_date is null")
+			.whereRaw("expiration_date < now()")
+			.groupByRaw("client_id");
+
+		const [confirmedSchedules, nonConfirmedSchedules, missing] =
+			await Promise.all([confirmedQb, nonConfirmedQb, missingQb]);
 
 		const executions: {
 			tipo_registro: string;
@@ -441,7 +466,13 @@ export default class ScheduleService {
 				.map((day) => ({
 					start: day.startHour.toString(),
 					end: day.endHour.toString(),
-					event: day,
+					event: {
+						...day.toJSON(),
+						financesExpired:
+							missing.find(
+								(r) => r.client_id === day.holder_id ?? day.patient_id,
+							)?.total ?? 0,
+					},
 					name: day.user?.name ?? "-",
 					date: day.startHour.setLocale("pt-BR").toFormat("dd/MM/yy - HH:mm"),
 					late:
@@ -466,7 +497,13 @@ export default class ScheduleService {
 				.map((day) => ({
 					start: day.startHour.toString(),
 					end: day.endHour.toString(),
-					event: day,
+					event: {
+						...day.toJSON(),
+						financesExpired:
+							missing.find(
+								(r) => r.client_id === day.holder_id ?? day.patient_id,
+							)?.total ?? 0,
+					},
 					name: day.user?.name ?? "-",
 					date: day.startHour.setLocale("pt-BR").toFormat("dd/MM/yy - HH:mm"),
 					late:
@@ -1208,6 +1245,30 @@ export default class ScheduleService {
 					});
 			}
 
+			if (schedule.serviceStatus.type === "AC" && toStatus.type === "AN") {
+				await schedule
+					.merge({
+						confirmation_user_id: null,
+						confirmationConferenceDate: null,
+						confirmationDate: null,
+						confirmationOrigin: null,
+					})
+					.useTransaction(trx)
+					.save();
+			}
+
+			if (schedule.serviceStatus.type === "CANC") {
+				await schedule
+					.merge({
+						confirmation_user_id: null,
+						confirmationConferenceDate: null,
+						confirmationDate: null,
+						confirmationOrigin: null,
+					})
+					.useTransaction(trx)
+					.save();
+			}
+
 			await schedule.related("statusChanges").create(
 				{
 					user_id: authCtx.user.id,
@@ -1215,6 +1276,22 @@ export default class ScheduleService {
 					schedule_status_id: data.statusId, // status novo da agenda
 					reason_id: data.reasonId,
 					observation: data.observation,
+					confirmation_user_id:
+						toStatus.type === "AC" || toStatus.type === "CANC"
+							? authCtx.user.id
+							: undefined,
+					confirmationConferenceDate:
+						toStatus.type === "AC" || toStatus.type === "CANC"
+							? DateTime.now()
+							: undefined,
+					confirmationDate:
+						toStatus.type === "AC" || toStatus.type === "CANC"
+							? DateTime.now()
+							: undefined,
+					confirmationOrigin:
+						toStatus.type === "AC" || toStatus.type === "CANC"
+							? "usuario"
+							: undefined,
 				},
 				{
 					client: trx,
@@ -1223,6 +1300,22 @@ export default class ScheduleService {
 			return schedule
 				.merge({
 					schedule_status_id: data.statusId,
+					confirmation_user_id:
+						toStatus.type === "AC" || toStatus.type === "CANC"
+							? authCtx.user.id
+							: undefined,
+					confirmationConferenceDate:
+						toStatus.type === "AC" || toStatus.type === "CANC"
+							? DateTime.now()
+							: undefined,
+					confirmationDate:
+						toStatus.type === "AC" || toStatus.type === "CANC"
+							? DateTime.now()
+							: undefined,
+					confirmationOrigin:
+						toStatus.type === "AC" || toStatus.type === "CANC"
+							? "usuario"
+							: undefined,
 				})
 				.useTransaction(trx)
 				.save();
@@ -1490,7 +1583,12 @@ export default class ScheduleService {
 			usersQb.where("users.id", authCtx.user.id);
 		}
 
-		const users = await usersQb;
+		const users: {
+			id: string;
+			name: string;
+			on_duty: boolean;
+			schedule_sequence: boolean;
+		}[] = await usersQb;
 		const userIds = Array.from(new Set(users.map((u) => u.id)));
 
 		const days = Math.max(differenceInDays(refStart, refEnd), 1);
@@ -1516,6 +1614,13 @@ export default class ScheduleService {
 					color: string;
 					type: string;
 				};
+				confirmation_user: {
+					userId: string;
+					userName: string;
+					confirmationConferenceDate: string;
+					confirmationDate: string;
+					confirmationOrigin: string;
+				} | null;
 				reason: {
 					id: string;
 					description: string;
@@ -1574,6 +1679,16 @@ export default class ScheduleService {
                'color', ss.color,
                'type', ss.type
        )       as service_status,
+       case
+           when schedules.confirmation_user_id is not null then
+               json_build_object(
+                       'userId', schedules.confirmation_user_id,
+                       'userName', cs.name,
+                       'confirmationConferenceDate', schedules.confirmation_conference_date,
+                       'confirmationDate', schedules.confirmation_date,
+                       'confirmationOrigin', schedules.confirmation_origin
+               )
+           end    as confirmation_user,
        CASE
            WHEN schedules.reason_id IS NOT NULL THEN
                json_build_object(
@@ -1634,7 +1749,16 @@ export default class ScheduleService {
        )       as holder,
        '[]'::json as reschedules,
        '[]'::json as contacts,
-       '[]'::json as status_changes`),
+       '[]'::json as status_changes,
+       coalesce((select sum(total_value) as total
+from "finances"
+where type = 'CREDITO'
+  and deleted_at is null
+  and business_unit_id = schedules.business_unit_id
+  and client_id = coalesce(schedules.holder_id, schedules.patient_id)
+  and payment_date is null
+  and expiration_date < now()
+group by client_id),0) as finances_expired`),
 			)
 			.joinRaw(
 				"join schedule_service_types sst on schedules.schedule_service_type_id = sst.id",
@@ -1655,6 +1779,7 @@ export default class ScheduleService {
 			.joinRaw("left join patient_tutors pt2 on p.id = pt2.patient_id")
 			.joinRaw("left join races rc on pa.race_id = rc.id")
 			.joinRaw("left join species sp on rc.specie_id = sp.id")
+			.joinRaw("left join users cs on schedules.confirmation_user_id = cs.id")
 			.groupByRaw(`schedules.id,
          schedules.user_id,
          schedules.start_hour,
@@ -1685,7 +1810,8 @@ export default class ScheduleService {
          sp.description,
          h.id,
          h.name,
-         pt2.cellphone`)
+         pt2.cellphone,
+         cs.id`)
 			.where("schedules.business_unit_id", authCtx.unit.id)
 			.whereRaw("schedules.start_hour::date between ? and ?", [
 				refStart,
@@ -1717,6 +1843,7 @@ export default class ScheduleService {
 			holder: elem.holder,
 			race: elem.race,
 			specie: elem.specie,
+			financesExpired: elem.finances_expired,
 			reschedules: elem.reschedules.filter((f) => Boolean(f.id)),
 			contacts: elem.contacts.filter((f) => Boolean(f.id)),
 			statusChanges: elem.status_changes.filter((f) => Boolean(f.id)),
@@ -2327,7 +2454,7 @@ export default class ScheduleService {
 			}
 
 			const validChanges = VALID_CHANGES[schedule.serviceStatus.type];
-      // @ts-ignore -
+			// @ts-ignore -
 			if (!validChanges || !validChanges.includes(toStatus.type)) {
 				throw new BadRequestException("Mudança inválida", 400, "E_INVALID");
 			}
@@ -2359,6 +2486,22 @@ export default class ScheduleService {
 					schedule_status_id: data.statusId,
 					reason_id: data.reasonId,
 					observation: data.observation,
+					confirmation_user_id:
+						toStatus.type === "AC" || toStatus.type === "CANC"
+							? authCtx.user.id
+							: undefined,
+					confirmationConferenceDate:
+						toStatus.type === "AC" || toStatus.type === "CANC"
+							? DateTime.now()
+							: undefined,
+					confirmationDate:
+						toStatus.type === "AC" || toStatus.type === "CANC"
+							? DateTime.now()
+							: undefined,
+					confirmationOrigin:
+						toStatus.type === "AC" || toStatus.type === "CANC"
+							? "usuario"
+							: undefined,
 				},
 				{
 					client: trx,
@@ -2382,6 +2525,22 @@ export default class ScheduleService {
 						toStatus.type === "ATEND"
 							? DateTime.now().minus({ hours: 3 })
 							: schedule.startedAt,
+					confirmation_user_id:
+						toStatus.type === "AC" || toStatus.type === "CANC"
+							? authCtx.user.id
+							: undefined,
+					confirmationConferenceDate:
+						toStatus.type === "AC" || toStatus.type === "CANC"
+							? DateTime.now()
+							: undefined,
+					confirmationDate:
+						toStatus.type === "AC" || toStatus.type === "CANC"
+							? DateTime.now()
+							: undefined,
+					confirmationOrigin:
+						toStatus.type === "AC" || toStatus.type === "CANC"
+							? "usuario"
+							: undefined,
 				})
 				.useTransaction(trx)
 				.save();
@@ -2444,7 +2603,7 @@ export default class ScheduleService {
 			}
 
 			const validChanges = VALID_CHANGES[schedule.serviceStatus.type];
-      // @ts-ignore -
+			// @ts-ignore -
 			if (!validChanges || !validChanges.includes(toStatus.type)) {
 				throw new BadRequestException("Mudança inválida", 400, "E_INVALID");
 			}
@@ -2747,6 +2906,57 @@ export default class ScheduleService {
 		}));
 	}
 
+	public async finances(authCtx: AuthContext, clientID: string) {
+		if (!validate(clientID)) {
+			throw new BadRequestException("ID inválido", 400, "E_ERR");
+		}
+
+		const result: {
+			client_id: string;
+			total: string;
+			tipovencimento:
+				| "Valores Vencimento Hoje"
+				| "Valores em Atraso"
+				| "Valores Futuros";
+		}[] = await Database.from("finances")
+			.select(
+				Database.raw(`client_id, sum(total_value) as total,
+case when expiration_date::date = now()::date then 'Valores Vencimento Hoje'
+  when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores Futuros' end as tipoVencimento`),
+			)
+			.whereRaw("type = 'CREDITO'")
+			.whereRaw("deleted_at is null")
+			.whereRaw("economic_group_id = ?", [authCtx.group.id])
+			.whereRaw("business_unit_id = ?", [authCtx.unit.id])
+			.whereRaw("client_id = ?", [clientID])
+			.whereRaw("payment_date is null")
+			.groupByRaw(`client_id, case when expiration_date::date = now()::date then 'Valores Vencimento Hoje'
+when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores Futuros' end`)
+			.orderByRaw("tipoVencimento");
+
+		const lateFees: { total: string }[] = await Database.from("finances")
+			.select(Database.raw("sum(total_value) as total"))
+			.whereRaw("type = 'CREDITO'")
+			.whereNull("deleted_at")
+			.where("economic_group_id", authCtx.group.id)
+			.where("business_unit_id", authCtx.unit.id)
+			.where("client_id", clientID)
+			.whereNull("payment_date")
+			.whereRaw("expiration_date < now()")
+			.groupBy("client_id");
+
+		const starter: Record<string, number> =
+			lateFees.length === 0
+				? { "Valores em Atraso": new Decimal(lateFees[0].total).toNumber() }
+				: {};
+
+		return result.reduce((acc, row) => {
+			acc[row.tipovencimento] = new Decimal(row.total).toNumber();
+
+			return acc;
+		}, starter);
+	}
+
 	static async RunSyncLateOrMissingSchedules() {
 		return await Database.transaction(async (trx) => {
 			const scheduleStatuses = await ScheduleStatus.query().useTransaction(trx);
@@ -2888,6 +3098,172 @@ export default class ScheduleService {
 				missed,
 				late,
 			};
+		});
+	}
+
+	public async publicConfirmationInfo(scheduleID: string) {
+		if (!validate(scheduleID)) {
+			throw new BadRequestException("ID inválido", 400, "E_ERR");
+		}
+
+		const schedule = await Schedule.query()
+			.where("id", scheduleID)
+			.preload("businessUnit")
+			.preload("user")
+			.preload("serviceStatus")
+			.preload("holder")
+			.preload("patient")
+			.first();
+
+		if (!schedule) {
+			throw new ResourceNotFoundException(
+				"Agenda não encontrada",
+				404,
+				"E_ERR",
+			);
+		}
+
+		const rows: {
+			servicoagenda: string;
+			itemtratamento: string | null;
+			itemprodutividade: string | null;
+		}[] = await Database.from("schedules")
+			.select(
+				Database.raw(
+					"sst.description as servicoAgenda, p.description as itemTratamento, pi2.description as itemProdutividade",
+				),
+			)
+			.joinRaw(
+				"join schedule_service_types sst on schedule_service_type_id = sst.id",
+			)
+			.joinRaw(`left join (treatment_executions te
+    join treatment_items ti on te.treatment_item_id = ti.id and te.treatment_id = ti.treatment_id
+    join bill_items bi on ti.bill_item_id = bi.id
+    join product_variations pv on bi.product_variation_id = pv.id
+    join products p on pv.product_id = p.id
+    join productivity_items pi2 on te.productivity_item_id = pi2.id
+    ) on schedules.id = te.schedule_id`)
+			.whereRaw('(schedules.id = ? and schedules."deleted_at" is null)', [
+				scheduleID,
+			])
+			.orderByRaw("p.description, pi2.description, ti.id, te.id");
+
+		return {
+			businessUnit: {
+				id: schedule.businessUnit.id,
+				identification: schedule.businessUnit.identification ?? null,
+				address: schedule.businessUnit.address ?? null,
+				number: schedule.businessUnit.number ?? null,
+				complement: schedule.businessUnit.complement ?? null,
+				city: schedule.businessUnit.city ?? null,
+				state: schedule.businessUnit.state ?? null,
+				district: schedule.businessUnit.district ?? null,
+				postalCode: schedule.businessUnit.postalCode ?? null,
+			},
+			user: this.sharedService.captureGroup(schedule.user, (usr) => ({
+				id: usr.id,
+				name: usr.name,
+			})),
+			holder: this.sharedService.captureGroup(schedule.holder, (row) => ({
+				id: row.id,
+				name: row.name,
+			})),
+			patient: this.sharedService.captureGroup(schedule.patient, (row) => ({
+				id: row.id,
+				name: row.name,
+			})),
+			scheduleServiceTypes: rows.map((row) => ({
+				description: row.servicoagenda,
+				treatmentItem: row.itemtratamento,
+				productivityItem: row.itemprodutividade,
+			})),
+			startHour: schedule.startHour,
+			endHour: schedule.endHour,
+			confirmationDate: schedule.confirmationDate,
+			confirmationOrigin: schedule.confirmationOrigin,
+
+			status: this.sharedService.captureGroup(
+				schedule.serviceStatus,
+				(row) => ({
+					id: row.id,
+					description: row.description,
+					type: row.type,
+					color: row.color,
+				}),
+			),
+		};
+	}
+
+	public async publicConfirmationUpdate(data: {
+		scheduleId: string;
+		confirmationType: "AC" | "CANC";
+		observation?: string;
+	}) {
+		if (!validate(data.scheduleId)) {
+			throw new BadRequestException("ID inválido", 400, "E_ERR");
+		}
+
+		await Database.transaction(async (trx) => {
+			const schedule = await Schedule.query()
+				.useTransaction(trx)
+				.where("id", data.scheduleId)
+				.first();
+
+			if (!schedule) {
+				throw new ResourceNotFoundException(
+					"Agenda não encontrada",
+					404,
+					"E_ERR",
+				);
+			}
+
+			if (schedule.confirmationOrigin) {
+				throw new BadRequestException("Agenda já confirmada", 400, "E_ERR");
+			}
+
+			const updatedStatus: { id: string } | null = await Database.from(
+				"schedules",
+			)
+				.useTransaction(trx)
+				.select(Database.raw("schedule_statuses.id as id"))
+				.joinRaw(
+					"join business_units on schedules.business_unit_id = business_units.id",
+				)
+				.joinRaw(
+					"join schedule_statuses on schedule_statuses.system_id = business_units.system_id",
+				)
+				.whereRaw(`(
+    schedule_statuses.economic_group_id is null or schedule_statuses.economic_group_id =
+                                                   business_units.economic_group_id)`)
+				.whereRaw("schedule_statuses.type = ?", [data.confirmationType])
+				.whereRaw("schedules.id = ?", [data.scheduleId])
+				.first();
+			if (!updatedStatus) {
+				throw new BadRequestException(
+					"Não tem status novo a ser colocado",
+					400,
+					"E_ERR",
+				);
+			}
+
+			await schedule
+				.merge({
+					schedule_status_id: updatedStatus.id,
+					confirmationDate: DateTime.now(),
+					confirmationOrigin: "externa",
+				})
+				.useTransaction(trx)
+				.save();
+
+			await ScheduleStatusChange.create(
+				{
+					schedule_id: data.scheduleId,
+					schedule_status_id: updatedStatus.id,
+					observation: data.observation,
+					confirmationOrigin: "externa",
+				},
+				{ client: trx },
+			);
 		});
 	}
 

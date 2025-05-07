@@ -27,6 +27,7 @@ export default class UpdateSanclaTutorForGenericValidator {
 	 */
 	public schema = schema.create({
 		name: schema.string({}),
+		tag: schema.string.optional({}),
 		corporateName: schema.string.optional({}),
 		cellphone: schema.string.optional(),
 		clientOriginId: schema.string([

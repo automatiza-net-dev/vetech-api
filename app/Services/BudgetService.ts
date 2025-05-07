@@ -6,9 +6,11 @@ import InternalErrorException from "App/Exceptions/InternalErrorException";
 import Attendance from "App/Models/Attendance";
 import Bill, { BillStatus } from "App/Models/Bill";
 import BillDocument from "App/Models/BillDocument";
-import { BillItemStatus } from "App/Models/BillItem";
+import BillItem, { BillItemStatus } from "App/Models/BillItem";
+import BillItemDepartment from "App/Models/BillItemDepartment";
 import Budget, { BudgetStatus } from "App/Models/Budget";
 import BudgetItem from "App/Models/BudgetItem";
+import BudgetItemDepartment from "App/Models/BudgetItemDepartment";
 import BudgetPayment, {
 	TBudgetPaymentExclusionOrigin,
 	TBudgetPaymentStatus,
@@ -16,6 +18,8 @@ import BudgetPayment, {
 import BusinessUnit from "App/Models/BusinessUnit";
 import Kit from "App/Models/Kit";
 import Patient, { PatientType } from "App/Models/Patient";
+import PaymentMethod from "App/Models/PaymentMethod";
+import PaymentMethodFlag from "App/Models/PaymentMethodFlag";
 import PaymentMethodFlagInstallment from "App/Models/PaymentMethodFlagInstallment";
 import { ProductType } from "App/Models/Product";
 import ProductVariation from "App/Models/ProductVariation";
@@ -38,10 +42,8 @@ import {
 } from "Contracts/interfaces/IBudgetData";
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
-import DepositService from "./DepositService";
 import { v4 } from "uuid";
-import PaymentMethod from "App/Models/PaymentMethod";
-import PaymentMethodFlag from "App/Models/PaymentMethodFlag";
+import DepositService from "./DepositService";
 import ScheduleMovementsService from "./ScheduleMovementsService";
 
 interface ISearchPartial {
@@ -140,6 +142,8 @@ export default class BudgetService {
 					"observation",
 					"pending",
 					"internal_observation",
+					"paid_value",
+					"discount_value",
 					"client_id",
 					"patient_id",
 					"user_id",
@@ -247,6 +251,24 @@ export default class BudgetService {
 			.where("business_unit_id", authCtx.unit.id)
 			.orderByRaw("created_at desc");
 
+		const departmentItemRows: {
+			id: string;
+			department_id: number;
+			department_description: string;
+			department_item_id: number;
+			department_item_description: string;
+			observations: string;
+		}[] = await Database.from("budget_items")
+			.select(
+				Database.raw(
+					"budget_items.id, d.id as department_id, d.description department_description, di.description department_item_description, di.id  as department_item_id, bid.observations",
+				),
+			)
+			.joinRaw(
+				"join ( budget_item_departments bid join departments d on bid.department_id = d.id join department_items di on bid.department_item_id = di.id ) on budget_items.budget_id = bid.budget_id and budget_items.id = bid.budget_item_id",
+			)
+			.whereRaw("budget_items.business_unit_id = ?", [authCtx.unit.id]);
+
 		return Promise.all(
 			attendances.map(async (elem) => {
 				const jsonObj = elem.toJSON();
@@ -255,6 +277,15 @@ export default class BudgetService {
 					budgets: elem.budgets.map((b) => ({
 						...b.toJSON(),
 						status: statuses.find((s) => s.id === b.id)?.status ?? b.status,
+						nonPaidValue: b.totalValue - b.paidValue,
+						items: b.items.map((row) => {
+							const jsonItem = row.toJSON();
+
+							return {
+								...jsonItem,
+								departmentItems: departmentItemRows.filter((row) => row.id),
+							};
+						}),
 					})),
 				});
 
@@ -263,11 +294,150 @@ export default class BudgetService {
 						"id",
 						elem.budgets.map((b) => b.bill_id),
 					)
-					.select("id", "tag", "documents_status", "created_at", "budget_id");
+					.select(
+						"id",
+						"tag",
+						"documents_status",
+						"status",
+						"total_value",
+						"discount_value",
+						"paid_value",
+						"pending",
+						"cancelled",
+						"cancelled_at",
+						"cancel_date",
+						"finish_cancel_date",
+						"created_at",
+						"budget_id",
+						"seller_id",
+						"financial_responsible_id",
+						"cancel_user_id",
+						"finish_cancel_user_id",
+					)
+					.preload("seller")
+					.preload("financialResponsible")
+					.preload("cancelUser")
+					.preload("finishCancelUser")
+					.preload("items", (query) => {
+						query.select(
+							"id",
+							"quantity",
+							"unitary_value",
+							"discount_value",
+							"total_value",
+							"status",
+							"product_variation_id",
+						);
+						query.whereNull("deleted_at");
+
+						query.preload("productVariation", (query) => {
+							query.select("id", "product_id");
+							query.preload("product", (query) => {
+								query.select("id", "description");
+							});
+						});
+					})
+
+					.preload("payments", (query) => {
+						query.select(
+							"id",
+							"block",
+							"total_value",
+							"installments",
+							"status",
+							"pending",
+							"approved",
+							"approved_at",
+							"reason",
+							"cancelled",
+							"review_cancel_date",
+							"review_cancel_notes",
+							"payment_method_id",
+							"tef_flag_id",
+							"tef_acquirer_id",
+							"approved_user_id",
+							"reviewer_cancel_user_id",
+						);
+
+						query.preload("paymentMethod", (query) => {
+							query.select("id", "description");
+						});
+
+						query.preload("approvedUser", (query) => {
+							query.select("id", "name");
+						});
+
+						query.preload("reviewerCancelUser", (query) => {
+							query.select("id", "name");
+						});
+
+						query.preload("flag", (query) => {
+							query.select("id", "description");
+						});
+
+						query.preload("acquirer", (query) => {
+							query.select("id", "description");
+						});
+					});
+
+				const billDepartmentItemRows: {
+					department_id: number;
+					department_description: string;
+					department_item_id: number;
+					department_item_description: string;
+					observations: string;
+					bill_id: string;
+					bill_item_id: string;
+					product_variation_id: string;
+				}[] = await Database.from("bill_items")
+					.select(
+						Database.raw(
+							"d.id as department_id, d.description department_description, di.description department_item_description, di.id  as department_item_id, bid.observations, bill_items.bill_id, bill_item_id, bill_items.product_variation_id",
+						),
+					)
+					.joinRaw(
+						"join ( bill_item_departments bid join departments d on bid.department_id = d.id join department_items di on bid.department_item_id = di.id ) on bill_items.bill_id = bid.bill_id and bill_items.id = bid.bill_item_id",
+					)
+					.whereRaw("bill_items.business_unit_id = ?", [authCtx.unit.id])
+					.whereIn(
+						"bill_items.bill_id",
+						bills.map((r) => r.id),
+					);
+
 				Object.assign(jsonObj, {
-					bills: bills.map((b) => {
-						return { ...b.toJSON(), budget_id: b.budget_id };
-					}),
+					bills: bills.map((b) => ({
+						...b.toJSON(),
+						budget_id: b.budget_id,
+						nonPaidValue: b.totalValue - b.paidValue,
+						seller: this.sharedService.captureGroup(b.seller, (sel) => ({
+							id: sel.id,
+							name: sel.name,
+						})),
+						cancelUser: this.sharedService.captureGroup(
+							b.cancelUser,
+							(sel) => ({
+								id: sel.id,
+								name: sel.name,
+							}),
+						),
+						finishCancelUser: this.sharedService.captureGroup(
+							b.finishCancelUser,
+							(sel) => ({
+								id: sel.id,
+								name: sel.name,
+							}),
+						),
+						financialResponsible: this.sharedService.captureGroup(
+							b.financialResponsible,
+							(sel) => ({
+								id: sel.id,
+								name: sel.name,
+							}),
+						),
+						departmentItems: billDepartmentItemRows.filter(
+							(ro) => ro.bill_id === b.id,
+						),
+					})),
 				});
 
 				const billDocuments = await BillDocument.query()
@@ -309,6 +479,37 @@ export default class BudgetService {
 							});
 						});
 
+					const departmentTreatmentItems: {
+						treatment_id: number;
+						treatment_item_id: number;
+						department_id: number;
+						department_description: string;
+						department_item_id: number;
+						department_item_description: string;
+						observations: string;
+					}[] = await Database.from("treatments")
+						.select(
+							Database.raw(`treatments.id           as   treatment_id,
+       treatment_items.id      as   treatment_item_id,
+       departments.id          as   department_id,
+       departments.description as   department_description,
+       department_items.description department_item_description,
+       department_items.id     as   department_item_id,
+       bill_item_departments.observations`),
+						)
+						.joinRaw(`join treatment_items
+              on treatments.id = treatment_items.treatment_id and
+                 treatments.business_unit_id = treatment_items.business_unit_id`)
+						.joinRaw(`join (bill_item_departments join departments on bill_item_departments.department_id = departments.id join department_items
+               on bill_item_departments.department_item_id = department_items.id)
+              on treatments.bill_id = bill_item_departments.bill_id and
+                 treatment_items.bill_item_id = bill_item_departments.bill_item_id`)
+						.whereRaw("treatments.business_unit_id = ?", [authCtx.unit.id])
+						.whereIn(
+							"treatments.id",
+							treatments.map((r) => r.id),
+						);
+
 					Object.assign(jsonObj, {
 						treatments: treatments.map((elem) => ({
 							id: elem.id,
@@ -325,6 +526,20 @@ export default class BudgetService {
 								scheduled_quantity: item.scheduledQuantity,
 								observations: item.observations,
 								status: item.status,
+								departmentItems: departmentTreatmentItems
+									.filter(
+										(ro) =>
+											ro.treatment_id === elem.id &&
+											ro.treatment_item_id === item.id,
+									)
+									.map((r) => ({
+										department_id: r.department_id,
+										department_description: r.department_description,
+										department_item_id: r.department_item_id,
+										department_item_description: r.department_item_description,
+										observations: r.observations,
+									})),
+
 								executions: item.executions
 									.filter(
 										(ex) =>
@@ -378,6 +593,9 @@ export default class BudgetService {
 			})
 			.preload("reviewer", (query) => {
 				query.select("id", "name");
+			})
+			.preload("budgetRelatedType", (query) => {
+				query.select("id", "description");
 			})
 			.preload("dailyMovement")
 			.preload("conclusionUser")
@@ -555,6 +773,9 @@ export default class BudgetService {
 			.preload("reviewer", (query) => {
 				query.select("id", "name");
 			})
+			.preload("budgetRelatedType", (query) => {
+				query.select("id", "description");
+			})
 			.preload("conclusionUser")
 			.preload("cancelationReason")
 			.preload("items", (query) => {
@@ -591,7 +812,42 @@ export default class BudgetService {
 			throw this.sharedService.ResourceNotFound("Orçamento não encontrado");
 		}
 
-		return result;
+		const departmentItemRows = await Database.from("budget_items")
+			.select(
+				Database.raw(
+					"d.id as department_id, d.description department_description, di.description department_item_description, di.id  as department_item_id, bid.observations, budget_item_id, budget_items.product_variation_id",
+				),
+			)
+			.joinRaw(
+				"join ( budget_item_departments bid join departments d on bid.department_id = d.id join department_items di on bid.department_item_id = di.id ) on budget_items.budget_id = bid.budget_id and budget_items.id = bid.budget_item_id",
+			)
+			.whereRaw(
+				"budget_items.budget_id = ? and budget_items.business_unit_id = ?",
+				[result.id, unitId],
+			);
+
+		const jsonData = result.toJSON();
+
+		jsonData.items = jsonData.items.map((bi: BudgetItem) => {
+			// // @ts-ignore yay
+			// bi.treatmentExecutions = treatmentExecutionRows.filter(
+			// 	(ro) => bi.id === ro.budgetitemid && !!ro.treatment_id,
+			// );
+
+			// @ts-ignore yay
+			bi.departmentItems = departmentItemRows.filter(
+				(ro: { product_variation_id: string; budget_item_id: string }) => {
+					return (
+						bi.id === ro.budget_item_id ||
+						bi.product_variation_id === ro.product_variation_id
+					);
+				},
+			);
+
+			return bi;
+		});
+
+		return jsonData;
 	}
 
 	public async searchProducts(unitId: string, data: ISearchProduct) {
@@ -759,19 +1015,57 @@ export default class BudgetService {
 				);
 			}
 
-			if (data.internalCode) {
-				const existingBudget = await Budget.query()
-					.useTransaction(trx)
-					.where("business_unit_id", authCtx.unit.id)
-					.where("internal_code", data.internalCode)
+			if (data.originBudgetId) {
+				const existingRow = await Database.from("budgets")
+					.select("tag", "origin_budget_id")
+					.whereRaw("id = ?", [data.originBudgetId])
 					.first();
-				if (existingBudget) {
+				if (existingRow && !!existingRow.origin_budget_id) {
 					throw new BadRequestException(
-						`Código '${data.internalCode}' já está sendo usado pelo orçamento'${existingBudget.tag}', e não é possível repetir.`,
+						`Orçamento ${existingRow.tag} já está sendo usada como origem`,
 						400,
 						"E_ERR",
 					);
 				}
+			}
+
+			// if (data.internalCode) {
+			// 	const existingBudget = await Budget.query()
+			// 		.useTransaction(trx)
+			// 		.where("business_unit_id", authCtx.unit.id)
+			// 		.where("internal_code", data.internalCode)
+			// 		.first();
+			// 	if (existingBudget) {
+			// 		throw new BadRequestException(
+			// 			`Código '${data.internalCode}' já está sendo usado pelo orçamento'${existingBudget.tag}', e não é possível repetir.`,
+			// 			400,
+			// 			"E_ERR",
+			// 		);
+			// 	}
+			// }
+
+			const existingBudgetWithInternalCode = await Budget.query()
+				.useTransaction(trx)
+				.where("business_unit_id", authCtx.unit.id)
+				.whereRaw("internal_code ilike ?", [`%${data.internalCode ?? v4()}%`])
+				.first();
+
+			let dynamicInternalCode = data.internalCode;
+			if (data.internalCode && existingBudgetWithInternalCode) {
+				if (!data.originBudgetId) {
+					throw new BadRequestException(
+						`Código '${data.internalCode}' já está sendo usado peço orçamento '${existingBudgetWithInternalCode.tag}', e não é possível repetir.`,
+						400,
+						"E_ERR",
+					);
+				}
+
+				const count = await Budget.query()
+					.useTransaction(trx)
+					.select("id")
+					.where("business_unit_id", authCtx.unit.id)
+					.whereRaw("internal_code ilike ?", [`${data.internalCode}%`]);
+				dynamicInternalCode = `${data.internalCode} / ${count.length.toString().padStart(3, "0")}`;
 			}
 
 			const items = await ProductVariation.query()
@@ -813,8 +1107,10 @@ export default class BudgetService {
 					daily_movement_id: data.dailyMovementId,
 					attendance_id: data.attendanceId,
 					reviewer_id: data.reviewerId,
+					origin_budget_id: data.originBudgetId,
+					budget_related_type_id: data.budgetRelatedTypeId,
 
-					internalCode: data.internalCode,
+					internalCode: dynamicInternalCode,
 					budgetDate: data.budgetDate,
 					expirationDate: data.expirationDate,
 					productValue: 0,
@@ -864,7 +1160,7 @@ export default class BudgetService {
 					);
 				}
 
-				await budget.related("items").create(
+				const bi = await budget.related("items").create(
 					{
 						economic_group_id: authCtx.group.id,
 						business_unit_id: authCtx.unit.id,
@@ -887,6 +1183,24 @@ export default class BudgetService {
 						client: trx,
 					},
 				);
+
+				if (item.departmentId && item.departmentItemId) {
+					await BudgetItemDepartment.create(
+						{
+							budget_id: budget.id,
+							budget_item_id: bi.id,
+							department_id: item.departmentId,
+							department_item_id: item.departmentItemId,
+							creation_user_id: authCtx.user.id,
+
+							observations: item.observation,
+							createdAt: DateTime.now(),
+						},
+						{
+							client: trx,
+						},
+					);
+				}
 			}
 
 			const [productSum, serviceSum, discountSum] = data.items
@@ -940,6 +1254,7 @@ export default class BudgetService {
 			expirationDate: DateTime;
 			sellerId: string;
 			reviewerId?: string;
+			budgetRelatedTypeId?: number;
 			observation?: string;
 			internalObservation?: string;
 			internalCode?: string;
@@ -953,6 +1268,10 @@ export default class BudgetService {
 				quantity: number;
 				unitaryValue: number;
 				saleValue?: number;
+				budgetItemDepartmentId?: number;
+				departmentId?: number;
+				departmentItemId?: number;
+				observation?: string;
 			}[];
 			budgetDate: DateTime;
 			dailyMovementId: string;
@@ -1052,8 +1371,8 @@ export default class BudgetService {
 					);
 				}
 
-				return elem.budgetItemId
-					? BudgetItem.query()
+				elem.budgetItemId
+					? await BudgetItem.query()
 							.useTransaction(trx)
 							.where("budget_id", budget.id)
 							.where("id", elem.budgetItemId)
@@ -1072,7 +1391,7 @@ export default class BudgetService {
 									? 0
 									: elem.quantity * elem.unitaryValue - elem.discountValue,
 							})
-					: BudgetItem.create(
+					: await BudgetItem.create(
 							{
 								economic_group_id: authCtx.group.id,
 								business_unit_id: authCtx.unit.id,
@@ -1093,6 +1412,40 @@ export default class BudgetService {
 							},
 							{ client: trx },
 						);
+				if (
+					elem.departmentId &&
+					elem.departmentItemId &&
+					elem.budgetItemDepartmentId
+				) {
+					await BudgetItemDepartment.query()
+						.useTransaction(trx)
+						.where("id", elem.budgetItemDepartmentId)
+						.where("budget_id", budget.id)
+						.where(
+							"budget_item_id",
+							elem.budgetItemId ? elem.budgetItemId : v4(),
+						)
+						.where("department_id", elem.departmentId)
+						.where("department_item_id", elem.departmentItemId)
+						.update({
+							observations: elem.observation,
+							updated_user_id: authCtx.user.id,
+						});
+					// } else {
+					// 	await BillItemDepartment.create(
+					// 		{
+					// 			bill_id: data.billId,
+					// 			bill_item_id: Array.isArray(bi)
+					// 				? (elem.billItemId ?? v4())
+					// 				: bi.id,
+					// 			department_id: elem.departmentItemId,
+					// 			department_item_id: elem.departmentItemId,
+					// 			creation_user_id: authCtx.user.id,
+					// 			observation: elem.observation,
+					// 		},
+					// 		{ client: trx },
+					// 	);
+				}
 			});
 			await Promise.all(tasks);
 
@@ -1139,6 +1492,7 @@ export default class BudgetService {
 					client_id: data.clientId,
 					reviewer_id: data.reviewerId,
 					daily_movement_id: data.dailyMovementId,
+					budget_related_type_id: data.budgetRelatedTypeId,
 
 					clientName: data.clientName,
 					pending: pendingItems.length > 0,
@@ -1604,6 +1958,13 @@ export default class BudgetService {
 				.useTransaction(trx)
 				.save();
 
+			await Database.rawQuery(
+				"update budget_item_departments set deleted_at = now(), deleted_user_id = ? where budget_item_id = ?",
+				[authCtx.user.id, id],
+			)
+				.useTransaction(trx)
+				.exec();
+
 			return updatedItem;
 		});
 	}
@@ -1838,33 +2199,38 @@ export default class BudgetService {
 				.useTransaction(trx)
 				.save();
 
-			await bill.related("items").createMany(
-				items
-					.filter((item) => !data.notConfirmedItems.includes(item.id))
-					.map((item) => {
-						const rule = rules.find(
-							(r) =>
-								r.taxation_group_id ===
-								item.productVariation.product.taxation_group_id,
-						);
-						const totalValue = item.quantity
-							.times(item.unitaryValue)
-							.minus(item.discountValue)
-							.toNumber();
-						const icmsBase = rule
-							? totalValue * ((100 - rule.icmsPercRedBaseCalculo) / 100)
-							: 0;
-						const icmsStBase = rule
-							? icmsBase + (icmsBase * rule.ivaIcmsSt) / 100
-							: 0;
-						const icmsValue = rule
-							? icmsBase *
-								((rule.icmsPercRedBaseCalculo *
-									((100 - rule.icmsPercRedAliquota) / 100)) /
-									100)
-							: 0;
+			const existingDepartmentItems = await BudgetItemDepartment.query()
+				.useTransaction(trx)
+				.where("budget_id", model.id)
+				.whereNotIn("budget_item_id", data.notConfirmedItems);
 
-						return {
+			const createdBillTasks = items
+				.filter((item) => !data.notConfirmedItems.includes(item.id))
+				.map(async (item) => {
+					const rule = rules.find(
+						(r) =>
+							r.taxation_group_id ===
+							item.productVariation.product.taxation_group_id,
+					);
+					const totalValue = item.quantity
+						.times(item.unitaryValue)
+						.minus(item.discountValue)
+						.toNumber();
+					const icmsBase = rule
+						? totalValue * ((100 - rule.icmsPercRedBaseCalculo) / 100)
+						: 0;
+					const icmsStBase = rule
+						? icmsBase + (icmsBase * rule.ivaIcmsSt) / 100
+						: 0;
+					const icmsValue = rule
+						? icmsBase *
+							((rule.icmsPercRedBaseCalculo *
+								((100 - rule.icmsPercRedAliquota) / 100)) /
+								100)
+						: 0;
+
+					const bi = await BillItem.create(
+						{
 							economic_group_id: authCtx.group.id,
 							business_unit_id: authCtx.unit.id,
 							bill_id: bill.id,
@@ -1957,14 +2323,31 @@ export default class BudgetService {
 							icmsPartitionOriginUfPercentage: rule?.icmsPerc,
 							icmsPartitionDestinationUfPercentage: rule?.icmsPercRedAliquota,
 							icmsPartitionInterUfPercentage: rule?.icmsPercRedAliquota,
-						};
-					}),
-				{
-					client: trx,
-				},
-			);
+						},
+						{ client: trx },
+					);
 
-			// TODO FIX
+					const deptoItem = existingDepartmentItems.find(
+						(r) => r.budget_item_id === item.id,
+					);
+					if (deptoItem) {
+						await BillItemDepartment.create(
+							{
+								bill_id: bill.id,
+								bill_item_id: bi.id,
+								department_id: deptoItem.department_id,
+								department_item_id: deptoItem.department_item_id,
+								creation_user_id: authCtx.user.id,
+								createdAt: DateTime.now(),
+							},
+							{
+								client: trx,
+							},
+						);
+					}
+				});
+			await Promise.all(createdBillTasks);
+
 			const itemsToUpdate = await model.related("items").query();
 			const tasks = itemsToUpdate.map((elem) => {
 				return elem
@@ -2073,6 +2456,19 @@ export default class BudgetService {
 			if (model.status !== BudgetStatus.A) {
 				throw new BadRequestException(
 					"Orçamento com status inválido para inclusão",
+					400,
+					"E_ERR",
+				);
+			}
+
+			const existingRows = await Database.from("budgets")
+				.select("id")
+				.whereRaw("origin_budget_id = ?", [model.id])
+				.whereNull("deleted_at")
+				.first();
+			if (existingRows) {
+				throw new BadRequestException(
+					"Este Orçamento não pode ser excluido pois foi utilizado como Referencia para outros orçamentos",
 					400,
 					"E_ERR",
 				);
@@ -2800,6 +3196,38 @@ export default class BudgetService {
 			}
 
 			return null;
+		});
+	}
+
+	async deleteBudgetItemDepartments(
+		authCtx: AuthContext,
+		data: {
+			items: {
+				budgetId: string;
+				budgetItemId: string;
+				budgetItemDepartmentId: number;
+				departmentId: number;
+				departmentItemId: number;
+			}[];
+		},
+	) {
+		await Database.transaction(async (trx) => {
+			const tasks = data.items.map((row) => {
+				return Database.rawQuery(
+					"update budget_item_departments set deleted_at = now(), deleted_user_id = ? where budget_id = ? and budget_item_id = ? and id = ? and department_id = ? and department_item_id = ? and deleted_at is null",
+					[
+						authCtx.user.id,
+						row.budgetId,
+						row.budgetItemId,
+						row.budgetItemDepartmentId,
+						row.departmentId,
+						row.departmentItemId,
+					],
+				)
+					.useTransaction(trx)
+					.exec();
+			});
+			await Promise.all(tasks);
 		});
 	}
 }

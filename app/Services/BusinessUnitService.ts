@@ -5,11 +5,15 @@ import BadRequestException from "App/Exceptions/BadRequestException";
 import InternalErrorException from "App/Exceptions/InternalErrorException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import BusinessUnit from "App/Models/BusinessUnit";
-import { TConfigSchema } from "App/Models/BusinessUnitConfig";
+import BusinessUnitConfig, {
+	TConfigSchema,
+} from "App/Models/BusinessUnitConfig";
 import CheckingAccount, {
 	CheckingAccountType,
 } from "App/Models/CheckingAccount";
 import { LicenceType } from "App/Models/Licence";
+import Patient, { PatientType } from "App/Models/Patient";
+import PatientContact from "App/Models/PatientContact";
 import User from "App/Models/User";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import { validCNPJ } from "App/Shared";
@@ -107,6 +111,7 @@ export default class BusinessUnitService {
 
 				const unit = await economicGroup.related("businessUnits").create(
 					{
+						system_id: authCtx.system.id,
 						...data,
 					},
 					{
@@ -122,6 +127,42 @@ export default class BusinessUnitService {
 						client: trx,
 					},
 				);
+
+				const unitPatient = await Patient.create(
+					{
+						business_unit_id: unit.id,
+						type: PatientType.UNIT,
+						name: unit.identification,
+					},
+					{ client: trx },
+				);
+				await unitPatient
+					.related("tutor")
+					.create({ corporateName: unit.companyName }, { client: trx });
+				await unitPatient.related("contacts").createMany(
+					[
+						{
+							main: true,
+							contact: data.email,
+							observation: "",
+							type: "email",
+							notGiven: false,
+						},
+						{
+							main: false,
+							contact: data.phone,
+							observation: "",
+							type: "celular",
+							notGiven: false,
+						},
+					].filter((r) => !!r.contact) as Partial<PatientContact>[],
+					{ client: trx },
+				);
+
+				await unit
+					.merge({ unit_patient_id: unitPatient.id })
+					.useTransaction(trx)
+					.save();
 
 				await unit.related("licences").create(
 					{
@@ -330,19 +371,19 @@ export default class BusinessUnitService {
 		}
 
 		const jsonData = unit.toJSON();
-		jsonData["fantasyName"] = jsonData["fantasy_name"];
-		jsonData["companyName"] = jsonData["company_name"];
-		jsonData["postalCode"] = jsonData["postal_code"];
-		jsonData["stateRegistration"] = jsonData["state_registration"];
-		jsonData["cityRegistration"] = jsonData["city_registration"];
-		jsonData["cityCode"] = jsonData["city_code"];
+		jsonData.fantasyName = jsonData.fantasy_name;
+		jsonData.companyName = jsonData.company_name;
+		jsonData.postalCode = jsonData.postal_code;
+		jsonData.stateRegistration = jsonData.state_registration;
+		jsonData.cityRegistration = jsonData.city_registration;
+		jsonData.cityCode = jsonData.city_code;
 
-		jsonData["fantasy_name"] = undefined;
-		jsonData["company_name"] = undefined;
-		jsonData["postal_code"] = undefined;
-		jsonData["state_registration"] = undefined;
-		jsonData["city_registration"] = undefined;
-		jsonData["city_code"] = undefined;
+		jsonData.fantasy_name = undefined;
+		jsonData.company_name = undefined;
+		jsonData.postal_code = undefined;
+		jsonData.state_registration = undefined;
+		jsonData.city_registration = undefined;
+		jsonData.city_code = undefined;
 
 		return jsonData;
 	}
@@ -389,6 +430,57 @@ export default class BusinessUnitService {
 						"E_INVALID_DOCUMENT",
 					);
 				}
+			}
+
+			if (!unit.unit_patient_id) {
+				const unitPatient = await Patient.create(
+					{
+						business_unit_id: unit.id,
+						type: PatientType.UNIT,
+						name: unit.identification,
+					},
+					{ client: trx },
+				);
+				await unitPatient
+					.related("tutor")
+					.create({ corporateName: unit.companyName }, { client: trx });
+				await unitPatient.related("contacts").createMany(
+					[
+						{
+							main: true,
+							contact: data.email,
+							observation: "",
+							type: "email",
+							notGiven: false,
+						},
+						{
+							main: false,
+							contact: data.phone,
+							observation: "",
+							type: "celular",
+							notGiven: false,
+						},
+					].filter((r) => !!r.contact) as Partial<PatientContact>[],
+					{ client: trx },
+				);
+
+				await unit
+					.merge({ unit_patient_id: unitPatient.id })
+					.useTransaction(trx)
+					.save();
+			} else {
+				await Database.from("patients")
+					.update({
+						name: data.identification,
+					})
+					.where("id", unit.unit_patient_id)
+					.useTransaction(trx);
+				await Database.from("patient_tutors")
+					.update({
+						corporate_name: data.companyName,
+					})
+					.where("patient_id", unit.unit_patient_id)
+					.useTransaction(trx);
 			}
 
 			return unit
@@ -747,5 +839,39 @@ export default class BusinessUnitService {
 			.orderBy("state");
 
 		return result.map((r) => r.state);
+	}
+
+	public async mergeConfig(
+		_: AuthContext,
+		data: {
+			systemIDList: number[];
+			key: string;
+			param: {
+				[key: string]: unknown;
+			};
+		},
+	) {
+		await Database.transaction(async (trx) => {
+			const configs = await BusinessUnitConfig.query()
+				.useTransaction(trx)
+				.whereHas("businessUnit", (query) => {
+					query.whereHas("economicGroup", (query) => {
+						query.whereIn("system_id", data.systemIDList);
+					});
+				});
+
+			const tasks = configs.map((cfg) => {
+				if (cfg.config[data.key]) {
+					const updatedCfg = { ...cfg.config[data.key], ...data.param };
+					return cfg.merge({ config: updatedCfg }).useTransaction(trx).save();
+				}
+
+				const updatedCfg = Object.assign(cfg.config, {
+					[data.key]: data.param,
+				});
+				return cfg.merge({ config: updatedCfg }).useTransaction(trx).save();
+			});
+			await Promise.all(tasks);
+		});
 	}
 }

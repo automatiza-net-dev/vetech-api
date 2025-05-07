@@ -18,6 +18,7 @@ import IssuedFiscalDocument, {
 import PatientTutor from "App/Models/PatientTutor";
 import { PaymentMethodTef } from "App/Models/PaymentMethod";
 import { ProductType } from "App/Models/Product";
+import ReceiptXml from "App/Models/ReceiptXml";
 import ServiceIssuedFiscalDocument from "App/Models/ServiceIssuedFiscalDocument";
 import { MovementCategory } from "App/Models/TaxationGroupRule";
 import User from "App/Models/User";
@@ -40,6 +41,7 @@ import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 import { validate } from "uuid";
 import { z } from "zod";
+import ReceiptService from "./ReceiptService";
 
 interface ISearch {
 	unit?: string;
@@ -59,6 +61,7 @@ export default class BusinessUnitFiscalDocumentService {
 	constructor(
 		private sharedService: SharedService,
 		private focusNfe: FocusNfeService,
+		private receiptService: ReceiptService,
 	) {}
 
 	async nfeIndex(unitId: string, data: ISearch) {
@@ -1707,6 +1710,39 @@ export default class BusinessUnitFiscalDocumentService {
 
 			// TODO call external service
 		});
+	}
+
+	async listReceived(authCtx: AuthContext) {
+		return this.focusNfe.listReceived(
+			authCtx.unit.document ?? "-",
+			this.getToken(authCtx.unit),
+		);
+	}
+
+	async searchReceived(authCtx: AuthContext, ref: string) {
+		return this.focusNfe.searchReceived(
+			ref,
+			this.getToken(authCtx.unit),
+			"pdf",
+		);
+	}
+
+	async importReceived(authCtx: AuthContext, ref: string) {
+		const rawString = await this.focusNfe.searchReceived(
+			ref,
+			this.getToken(authCtx.unit),
+			"xml",
+		);
+
+		const receiptXml = await ReceiptXml.create({
+			economic_group_id: authCtx.group.id,
+			business_unit_id: authCtx.unit.id,
+			user_id: authCtx.user.id,
+			// receipt_id: newReceipt.id,
+			// xmlFile: s3Key,
+		});
+
+		await this.receiptService.processReceipt(authCtx, rawString, receiptXml);
 	}
 
 	private mergeNfe(

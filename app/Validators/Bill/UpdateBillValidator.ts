@@ -47,6 +47,7 @@ export default class UpdateBillValidator {
 		maxDiscount: schema.boolean(),
 		additionalInformation: schema.string.optional(),
 		internalCode: schema.string.optional(),
+		billDate: schema.date.optional(),
 		items: schema.array.optional().members(
 			schema.object().members({
 				billItemId: schema.string.optional(),

@@ -10,6 +10,9 @@ export interface ICreateBudgetItemData {
 	discountValue: number;
 	courtesy?: boolean;
 	maxDiscount?: boolean;
+	departmentId?: number;
+	departmentItemId?: number;
+	observation?: string;
 }
 
 export interface ICreateBudgetData {
@@ -20,6 +23,8 @@ export interface ICreateBudgetData {
 	dailyMovementId?: string;
 	attendanceId?: number;
 	scheduleId?: string;
+	originBudgetId?: string;
+	budgetRelatedTypeId?: number;
 	internalCode?: string;
 	budgetDate: DateTime;
 	expirationDate: DateTime;

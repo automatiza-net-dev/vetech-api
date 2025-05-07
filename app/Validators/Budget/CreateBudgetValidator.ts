@@ -28,9 +28,12 @@ export default class CreateBudgetValidator {
 		attendanceId: schema.number.optional([
 			rules.exists({ table: "attendances", column: "id" }),
 		]),
-		budgetId: schema.string.optional({}, [
+		originBudgetId: schema.string.optional({}, [
 			rules.uuid(),
 			rules.exists({ table: "budgets", column: "id" }),
+		]),
+		budgetRelatedTypeId: schema.number.optional([
+			rules.exists({ table: "bill_related_types", column: "id" }),
 		]),
 		budgetDate: schema.date(),
 		expirationDate: schema.date(),
@@ -51,6 +54,13 @@ export default class CreateBudgetValidator {
 				discountValue: schema.number(),
 				courtesy: schema.boolean.optional(),
 				maxDiscount: schema.boolean.optional([]),
+				departmentId: schema.number.optional([
+					rules.exists({ table: "departments", column: "id" }),
+				]),
+				departmentItemId: schema.number.optional([
+					rules.exists({ table: "department_items", column: "id" }),
+				]),
+				observation: schema.string.optional(),
 			}),
 		),
 	});

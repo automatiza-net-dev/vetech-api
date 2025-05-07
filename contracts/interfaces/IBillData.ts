@@ -6,6 +6,7 @@ export interface ICreateBillData {
 	patientId?: string;
 	dailyMovementId?: string;
 	scheduleId?: string;
+	billRelatedTypeId?: number;
 	billDate: DateTime;
 
 	items: Array<{
@@ -27,6 +28,10 @@ export interface ICreateBillData {
 	internalCode?: string;
 	originBillId?: string;
 	maxDiscount: boolean;
+
+	destinyBusinessUnitId?: string;
+	billType: "V" | "T" | "D";
+	receiptType?: "E" | "T" | "D";
 }
 
 export interface ICreateBillItemData {
@@ -76,6 +81,7 @@ export interface IUpdateBillData {
 	maxDiscount: boolean;
 	additionalInformation?: string;
 	internalCode?: string;
+	billDate?: DateTime;
 	items?: {
 		billItemId?: string;
 		productVariationId: string;

@@ -45,6 +45,9 @@ export default class UpdateBudgetValidator {
 			rules.uuid(),
 			rules.exists({ table: "daily_movements", column: "id" }),
 		]),
+		budgetRelatedTypeId: schema.number.optional([
+			rules.exists({ table: "bill_related_types", column: "id" }),
+		]),
 		clientName: schema.string.optional(),
 		observation: schema.string.optional(),
 		internalObservation: schema.string.optional(),
@@ -64,6 +67,16 @@ export default class UpdateBudgetValidator {
 				quantity: schema.number(),
 				unitaryValue: schema.number(),
 				saleValue: schema.number.optional(),
+				budgetItemDepartmentId: schema.number.optional([
+					rules.exists({ table: "budget_item_departments", column: "id" }),
+				]),
+				departmentId: schema.number.optional([
+					rules.exists({ table: "departments", column: "id" }),
+				]),
+				departmentItemId: schema.number.optional([
+					rules.exists({ table: "department_items", column: "id" }),
+				]),
+				observation: schema.string.optional(),
 			}),
 		),
 	});

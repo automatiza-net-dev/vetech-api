@@ -470,7 +470,7 @@ export default class ScheduleService {
 						...day.toJSON(),
 						financesExpired:
 							missing.find(
-								(r) => r.client_id === day.holder_id ?? day.patient_id,
+								(r) => r.client_id === (day.holder_id ?? day.patient_id),
 							)?.total ?? 0,
 					},
 					name: day.user?.name ?? "-",
@@ -501,7 +501,7 @@ export default class ScheduleService {
 						...day.toJSON(),
 						financesExpired:
 							missing.find(
-								(r) => r.client_id === day.holder_id ?? day.patient_id,
+								(r) => r.client_id === (day.holder_id ?? day.patient_id),
 							)?.total ?? 0,
 					},
 					name: day.user?.name ?? "-",

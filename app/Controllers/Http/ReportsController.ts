@@ -10,6 +10,25 @@ export default class ReportsController {
 		private readonly service: ReportService,
 	) {}
 
+	public async detailedStockReport({ response, auth }: HttpContextContract) {
+		response.ok(
+			await this.service.detailedStockReport(
+				await this.sharedService.getAuthContext(auth),
+			),
+		);
+	}
+
+	public async consolidatedStockReport({
+		response,
+		auth,
+	}: HttpContextContract) {
+		response.ok(
+			await this.service.consolidatedStockReport(
+				await this.sharedService.getAuthContext(auth),
+			),
+		);
+	}
+
 	public async finances({ request, response, auth }: HttpContextContract) {
 		response.ok(
 			await this.service.financeReport(

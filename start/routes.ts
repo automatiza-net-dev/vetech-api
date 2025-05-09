@@ -1619,6 +1619,8 @@ Route.group(() => {
 		"/checking-account-bankings",
 		"ReportsController.checkingAccountBankingReport",
 	);
+	Route.get("/consolidated-stock", "ReportsController.consolidatedStockReport");
+	Route.get("/detailed-stock", "ReportsController.detailedStockReport");
 })
 	.prefix("reports")
 	.middleware("auth");

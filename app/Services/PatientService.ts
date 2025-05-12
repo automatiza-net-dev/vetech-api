@@ -380,6 +380,7 @@ export default class PatientService {
 		const qb = authCtx.group
 			.related("patients")
 			.query()
+			.orderByRaw("name, tag")
 			.where("type", PatientType.SUPPLIER)
 			.whereHas("tutor", (query) => {
 				if (data.document) {

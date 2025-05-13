@@ -70,6 +70,9 @@ interface ISearch {
 
 	order?: string;
 
+	internalCode?: string;
+	historic?: string;
+
 	groupBorderos?: string;
 }
 
@@ -187,6 +190,13 @@ export default class FinanceService {
 
 		if (data.fromIssueDate) {
 			financesQb.whereRaw("issue_date::date >= ?", [data.fromIssueDate]);
+		}
+
+		if (data.internalCode) {
+			financesQb.whereRaw("internal_code ilike ?", [`%${data.internalCode}%`]);
+		}
+		if (data.historic) {
+			financesQb.whereRaw("historic ilike ?", [`%${data.historic}%`]);
 		}
 
 		if (data.toIssueDate) {
@@ -327,6 +337,13 @@ export default class FinanceService {
 
 		if (data.ids && Array.isArray(data.ids)) {
 			qb.whereIn("finances.id", data.ids);
+		}
+
+		if (data.internalCode) {
+			qb.whereRaw("finances.internal_code ilike ?", [`%${data.internalCode}%`]);
+		}
+		if (data.historic) {
+			qb.whereRaw("finances.historic ilike ?", [`%${data.historic}%`]);
 		}
 
 		if (data.fromIssueDate) {
@@ -654,6 +671,14 @@ export default class FinanceService {
 
 		if (data.toIssueDate) {
 			qb.whereRaw("finances.issue_date::date <= ?", [data.toIssueDate]);
+		}
+
+		if (data.internalCode) {
+			qb.whereRaw("finances.internal_code ilike ?", [`%${data.internalCode}%`]);
+		}
+
+		if (data.historic) {
+			qb.whereRaw("finances.historic ilike ?", [`%${data.historic}%`]);
 		}
 
 		if (data.fromExpirationDate) {

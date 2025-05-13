@@ -57,6 +57,8 @@ export default class FinancesController {
 			unit: qs.unit,
 			plan: qs.plan,
 			competence: qs.competence,
+			historic: qs.historic,
+			internalCode: qs.internalCode,
 		});
 
 		return response.ok(result);
@@ -94,6 +96,8 @@ export default class FinancesController {
 			competence: qs.competence,
 
 			order: qs.order,
+			historic: qs.historic,
+			internalCode: qs.internalCode,
 
 			groupBorderos: qs.groupBorderos,
 		});
@@ -131,6 +135,9 @@ export default class FinancesController {
 				unit: qs.unit,
 				plan: qs.plan,
 				competence: qs.competence,
+
+				historic: qs.historic,
+				internalCode: qs.internalCode,
 
 				groupBorderos: qs.groupBorderos,
 			},

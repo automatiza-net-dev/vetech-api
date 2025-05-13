@@ -34,6 +34,8 @@ export default class UpsertScheduleStatusValidator {
 		]),
 		observation: schema.string({}, [rules.maxLength(255)]),
 		ignoreConflict: schema.boolean.optional(),
+		userEmail: schema.string.optional([rules.email()]),
+		userPwd: schema.string.optional(),
 	});
 
 	/**

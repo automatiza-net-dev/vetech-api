@@ -1273,6 +1273,8 @@ export default class ScheduleService {
 			statusId: string;
 			observation: string;
 			ignoreConflict?: boolean;
+			userEmail?: string;
+			userPwd?: string;
 		},
 	): Promise<Schedule> {
 		const hasPermission = await this.sharedService.userHasPermission(
@@ -1301,6 +1303,76 @@ export default class ScheduleService {
 			const toStatus = await ScheduleStatus.findOrFail(data.statusId, {
 				client: trx,
 			});
+
+			let pendingApprover: string | null = null;
+
+			if (true && ["AC", "REC"].includes(toStatus.type)) {
+				const pendingPayments: { total: string } | null = await Database.from(
+					"finances",
+				)
+					.select(Database.raw("sum(total_value) as total"))
+					.whereRaw("type = 'CREDITO'")
+					.whereRaw("deleted_at is null")
+					.whereRaw("business_unit_id = ?", [authCtx.unit.id])
+					.whereRaw("client_id = ?", [
+						authCtx.system.type === "VET"
+							? (schedule.holder_id ?? v4())
+							: (schedule.patient_id ?? v4()),
+					])
+					.whereRaw("payment_date is null")
+					.whereRaw("expiration_date < now()")
+					.groupByRaw("client_id")
+					.first();
+
+				if (pendingPayments?.total !== "0") {
+					if (!data.userEmail || !data.userPwd) {
+						throw new BadRequestException(
+							"Cliente com pagamentos atrasados, é preciso enviar email e senha para autenticar",
+							401,
+							"E_ERR",
+						);
+					}
+					const user = await User.query()
+						.useTransaction(trx)
+						.where("email", data.userEmail)
+						.where("system_id", authCtx.system.id)
+						.first();
+
+					if (!user) {
+						throw new BadRequestException(
+							"Credenciais inválidas",
+							401,
+							"E_ERR",
+						);
+					}
+
+					if (!(await Hash.verify(user.password, data.userPwd))) {
+						throw new BadRequestException(
+							"Credenciais inválidas",
+							401,
+							"E_ERR",
+						);
+					}
+
+					if (
+						!SharedService.UserHasPermission(
+							user.id,
+							authCtx.unit.id,
+							authCtx.system.id.toString(),
+							"AGE17",
+						)
+					) {
+						throw new BadRequestException(
+							"Usuario autenticado não possui permissão para liberar agendamento com pendencia financeira",
+							401,
+							"E_ERR",
+						);
+					}
+
+					pendingApprover = user.id;
+				}
+			}
+
 			if (toStatus.type === "CANC") {
 				await this.validateScheduleChange(trx, {
 					scheduleId: id,
@@ -1348,6 +1420,7 @@ export default class ScheduleService {
 					schedule_status_id: data.statusId, // status novo da agenda
 					reason_id: data.reasonId,
 					observation: data.observation,
+					finance_pending_authorization_user_id: pendingApprover,
 					confirmation_user_id:
 						toStatus.type === "AC" || toStatus.type === "CANC"
 							? authCtx.user.id
@@ -1364,11 +1437,13 @@ export default class ScheduleService {
 						toStatus.type === "AC" || toStatus.type === "CANC"
 							? "usuario"
 							: undefined,
+					financePendingAuthorizedAt: pendingApprover ? DateTime.now() : null,
 				},
 				{
 					client: trx,
 				},
 			);
+
 			return schedule
 				.merge({
 					schedule_status_id: data.statusId,

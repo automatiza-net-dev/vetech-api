@@ -709,11 +709,11 @@ export default class ScheduleService {
 				const pendingPayments: { total: string } | null = await Database.from(
 					"finances",
 				)
-					.select(Database.raw("100 as total"))
+					.select(Database.raw("sum(total_value) as total"))
 					.whereRaw("type = 'CREDITO'")
 					.whereRaw("deleted_at is null")
 					.whereRaw("business_unit_id = ?", [authCtx.unit.id])
-					.whereRaw("client_id =  ?", [
+					.whereRaw("client_id = ?", [
 						authCtx.system.type === "VET"
 							? (data.holderId ?? v4())
 							: (data.patientId ?? v4()),

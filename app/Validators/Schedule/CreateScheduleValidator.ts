@@ -59,6 +59,8 @@ export default class CreateScheduleValidator {
 		majorComplaint: schema.string.optional({}),
 		ignoreOverlapping: schema.boolean.optional([]),
 		onDuty: schema.boolean.optional([]),
+		userEmail: schema.string.optional([rules.email()]),
+		userPwd: schema.string.optional(),
 	});
 
 	public messages: CustomMessages = {};

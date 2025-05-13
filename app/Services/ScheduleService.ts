@@ -1,4 +1,5 @@
 import { inject } from "@adonisjs/fold";
+import Hash from "@ioc:Adonis/Core/Hash";
 import Database, {
 	TransactionClientContract,
 } from "@ioc:Adonis/Lucid/Database";
@@ -40,7 +41,7 @@ import {
 import { DateTime } from "luxon";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import Opportunity from "App/Models/Opportunity";
-import { validate } from "uuid";
+import { v4, validate } from "uuid";
 import CrmStatus from "App/Models/CrmStatus";
 import TreatmentExecution from "App/Models/TreatmentExecution";
 import TreatmentExecutionReschedule from "App/Models/TreatmentExecutionReschedule";
@@ -702,6 +703,75 @@ export default class ScheduleService {
 		}
 
 		return Database.transaction(async (trx) => {
+			let pendingApprover: string | null = null;
+
+			if (authCtx.unit.unitConfig.config.schedules?.block_finance_pending) {
+				const pendingPayments: { total: string } | null = await Database.from(
+					"finances",
+				)
+					.select(Database.raw("100 as total"))
+					.whereRaw("type = 'CREDITO'")
+					.whereRaw("deleted_at is null")
+					.whereRaw("business_unit_id = ?", [authCtx.unit.id])
+					.whereRaw("client_id =  ?", [
+						authCtx.system.type === "VET"
+							? (data.holderId ?? v4())
+							: (data.patientId ?? v4()),
+					])
+					.whereRaw("payment_date is null")
+					.whereRaw("expiration_date < now()")
+					.groupByRaw("client_id")
+					.first();
+
+				if (pendingPayments?.total !== "0") {
+					if (!data.userEmail || !data.userPwd) {
+						throw new BadRequestException(
+							"É preciso enviar valores de email e senha para autenticar",
+							401,
+							"E_ERR",
+						);
+					}
+					const user = await User.query()
+						.useTransaction(trx)
+						.where("email", data.userEmail)
+						.where("system_id", authCtx.system.id)
+						.first();
+
+					if (!user) {
+						throw new BadRequestException(
+							"Credenciais inválidas",
+							401,
+							"E_ERR",
+						);
+					}
+
+					if (!(await Hash.verify(user.password, data.userPwd))) {
+						throw new BadRequestException(
+							"Credenciais inválidas",
+							401,
+							"E_ERR",
+						);
+					}
+
+					if (
+						!SharedService.UserHasPermission(
+							user.id,
+							authCtx.unit.id,
+							authCtx.system.id.toString(),
+							"AGE17",
+						)
+					) {
+						throw new BadRequestException(
+							"Usuario autenticado não possui permissão para liberar agendamento com pendencia financeira",
+							401,
+							"E_ERR",
+						);
+					}
+
+					pendingApprover = user.id;
+				}
+			}
+
 			const status = await ScheduleStatus.firstOrCreate(
 				{
 					description: "Agendado (Não confirmado)",
@@ -771,6 +841,8 @@ export default class ScheduleService {
 				{
 					user_id: authCtx.user.id,
 					schedule_status_id: status.id,
+					finance_pending_authorization_user_id: pendingApprover,
+					financePendingAuthorizedAt: pendingApprover ? DateTime.now() : null,
 					observation: "",
 				},
 				{

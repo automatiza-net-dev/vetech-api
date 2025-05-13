@@ -15,6 +15,9 @@ export default interface IScheduleData {
 	ignoreOverlapping?: boolean;
 	onDuty?: boolean;
 
+	userEmail?: string;
+	userPwd?: string;
+
 	scheduleOriginId?: string;
 	ignoreBlocking?: boolean;
 

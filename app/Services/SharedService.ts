@@ -699,4 +699,29 @@ export default class SharedService {
 			},
 		};
 	}
+
+	static async UserHasPermission(
+		userID: string,
+		unitID: string,
+		systemID: string,
+		permissionControlID: string,
+	) {
+		const rows = await Database.from("user_unit_roles")
+			.select(Database.raw("permissions.control_id"))
+			.joinRaw("join roles on roles.id = user_unit_roles.role_id")
+			.joinRaw("join role_permissions on role_permissions.role_id = roles.id")
+			.joinRaw(
+				"join permissions on role_permissions.permission_id = permissions.id",
+			)
+			.where("user_unit_roles.user_id", userID)
+			.where("user_unit_roles.unit_id", unitID)
+			.where("roles.system_id", systemID)
+			.where("roles.active", true)
+			.where("role_permissions.active", true)
+			.where("role_permissions.status", true)
+			.whereIn("roles.type", ["controller", "both", "all", "user"])
+			.whereIn("permissions.type", ["controller", "both", "all", "user"]);
+
+		return rows.some((r) => r.control_id === permissionControlID);
+	}
 }

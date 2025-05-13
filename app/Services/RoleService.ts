@@ -102,8 +102,8 @@ export default class RoleService {
 				data.profiles.map((p) =>
 					Database.rawQuery(
 						`insert into role_profile_accesses (role_id, profile_access_id, active, created_at, type)
-values (?, ?, true, now(), 'user')`,
-						[newRole.id, p.id],
+values (?, ?, ?, now(), 'user')`,
+						[newRole.id, p.id, p.active],
 					)
 						.useTransaction(trx)
 						.exec(),
@@ -111,12 +111,12 @@ values (?, ?, true, now(), 'user')`,
 			);
 
 			const tasks = data.screens
-				.flatMap((s) => s.permissions.map((sp) => sp.id))
-				.map(async (permissionID) => {
+				.flatMap((s) => s.permissions.map((sp) => sp))
+				.map(async (sp) => {
 					return Database.rawQuery(
-						`insert into role_permissions (role_id, permission_id, created_at, updated_at)
-values (?, ?, now(), now())`,
-						[newRole.id, permissionID],
+						`insert into role_permissions (role_id, permission_id, created_at, updated_at, active, status)
+values (?, ?, now(), now(), ?, ?)`,
+						[newRole.id, sp.id, sp.active ?? false, sp.status ?? false],
 					)
 						.useTransaction(trx)
 						.exec();
@@ -216,8 +216,8 @@ values (?, ?, now(), now())`,
 				data.profiles.map((p) =>
 					Database.rawQuery(
 						`insert into role_profile_accesses (role_id, profile_access_id, active, created_at, type)
-values (?, ?, true, now(), 'user')`,
-						[role.id, p.id],
+values (?, ?, ?, now(), 'user')`,
+						[role.id, p.id, p.active],
 					)
 						.useTransaction(trx)
 						.exec(),
@@ -232,12 +232,12 @@ values (?, ?, true, now(), 'user')`,
 				.exec();
 
 			const tasks = data.screens
-				.flatMap((s) => s.permissions.map((sp) => sp.id))
-				.map(async (permissionID) => {
+				.flatMap((s) => s.permissions.map((sp) => sp))
+				.map(async (sp) => {
 					return Database.rawQuery(
-						`insert into role_permissions (role_id, permission_id, created_at, updated_at)
-values (?, ?, now(), now())`,
-						[role.id, permissionID],
+						`insert into role_permissions (role_id, permission_id, created_at, updated_at, active, status)
+values (?, ?, now(), now(), ?, ?)`,
+						[role.id, sp.id, sp.active ?? false, sp.status ?? false],
 					)
 						.useTransaction(trx)
 						.exec();

@@ -20,6 +20,7 @@ export default class RoleService {
 
 	public async index(authCtx: AuthContext, data: ISearch) {
 		const qb = Role.query()
+			.orderByRaw("name")
 			.where("system_id", authCtx.system.id)
 			.where("economic_group_id", authCtx.group.id);
 

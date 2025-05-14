@@ -359,7 +359,7 @@ values (?, ?, now(), now(), ?, ?)`,
 			.select(
 				Database.raw(`profile_accesses.id,
        profile_accesses.description,
-       case when role_profile_accesses.role_id is not null then true else false end as active`),
+       case when role_profile_accesses.role_id is not null then role_profile_accesses.active else false end as active`),
 			)
 			.joinRaw(
 				`left join role_profile_accesses

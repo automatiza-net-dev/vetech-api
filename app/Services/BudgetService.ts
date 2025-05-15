@@ -350,6 +350,7 @@ export default class BudgetService {
 							"approved_at",
 							"reason",
 							"cancelled",
+							"expiration_date",
 							"review_cancel_date",
 							"review_cancel_notes",
 							"payment_method_id",

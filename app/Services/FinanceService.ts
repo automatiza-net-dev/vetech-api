@@ -473,6 +473,7 @@ export default class FinanceService {
         borderos.payment_date,
         borderos.bordero_value                                                  as value,
         borderos.total_value,
+        null,
         borderos.payment_value,
         'FINANCEIRO'                                                            as origin_flag,
         case when borderos.payment_date is null then null else 'FINANCEIRO' end as origin_down_flag,

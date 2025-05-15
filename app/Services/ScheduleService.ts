@@ -706,10 +706,10 @@ export default class ScheduleService {
 			let pendingApprover: string | null = null;
 
 			if (authCtx.unit.unitConfig.config.schedules?.block_finance_pending) {
-				const pendingPayments: { total: string } | null = await Database.from(
+				const pendingPayments: { total: number } | null = await Database.from(
 					"finances",
 				)
-					.select(Database.raw("sum(total_value) as total"))
+					.select(Database.raw("coalesce(sum(total_value)::int, 0) as total"))
 					.whereRaw("type = 'CREDITO'")
 					.whereRaw("deleted_at is null")
 					.whereRaw("business_unit_id = ?", [authCtx.unit.id])
@@ -720,10 +720,9 @@ export default class ScheduleService {
 					])
 					.whereRaw("payment_date is null")
 					.whereRaw("expiration_date < now()")
-					.groupByRaw("client_id")
 					.first();
 
-				if (pendingPayments?.total !== "0") {
+				if (pendingPayments?.total !== 0) {
 					if (!data.userEmail || !data.userPwd) {
 						throw new BadRequestException(
 							"É preciso enviar valores de email e senha para autenticar",

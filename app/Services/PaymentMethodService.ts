@@ -112,7 +112,21 @@ export default class PaymentMethodService {
 			});
 		}
 
-		return qb;
+		const result = await qb;
+
+		if (!data.active) {
+			return result;
+		}
+
+		return result.map((r) => ({
+			...r.toJSON(),
+			flags: r.flags.map((f) => ({
+				...f.toJSON(),
+				flag: Object.assign(f.flag.toJSON(), {
+					description: `${f.flag.description} - ${f.acquirer.description}`,
+				}),
+			})),
+		}));
 	}
 
 	async searchTefFlags(unitId: string, data: ISearchTefFlags) {

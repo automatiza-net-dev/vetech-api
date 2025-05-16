@@ -1862,6 +1862,7 @@ Route.group(() => {
 
 Route.group(() => {
 	Route.post("/generate-link", "S3sController.createLink");
+	Route.post("/generate-links", "S3sController.createLinks");
 })
 	.prefix("s3")
 	.middleware("auth");

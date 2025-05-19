@@ -947,24 +947,7 @@ export default class PatientService {
 		return displayData;
 	}
 
-	public async tutorDisplay(
-		authCtx: AuthContext,
-		patientId: string,
-	): Promise<
-		Omit<IPatientTutorData, "photo" | "birthDate"> & {
-			id: string;
-			photo: string | null;
-			birthDate: DateTime | null;
-			contacts?: {
-				main: boolean;
-				notGiven: boolean;
-				contact?: string;
-				observation?: string;
-				type: (typeof PatientContactType)[number];
-			}[];
-			patients: { id: string; name: string }[];
-		}
-	> {
+	public async tutorDisplay(authCtx: AuthContext, patientId: string) {
 		const patient = await authCtx.group
 			.related("patients")
 			.query()
@@ -993,6 +976,7 @@ export default class PatientService {
 		return {
 			id: patient.id,
 			name: patient.name,
+			tag: patient.tag,
 			clientOriginId: patient.tutor.client_origin_id,
 			clientOriginItemDescription: patient.clientOriginItemDescription,
 			photo: patient.photo ? (s3Urls[patient.photo] ?? null) : null,

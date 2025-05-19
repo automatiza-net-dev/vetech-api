@@ -1306,7 +1306,7 @@ export default class ScheduleService {
 			let pendingApprover: string | null = null;
 
 			if (true && ["AC", "REC"].includes(toStatus.type)) {
-				const pendingPayments: { total: string } | null = await Database.from(
+				const pendingPayments: { total: number } | null = await Database.from(
 					"finances",
 				)
 					.select(Database.raw("sum(total_value) as total"))
@@ -1320,10 +1320,9 @@ export default class ScheduleService {
 					])
 					.whereRaw("payment_date is null")
 					.whereRaw("expiration_date < now()")
-					.groupByRaw("client_id")
 					.first();
 
-				if (pendingPayments?.total !== "0") {
+				if (pendingPayments?.total !== 0) {
 					if (!data.userEmail || !data.userPwd) {
 						throw new BadRequestException(
 							"Cliente com pagamentos atrasados, é preciso enviar email e senha para autenticar",

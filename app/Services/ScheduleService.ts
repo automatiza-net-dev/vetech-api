@@ -714,7 +714,7 @@ export default class ScheduleService {
 					.whereRaw("deleted_at is null")
 					.whereRaw("business_unit_id = ?", [authCtx.unit.id])
 					.whereRaw("client_id = ?", [
-						authCtx.system.type === "VET"
+						authCtx.system.type === "Vet"
 							? (data.holderId ?? v4())
 							: (data.patientId ?? v4()),
 					])
@@ -1314,7 +1314,7 @@ export default class ScheduleService {
 					.whereRaw("deleted_at is null")
 					.whereRaw("business_unit_id = ?", [authCtx.unit.id])
 					.whereRaw("client_id = ?", [
-						authCtx.system.type === "VET"
+						authCtx.system.type === "Vet"
 							? (schedule.holder_id ?? v4())
 							: (schedule.patient_id ?? v4()),
 					])
@@ -2613,7 +2613,7 @@ group by client_id),0) as finances_expired`),
 					.whereRaw("deleted_at is null")
 					.whereRaw("business_unit_id = ?", [authCtx.unit.id])
 					.whereRaw("client_id = ?", [
-						authCtx.system.type === "VET"
+						authCtx.system.type === "Vet"
 							? (schedule.holder_id ?? v4())
 							: (schedule.patient_id ?? v4()),
 					])

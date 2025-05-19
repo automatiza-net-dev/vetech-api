@@ -1722,10 +1722,16 @@ export default class PatientService {
 
 			if (data.tag && data.tag !== patient.tag) {
 				const row = await Database.from("patients")
-					.select("id")
-					.whereRaw("type = 'patient'")
-					.whereRaw("tag = ?", [data.tag])
-					.whereRaw("deleted_at is null", [])
+					.select("patients.id")
+					.joinRaw(
+						"join patient_economic_groups on patients.id = patient_economic_groups.patient_id",
+					)
+					.whereRaw("patients.type = ?", [patient.type])
+					.whereRaw("patients.tag = ?", [data.tag])
+					.whereRaw("patients.deleted_at is null", [])
+					.whereRaw("patient_economic_groups.economic_group_id = ?", [
+						authCtx.group.id,
+					])
 					.first();
 				if (row) {
 					throw new BadRequestException(
@@ -1993,10 +1999,16 @@ export default class PatientService {
 
 			if (data.tag && data.tag !== tutor.tag) {
 				const row = await Database.from("patients")
-					.select("id")
-					.whereRaw("type = 'tutor'")
-					.whereRaw("tag = ?", [data.tag])
-					.whereRaw("deleted_at is null", [])
+					.select("patients.id")
+					.joinRaw(
+						"join patient_economic_groups on patients.id = patient_economic_groups.patient_id",
+					)
+					.whereRaw("patients.type = ?", [tutor.type])
+					.whereRaw("patients.tag = ?", [data.tag])
+					.whereRaw("patients.deleted_at is null", [])
+					.whereRaw("patient_economic_groups.economic_group_id = ?", [
+						authCtx.group.id,
+					])
 					.first();
 				if (row) {
 					throw new BadRequestException(

@@ -513,6 +513,7 @@ values (?, ?, now(), now(), ?, ?)`,
 			description: string;
 			control_id: string;
 			active: boolean;
+			status: boolean;
 		}[] = await Database.from("screens")
 			.select(
 				Database.raw(`screens.id as sid,
@@ -520,7 +521,8 @@ values (?, ?, now(), now(), ?, ?)`,
        permissions.id as pid,
        permissions.description,
        permissions.control_id,
-       true as active`),
+       true as active,
+       true as status`),
 			)
 			.joinRaw("join permissions on screens.id = permissions.screen_id")
 			.joinRaw(
@@ -555,6 +557,7 @@ values (?, ?, now(), now(), ?, ?)`,
 							description: curr.description,
 							controlId: curr.control_id,
 							active: curr.active,
+							status: curr.status,
 						});
 						return sc;
 					});
@@ -567,6 +570,7 @@ values (?, ?, now(), now(), ?, ?)`,
 						description: string;
 						controlId: string;
 						active: boolean;
+						status: boolean;
 					}[];
 				}[],
 			),

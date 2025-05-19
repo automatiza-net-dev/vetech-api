@@ -15,10 +15,7 @@ export default class S3sController {
 
 			const linkMap = await SharedService.ComputePublicS3Link([data.key]);
 
-			return response.ok({
-				link: linkMap[data.key] ?? null,
-				expiration: DateTime.now().plus({ hours: 1 }),
-			});
+			return response.ok(linkMap[0]);
 		});
 	}
 

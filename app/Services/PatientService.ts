@@ -576,37 +576,38 @@ export default class PatientService {
 			weight: elem.weight,
 		}));
 
-		const tutors =
-			data.tutor || data.document
-				? await Database.from("patients")
-						.select(
-							Database.raw(
-								"patients.id, patients.name ||' '|| coalesce(patient_tutors.cellphone, coalesce(patient_tutors.telephone, '')) as tutor",
-							),
-						)
-						.joinRaw(
-							"join patient_economic_groups peg on patients.id = peg.patient_id and peg.economic_group_id = ?",
-							[authCtx.group.id],
-						)
-						.joinRaw(
-							"join patient_tutors on patient_tutors.patient_id = patients.id",
-							[],
-						)
-						.where("type", PatientType.TUTOR)
-						.whereRaw(
-							"not exists (select * from holder_dependents hd where patients.id = hd.holder_id)",
-						)
-						.whereRaw(
-							data.tutor
-								? `(unaccent(patients.name) ilike '%' || unaccent(?) || '%')`
-								: `(? = '' or 1=1)`,
-							[data.tutor ?? ""],
-						)
-						.whereRaw(data.document ? "document ilike ?" : `(? = '' or 1=1)`, [
-							data.document ? `%${data.document}%` : "",
-						])
-						.orderByRaw("name asc")
-				: [];
+		if (data.name || data.tag) {
+			return result;
+		}
+
+		const tutors = await Database.from("patients")
+			.select(
+				Database.raw(
+					"patients.id, patients.name ||' '|| coalesce(patient_tutors.cellphone, coalesce(patient_tutors.telephone, '')) as tutor",
+				),
+			)
+			.joinRaw(
+				"join patient_economic_groups peg on patients.id = peg.patient_id and peg.economic_group_id = ?",
+				[authCtx.group.id],
+			)
+			.joinRaw(
+				"join patient_tutors on patient_tutors.patient_id = patients.id",
+				[],
+			)
+			.where("type", PatientType.TUTOR)
+			.whereRaw(
+				"not exists (select * from holder_dependents hd where patients.id = hd.holder_id)",
+			)
+			.whereRaw(
+				data.tutor
+					? `(unaccent(patients.name) ilike '%' || unaccent(?) || '%')`
+					: `(? = '' or 1=1)`,
+				[data.tutor ?? ""],
+			)
+			.whereRaw(data.document ? "document ilike ?" : `(? = '' or 1=1)`, [
+				data.document ? `%${data.document}%` : "",
+			])
+			.orderByRaw("name asc");
 
 		const $tutors = tutors.map((elem) => ({
 			id: "-",

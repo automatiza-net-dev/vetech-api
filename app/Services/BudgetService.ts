@@ -438,6 +438,12 @@ export default class BudgetService {
 						departmentItems: billDepartmentItemRows.filter(
 							(ro) => ro.bill_id === b.id,
 						),
+						payments: b.payments.map((p) => ({
+							...p.toJSON(),
+							expiration_date: p.expirationDate
+								? p.expirationDate.toFormat("yyyy-MM-dd")
+								: null,
+						})),
 					})),
 				});
 

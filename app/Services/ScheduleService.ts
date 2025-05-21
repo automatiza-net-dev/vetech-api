@@ -1305,11 +1305,14 @@ export default class ScheduleService {
 
 			let pendingApprover: string | null = null;
 
-			if (true && ["AC", "REC"].includes(toStatus.type)) {
+			if (
+				authCtx.unit.unitConfig.config.schedules?.block_finance_pending &&
+				["AC", "REC"].includes(toStatus.type)
+			) {
 				const pendingPayments: { total: number } | null = await Database.from(
 					"finances",
 				)
-					.select(Database.raw("sum(total_value) as total"))
+					.select(Database.raw("coalesce(sum(total_value)::int, 0) as total"))
 					.whereRaw("type = 'CREDITO'")
 					.whereRaw("deleted_at is null")
 					.whereRaw("business_unit_id = ?", [authCtx.unit.id])
@@ -2607,7 +2610,7 @@ group by client_id),0) as finances_expired`),
 				const pendingPayments: { total: number } | null = await Database.from(
 					"finances",
 				)
-					.select(Database.raw("sum(total_value) as total"))
+					.select(Database.raw("coalesce(sum(total_value)::int, 0) as total"))
 					.whereRaw("type = 'CREDITO'")
 					.whereRaw("deleted_at is null")
 					.whereRaw("business_unit_id = ?", [authCtx.unit.id])
@@ -2618,7 +2621,6 @@ group by client_id),0) as finances_expired`),
 					])
 					.whereRaw("payment_date is null")
 					.whereRaw("expiration_date < now()")
-					.groupByRaw("client_id")
 					.first();
 
 				if (pendingPayments?.total !== 0) {

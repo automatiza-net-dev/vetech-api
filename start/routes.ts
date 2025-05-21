@@ -1619,6 +1619,8 @@ Route.group(() => {
 		"/checking-account-bankings",
 		"ReportsController.checkingAccountBankingReport",
 	);
+	Route.get("/consolidated-stock", "ReportsController.consolidatedStockReport");
+	Route.get("/detailed-stock", "ReportsController.detailedStockReport");
 })
 	.prefix("reports")
 	.middleware("auth");
@@ -1860,6 +1862,7 @@ Route.group(() => {
 
 Route.group(() => {
 	Route.post("/generate-link", "S3sController.createLink");
+	Route.post("/generate-links", "S3sController.createLinks");
 })
 	.prefix("s3")
 	.middleware("auth");

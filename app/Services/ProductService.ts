@@ -10,7 +10,7 @@ import BusinessUnit from "App/Models/BusinessUnit";
 import DepositItem from "App/Models/DepositItem";
 import DepositMovementItem from "App/Models/DepositMovementItem";
 import KitItem from "App/Models/KitItem";
-import Product, { ProductPurpose, ProductType } from "App/Models/Product";
+import Product, { ProductType } from "App/Models/Product";
 import ProductVariation from "App/Models/ProductVariation";
 import ReceiptItem from "App/Models/ReceiptItem";
 import VariationGroup from "App/Models/VariationGroup";
@@ -36,59 +36,123 @@ interface ISearch {
 export default class ProductService {
 	constructor(private readonly sharedService: SharedService) {}
 
-	public async forMovement(authCtx: AuthContext, data: { type?: string }) {
-		const qb = authCtx.group
-			.related("products")
-			.query()
-			.preload("variations", (query) => {
-				query.orderBy("created_at", "desc");
-				query.select("id", "barcode", "active");
-
-				query.preload("businessUnitProducts", (query) => {
-					query.where("businness_unit_id", authCtx.unit.id);
-				});
-				query.preload("variationOptions", (query) => {
-					query.select("id", "description", "active");
-				});
-			});
-
-		if (data.type?.toLowerCase() === "saida") {
-			qb.whereNotIn("purpose", [ProductPurpose.INTERNAL]);
+	public async forMovement(
+		authCtx: AuthContext,
+		data: {
+			type?: "estoque" | "saida" | "entrada";
+			description?: string;
+			barcode?: string;
+			subgroups?: string[];
+			departments?: string[];
+		},
+	) {
+		if (!data.type) {
+			throw new BadRequestException("É preciso enviar o tipo", 400, "E_ERR");
 		}
 
-		if (data.type?.toLowerCase() === "entrada") {
-			qb.where("type", ProductType.PRODUCT);
+		const qb = Database.from("products")
+			.select(
+				Database.raw(`products.type,
+       products.id                                                                                                                 as productId,
+       null                                                                                                                        as kitId,
+       courtesy,
+       products.description,
+       reference_code,
+       json_build_array(json_build_object('id', product_variations.id, 'barcode', product_variations.barcode,
+                                          'variationOptions',
+                                          json_agg(json_build_object('id', variation_options.id, 'description',
+                                                                     variation_options.description)),
+                                          'businessUnitProducts',
+                                          json_agg(json_build_object('id', business_unit_products.id, 'price',
+                                                                     business_unit_products.price,
+                                                                     'maximum_discount_percentage',
+                                                                     business_unit_products.maximum_discount_percentage))))::jsonb as variations`),
+			)
+			.joinRaw(
+				"join product_variations on products.id = product_variations.product_id",
+			)
+			.joinRaw(
+				`join business_unit_products
+              on product_variations.id = business_unit_products.product_variation_id and business_unit_products.businness_unit_id = ?`,
+				[authCtx.unit.id],
+			)
+			.joinRaw(
+				"join variation_options on variation_group_id = products.variation_group_id",
+			)
+			.joinRaw(
+				"left join department_products on products.id = department_products.product_id",
+			)
+			.whereRaw("products.economic_group_id = ?", [authCtx.group.id])
+			.whereRaw("products.active is true")
+			.whereRaw("products.deleted_at is null")
+			.groupByRaw(
+				"products.id, product_variations.id, products.variation_group_id",
+			);
+
+		const kitsQb = Database.from("kits")
+			.select(
+				Database.raw(`'kit'                      as type,
+		    null                       as productId,
+		    kits.id                    as kitId,
+		    false                      as courtesy,
+		    kits.description,
+		    null                       as reference_code,
+		    cast(null as jsonB)::jsonb as variations`),
+			)
+			.joinRaw("join kit_items on kits.id = kit_items.kit_id")
+			.joinRaw(
+				"join product_variations on kit_items.product_variation_id = product_variations.id",
+			)
+			.joinRaw("join products on product_variations.product_id = products.id")
+			.joinRaw(
+				"left join department_products on products.id = department_products.product_id",
+			)
+			.whereRaw("kits.economic_group_id = ?", [authCtx.group.id])
+			.whereRaw(
+				"(kits.to_expiration::date <= now()::date or kits.to_expiration is null)",
+			)
+			.whereRaw(
+				"(kits.from_expiration::date >= now()::date or kits.from_expiration is null)",
+			)
+			.groupByRaw("kits.id")
+			.orderByRaw("description");
+
+		if (data.type === "estoque" || data.type === "entrada") {
+			// ignore kits
+			kitsQb.whereRaw("1=0");
 		}
 
-		if (data.type?.toLowerCase() === "estoque") {
-			qb.where("type", ProductType.PRODUCT);
+		if (data.type === "saida") {
+			qb.whereRaw("products.purpose not in ('internal')");
 		}
 
-		const result = await qb;
+		if (data.description) {
+			qb.whereRaw("description ilike ?", [`%${data.description}%`]);
+			kitsQb.whereRaw("products.description ilike ?", [
+				`%${data.description}%`,
+			]);
+		}
 
-		return result.map((product) => ({
-			id: product.id,
-			economic_group: product.economic_group_id,
-			description: product.description,
-			type: product.type,
-			variations: product.variations.map((elem) => ({
-				id: elem.id,
-				barcode: elem.barcode,
-				variationOptions: elem.variationOptions.map((opt) => ({
-					id: opt.id,
-					variation_id: opt.variation_id,
-					description: opt.description,
-				})),
-				businessUnitProducts: elem.businessUnitProducts.map((opt) => ({
-					id: opt.id,
-					businness_unit_id: opt.businness_unit_id,
-					maximum_discount_percentage: opt.maximumDiscountPercentage,
-					maximum_discount_value: opt.maximumDiscountValue,
-					price: opt.price,
-					product_variation_id: opt.product_variation_id,
-				})),
-			})),
-		}));
+		if (data.barcode) {
+			qb.whereRaw(
+				"(product_variations.barcode = ? or products.reference_code = ?)",
+				[data.barcode, data.barcode],
+			);
+		}
+
+		if (data.subgroups) {
+			qb.whereIn("products.subgroup_id", data.subgroups);
+			kitsQb.whereIn("products.subgroup_id", data.subgroups);
+		}
+
+		if (data.departments) {
+			qb.whereIn("department_products.department_id", data.departments);
+			kitsQb.whereIn("department_products.department_id", data.departments);
+		}
+
+		const [products, kits] = await Promise.all([qb, kitsQb]);
+
+		return products.concat(kits);
 	}
 
 	public async index(unitId: string, data: ISearch) {

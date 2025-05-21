@@ -49,6 +49,7 @@ export const ConfigSchedulesSchema = z.object({
 	integrates_to_crm_schedules: z.boolean().optional().nullable(),
 	sync_schedule_movements: z.boolean().optional().nullable(),
 	sync_schedules_crm: z.boolean().optional().nullable(),
+	block_finance_pending: z.boolean().optional().nullable(),
 });
 
 export const ConfigBusinessUnitsSchema = z.object({

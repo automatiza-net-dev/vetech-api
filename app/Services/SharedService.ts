@@ -115,57 +115,61 @@ export default class SharedService {
 		holders: "Tutores",
 	} as const;
 
-	public static async ComputePublicS3Link(
-		keys: string[],
-	): Promise<Record<string, string>> {
+	public static async ComputePublicS3Link(keys: string[]) {
 		if (keys.length === 0) {
 			return {};
 		}
 
-		const existingKeys = await S3Cache.query()
-			.whereIn("key", keys)
-			.whereRaw("expires_at > now()");
+		// const existingKeys = await S3Cache.query()
+		// 	.whereIn("key", keys)
+		// 	.whereRaw("expires_at > now()");
+		//
+		// const partialResult = existingKeys.reduce(
+		// 	(acc, curr) => {
+		// 		acc[curr.key] = curr.value;
+		// 		return acc;
+		// 	},
+		// 	{} as Record<string, string>,
+		// );
+		//
+		// const missingKeys = keys.filter(
+		// 	(k) => !Object.keys(partialResult).includes(k),
+		// );
 
-		const partialResult = existingKeys.reduce(
-			(acc, curr) => {
-				acc[curr.key] = curr.value;
-				return acc;
-			},
-			{} as Record<string, string>,
-		);
+		// if (missingKeys.length > 0) {
 
-		const missingKeys = keys.filter(
-			(k) => !Object.keys(partialResult).includes(k),
-		);
+		// await S3Cache.createMany(
+		// 	updatedResult.map((row) => ({
+		// 		key: row.key,
+		// 		value: row.value,
+		// 		expiresAt: DateTime.now().plus({ days: 7 }),
+		// 	})),
+		// );
+		//
+		// for (const row of updatedResult) {
+		// 	partialResult[row.key] = row.value;
+		// }
+		// }
 
-		if (missingKeys.length > 0) {
-			const updatedKeyTasks = missingKeys.map(async (key) => {
-				return {
-					key,
-					value: await Drive.use("s3").getSignedUrl(
-						key.startsWith("/uploads/") ? key.slice(9) : key,
-						{
-							expiresIn: "7d",
-						},
-					),
-				};
-			});
-			const updatedResult = await Promise.all(updatedKeyTasks);
-
-			await S3Cache.createMany(
-				updatedResult.map((row) => ({
-					key: row.key,
-					value: row.value,
-					expiresAt: DateTime.now().plus({ days: 7 }),
-				})),
-			);
-
-			for (const row of updatedResult) {
-				partialResult[row.key] = row.value;
-			}
-		}
-
-		return partialResult;
+		const updatedKeyTasks = keys.map(async (key) => {
+			return {
+				key,
+				view: await Drive.use("s3").getSignedUrl(
+					key.startsWith("/uploads/") ? key.slice(9) : key,
+					{
+						expiresIn: "7d",
+					},
+				),
+				download: await Drive.use("s3").getSignedUrl(
+					key.startsWith("/uploads/") ? key.slice(9) : key,
+					{
+						expiresIn: "7d",
+						contentDisposition: "attachment",
+					},
+				),
+			};
+		});
+		return await Promise.all(updatedKeyTasks);
 	}
 
 	public async errorHoc(
@@ -698,5 +702,30 @@ export default class SharedService {
 				return "Campo é obrigatório [2]";
 			},
 		};
+	}
+
+	static async UserHasPermission(
+		userID: string,
+		unitID: string,
+		systemID: string,
+		permissionControlID: string,
+	) {
+		const rows = await Database.from("user_unit_roles")
+			.select(Database.raw("permissions.control_id"))
+			.joinRaw("join roles on roles.id = user_unit_roles.role_id")
+			.joinRaw("join role_permissions on role_permissions.role_id = roles.id")
+			.joinRaw(
+				"join permissions on role_permissions.permission_id = permissions.id",
+			)
+			.where("user_unit_roles.user_id", userID)
+			.where("user_unit_roles.unit_id", unitID)
+			.where("roles.system_id", systemID)
+			.where("roles.active", true)
+			.where("role_permissions.active", true)
+			.where("role_permissions.status", true)
+			.whereIn("roles.type", ["controller", "both", "all", "user"])
+			.whereIn("permissions.type", ["controller", "both", "all", "user"]);
+
+		return rows.some((r) => r.control_id === permissionControlID);
 	}
 }

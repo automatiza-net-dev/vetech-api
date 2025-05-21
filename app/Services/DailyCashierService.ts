@@ -529,7 +529,7 @@ export default class DailyCashierService {
 			.merge({
 				status: DailyCashierStatus.F,
 				closingDate: data.closingDate,
-				user_who_closed_id: data.userId,
+				user_who_closed_id: data.userId ?? authCtx.user.id,
 				salesTotal: salesSum,
 				expensesTotal,
 				receiptsTotal,

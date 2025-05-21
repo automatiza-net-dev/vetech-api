@@ -14,6 +14,7 @@ export default class CreateRoleValidator {
 		profiles: schema.array().members(
 			schema.object().members({
 				id: schema.number(),
+				active: schema.boolean(),
 			}),
 		),
 		screens: schema.array().members(
@@ -22,6 +23,8 @@ export default class CreateRoleValidator {
 				permissions: schema.array().members(
 					schema.object().members({
 						id: schema.number(),
+            active: schema.boolean.optional(),
+            status: schema.boolean.optional(),
 					}),
 				),
 			}),

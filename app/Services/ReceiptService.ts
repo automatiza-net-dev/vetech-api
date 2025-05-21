@@ -939,6 +939,7 @@ export default class ReceiptService {
 				const unit = await BusinessUnit.query()
 					.useTransaction(trx)
 					.where("document", parsed.data.nfeProc.NFe.infNFe.dest.CNPJ)
+					.whereNull("deleted_at")
 					.first();
 
 				if (!unit) {

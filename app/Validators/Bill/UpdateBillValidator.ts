@@ -48,6 +48,9 @@ export default class UpdateBillValidator {
 		additionalInformation: schema.string.optional(),
 		internalCode: schema.string.optional(),
 		billDate: schema.date.optional(),
+		billRelatedTypeId: schema.number.optional([
+			rules.exists({ table: "bill_related_types", column: "id" }),
+		]),
 		items: schema.array.optional().members(
 			schema.object().members({
 				billItemId: schema.string.optional(),

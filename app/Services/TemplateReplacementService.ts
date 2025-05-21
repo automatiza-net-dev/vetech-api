@@ -23,7 +23,8 @@ import ITemplateReplacementData, {
 import { PDFEngine } from "chromiumly";
 import { differenceInYears, format } from "date-fns";
 import * as Locales from "date-fns/locale";
-import createReport from "docx-templates";
+import createReport, { ObjectCommandResultError } from "docx-templates";
+import type { SandBox, Context } from "docx-templates/lib/types";
 import { DateTime } from "luxon";
 import { HTMLElement, parse } from "node-html-parser";
 import { v4 } from "uuid";
@@ -232,108 +233,6 @@ export default class TemplateReplacementService {
 
 			const key = v4();
 
-			// const dataPath = `tmp/${key}_data.json`;
-			// const templatesPath = `tmp/${key}_templates.json`;
-			// const inputPath = `tmp/${key}.docx`;
-			// const resolvedInputPath = `tmp/${key}_resolved.docx`;
-			// const outputPath = `tmp/${key}_output.docx`;
-			// const pdfKey = `documents/compiled/${key}.pdf`;
-			//
-			// const fullDataPath = `${Env.get(
-			// 	"LOCAL_DISK_ROOT",
-			// 	Application.tmpPath(),
-			// )}/uploads/${dataPath}`;
-			//
-			// const fullTemplatesPath = `${Env.get(
-			// 	"LOCAL_DISK_ROOT",
-			// 	Application.tmpPath(),
-			// )}/uploads/${templatesPath}`;
-			//
-			// const fullInputPath = `${Env.get(
-			// 	"LOCAL_DISK_ROOT",
-			// 	Application.tmpPath(),
-			// )}/uploads/${inputPath}`;
-			//
-			// const fullResolvedInputPath = `${Env.get(
-			// 	"LOCAL_DISK_ROOT",
-			// 	Application.tmpPath(),
-			// )}/uploads/${resolvedInputPath}`;
-			//
-			// const fullOutputPath = `${Env.get(
-			// 	"LOCAL_DISK_ROOT",
-			// 	Application.tmpPath(),
-			// )}/uploads/${outputPath}`;
-			//
-			// await Promise.all([
-			// 	await writeFile(fullInputPath, fileBuffer),
-			// 	await writeFile(fullDataPath, JSON.stringify(textData)),
-			// 	await writeFile(
-			// 		fullTemplatesPath,
-			// 		JSON.stringify(
-			// 			templates.map((t) => ({
-			// 				origin: t.origin,
-			// 				attribute: t.attribute,
-			// 				replacer: t.replacer,
-			// 			})),
-			// 		),
-			// 	),
-			// ]);
-			//
-			// const resolverSuccess = await new Promise<boolean>((res) => {
-			// 	// python3 some/path/to/main.py input.docx input.resolved.docx
-			// 	exec(
-			// 		`python3 ${Env.get(
-			// 			"DOCX_RESOLVER_PATH",
-			// 		)} ${fullInputPath} ${fullResolvedInputPath}`,
-			// 		(error, _stdout, _stderr) => {
-			// 			if (error) {
-			// 				console.error(error);
-			// 				// return rej(false);
-			// 				return res(false);
-			// 			}
-			//
-			// 			return res(true);
-			// 		},
-			// 	);
-			// });
-			// if (!resolverSuccess) {
-			// 	throw new BadRequestException("Erro corrigindo arquivo", 500, "");
-			// }
-			//
-			// const success = await new Promise<boolean>((res) => {
-			// 	exec(
-			// 		`${Env.get(
-			// 			"TRANSPILER_PATH",
-			// 		)} ${fullResolvedInputPath} ${fullOutputPath} ${fullTemplatesPath} ${fullDataPath}`,
-			// 		(error, _stdout, _stderr) => {
-			// 			if (error) {
-			// 				console.error(error);
-			// 				// return rej(false);
-			// 				return res(false);
-			// 			}
-			//
-			// 			return res(true);
-			// 		},
-			// 	);
-			// });
-			//
-			// if (!success) {
-			// 	throw new BadRequestException("Erro processando arquivo", 500, "");
-			// }
-			//
-			// const responseBuffer = await PDFEngine.convert({
-			// 	files: [fullOutputPath],
-			// });
-			//
-			// await Drive.use("s3").put(pdfKey, responseBuffer, {
-			// 	contentType: "application/pdf",
-			// });
-
-			// return {
-			// 	filename: `${key}.pdf`,
-			// 	key: pdfKey,
-			// };
-
 			// write file to disk
 			const inputPath = `tmp/${key}.docx`;
 			const fullInputPath = `${Env.get(
@@ -377,6 +276,28 @@ export default class TemplateReplacementService {
 				template: await readFile(fullResolvedInputPath),
 				data: this.reverseTextTemplateData(textData, templates),
 				cmdDelimiter: ["[", "]"],
+				failFast: false,
+				errorHandler: (idk) => {
+					if (idk instanceof ObjectCommandResultError) {
+						// @ts-expect-error idk
+						return idk.result?.jsSandbox[idk.command] ?? idk.command;
+					}
+
+					return "(Valor não encontrado)";
+				},
+				runJs: (o: {
+					sandbox: SandBox;
+					ctx: Context;
+				}) => {
+					const newSandbox = Object.assign({}, o.sandbox);
+
+					if (!o.sandbox[o.sandbox.__code__ ?? "$"]) {
+						newSandbox[o.sandbox.__code__ ?? "$"] =
+							`[${o.sandbox.__code__ ?? "$"}]`;
+					}
+
+					return { modifiedSandbox: newSandbox, result: o.ctx };
+				},
 			});
 
 			// write created report to disk

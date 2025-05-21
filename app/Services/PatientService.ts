@@ -380,6 +380,7 @@ export default class PatientService {
 		const qb = authCtx.group
 			.related("patients")
 			.query()
+			.orderByRaw("name, tag")
 			.where("type", PatientType.SUPPLIER)
 			.whereHas("tutor", (query) => {
 				if (data.document) {
@@ -575,37 +576,38 @@ export default class PatientService {
 			weight: elem.weight,
 		}));
 
-		const tutors =
-			data.tutor || data.document
-				? await Database.from("patients")
-						.select(
-							Database.raw(
-								"patients.id, patients.name ||' '|| coalesce(patient_tutors.cellphone, coalesce(patient_tutors.telephone, '')) as tutor",
-							),
-						)
-						.joinRaw(
-							"join patient_economic_groups peg on patients.id = peg.patient_id and peg.economic_group_id = ?",
-							[authCtx.group.id],
-						)
-						.joinRaw(
-							"join patient_tutors on patient_tutors.patient_id = patients.id",
-							[],
-						)
-						.where("type", PatientType.TUTOR)
-						.whereRaw(
-							"not exists (select * from holder_dependents hd where patients.id = hd.holder_id)",
-						)
-						.whereRaw(
-							data.tutor
-								? `(unaccent(patients.name) ilike '%' || unaccent(?) || '%')`
-								: `(? = '' or 1=1)`,
-							[data.tutor ?? ""],
-						)
-						.whereRaw(data.document ? "document ilike ?" : `(? = '' or 1=1)`, [
-							data.document ? `%${data.document}%` : "",
-						])
-						.orderByRaw("name asc")
-				: [];
+		if (data.name || data.tag) {
+			return result;
+		}
+
+		const tutors = await Database.from("patients")
+			.select(
+				Database.raw(
+					"patients.id, patients.name ||' '|| coalesce(patient_tutors.cellphone, coalesce(patient_tutors.telephone, '')) as tutor",
+				),
+			)
+			.joinRaw(
+				"join patient_economic_groups peg on patients.id = peg.patient_id and peg.economic_group_id = ?",
+				[authCtx.group.id],
+			)
+			.joinRaw(
+				"join patient_tutors on patient_tutors.patient_id = patients.id",
+				[],
+			)
+			.where("type", PatientType.TUTOR)
+			.whereRaw(
+				"not exists (select * from holder_dependents hd where patients.id = hd.holder_id)",
+			)
+			.whereRaw(
+				data.tutor
+					? `(unaccent(patients.name) ilike '%' || unaccent(?) || '%')`
+					: `(? = '' or 1=1)`,
+				[data.tutor ?? ""],
+			)
+			.whereRaw(data.document ? "document ilike ?" : `(? = '' or 1=1)`, [
+				data.document ? `%${data.document}%` : "",
+			])
+			.orderByRaw("name asc");
 
 		const $tutors = tutors.map((elem) => ({
 			id: "-",
@@ -946,24 +948,7 @@ export default class PatientService {
 		return displayData;
 	}
 
-	public async tutorDisplay(
-		authCtx: AuthContext,
-		patientId: string,
-	): Promise<
-		Omit<IPatientTutorData, "photo" | "birthDate"> & {
-			id: string;
-			photo: string | null;
-			birthDate: DateTime | null;
-			contacts?: {
-				main: boolean;
-				notGiven: boolean;
-				contact?: string;
-				observation?: string;
-				type: (typeof PatientContactType)[number];
-			}[];
-			patients: { id: string; name: string }[];
-		}
-	> {
+	public async tutorDisplay(authCtx: AuthContext, patientId: string) {
 		const patient = await authCtx.group
 			.related("patients")
 			.query()
@@ -992,6 +977,7 @@ export default class PatientService {
 		return {
 			id: patient.id,
 			name: patient.name,
+			tag: patient.tag,
 			clientOriginId: patient.tutor.client_origin_id,
 			clientOriginItemDescription: patient.clientOriginItemDescription,
 			photo: patient.photo ? (s3Urls[patient.photo] ?? null) : null,
@@ -1737,10 +1723,16 @@ export default class PatientService {
 
 			if (data.tag && data.tag !== patient.tag) {
 				const row = await Database.from("patients")
-					.select("id")
-					.whereRaw("type = 'patient'")
-					.whereRaw("tag = ?", [data.tag])
-					.whereRaw("deleted_at is null", [])
+					.select("patients.id")
+					.joinRaw(
+						"join patient_economic_groups on patients.id = patient_economic_groups.patient_id",
+					)
+					.whereRaw("patients.type = ?", [patient.type])
+					.whereRaw("patients.tag = ?", [data.tag])
+					.whereRaw("patients.deleted_at is null", [])
+					.whereRaw("patient_economic_groups.economic_group_id = ?", [
+						authCtx.group.id,
+					])
 					.first();
 				if (row) {
 					throw new BadRequestException(
@@ -2008,10 +2000,16 @@ export default class PatientService {
 
 			if (data.tag && data.tag !== tutor.tag) {
 				const row = await Database.from("patients")
-					.select("id")
-					.whereRaw("type = 'tutor'")
-					.whereRaw("tag = ?", [data.tag])
-					.whereRaw("deleted_at is null", [])
+					.select("patients.id")
+					.joinRaw(
+						"join patient_economic_groups on patients.id = patient_economic_groups.patient_id",
+					)
+					.whereRaw("patients.type = ?", [tutor.type])
+					.whereRaw("patients.tag = ?", [data.tag])
+					.whereRaw("patients.deleted_at is null", [])
+					.whereRaw("patient_economic_groups.economic_group_id = ?", [
+						authCtx.group.id,
+					])
 					.first();
 				if (row) {
 					throw new BadRequestException(

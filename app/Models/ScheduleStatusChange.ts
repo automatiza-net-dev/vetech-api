@@ -18,6 +18,12 @@ export default class ScheduleStatusChange extends BaseModel {
 	public confirmationDate: DateTime | null;
 
 	@column.dateTime({
+		columnName: "finance_pending_authorized_at",
+		serializeAs: "financePendingAuthorizedAt",
+	})
+	public financePendingAuthorizedAt: DateTime | null;
+
+	@column.dateTime({
 		columnName: "confirmation_conference_date",
 		serializeAs: "confirmationConferenceDate",
 	})
@@ -74,4 +80,12 @@ export default class ScheduleStatusChange extends BaseModel {
 		serializeAs: null,
 	})
 	public confirmation_user_id: string | null;
+
+	@column({
+		serializeAs: null,
+	})
+	public finance_pending_authorization_user_id: string | null;
+
+	// table.dropColumn("");
+	// table.dropColumn("");
 }

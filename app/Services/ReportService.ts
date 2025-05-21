@@ -20,6 +20,183 @@ import Decimal from "decimal.js";
 export default class ReportService {
 	constructor(private sharedService: SharedService) {}
 
+	async detailedStockReport(authCtx: AuthContext) {
+		if (!authCtx.hasPermission("REL21")) {
+			throw new UnauthorizedException(
+				"Você não tem permissão para acessar esse relatório",
+				401,
+				"E_ERR",
+			);
+		}
+
+		const result: {
+			p_id: string;
+			p_description: string;
+			product_type: "Produto" | "Serviço";
+			active: boolean;
+			barcode: string;
+			cost_price: string;
+			price: string;
+			minimum_stock: string;
+			maximum_stock: string;
+			d_id: string;
+			d_description: string;
+			quantity: string;
+			total_cost_price: string;
+			total_price: string;
+		}[] = await Database.from("deposits")
+			.select(
+				Database.raw(`products.id as p_id,
+       products.description as p_description,
+       case when products.type = 'product' then 'Produto' else 'Serviço' end as product_type,
+       products.active                                                       as active,
+       product_variations.barcode,
+       business_unit_products.cost_price,
+       business_unit_products.price,
+       business_unit_products.minimum_stock,
+       business_unit_products.maximum_stock,
+       deposits.id as d_id,
+       deposits.description d_description,
+       coalesce(deposit_items.quantity, 0)::numeric(10, 3)                   as quantity,
+       coalesce(sum(deposit_items.quantity) * business_unit_products.cost_price,
+                0)::numeric(10, 3)                                           as total_cost_price,
+       coalesce(sum(deposit_items.quantity) * price,
+                0)::numeric(10, 3)                                           as total_price`),
+			)
+			.joinRaw("join deposit_items on deposits.id = deposit_items.deposit_id")
+			.joinRaw(
+				"join product_variations on deposit_items.product_variation_id = product_variations.id",
+			)
+			.joinRaw("join products on product_variations.product_id = products.id")
+			.joinRaw(`join business_unit_products
+              on deposit_items.business_unit_product_id = business_unit_products.id and
+                 business_unit_products.businness_unit_id = deposits.business_unit_id`)
+			.whereRaw("deposits.economic_group_id = ?", [authCtx.group.id])
+			.whereRaw("deposits.business_unit_id = ?", [authCtx.unit.id])
+			.whereRaw("deposits.status = 'Ativo'", [])
+			.whereRaw("deposits.type= 'Venda'", [])
+			.whereRaw("deposits.deleted_at is null", [])
+			.groupByRaw(`products.id, case when products.type = 'product' then 'Produto' else 'Serviço' end, products.active,
+         product_variations.barcode, business_unit_products.cost_price, business_unit_products.price,
+         business_unit_products.minimum_stock, business_unit_products.maximum_stock, deposits.id, deposits.description,
+         deposit_items.quantity`)
+			.orderByRaw("products.description, product_variations.barcode");
+
+		return {
+			economicGroupId: authCtx.group.id,
+			economicGroupCompanyName: authCtx.group.companyName ?? null,
+			economicGroupFantasyName: authCtx.group.fantasyName ?? null,
+			businessUnitId: authCtx.unit.id,
+			businessUnitIdentification: authCtx.unit.identification ?? null,
+			products: result.reduce(
+				(acc, curr, _idx, rootResult) => {
+					const existing = acc.find((ac) => ac.id === curr.p_id);
+					if (!existing) {
+						acc.push({
+							id: curr.p_id,
+							description: curr.p_description,
+							type: curr.product_type,
+							active: curr.active,
+							barcode: curr.barcode,
+							costPrice: curr.cost_price,
+							price: curr.price,
+							minimumStock: curr.minimum_stock,
+							maximumStock: curr.maximum_stock,
+							deposits: rootResult
+								.filter((rr) => rr.p_id === curr.p_id)
+								.map((r) => ({
+									id: r.d_id,
+									description: r.d_description,
+									quantity: r.quantity,
+									totalCostPrice: r.total_cost_price,
+									totalPrice: r.total_price,
+								})),
+						});
+					}
+
+					return acc;
+				},
+				[] as Record<string, unknown>[],
+			),
+		};
+	}
+
+	async consolidatedStockReport(authCtx: AuthContext) {
+		if (!authCtx.hasPermission("REL20")) {
+			throw new UnauthorizedException(
+				"Você não tem permissão para acessar esse relatório",
+				401,
+				"E_ERR",
+			);
+		}
+
+		const result: {
+			description: string;
+			product_type: "Produto" | "Serviço";
+			active: boolean;
+			barcode: string;
+			cost_price: string;
+			price: string;
+			minimum_stock: string;
+			maximum_stock: string;
+			quantity: string;
+			total_cost_price: string;
+			total_price: string;
+		}[] = await Database.from("deposits")
+			.select(
+				Database.raw(`products.description,
+       case when products.type = 'product' then 'Produto' else 'Serviço' end as product_type,
+       products.active                                                       as active,
+       product_variations.barcode,
+       business_unit_products.cost_price,
+       business_unit_products.price,
+       business_unit_products.minimum_stock,
+       business_unit_products.maximum_stock,
+       sum(deposit_items.quantity)                                           as quantity,
+       sum(deposit_items.quantity) * business_unit_products.cost_price       as total_cost_price,
+       sum(deposit_items.quantity) * price                                   as total_price`),
+			)
+			.joinRaw("join deposit_items on deposits.id = deposit_items.deposit_id")
+			.joinRaw(
+				"join product_variations on deposit_items.product_variation_id = product_variations.id",
+			)
+			.joinRaw("join products on product_variations.product_id = products.id")
+			.joinRaw(`join business_unit_products
+              on deposit_items.business_unit_product_id = business_unit_products.id and
+                 business_unit_products.businness_unit_id = deposits.business_unit_id`)
+			.whereRaw("deposits.economic_group_id = ?", [authCtx.group.id])
+			.whereRaw("deposits.business_unit_id = ?", [authCtx.unit.id])
+			.whereRaw("deposits.status = 'Ativo'", [])
+			.whereRaw("deposits.type= 'Venda'", [])
+			.whereRaw("deposits.deleted_at is null", [])
+			.groupByRaw(`products.description, case when products.type = 'product' then 'Produto' else 'Serviço' end, products.active,
+         product_variations.barcode,
+         business_unit_products.cost_price, business_unit_products.price, business_unit_products.minimum_stock,
+         business_unit_products.maximum_stock`)
+			.orderByRaw("products.description, product_variations.barcode");
+
+		return {
+			economicGroupId: authCtx.group.id,
+			economicGroupCompanyName: authCtx.group.companyName ?? null,
+			economicGroupFantasyName: authCtx.group.fantasyName ?? null,
+			businessUnitId: authCtx.unit.id,
+			businessUnitIdentification: authCtx.unit.identification ?? null,
+			products: result.map((r) => ({
+				description: r.description,
+				type: r.product_type,
+				active: r.active,
+				barcode: r.barcode,
+				costPrice: r.cost_price,
+				price: r.price,
+				minimumStock: r.minimum_stock,
+				maximumStock: r.maximum_stock,
+				quantity: r.quantity,
+				totalCostPrice: r.total_cost_price,
+				totalPrice: r.total_price,
+			})),
+		};
+	}
+
 	async financeReport(
 		authCtx: AuthContext,
 		data: {

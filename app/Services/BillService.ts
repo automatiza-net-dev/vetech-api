@@ -767,6 +767,7 @@ export default class BillService {
 					client_id: data.clientId,
 					patient_id: data.patientId,
 					financial_responsible_id: data.financialResponsibleId,
+          bill_related_type_id: data.billRelatedTypeId,
 					additionalInformation: data.additionalInformation,
 					internalCode: data.internalCode,
 

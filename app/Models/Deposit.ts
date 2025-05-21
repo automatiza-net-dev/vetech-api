@@ -38,6 +38,9 @@ export default class Deposit extends BaseModel {
 	@column.dateTime({ autoCreate: true, autoUpdate: true })
 	public updatedAt: DateTime;
 
+	@column.dateTime({ serializeAs: null })
+	public deleted_at: DateTime | null;
+
 	@column({
 		serializeAs: null,
 	})

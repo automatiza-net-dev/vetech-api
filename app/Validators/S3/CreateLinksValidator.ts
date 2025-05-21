@@ -1,7 +1,7 @@
-import { schema, type CustomMessages, rules } from "@ioc:Adonis/Core/Validator";
+import { schema, CustomMessages } from "@ioc:Adonis/Core/Validator";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 
-export default class UpsertScheduleStatusValidator {
+export default class CreateLinksValidator {
 	constructor(protected ctx: HttpContextContract) {}
 
 	/*
@@ -24,18 +24,7 @@ export default class UpsertScheduleStatusValidator {
 	 *    ```
 	 */
 	public schema = schema.create({
-		reasonId: schema.string({}, [
-			rules.uuid(),
-			rules.exists({ table: "reasons", column: "id" }),
-		]),
-		statusId: schema.string({}, [
-			rules.uuid(),
-			rules.exists({ table: "schedule_statuses", column: "id" }),
-		]),
-		observation: schema.string({}, [rules.maxLength(255)]),
-		ignoreConflict: schema.boolean.optional(),
-		userEmail: schema.string.optional([rules.email()]),
-		userPwd: schema.string.optional(),
+		keys: schema.array().members(schema.string()),
 	});
 
 	/**

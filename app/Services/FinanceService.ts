@@ -70,6 +70,9 @@ interface ISearch {
 
 	order?: string;
 
+	internalCode?: string;
+	historic?: string;
+
 	groupBorderos?: string;
 }
 
@@ -189,6 +192,13 @@ export default class FinanceService {
 			financesQb.whereRaw("issue_date::date >= ?", [data.fromIssueDate]);
 		}
 
+		if (data.internalCode) {
+			financesQb.whereRaw("internal_code ilike ?", [`%${data.internalCode}%`]);
+		}
+		if (data.historic) {
+			financesQb.whereRaw("historic ilike ?", [`%${data.historic}%`]);
+		}
+
 		if (data.toIssueDate) {
 			financesQb.whereRaw("issue_date::date <= ?", [data.toIssueDate]);
 		}
@@ -290,6 +300,7 @@ export default class FinanceService {
         finances.payment_date,
         finances.value,
         finances.total_value,
+        finances.historic,
         finances.payment_value,
         finances.origin_flag,
         finances.origin_down_flag,
@@ -327,6 +338,13 @@ export default class FinanceService {
 
 		if (data.ids && Array.isArray(data.ids)) {
 			qb.whereIn("finances.id", data.ids);
+		}
+
+		if (data.internalCode) {
+			qb.whereRaw("finances.internal_code ilike ?", [`%${data.internalCode}%`]);
+		}
+		if (data.historic) {
+			qb.whereRaw("finances.historic ilike ?", [`%${data.historic}%`]);
 		}
 
 		if (data.fromIssueDate) {
@@ -455,6 +473,7 @@ export default class FinanceService {
         borderos.payment_date,
         borderos.bordero_value                                                  as value,
         borderos.total_value,
+        null,
         borderos.payment_value,
         'FINANCEIRO'                                                            as origin_flag,
         case when borderos.payment_date is null then null else 'FINANCEIRO' end as origin_down_flag,
@@ -616,6 +635,7 @@ export default class FinanceService {
        finances.value,
        finances.total_value,
        finances.payment_value,
+       finances.historic,
        finances.origin_flag,
        finances.origin_down_flag,
        finances.accept,
@@ -654,6 +674,14 @@ export default class FinanceService {
 
 		if (data.toIssueDate) {
 			qb.whereRaw("finances.issue_date::date <= ?", [data.toIssueDate]);
+		}
+
+		if (data.internalCode) {
+			qb.whereRaw("finances.internal_code ilike ?", [`%${data.internalCode}%`]);
+		}
+
+		if (data.historic) {
+			qb.whereRaw("finances.historic ilike ?", [`%${data.historic}%`]);
 		}
 
 		if (data.fromExpirationDate) {
@@ -753,6 +781,7 @@ export default class FinanceService {
        borderos.bordero_value                                                  as value,
        borderos.total_value,
        borderos.payment_value,
+       null as historic,
        'FINANCEIRO'                                                            as origin_flag,
        case when borderos.payment_date is null then null else 'FINANCEIRO' end as origin_down_flag,
        'SIM'                                                                   as accept,
@@ -876,6 +905,7 @@ export default class FinanceService {
        sum(finances.value)            as value,
        sum(finances.total_value)      as total_value,
        sum(finances.payment_value)    as payment_value,
+       null as historic,
        null                           as origin_flag,
        null                           as origin_down_flag,
        null                           as accept,

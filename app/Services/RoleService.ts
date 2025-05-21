@@ -20,6 +20,7 @@ export default class RoleService {
 
 	public async index(authCtx: AuthContext, data: ISearch) {
 		const qb = Role.query()
+			.orderByRaw("name")
 			.where("system_id", authCtx.system.id)
 			.where("economic_group_id", authCtx.group.id);
 
@@ -102,8 +103,8 @@ export default class RoleService {
 				data.profiles.map((p) =>
 					Database.rawQuery(
 						`insert into role_profile_accesses (role_id, profile_access_id, active, created_at, type)
-values (?, ?, true, now(), 'user')`,
-						[newRole.id, p.id],
+values (?, ?, ?, now(), 'user')`,
+						[newRole.id, p.id, p.active],
 					)
 						.useTransaction(trx)
 						.exec(),
@@ -111,12 +112,12 @@ values (?, ?, true, now(), 'user')`,
 			);
 
 			const tasks = data.screens
-				.flatMap((s) => s.permissions.map((sp) => sp.id))
-				.map(async (permissionID) => {
+				.flatMap((s) => s.permissions.map((sp) => sp))
+				.map(async (sp) => {
 					return Database.rawQuery(
-						`insert into role_permissions (role_id, permission_id, created_at, updated_at)
-values (?, ?, now(), now())`,
-						[newRole.id, permissionID],
+						`insert into role_permissions (role_id, permission_id, created_at, updated_at, active, status)
+values (?, ?, now(), now(), ?, ?)`,
+						[newRole.id, sp.id, sp.active ?? false, sp.status ?? false],
 					)
 						.useTransaction(trx)
 						.exec();
@@ -216,8 +217,8 @@ values (?, ?, now(), now())`,
 				data.profiles.map((p) =>
 					Database.rawQuery(
 						`insert into role_profile_accesses (role_id, profile_access_id, active, created_at, type)
-values (?, ?, true, now(), 'user')`,
-						[role.id, p.id],
+values (?, ?, ?, now(), 'user')`,
+						[role.id, p.id, p.active],
 					)
 						.useTransaction(trx)
 						.exec(),
@@ -232,12 +233,12 @@ values (?, ?, true, now(), 'user')`,
 				.exec();
 
 			const tasks = data.screens
-				.flatMap((s) => s.permissions.map((sp) => sp.id))
-				.map(async (permissionID) => {
+				.flatMap((s) => s.permissions.map((sp) => sp))
+				.map(async (sp) => {
 					return Database.rawQuery(
-						`insert into role_permissions (role_id, permission_id, created_at, updated_at)
-values (?, ?, now(), now())`,
-						[role.id, permissionID],
+						`insert into role_permissions (role_id, permission_id, created_at, updated_at, active, status)
+values (?, ?, now(), now(), ?, ?)`,
+						[role.id, sp.id, sp.active ?? false, sp.status ?? false],
 					)
 						.useTransaction(trx)
 						.exec();
@@ -358,7 +359,7 @@ values (?, ?, now(), now())`,
 			.select(
 				Database.raw(`profile_accesses.id,
        profile_accesses.description,
-       case when role_profile_accesses.role_id is not null then true else false end as active`),
+       case when role_profile_accesses.role_id is not null then role_profile_accesses.active else false end as active`),
 			)
 			.joinRaw(
 				`left join role_profile_accesses
@@ -402,6 +403,7 @@ values (?, ?, now(), now())`,
 			description: string;
 			control_id: string;
 			active: boolean;
+			status: boolean;
 		}[] = await Database.from("screens")
 			.select(
 				Database.raw(`screens.id as sid,
@@ -409,7 +411,8 @@ values (?, ?, now(), now())`,
        permissions.id as pid,
        permissions.description,
        permissions.control_id,
-       role_permissions.active`),
+       role_permissions.active,
+       role_permissions.status`),
 			)
 			.joinRaw("join permissions on screens.id = permissions.screen_id")
 			.joinRaw(
@@ -444,6 +447,7 @@ values (?, ?, now(), now())`,
 							description: curr.description,
 							controlId: curr.control_id,
 							active: curr.active,
+							status: curr.status,
 						});
 						return sc;
 					});
@@ -456,6 +460,7 @@ values (?, ?, now(), now())`,
 						description: string;
 						controlId: string;
 						active: boolean;
+						status: boolean;
 					}[];
 				}[],
 			),
@@ -508,6 +513,7 @@ values (?, ?, now(), now())`,
 			description: string;
 			control_id: string;
 			active: boolean;
+			status: boolean;
 		}[] = await Database.from("screens")
 			.select(
 				Database.raw(`screens.id as sid,
@@ -515,7 +521,8 @@ values (?, ?, now(), now())`,
        permissions.id as pid,
        permissions.description,
        permissions.control_id,
-       true as active`),
+       true as active,
+       true as status`),
 			)
 			.joinRaw("join permissions on screens.id = permissions.screen_id")
 			.joinRaw(
@@ -550,6 +557,7 @@ values (?, ?, now(), now())`,
 							description: curr.description,
 							controlId: curr.control_id,
 							active: curr.active,
+							status: curr.status,
 						});
 						return sc;
 					});
@@ -562,6 +570,7 @@ values (?, ?, now(), now())`,
 						description: string;
 						controlId: string;
 						active: boolean;
+						status: boolean;
 					}[];
 				}[],
 			),

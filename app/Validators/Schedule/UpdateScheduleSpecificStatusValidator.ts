@@ -16,6 +16,8 @@ export default class UpdateScheduleSpecificStatusValidator {
 			rules.uuid(),
 			rules.exists({ table: "schedule_statuses", column: "id" }),
 		]),
+		userEmail: schema.string.optional([rules.email()]),
+		userPwd: schema.string.optional(),
 
 		reasonId: schema.string.optional({}, [
 			rules.uuid(),

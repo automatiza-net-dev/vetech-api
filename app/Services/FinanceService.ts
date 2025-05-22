@@ -842,7 +842,7 @@ export default class FinanceService {
 			}
 
 			if (data.checkingAccountId) {
-				qb.where("borderos.checking_account_id", data.checkingAccountId);
+				builder.where("borderos.checking_account_id", data.checkingAccountId);
 			}
 
 			if (data.fromExpirationDate) {

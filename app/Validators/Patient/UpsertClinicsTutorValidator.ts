@@ -27,7 +27,7 @@ export default class UpsertClinicsTutorValidator {
 		name: schema.string({}),
 		corporateName: schema.string.optional({}),
 		tag: schema.string.optional({}),
-		document: schema.string({}, []),
+		document: schema.string.optional({}, []),
 	});
 
 	/**

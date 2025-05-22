@@ -105,9 +105,9 @@ export default class PatientTutorsController {
 			if (origin === "" || origin === "Cadastro") {
 				if (authCtx.system.type === "Vet") {
 					await ctx.request.validate(CreateSanclaTutorForRegisterValidator);
-				}
-
-				if (authCtx.system.type !== "Vet") {
+				} else if (authCtx.system.type === "Clinicas") {
+					await ctx.request.validate(UpsertClinicsTutorValidator);
+				} else {
 					await ctx.request.validate(CreateLiftOneTutorForRegisterValidator);
 					await ctx.request.validate(UpsertClinicsTutorValidator);
 				}
@@ -177,9 +177,9 @@ export default class PatientTutorsController {
 			if (origin === "" || origin === "Cadastro") {
 				if (authCtx.system.type === "Vet") {
 					await request.validate(UpdateSanclaTutorForRegisterValidator);
-				}
-
-				if (authCtx.system.type !== "Vet") {
+				} else if (authCtx.system.type === "Clinicas") {
+					await request.validate(UpsertClinicsTutorValidator);
+				} else {
 					await request.validate(UpdateLiftOneTutorForRegisterValidator);
 					await request.validate(UpsertClinicsTutorValidator);
 				}

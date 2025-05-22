@@ -140,6 +140,8 @@ export default class FinancesController {
 				internalCode: qs.internalCode,
 
 				groupBorderos: qs.groupBorderos,
+
+				checkingAccountId: qs.checkingAccountId,
 			},
 		);
 

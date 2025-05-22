@@ -765,10 +765,6 @@ export default class FinanceService {
 			qb.where("finances.competence_date", data.competence);
 		}
 
-		if (data.checkingAccountId) {
-			qb.where("finances.checking_account_id", data.checkingAccountId);
-		}
-
 		if (data.tefFlagId) {
 			qb.where("finances.tef_flag_id", data.tefFlagId);
 		}

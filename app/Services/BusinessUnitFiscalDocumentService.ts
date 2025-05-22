@@ -115,6 +115,7 @@ export default class BusinessUnitFiscalDocumentService {
 	async search(unitId: string, data: ISearchDocument) {
 		const qb = BusinessUnitFiscalDocument.query()
 			.preload("fiscalDocument")
+			.orderByRaw("model, movement_type , document_type")
 			.where("business_unit_id", unitId);
 
 		if (data.document) {

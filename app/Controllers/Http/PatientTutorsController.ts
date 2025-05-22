@@ -13,7 +13,8 @@ import UpdateLiftOneTutorForRegisterValidator from "App/Validators/Patient/Updat
 import UpdatePatientWithTutorValidator from "App/Validators/Patient/UpdatePatientWithTutorValidator";
 import UpdateSanclaTutorForGenericValidator from "App/Validators/Patient/UpdateSanclaTutorForGenericValidator";
 import UpdateSanclaTutorForRegisterValidator from "App/Validators/Patient/UpdateSanclaTutorForRegisterValidator";
-import UpsertClinicsTutorValidator from "App/Validators/Patient/UpsertClinicsTutorValidator";
+import CreateClinicsTutorValidator from "App/Validators/Patient/CreateClinicsTutorValidator";
+import UpdateClinicsTutorValidator from "App/Validators/Patient/UpdateClinicsTutorValidator";
 
 @inject()
 export default class PatientTutorsController {
@@ -106,7 +107,7 @@ export default class PatientTutorsController {
 				if (authCtx.system.type === "Vet") {
 					await ctx.request.validate(CreateSanclaTutorForRegisterValidator);
 				} else if (authCtx.system.type === "Varejo") {
-					await ctx.request.validate(UpsertClinicsTutorValidator);
+					await ctx.request.validate(CreateClinicsTutorValidator);
 				} else {
 					await ctx.request.validate(CreateLiftOneTutorForRegisterValidator);
 				}
@@ -177,7 +178,7 @@ export default class PatientTutorsController {
 				if (authCtx.system.type === "Vet") {
 					await request.validate(UpdateSanclaTutorForRegisterValidator);
 				} else if (authCtx.system.type === "Varejo") {
-					await request.validate(UpsertClinicsTutorValidator);
+					await request.validate(UpdateClinicsTutorValidator);
 				} else {
 					await request.validate(UpdateLiftOneTutorForRegisterValidator);
 				}
@@ -185,7 +186,7 @@ export default class PatientTutorsController {
 				if (authCtx.system.type === "Vet") {
 					await request.validate(UpdateSanclaTutorForGenericValidator);
 				} else if (authCtx.system.type === "Varejo") {
-					await request.validate(UpsertClinicsTutorValidator);
+					await request.validate(UpdateClinicsTutorValidator);
 				} else {
 					await request.validate(UpdateLiftOneTutorForGenericValidator);
 				}

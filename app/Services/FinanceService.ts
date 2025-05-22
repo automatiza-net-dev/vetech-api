@@ -74,6 +74,7 @@ interface ISearch {
 	historic?: string;
 
 	groupBorderos?: string;
+	checkingAccountId?: string;
 }
 
 @inject()
@@ -276,6 +277,10 @@ export default class FinanceService {
 			financesQb.where("competence_date", data.competence);
 		}
 
+		if (data.checkingAccountId) {
+			financesQb.where("finances.checking_account_id", data.checkingAccountId);
+		}
+
 		const [finances, borderos] = await Promise.all([financesQb, borderosQb]);
 		return [...finances, ...borderos];
 	}
@@ -426,6 +431,10 @@ export default class FinanceService {
 
 		if (data.competence) {
 			qb.where("finances.competence_date", data.competence);
+		}
+
+		if (data.checkingAccountId) {
+			qb.where("finances.checking_account_id", data.checkingAccountId);
 		}
 
 		if (!data.order || data.order === "expiration_date") {
@@ -611,7 +620,6 @@ export default class FinanceService {
 	async groupedIndex(
 		authCtx: AuthContext,
 		data: ISearch & {
-			checkingAccountId?: string;
 			tefFlagId?: string;
 			tefAcquirerId?: string;
 		},

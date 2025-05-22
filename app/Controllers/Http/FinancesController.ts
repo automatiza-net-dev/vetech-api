@@ -59,6 +59,7 @@ export default class FinancesController {
 			competence: qs.competence,
 			historic: qs.historic,
 			internalCode: qs.internalCode,
+			checkingAccountId: qs.checkingAccountId,
 		});
 
 		return response.ok(result);
@@ -100,6 +101,8 @@ export default class FinancesController {
 			internalCode: qs.internalCode,
 
 			groupBorderos: qs.groupBorderos,
+
+			checkingAccountId: qs.checkingAccountId,
 		});
 
 		return response.ok(result);

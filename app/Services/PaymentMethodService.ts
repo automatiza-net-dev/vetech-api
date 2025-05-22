@@ -122,9 +122,11 @@ export default class PaymentMethodService {
 			...r.toJSON(),
 			flags: r.flags.map((f) => ({
 				...f.toJSON(),
-				flag: Object.assign(f.flag.toJSON(), {
-					description: `${f.flag.description} - ${f.acquirer.description}`,
-				}),
+				flag: f.flag
+					? Object.assign(f.flag.toJSON(), {
+							description: `${f.flag.description} - ${f.acquirer.description}`,
+						})
+					: null,
 			})),
 		}));
 	}

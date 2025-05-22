@@ -773,6 +773,10 @@ export default class FinanceService {
 			qb.where("finances.tef_flag_id", data.tefFlagId);
 		}
 
+		if (data.checkingAccountId) {
+			qb.where("finances.checking_account_id", data.checkingAccountId);
+		}
+
 		qb.union((builder) => {
 			builder
 				.from("borderos")
@@ -835,6 +839,10 @@ export default class FinanceService {
 
 			if (data.toIssueDate) {
 				builder.whereRaw("borderos.issue_date::date <= ?", [data.toIssueDate]);
+			}
+
+			if (data.checkingAccountId) {
+				qb.where("borderos.checking_account_id", data.checkingAccountId);
 			}
 
 			if (data.fromExpirationDate) {

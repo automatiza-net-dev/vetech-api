@@ -5,7 +5,6 @@ import { TutorResidences } from "App/Models/PatientTutor";
 
 export default class UpdateLiftOneTutorForRegisterValidator {
 	constructor(protected ctx: HttpContextContract) {
-		console.log("lift one for register");
 	}
 
 	/*

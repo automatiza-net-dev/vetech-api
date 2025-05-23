@@ -114,7 +114,7 @@ export default class DocumentTemplateService {
 		const urlMap = await SharedService.ComputePublicS3Link([key]);
 
 		return {
-			url: urlMap[key] ?? null,
+			url: urlMap.at(0)?.view ?? null,
 		};
 	}
 

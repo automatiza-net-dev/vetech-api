@@ -796,7 +796,7 @@ export default class PatientService {
 			id: patient.id,
 			name: patient.name,
 			type: patient.type,
-			photo: s3Urls[patient?.photo ?? "NOT"] ?? null,
+			photo: s3Urls.at(0)?.view ?? null,
 			gender: patient.gender,
 			genderText: patient.gender,
 			tags: patient.tags,
@@ -980,7 +980,7 @@ export default class PatientService {
 			tag: patient.tag,
 			clientOriginId: patient.tutor.client_origin_id,
 			clientOriginItemDescription: patient.clientOriginItemDescription,
-			photo: patient.photo ? (s3Urls[patient.photo] ?? null) : null,
+			photo: s3Urls.at(0)?.view ?? null,
 			gender: patient.gender,
 			tags: patient.tags,
 			birthDate: patient.birthDate

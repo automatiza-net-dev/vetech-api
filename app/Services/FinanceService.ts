@@ -1437,7 +1437,7 @@ tef_flags.description as tef_flag, payment_methods.tef as pm_tef, payment_method
 					`
       update finances
       set status              = 'BAIXADO',
-          payment_date        = coalesce(${data.paymentDate ? `'${data.paymentDate.toSQL()}'` : null}, finances.payment_date),
+          payment_date        = coalesce(${data.paymentDate ? `'${data.paymentDate.toSQL()}'` : null}, now()),
           payment_value       = total_value,
           down_date           = now(),
           origin_down_flag    = 'FINANCEIRO',
@@ -1479,7 +1479,7 @@ tef_flags.description as tef_flag, payment_methods.tef as pm_tef, payment_method
 				`
       update finances
       set status              = 'BAIXADO',
-          payment_date        = coalesce(${data.paymentDate ? `'${data.paymentDate.toSQL()}'` : null}, finances.payment_date),
+          payment_date        = coalesce(${data.paymentDate ? `'${data.paymentDate.toSQL()}'` : null}, now()),
           payment_value       = total_value,
           down_date           = now(),
           origin_down_flag    = 'FINANCEIRO',

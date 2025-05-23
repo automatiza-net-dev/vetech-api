@@ -905,65 +905,35 @@ export default class FinanceService {
 			builder
 				.from("finances")
 				.select(
-					Database.raw(`
-                       null                           as id,
-       finances.type,
-       'GROUP'                        as source,
-       'Cartoes'                      as document,
-       1                              as installment,
-       null                           as issue_date,
-       finances.expiration_date::date as expiration_date,
-       finances.payment_date::date    as payment_date,
-       sum(finances.value)            as value,
-       sum(finances.total_value)      as total_value,
-       sum(finances.payment_value)    as payment_value,
-       null as historic,
-       null                           as origin_flag,
-       null                           as origin_down_flag,
-       null                           as accept,
-       finances.status                as status,
-       null                           as competence_date,
-       null                           as nsu_document,
-       count(finances.id)             as qty_installments,
-       null                           as bordero_id,
---       case when tef_acquirers.description <> '' and tef_acquirers.description is not null then tef_acquirers.description else 'Adq. Cartões' end    as client,
-       coalesce(tef_acquirers.description, 'Adq. Cartões') as client,
-       finances.payment_method_id,
-       payment_methods.description    as payment_method,
-       finances.tef_flag_id,
-       tef_flags.description          as tef_flag,
-       payment_methods.tef            as pm_tef,
-       payment_methods.type           as pm_type,
-       tef_acquirers.description    as tef_adquirente,
-       tef_acquirers.id as tef_adquirente_id,
-       payment_methods.checking_account_id as payment_methods_checking_account_id
-                       `),
+					Database.raw(`null as id, finances.type, 'GROUP' as source, 'Cartoes' as document, 1 as installment, null as issue_date, finances.expiration_date::date as expiration_date,
+ finances.payment_date::date as payment_date, sum(finances.value) as value, sum(finances.total_value) as total_value, sum(finances.payment_value) as payment_value,
+ null as historic, null as origin_flag, null as origin_down_flag, null as accept, finances.status as status, null as competence_date, null as nsu_document,
+ count(finances.id) as qty_installments, null as bordero_id,
+ coalesce(tef_acquirers.description, 'Adq. Cartões') as client, finances.payment_method_id, payment_methods.description as payment_method,
+ finances.tef_flag_id, coalesce(tef_flags.description, 'Bandeira Não Informada') as tef_flag, payment_methods.tef as pm_tef, payment_methods.type as pm_type,
+ coalesce(tef_acquirers.description, 'Adquirente Não Informada') as tef_adquirente,
+ tef_acquirers.id as tef_adquirente_id, payment_methods.checking_account_id as payment_methods_checking_account_id`),
 				)
 				.joinRaw(
 					"join payment_methods on finances.payment_method_id = payment_methods.id",
 					[],
 				)
-				.joinRaw("join tef_flags on finances.tef_flag_id = tef_flags.id", [])
 				.joinRaw(
-					`left join payment_method_flags
-                   on finances.payment_method_id = payment_method_flags.payment_method_id and
-                      finances.tef_flag_id = payment_method_flags.tef_flag_id`,
+					"left join tef_flags on finances.tef_flag_id = tef_flags.id",
 					[],
 				)
 				.joinRaw(
-					"join tef_acquirers on payment_method_flags.tef_acquirer_id = tef_acquirers.id",
+					"left join tef_acquirers on finances.acquirer_id = tef_acquirers.id",
 					[],
 				)
 				.whereNull("finances.deleted_at")
 				.whereIn("finances.business_unit_id", units)
 				.whereNot("payment_methods.tef", PaymentMethodTef.N)
-				.whereNot("finances.status", FinanceStatus.E)
 				.whereNull("finances.bordero_id")
 				.groupByRaw(
-					`finances.type, finances.expiration_date::date, finances.payment_date::date, finances.status,
-         finances.payment_method_id,
-         payment_methods.description, finances.tef_flag_id, tef_flags.description, payment_methods.tef,
-         payment_methods.type, tef_acquirers.description, tef_acquirers.id, payment_methods.checking_account_id `,
+					`finances.type, finances.expiration_date::date, finances.payment_date::date, finances.status, finances.payment_method_id,
+ payment_methods.description, finances.tef_flag_id, coalesce(tef_flags.description, 'Bandeira Não Informada'), payment_methods.tef,
+ payment_methods.type, coalesce(tef_acquirers.description, 'Adquirente Não Informada'), tef_acquirers.id, payment_methods.checking_account_id `,
 					[],
 				);
 
@@ -1074,38 +1044,11 @@ export default class FinanceService {
 	) {
 		const qb = Database.from("finances")
 			.select(
-				Database.raw(`finances.id,
-		 finances.type,
-		 'FINANCE'                   as source,
-		 finances.document,
-		 finances.installment,
-		 finances.issue_date,
-		 finances.expiration_date,
-		 finances.payment_date,
-		 finances.value,
-		 finances.total_value,
-		 finances.payment_value,
-		 finances.origin_flag,
-		 finances.origin_down_flag,
-		 finances.accept,
-		 finances.status,
-		 finances.competence_date,
-		 finances.nsu_document,
-		 finances.qty_installments,
-		 finances.bordero_id,
-		 finances.original_value,
-		 finances.fee_discount_value,
-		 finances.fee_discount_percentage,
-		 finances.fee_value,
-		 finances.fee_percentage,
-		 finances.discount_value,
-		 finances.discount_percentage,
-		 patients.name               as client,
-		 payment_methods.description as payment_method,
-		 tef_flags.description       as tef_flag,
-		 payment_methods.tef         as pm_tef,
-		 payment_methods.type        as pm_type,
-		 tef_acquirers.description   as tef_adquirente`),
+				Database.raw(`finances.id, finances.type, 'FINANCE' as source, finances.document, finances.installment, finances.issue_date, finances.expiration_date, finances.payment_date,
+finances.value, finances.total_value, finances.payment_value, finances.origin_flag, finances.origin_down_flag, finances.accept, finances.status, finances.competence_date,
+finances.nsu_document, finances.qty_installments, finances.bordero_id, finances.original_value, finances.fee_discount_value, finances.fee_discount_percentage,
+finances.fee_value, finances.fee_percentage, finances.discount_value, finances.discount_percentage, patients.name as client, payment_methods.description as payment_method,
+tef_flags.description as tef_flag, payment_methods.tef as pm_tef, payment_methods.type as pm_type, coalesce(tef_acquirers.description, 'Adquirente Não Informada') as tef_adquirente `),
 			)
 			.joinRaw("left join patients on finances.client_id = patients.id", [])
 			.joinRaw(
@@ -1114,13 +1057,7 @@ export default class FinanceService {
 			)
 			.joinRaw("left join tef_flags on finances.tef_flag_id = tef_flags.id", [])
 			.joinRaw(
-				`left join payment_method_flags
-								 on finances.payment_method_id = payment_method_flags.payment_method_id and
-										finances.tef_flag_id = payment_method_flags.tef_flag_id`,
-				[],
-			)
-			.joinRaw(
-				"left join tef_acquirers on payment_method_flags.tef_acquirer_id = tef_acquirers.id",
+				"left join tef_acquirers on finances.acquirer_id = tef_acquirers.id",
 				[],
 			)
 			.whereNull("finances.deleted_at")
@@ -1155,7 +1092,7 @@ export default class FinanceService {
 		}
 
 		if (data.tefAcquirerId) {
-			qb.where("payment_method_flags.tef_acquirer_id", data.tefAcquirerId);
+			qb.where("finances.acquirer_id", data.tefAcquirerId);
 		}
 
 		if (data.paymentMethodType) {

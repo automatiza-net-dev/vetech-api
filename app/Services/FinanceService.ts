@@ -285,7 +285,13 @@ export default class FinanceService {
 		return [...finances, ...borderos];
 	}
 
-	async reducedIndex(unitId: string, data: ISearch) {
+	async reducedIndex(
+		unitId: string,
+		data: ISearch & {
+			iterationDateFrom?: string;
+			iterationDateTo?: string;
+		},
+	) {
 		const units = [unitId];
 		if (data.unit) {
 			units.push(data.unit);
@@ -340,6 +346,18 @@ export default class FinanceService {
 			.joinRaw("left join users on finances.user_id = users.id", [])
 			.whereNull("finances.deleted_at")
 			.whereIn("finances.business_unit_id", units);
+
+		if (data.iterationDateFrom && data.iterationDateTo) {
+			qb.whereRaw(
+				"( ( finances.payment_date is not null and finances.payment_date between ? and ?) or (finances.payment_date is null and finances.expiration_date between ? and ? ) )",
+				[
+					data.iterationDateFrom,
+					data.iterationDateTo,
+					data.iterationDateFrom,
+					data.iterationDateTo,
+				],
+			);
+		}
 
 		if (data.ids && Array.isArray(data.ids)) {
 			qb.whereIn("finances.id", data.ids);
@@ -521,6 +539,18 @@ export default class FinanceService {
 					.whereIn("borderos.business_unit_id", units)
 					.whereNull("borderos.deleted_at");
 
+				if (data.iterationDateFrom && data.iterationDateTo) {
+					builder.whereRaw(
+						"( ( borderos.payment_date is not null and borderos.payment_date between ? and ?) or (borderos.payment_date is null and borderos.expiration_date between ? and ? ) )",
+						[
+							data.iterationDateFrom,
+							data.iterationDateTo,
+							data.iterationDateFrom,
+							data.iterationDateTo,
+						],
+					);
+				}
+
 				if (data.type) {
 					builder.whereILike("borderos.type", data.type);
 				}
@@ -622,6 +652,8 @@ export default class FinanceService {
 		data: ISearch & {
 			tefFlagId?: string;
 			tefAcquirerId?: string;
+			iterationDateFrom?: string;
+			iterationDateTo?: string;
 		},
 	) {
 		const units = [authCtx.unit.id];
@@ -675,6 +707,18 @@ export default class FinanceService {
 			.whereNot("finances.status", FinanceStatus.E)
 			.whereNull("finances.bordero_id")
 			.where("payment_methods.tef", PaymentMethodTef.N);
+
+		if (data.iterationDateFrom && data.iterationDateTo) {
+			qb.whereRaw(
+				"( ( finances.payment_date is not null and finances.payment_date between ? and ?) or (finances.payment_date is null and finances.expiration_date between ? and ? ) )",
+				[
+					data.iterationDateFrom,
+					data.iterationDateTo,
+					data.iterationDateFrom,
+					data.iterationDateTo,
+				],
+			);
+		}
 
 		if (data.fromIssueDate) {
 			qb.whereRaw("finances.issue_date::date >= ?", [data.fromIssueDate]);
@@ -823,6 +867,18 @@ export default class FinanceService {
 				.whereNull("borderos.deleted_at")
 				.whereNot("borderos.status", "Excluido" as TBorderoStatus);
 
+			if (data.iterationDateFrom && data.iterationDateTo) {
+				builder.whereRaw(
+					"( ( borderos.payment_date is not null and borderos.payment_date between ? and ?) or (borderos.payment_date is null and borderos.expiration_date between ? and ? ) )",
+					[
+						data.iterationDateFrom,
+						data.iterationDateTo,
+						data.iterationDateFrom,
+						data.iterationDateTo,
+					],
+				);
+			}
+
 			if (data.type) {
 				builder.whereILike("borderos.type", data.type);
 			}
@@ -936,6 +992,18 @@ export default class FinanceService {
  payment_methods.type, coalesce(tef_acquirers.description, 'Adquirente Não Informada'), tef_acquirers.id, payment_methods.checking_account_id `,
 					[],
 				);
+
+			if (data.iterationDateFrom && data.iterationDateTo) {
+				qb.whereRaw(
+					"( ( finances.payment_date is not null and finances.payment_date between ? and ?) or (finances.payment_date is null and finances.expiration_date between ? and ? ) )",
+					[
+						data.iterationDateFrom,
+						data.iterationDateTo,
+						data.iterationDateFrom,
+						data.iterationDateTo,
+					],
+				);
+			}
 
 			if (data.fromIssueDate) {
 				builder.whereRaw("finances.issue_date::date >= ?", [

@@ -103,6 +103,9 @@ export default class FinancesController {
 			groupBorderos: qs.groupBorderos,
 
 			checkingAccountId: qs.checkingAccountId,
+
+			iterationDateTo: qs.iterationDateTo,
+			iterationDateFrom: qs.iterationDateFrom,
 		});
 
 		return response.ok(result);
@@ -145,6 +148,9 @@ export default class FinancesController {
 				groupBorderos: qs.groupBorderos,
 
 				checkingAccountId: qs.checkingAccountId,
+
+				iterationDateTo: qs.iterationDateTo,
+				iterationDateFrom: qs.iterationDateFrom,
 			},
 		);
 

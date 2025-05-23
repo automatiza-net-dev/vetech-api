@@ -987,36 +987,55 @@ export default class OpportunityService {
 		}
 
 		if (data.dateFrom && data.dateTo) {
-			qb.whereRaw(
-				`(
-    (opportunities.opening_date::date between ? and ?)
-        or (opportunities.id in (select distinct opportunity_id
-                                 from schedules
-                                          left join (schedule_status_changes join schedule_statuses
-                                                     on schedule_status_changes.schedule_status_id =
-                                                        schedule_statuses.id and schedule_statuses.type in ('REC'))
-                                                    on schedules.id = schedule_status_changes.schedule_id
-                                 where schedules.opportunity_id = opportunities.id
-                                   and (schedules.start_hour::date between ? and ?
-                                     or
-                                        schedule_status_changes.created_at::date between ? and ?)))
-                              or (opportunities.id in (select distinct opportunity_id
-                             from opportunity_logs ol
-                                      join crm_statuses cs on ol.status_id = cs.id and cs.tag = 'A'
-                             where ol.created_at::date between ? and ?)
-           )
-      )`,
-				[
-					data.dateFrom,
-					data.dateTo,
-					data.dateFrom,
-					data.dateTo,
-					data.dateFrom,
-					data.dateTo,
-					data.dateFrom,
-					data.dateTo,
-				],
-			);
+			qb.with("schedule_opportunities", (cte) => {
+				cte
+					.select(Database.raw("DISTINCT opportunity_id"))
+					.from("schedules")
+					.joinRaw(
+						`JOIN (schedule_status_changes JOIN schedule_statuses
+                                                 on (schedule_statuses.economic_group_id = ? or
+                                                     (schedule_statuses.economic_group_id is null and
+                                                      schedule_statuses.system_id = ?)) and
+                                                    schedule_status_changes.schedule_status_id =
+                                                    schedule_statuses.id AND schedule_statuses.type IN ('REC'))
+                                                ON schedules.id = schedule_status_changes.schedule_id`,
+						[authCtx.group.id, authCtx.system.id],
+					)
+					.whereRaw(
+						`(schedules.start_hour::date BETWEEN ? AND ?
+                                    OR schedule_status_changes.created_at::date BETWEEN ? AND ?)`,
+						[
+							data.dateFrom ?? "",
+							data.dateTo ?? "",
+							data.dateFrom ?? "",
+							data.dateTo ?? "",
+						],
+					);
+			})
+				.with("log_opportunities", (cte) => {
+					cte
+						.select(Database.raw("DISTINCT opportunity_id"))
+						.from("opportunity_logs")
+						.joinRaw(
+							`JOIN crm_statuses cs ON opportunity_logs.status_id = cs.id AND cs.tag = 'A' and cs.system_id = ?`,
+							[authCtx.system.id],
+						)
+						.whereRaw("(opportunity_logs.created_at::date BETWEEN ? AND ?)", [
+							data.dateFrom ?? "",
+							data.dateTo ?? "",
+						])
+						.whereRaw("opportunity_logs.economic_group_id = ?", [
+							authCtx.group.id,
+						]);
+				})
+				.whereRaw(
+					`(
+    (opportunities.opening_date::date BETWEEN ? AND ?)
+        OR (opportunities.id IN (SELECT opportunity_id FROM schedule_opportunities))
+        OR (opportunities.id IN (SELECT opportunity_id FROM log_opportunities))
+    )`,
+					[data.dateFrom, data.dateTo],
+				);
 		}
 
 		if (data.contactName) {

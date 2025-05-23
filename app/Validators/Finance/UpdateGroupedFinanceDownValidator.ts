@@ -49,6 +49,7 @@ export default class UpdateGroupedFinanceDownValidator {
 		]),
 		type: schema.enum.nullableAndOptional(Object.values(FinanceType)),
 		expirationDate: schema.date.nullableAndOptional(),
+		paymentDate: schema.date.nullableAndOptional(),
 	});
 
 	/**

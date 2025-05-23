@@ -991,12 +991,16 @@ export default class OpportunityService {
 				cte
 					.select(Database.raw("DISTINCT opportunity_id"))
 					.from("schedules")
-					.joinRaw(`LEFT JOIN (
-                                    schedule_status_changes
-                                        JOIN schedule_statuses
-                                    ON schedule_status_changes.schedule_status_id = schedule_statuses.id
-                                        AND schedule_statuses.type IN ('REC')
-                                    ) ON schedules.id = schedule_status_changes.schedule_id`)
+					.joinRaw(
+						`JOIN (schedule_status_changes JOIN schedule_statuses
+                                                 on (schedule_statuses.economic_group_id = ? or
+                                                     (schedule_statuses.economic_group_id is null and
+                                                      schedule_statuses.system_id = ?)) and
+                                                    schedule_status_changes.schedule_status_id =
+                                                    schedule_statuses.id AND schedule_statuses.type IN ('REC'))
+                                                ON schedules.id = schedule_status_changes.schedule_id`,
+						[authCtx.group.id, authCtx.system.id],
+					)
 					.whereRaw(
 						`(schedules.start_hour::date BETWEEN ? AND ?
                                     OR schedule_status_changes.created_at::date BETWEEN ? AND ?)`,
@@ -1013,12 +1017,16 @@ export default class OpportunityService {
 						.select(Database.raw("DISTINCT opportunity_id"))
 						.from("opportunity_logs")
 						.joinRaw(
-							`JOIN crm_statuses cs ON opportunity_logs.status_id = cs.id AND cs.tag = 'A'`,
+							`JOIN crm_statuses cs ON opportunity_logs.status_id = cs.id AND cs.tag = 'A' and cs.system_id = ?`,
+							[authCtx.system.id],
 						)
-						.whereRaw(
-							"(opportunity_logs.created_at::date BETWEEN ? AND ?)",
-							[data.dateFrom ?? "", data.dateTo ?? ""],
-						);
+						.whereRaw("(opportunity_logs.created_at::date BETWEEN ? AND ?)", [
+							data.dateFrom ?? "",
+							data.dateTo ?? "",
+						])
+						.whereRaw("opportunity_logs.economic_group_id = ?", [
+							authCtx.group.id,
+						]);
 				})
 				.whereRaw(
 					`(

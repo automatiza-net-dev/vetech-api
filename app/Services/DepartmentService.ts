@@ -50,7 +50,7 @@ export default class DepartmentService {
 			businessUnitId: r.business_unit_id,
 			departmentId: r.id,
 			description: r.description,
-			image: r.image ? (s3Urls[r.image] ?? null) : null,
+			image: r.image ? s3Urls.find((s3) => s3.key === r.image)?.view : null,
 		}));
 	}
 
@@ -113,7 +113,7 @@ export default class DepartmentService {
 			business_unit_id: r.business_unit_id,
 			id: r.id,
 			description: r.description,
-			image: r.image ? (s3Urls[r.image] ?? null) : null,
+			image: s3Urls.find((s3) => s3.key === r.image)?.view ?? null,
 			active: r.active,
 			created_at: r.createdAt,
 			create_user_id: r.creationUser.id,
@@ -345,7 +345,7 @@ export default class DepartmentService {
 			...row,
 			items: row.items.map((r2) => ({
 				...r2,
-				photo: r2.photo ? (s3Urls[r2.photo] ?? null) : null,
+				photo: r2.photo ? s3Urls.find((s3) => s3.key === r2.photo)?.view : null,
 			})),
 		};
 	}
@@ -438,7 +438,7 @@ order by products.description ) deptProd_temp  on departments.id = deptProd_temp
 			image: s3Urls[row.image] ?? null,
 			items: row.items.map((it) => ({
 				...it,
-				photo: s3Urls[it.photo] ?? null,
+				photo: it.photo ? s3Urls.find((s3) => s3.key === it.photo)?.view : null,
 			})),
 			products: products.find((pr) => pr.id === row.id)?.products ?? [],
 		}));

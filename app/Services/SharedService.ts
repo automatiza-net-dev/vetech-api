@@ -115,9 +115,15 @@ export default class SharedService {
 		holders: "Tutores",
 	} as const;
 
-	public static async ComputePublicS3Link(keys: string[]) {
+	public static async ComputePublicS3Link(keys: string[]): Promise<
+		{
+			key: string;
+			view: string;
+			download: string;
+		}[]
+	> {
 		if (keys.length === 0) {
-			return {};
+			return [];
 		}
 
 		// const existingKeys = await S3Cache.query()

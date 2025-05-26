@@ -220,7 +220,7 @@ export default class BillService {
 			}
 
 			if (data.status) {
-				qb.where("status", data.status);
+				qb.where("bills.status", data.status);
 			}
 
 			if (data.client) {
@@ -767,7 +767,7 @@ export default class BillService {
 					client_id: data.clientId,
 					patient_id: data.patientId,
 					financial_responsible_id: data.financialResponsibleId,
-          bill_related_type_id: data.billRelatedTypeId,
+					bill_related_type_id: data.billRelatedTypeId,
 					additionalInformation: data.additionalInformation,
 					internalCode: data.internalCode,
 

@@ -959,6 +959,14 @@ export default class FinanceService {
 			if (data.competence) {
 				builder.where("borderos.competence_date", data.competence);
 			}
+
+			if (data.tefFlagId) {
+				builder.where("borderos.tef_flag_id", data.tefFlagId);
+			}
+
+			if (data.tefAcquirerId) {
+				builder.where("borderos.tef_acquirer_id", data.tefAcquirerId);
+			}
 		});
 
 		qb.union((builder) => {

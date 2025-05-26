@@ -88,6 +88,18 @@ export default class AuthService {
 					"requires_finance_client",
 					"alter_prices",
 					"requires_client_document",
+					"schedule_late_minutes",
+					"schedule_missed_minutes",
+					"integrates_to_crm_schedules",
+					"generates_finances_on_receipts_finish",
+					"treatment",
+					"crm_useful_days",
+					"reviewer",
+					"internal_code",
+					"sync_schedule_movements",
+					"sync_crm_schedules",
+					"budgets_payments_required",
+					"config",
 				]);
 			})
 			.firstOrFail();
@@ -168,10 +180,58 @@ export default class AuthService {
 		const uniqueControls = Array.from(new Set(controlIds));
 
 		return {
-			user,
-			unit,
+			user: {
+				id: user.id,
+				name: user.name,
+				email: user.email,
+				document: user.document,
+				phone: user.phone,
+				profile_picture: user.profilePicture ?? null,
+				postal_code: user.postalCode,
+				address: user.address,
+				number: user.number,
+				complement: user.complement,
+				district: user.district,
+				city: user.city,
+				state: user.state,
+				licensing_job: user.licensingJob,
+				inscription: user.inscription,
+				birth_date: user.birthDate,
+				on_duty: user.onDuty,
+				type: user.type,
+			},
+			unit: {
+				id: unit.id,
+				unitConfig: {
+					interval: unit.unitConfig.interval,
+					alter_prices: unit.unitConfig.alterPrices ?? false,
+					requires_client_document:
+						unit.unitConfig.requiresClientDocument ?? false,
+					allow_change_schedule_duration:
+						unit.unitConfig.allowChangeScheduleDuration ?? false,
+					reviewer: unit.unitConfig.reviewer,
+					internalCode: unit.unitConfig.internalCode,
+					syncScheduleMovements: unit.unitConfig.syncScheduleMovements,
+					syncCrmSchedules: unit.unitConfig.syncCrmSchedules,
+					budgetsPaymentsRequired: unit.unitConfig.budgetsPaymentsRequired,
+				},
+				configs: unit.unitConfig.config,
+				phone: unit.phone,
+				fantasy_name: unit.fantasyName,
+				address: unit.address,
+				complement: unit.complement,
+				district: unit.district,
+				city: unit.city,
+				state: unit.state,
+				economicGroup: { id: unit.economicGroupId },
+				system: {
+					id: unit.economicGroup.system.id,
+					type: unit.economicGroup.system.type,
+				},
+			},
 			url: unit.economicGroup.system.systemUrls.at(0) ?? null,
 			cl: uniqueControls,
+			isThirdParty: false,
 		};
 	}
 

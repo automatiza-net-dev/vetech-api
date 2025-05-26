@@ -671,7 +671,7 @@ export default class FinanceService {
        finances.installment,
        finances.issue_date::date as issue_date,
        finances.expiration_date::date as expiration_date,
-       finances.payment_date,
+       finances.payment_date - interval '3 hours' as payment_date,
        finances.value,
        finances.total_value,
        finances.payment_value,

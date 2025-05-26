@@ -149,6 +149,9 @@ export default class FinancesController {
 
 				checkingAccountId: qs.checkingAccountId,
 
+				tefAcquirerId: qs.tefAcquirerId,
+				tefFlagId: qs.tefFlagId,
+
 				iterationDateTo: qs.iterationDateTo,
 				iterationDateFrom: qs.iterationDateFrom,
 			},

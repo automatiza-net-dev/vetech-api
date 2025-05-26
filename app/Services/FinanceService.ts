@@ -814,7 +814,7 @@ export default class FinanceService {
 		}
 
 		if (data.tefAcquirerId) {
-			qb.where("finances.tef_acquirer_id", data.tefAcquirerId);
+			qb.where("finances.acquirer_id", data.tefAcquirerId);
 		}
 
 		if (data.checkingAccountId) {
@@ -1098,7 +1098,7 @@ export default class FinanceService {
 			}
 
 			if (data.tefAcquirerId) {
-				builder.where("finances.tef_acquirer_id", data.tefAcquirerId);
+				builder.where("finances.acquirer_id", data.tefAcquirerId);
 			}
 		});
 

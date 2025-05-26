@@ -1006,7 +1006,7 @@ export default class FinanceService {
 				);
 
 			if (data.iterationDateFrom && data.iterationDateTo) {
-				qb.whereRaw(
+				builder.whereRaw(
 					"( ( finances.payment_date is not null and finances.payment_date between ? and ?) or (finances.payment_date is null and finances.expiration_date between ? and ? ) )",
 					[
 						data.iterationDateFrom,

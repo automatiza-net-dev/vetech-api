@@ -1717,7 +1717,7 @@ export default class ScheduleService {
 				[refStart, refEnd],
 			)
 			.where("user_unit_roles.unit_id", authCtx.unit.id)
-			.where("users.type", authCtx.user.type)
+			.where("users.type", "user")
 			.whereRaw(
 				"((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))",
 			)

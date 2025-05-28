@@ -399,9 +399,9 @@ export default class BusinessUnitFiscalDocumentService {
 				nfe_series: issuedDocument.series,
 				nfe_number: issuedDocument.sequence,
 				issuedAt:
-					issuedDocument.authorizationDate.minus({ hours: 3 }).toISO() ?? "",
+					issuedDocument.authorizationDate.toISO() ?? "",
 				authorizedAt:
-					issuedDocument.authorizationDate.minus({ hours: 3 }).toISO() ?? "",
+					issuedDocument.authorizationDate.toISO() ?? "",
 				purpose: issuedDocument.purpose,
 				finality: issuedDocument.finality,
 				accessKeyRef: issuedDocument.accessKeyRef,

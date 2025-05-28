@@ -365,7 +365,8 @@ export default class FocusNfeService {
 			// serie: data.nfe_series, // THIS
 			numero: rawPayload.nfe_number,
 			data_emissao: rawPayload.issuedAt,
-			data_entrada_saida: rawPayload.authorizedAt,
+			data_entrada_saida:
+				rawPayload.model === "65" ? undefined : rawPayload.authorizedAt,
 			tipo_documento: "1",
 			local_destino: "1", // doc
 			finalidade_emissao: rawPayload.finality.toString(),

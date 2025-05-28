@@ -220,7 +220,7 @@ export default class BillService {
 			}
 
 			if (data.status) {
-				qb.where("status", data.status);
+				qb.where("bills.status", data.status);
 			}
 
 			if (data.client) {
@@ -232,17 +232,17 @@ export default class BillService {
 			}
 
 			if (data.patientName) {
-				qb.whereRaw("(patient.name ilike ? and patient.type = ?)", [
-					`%${data.patientName?.replaceAll(" ", "%")}%`,
-					PatientType.ANIMAL,
-				]);
+				qb.whereRaw(
+					"(unaccent(lower(patient.name)) ilike unaccent(lower(?)) and patient.type = ?)",
+					[`%${data.patientName?.replaceAll(" ", "%")}%`, PatientType.ANIMAL],
+				);
 			}
 
 			if (data.clientName) {
-				qb.whereRaw("(client.name ilike ? and client.type = ?)", [
-					`%${data.clientName?.replaceAll(" ", "%")}%`,
-					PatientType.TUTOR,
-				]);
+				qb.whereRaw(
+					"(unaccent(lower(client.name)) ilike unaccent(lower(?)) and client.type = ?)",
+					[`%${data.clientName?.replaceAll(" ", "%")}%`, PatientType.TUTOR],
+				);
 			}
 
 			if (data.bill_id) {
@@ -767,7 +767,7 @@ export default class BillService {
 					client_id: data.clientId,
 					patient_id: data.patientId,
 					financial_responsible_id: data.financialResponsibleId,
-          bill_related_type_id: data.billRelatedTypeId,
+					bill_related_type_id: data.billRelatedTypeId,
 					additionalInformation: data.additionalInformation,
 					internalCode: data.internalCode,
 

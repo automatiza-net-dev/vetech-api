@@ -238,12 +238,17 @@ export default class Bordero extends BaseModel {
 	@column({
 		serializeAs: null,
 	})
-	public tef_flag_id: string;
+	public tef_flag_id: string | null;
 
 	@belongsTo(() => TefFlag, {
 		foreignKey: "tef_flag_id",
 	})
 	public tefFlag: BelongsTo<typeof TefFlag>;
+
+	@column({
+		serializeAs: null,
+	})
+	public tef_acquirer_id: string | null;
 
 	@column({
 		serializeAs: null,

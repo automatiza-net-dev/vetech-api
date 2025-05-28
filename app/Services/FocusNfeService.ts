@@ -17,6 +17,7 @@ export interface ISendNfe {
 	purpose: string;
 	finality: IssuedFiscalDocument["finality"];
 	accessKeyRef: string | null;
+	model: "65" | (string & {});
 
 	seller: {
 		name: string | undefined;
@@ -358,61 +359,64 @@ export default class FocusNfeService {
 		headers: {},
 	});
 
-	public async sendNfe(ref: string, data: ISendNfe, token: string) {
+	public async sendNfe(ref: string, rawPayload: ISendNfe, token: string) {
 		const payload = {
 			natureza_operacao: "Venda",
 			// serie: data.nfe_series, // THIS
-			numero: data.nfe_number,
-			data_emissao: data.issuedAt,
-			data_entrada_saida: data.authorizedAt,
+			numero: rawPayload.nfe_number,
+			data_emissao: rawPayload.issuedAt,
+			data_entrada_saida: rawPayload.authorizedAt,
 			tipo_documento: "1",
 			local_destino: "1", // doc
-			finalidade_emissao: data.finality.toString(),
+			finalidade_emissao: rawPayload.finality.toString(),
 			consumidor_final: "1",
 			presenca_comprador: "1",
 			indicador_intermediario: "0",
 
-			notas_referenciadas: data.accessKeyRef
-				? [{ chave_nfe: data.accessKeyRef }]
+			notas_referenciadas: rawPayload.accessKeyRef
+				? [{ chave_nfe: rawPayload.accessKeyRef }]
 				: undefined,
 
-			cnpj_emitente: data.seller.cnpj,
-			nome_emitente: data.seller.name,
-			nome_fantasia_emitente: data.seller.fantasy_name,
-			logradouro_emitente: data.seller.location.street,
-			numero_emitente: data.seller.location.number,
-			complemento_emitente: data.seller.location.complement.substring(0, 30),
-			bairro_emitente: data.seller.location.district,
-			municipio_emitente: data.seller.location.city,
-			uf_emitente: data.seller.location.uf,
-			cep_emitente: data.seller.location.code,
-			telefone_emitente: data.seller.phone,
-			inscricao_estadual_emitente: data.seller.state_ie,
-			inscricao_municipal_emitente: data.seller.city_ie,
-			cnae_fiscal_emitente: data.seller.cnae,
-			regime_tributario_emitente: data.seller.regime,
-
-			nome_destinatario: data.buyer.name,
-			cnpj_destinatario: data.buyer.cnpj_document,
-			cpf_destinatario: data.buyer.cpf_document,
-			logradouro_destinatario: data.buyer.location.street,
-			numero_destinatario: data.buyer.location.number,
-			complemento_destinatario: data.buyer.location.complement?.substring(
+			cnpj_emitente: rawPayload.seller.cnpj,
+			nome_emitente: rawPayload.seller.name,
+			nome_fantasia_emitente: rawPayload.seller.fantasy_name,
+			logradouro_emitente: rawPayload.seller.location.street,
+			numero_emitente: rawPayload.seller.location.number,
+			complemento_emitente: rawPayload.seller.location.complement.substring(
 				0,
 				30,
 			),
-			bairro_destinatario: data.buyer.location.district,
-			municipio_destinatario: data.buyer.location.city,
-			uf_destinatario: data.buyer.location.uf,
-			cep_destinatario: data.buyer.location.code,
-			telefone_destinatario: data.buyer.phone,
+			bairro_emitente: rawPayload.seller.location.district,
+			municipio_emitente: rawPayload.seller.location.city,
+			uf_emitente: rawPayload.seller.location.uf,
+			cep_emitente: rawPayload.seller.location.code,
+			telefone_emitente: rawPayload.seller.phone,
+			inscricao_estadual_emitente: rawPayload.seller.state_ie,
+			inscricao_municipal_emitente: rawPayload.seller.city_ie,
+			cnae_fiscal_emitente: rawPayload.seller.cnae,
+			regime_tributario_emitente: rawPayload.seller.regime,
+
+			nome_destinatario: rawPayload.buyer.name,
+			cnpj_destinatario: rawPayload.buyer.cnpj_document,
+			cpf_destinatario: rawPayload.buyer.cpf_document,
+			logradouro_destinatario: rawPayload.buyer.location.street,
+			numero_destinatario: rawPayload.buyer.location.number,
+			complemento_destinatario: rawPayload.buyer.location.complement?.substring(
+				0,
+				30,
+			),
+			bairro_destinatario: rawPayload.buyer.location.district,
+			municipio_destinatario: rawPayload.buyer.location.city,
+			uf_destinatario: rawPayload.buyer.location.uf,
+			cep_destinatario: rawPayload.buyer.location.code,
+			telefone_destinatario: rawPayload.buyer.phone,
 			inscricao_estadual_destinatario:
-				data.buyer.code === "1" ? data.buyer.ie : undefined,
-			indicador_inscricao_estadual_destinatario: data.buyer.code,
-			email_destinatario: data.buyer.email,
+				rawPayload.buyer.code === "1" ? rawPayload.buyer.ie : undefined,
+			indicador_inscricao_estadual_destinatario: rawPayload.buyer.code,
+			email_destinatario: rawPayload.buyer.email,
 			pessoas_autorizadas: [], // THIS// THIS// THIS// THIS// THIS// THIS// THIS// THIS// THIS// THIS// THIS
 
-			itens: data.items.map((item) => ({
+			itens: rawPayload.items.map((item) => ({
 				numero_item: item.index,
 				codigo_produto: item.code,
 				codigo_barras_comercial: item.barcode,
@@ -467,8 +471,8 @@ export default class FocusNfeService {
 			})),
 
 			formas_pagamento:
-				data.finality === 1
-					? data.payments.map((payment) => ({
+				rawPayload.finality === 1
+					? rawPayload.payments.map((payment) => ({
 							forma_pagamento: payment.nfe_code,
 							descricao_pagamento: payment.description,
 							valor_pagamento: payment.installment,
@@ -482,13 +486,13 @@ export default class FocusNfeService {
 			// icms_base_calculo: data.totalizers.icms_base,
 			// icms_valor_total: data.totalizers.icms_total,
 			// valor_produtos: data.totalizers.product_value,
-			valor_frete: data.totalizers.delivery_value,
+			valor_frete: rawPayload.totalizers.delivery_value,
 			valor_seguro: 0,
 			// valor_desconto: data.totalizers.discount_value,
 			// valor_ipi: data.totalizers.ipi_value,
 			// valor_pis: data.totalizers.pis_value,
 			// cofins_value: data.totalizers.cofins_value,
-			valor_outras_despesas: data.totalizers.other_value,
+			valor_outras_despesas: rawPayload.totalizers.other_value,
 			modalidade_frete: "9",
 		};
 
@@ -506,7 +510,9 @@ export default class FocusNfeService {
 
 		try {
 			const { data } = await this.ax.post(
-				`/v2/nfe?ref=${ref}`,
+				rawPayload.model === "65"
+					? `/v2/nfce?ref=${ref}`
+					: `/v2/nfe?ref=${ref}`,
 				this.sanitize(payload),
 				{
 					auth: {

@@ -576,7 +576,7 @@ export default class PatientService {
 			weight: elem.weight,
 		}));
 
-		if (data.name || data.tag) {
+		if (!data.tutor && !data.document) {
 			return result;
 		}
 

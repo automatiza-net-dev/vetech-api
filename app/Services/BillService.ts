@@ -4808,4 +4808,312 @@ where id = ?`,
 			.useTransaction(trx)
 			.save();
 	}
+
+	async calculateBillTaxes(
+		authCtx: AuthContext,
+		data: {
+			billId: string;
+		},
+	) {
+		await Database.transaction(async (trx) => {
+			const bill = await Bill.query()
+				.useTransaction(trx)
+				.where("economic_group_id", authCtx.group.id)
+				.where("business_unit_id", authCtx.unit.id)
+				.where("id", data.billId)
+				.preload("client")
+				.preload("items", (query) => {
+					query.preload("productVariation", (query) => {
+						query.preload("product");
+					});
+				})
+				.first();
+
+			if (!bill) {
+				throw new BadRequestException(
+					"Nota de saída não encontrada",
+					400,
+					"E_ERR",
+				);
+			}
+
+			if (bill.closingDate || bill.status === BillStatus.B) {
+				throw new BadRequestException("Nota de saída já fechada", 400, "E_ERR");
+			}
+
+			if (bill.items.some((bi) => bi.nfeIssued)) {
+				throw new BadRequestException(
+					"Algum item da nota já foi emitido",
+					400,
+					"E_ERR",
+				);
+			}
+
+			const taxRulesQb = TaxationGroupRule.query()
+				.useTransaction(trx)
+				.whereHas("taxationGroup", (query) => {
+					query.whereIn(
+						"id",
+						bill.items.flatMap(
+							(bi) => bi.productVariation.product.taxation_group_id,
+						),
+					);
+				})
+				.where("movement_type", MovementType.S)
+				.where("fromUf", authCtx.unit.state ?? "")
+				.where(
+					"company_type",
+					authCtx.unit.simple ? CompanyType.S : CompanyType.N,
+				)
+				.preload("taxationGroup")
+				.preload("taxOperation");
+
+			if (bill.billType === "T") {
+				taxRulesQb
+					.where("movement_category", MovementCategory.TS)
+					.where("toUf", bill.client?.tutor?.state ?? "");
+			} else {
+				taxRulesQb
+					.where("movement_category", MovementCategory.NS)
+					.where("toUf", authCtx.unit.state ?? "");
+			}
+
+			const taxRules = await taxRulesQb;
+
+			const ufIcms = await UfIcms.query()
+				.whereIn(
+					"origin_uf",
+					taxRules.map((rule) => rule.toUf),
+				)
+				.whereIn(
+					"destination_uf",
+					taxRules.map((rule) => rule.toUf),
+				);
+
+			const tasks = bill.items.map(async (item) => {
+				const rule = taxRules.find(
+					(rule) =>
+						rule.taxationGroup.id ===
+						item.productVariation.product.taxation_group_id,
+				);
+				if (!rule) {
+					throw new BadRequestException(
+						`Não foi possível encontrar uma regra de imposto para o produto; ${item.productVariation.product.description}`,
+						400,
+						"E_ERR",
+					);
+				}
+
+				const ufIcmsRule = ufIcms.find(
+					(ufIcms) =>
+						ufIcms.originUf === rule?.toUf &&
+						ufIcms.destinationUf === rule?.toUf,
+				);
+
+				const totalValue = new Decimal(item.unitaryValue)
+					.times(item.quantity)
+					.minus(new Decimal(item.discountValue));
+				const icmsBase = totalValue
+					.times(new Decimal(100).minus(rule?.icmsPercRedBaseCalculo ?? 0))
+					.div(100);
+				const icmsValue = icmsBase.times(rule?.icmsPerc ?? 0).div(100);
+				const icmsStBase_1 = this.isValidNumber(rule?.ivaIcmsSt)
+					? icmsBase.plus(icmsBase.times(rule.ivaIcmsSt).div(100))
+					: new Decimal(0);
+				const icmsStPercentageRedBase = this.isValidNumber(rule?.ivaIcmsSt)
+					? new Decimal(rule.icmsPercRedBaseCalculoST)
+					: undefined;
+				const icmsStBase_2 = this.isValidNumber(rule?.ivaIcmsSt)
+					? icmsStBase_1.minus(
+							icmsStBase_1.times(icmsStPercentageRedBase ?? 0).div(100),
+						)
+					: new Decimal(0);
+
+				return item
+					.merge({
+						tax_rule_id: rule.id,
+						fiscalOperationCode: rule.taxOperation.code,
+						icmsOriginProduct: item.productVariation.product.icmsOrigin,
+						icmsCst:
+							item.productVariation.product.type === ProductType.PRODUCT
+								? rule?.icmsCst
+								: undefined,
+						icmsBase:
+							item.productVariation.product.type === ProductType.PRODUCT
+								? icmsBase.toNumber()
+								: undefined,
+						icmsPercentage:
+							item.productVariation.product.type === ProductType.PRODUCT
+								? rule?.icmsPerc
+								: undefined,
+						icmsValue:
+							item.productVariation.product.type === ProductType.PRODUCT
+								? icmsValue.toNumber()
+								: undefined,
+						icmsPercentageRedAliquot: rule?.icmsPercRedAliquota,
+						icmsPercentageRedBase: rule?.icmsPercRedBaseCalculo,
+						icmsStBase: this.isValidNumber(rule?.ivaIcmsSt)
+							? icmsStBase_2.toNumber()
+							: undefined,
+						icmsStPercentageRedBase: this.isValidNumber(rule?.ivaIcmsSt)
+							? rule?.icmsPercRedBaseCalculoST
+							: undefined,
+						icmsStIva: this.isValidNumber(rule?.ivaIcmsSt),
+						icmsStPercentageUfDestination: this.isValidNumber(rule?.ivaIcmsSt)
+							? ufIcmsRule?.icmsPercentage
+							: undefined,
+						icmsStValue: this.isValidNumber(rule?.ivaIcmsSt)
+							? icmsStBase_2
+									.times(ufIcmsRule?.icmsPercentage ?? 100)
+									.div(100)
+									.minus(icmsValue)
+									.toNumber()
+							: undefined,
+
+						issCst:
+							item.productVariation.product.type === ProductType.SERVICE
+								? rule?.icmsCst
+								: undefined,
+						issBase:
+							item.productVariation.product.type === ProductType.SERVICE
+								? icmsBase.toNumber()
+								: undefined,
+						issPercentage:
+							item.productVariation.product.type === ProductType.SERVICE
+								? rule.icmsPerc
+								: undefined,
+						issValue:
+							item.productVariation.product.type === ProductType.SERVICE
+								? icmsBase
+										.times(rule.icmsPerc ?? 0)
+										.div(100)
+										.toNumber()
+								: undefined,
+
+						pisCst: rule.pisCst,
+						pisBase: totalValue.toNumber(),
+						pisPercentage: rule.pisPerc,
+						pisValue: totalValue
+							.times(rule.pisPerc ?? 1)
+							.div(100)
+							.toNumber(),
+						pisRetentionValue: 0,
+
+						cofinsCst: rule.cofinsCst,
+						cofinsBase: totalValue.toNumber(),
+						cofinsPercentage: rule.cofinsPerc,
+						cofinsValue: totalValue
+							.times(rule.cofinsPerc ?? 1)
+							.div(100)
+							.toNumber(),
+						cofinsRetentionValue: 0,
+
+						ipiCst: rule.ipiCst,
+						ipiBase: totalValue.toNumber(),
+						ipiPercentage: rule.ipiPerc,
+						ipiValue: totalValue
+							.times(rule.ipiPerc ?? 1)
+							.div(100)
+							.toNumber(),
+
+						icmsDeferredValue: 0,
+						icmsPartitionValue: 0,
+						icmsFcpPercentage: rule.fcpPerc,
+						icmsFcpValue: totalValue
+							.times(rule.fcpPerc ?? 1)
+							.div(100)
+							.toNumber(),
+						icmsPartitionOriginUfPercentage: rule.icmsPerc,
+						icmsPartitionDestinationUfPercentage: rule.icmsPercRedAliquota,
+						icmsPartitionInterUfPercentage: rule.icmsPercRedAliquota,
+					})
+					.useTransaction(trx)
+					.save();
+			});
+
+			const existingItems = await Promise.all(tasks);
+
+			await bill
+				.merge({
+					icmsBase: existingItems
+						.filter((i) => Boolean(i.icmsBase))
+						.reduce((acc, item) => acc + (item.icmsBase ?? 0), 0),
+					icmsValue: existingItems
+						.filter((i) => Boolean(i.icmsValue))
+						.reduce((acc, item) => acc + item.icmsValue, 0),
+					icmsStBase: existingItems
+						.filter(
+							(i) =>
+								typeof i.icmsStValue === "number" &&
+								!Number.isNaN(i.icmsStValue),
+						)
+						.reduce((acc, item) => acc + item.icmsStBase, 0),
+					icmsStValue: existingItems
+						.filter(
+							(i) =>
+								typeof i.icmsStValue === "number" &&
+								!Number.isNaN(i.icmsStValue),
+						)
+						.reduce((acc, item) => acc + (item.icmsStValue ?? 0), 0),
+					issBase: existingItems.reduce(
+						(acc, item) => acc + (item.issBase ?? 0),
+						0,
+					),
+					issValue: existingItems.reduce(
+						(acc, item) => acc + (item.issValue ?? 0),
+						0,
+					),
+					pisBase: existingItems.reduce(
+						(acc, item) => acc + (item.pisBase ?? 0),
+						0,
+					),
+					pisValue: existingItems.reduce(
+						(acc, item) => acc + (item.pisValue ?? 0),
+						0,
+					),
+					pisRetentionValue: existingItems.reduce(
+						(acc, item) => acc + (item.pisRetentionValue ?? 0),
+						0,
+					),
+					cofinsBase: existingItems.reduce(
+						(acc, item) => acc + (item.cofinsBase ?? 0),
+						0,
+					),
+					cofinsValue: existingItems.reduce(
+						(acc, item) => acc + (item.cofinsValue ?? 0),
+						0,
+					),
+					cofinsRetentionValue: existingItems.reduce(
+						(acc, item) => acc + (item.cofinsRetentionValue ?? 0),
+						0,
+					),
+					ipiBase: existingItems.reduce(
+						(acc, item) => acc + (item.ipiBase ?? 0),
+						0,
+					),
+					ipiValue: existingItems.reduce(
+						(acc, item) => acc + (item.ipiValue ?? 0),
+						0,
+					),
+					icmsDeferredValue: existingItems.reduce(
+						(acc, item) => acc + (item.icmsDeferredValue ?? 0),
+						0,
+					),
+					icmsFcpValue: existingItems.reduce(
+						(acc, item) => acc + (item.icmsFcpValue ?? 0),
+						0,
+					),
+					icmsUfDestinationValue: existingItems.reduce(
+						(acc, item) => acc + (item?.icmsPartitionDestinationUfValue ?? 0),
+						0,
+					),
+					icmsUfOriginValue: existingItems.reduce(
+						(acc, item) => acc + (item?.icmsPartitionOriginUfValue ?? 0),
+						0,
+					),
+				})
+				.useTransaction(trx)
+				.save();
+		});
+	}
 }

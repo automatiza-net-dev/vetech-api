@@ -1061,6 +1061,7 @@ Route.group(() => {
 	);
 	Route.post("/check-item-discount", "BillsController.checkItemDiscount");
 	Route.post("/discount-deposit-items", "BillsController.discountDepositItems");
+  Route.post("/calculate-taxes", "BillsController.calculateBillTaxes")
 
 	Route.post("/create-treatment", "BillsController.createTreatment");
 
@@ -2122,4 +2123,10 @@ Route.group(() => {
 	Route.delete("/delete/:id", "BillRelatedTypesController.delete");
 })
 	.prefix("bill-related-types")
+	.middleware("auth");
+
+Route.group(() => {
+	Route.post("/create-business", "FocusManagementController.createBusiness");
+})
+	.prefix("focus-management")
 	.middleware("auth");

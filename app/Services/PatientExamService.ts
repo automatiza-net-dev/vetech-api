@@ -154,6 +154,7 @@ export default class PatientExamService {
 							patientId: patient.id,
 							dailyMovementId: userOpenCashier.daily_movement_id,
 							maxDiscount: false,
+							billType: "V",
 							items: [
 								{
 									discountValue: 0,
@@ -169,16 +170,17 @@ export default class PatientExamService {
 
 			const patientExam = await PatientExam.create(
 				{
-					realizedAt: data.realizedAt,
-					laboratory: data.laboratory,
-					report: data.report,
 					business_id: authCtx.unit.id,
 					exam_id: data.examId,
-					patient_id: data.patientId,
 					schedule_id: data.scheduleId,
+					patient_id: data.patientId,
 					user_id: authCtx.user.id,
 					solicitor_id: data.solicitorId,
+					laboratory: data.laboratory,
 					status: data.status,
+					report: data.report,
+					realizedAt: data.realizedAt,
+					requestedAt: data.requestedAt?.toSQLDate(),
 				},
 				{
 					client: trx,
@@ -214,6 +216,7 @@ export default class PatientExamService {
 						id: patientExam.id,
 					},
 					realizedAt: data.realizedAt,
+					requestedAt: data.requestedAt?.toSQLDate(),
 					laboratory: data.laboratory,
 					report: data.report,
 					technician: {

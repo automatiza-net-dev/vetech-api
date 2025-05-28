@@ -116,6 +116,12 @@ export default class BusinessUnit extends BaseModel {
 	@column()
 	public status: TUnitStatus;
 
+	@column({
+		columnName: "focus_ref",
+		serializeAs: null,
+	})
+	public focusRef: string | null;
+
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
 

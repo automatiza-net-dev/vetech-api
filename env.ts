@@ -38,4 +38,5 @@ export default Env.rules({
 	AXIOM_TOKEN: Env.schema.string(),
 	AXIOM_DATASET: Env.schema.string(),
 	AXIOM_LABEL: Env.schema.string(),
+	FOCUS_NFE_MANAGEMENT_TOKEN: Env.schema.string(),
 });

@@ -23,6 +23,7 @@ import ReviewBillCancellationValidator from "App/Validators/Bill/ReviewBillCance
 import FinishBillCancellationValidator from "App/Validators/Bill/FinishBillCancellationValidator";
 import DeleteItemDepartmentValidator from "App/Validators/Bill/DeleteItemDepartmentValidator";
 import UpdateBillSellerValidator from "App/Validators/Bill/UpdateBillSellerValidator";
+import CalculateTaxValidator from "App/Validators/Bill/CalculateTaxValidator";
 
 @inject()
 export default class BillsController {
@@ -490,6 +491,19 @@ export default class BillsController {
 		const payload = await request.validate(DeleteItemDepartmentValidator);
 
 		await this.service.deleteItemDepartments(authCtx, payload);
+
+		return response.ok(null);
+	}
+
+	public async calculateBillTaxes({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const authCtx = await this.sharedService.getAuthContext(auth);
+		const payload = await request.validate(CalculateTaxValidator);
+
+		await this.service.calculateBillTaxes(authCtx, payload);
 
 		return response.ok(null);
 	}

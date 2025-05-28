@@ -154,6 +154,7 @@ export default class PatientExamService {
 							patientId: patient.id,
 							dailyMovementId: userOpenCashier.daily_movement_id,
 							maxDiscount: false,
+							billType: "V",
 							items: [
 								{
 									discountValue: 0,

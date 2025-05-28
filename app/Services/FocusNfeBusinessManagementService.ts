@@ -123,12 +123,14 @@ export default class FocusNfeBusinessManagementService {
 		},
 	});
 
-	public async createBusiness(
+	public async createBusiness<
+		T extends Record<string, string | number | number[]>,
+	>(
 		_authCtx: AuthContext,
 		data: {
 			businessUnitId: string;
 			models: number[];
-		},
+		} & T,
 	) {
 		await Database.transaction(async (trx) => {
 			const businessUnit = await BusinessUnit.query()

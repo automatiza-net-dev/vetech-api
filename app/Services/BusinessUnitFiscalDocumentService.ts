@@ -398,10 +398,8 @@ export default class BusinessUnitFiscalDocumentService {
 			const nfePayload: ISendNfe = {
 				nfe_series: issuedDocument.series,
 				nfe_number: issuedDocument.sequence,
-				issuedAt:
-					issuedDocument.authorizationDate.toISO() ?? "",
-				authorizedAt:
-					issuedDocument.authorizationDate.toISO() ?? "",
+				issuedAt: issuedDocument.authorizationDate.toISO() ?? "",
+				authorizedAt: issuedDocument.authorizationDate.toISO() ?? "",
 				purpose: issuedDocument.purpose,
 				finality: issuedDocument.finality,
 				accessKeyRef: issuedDocument.accessKeyRef,
@@ -837,9 +835,9 @@ export default class BusinessUnitFiscalDocumentService {
 							name: responsible.name,
 							email: responsible.tutor.email,
 							phone:
-								responsible.tutor.telephone ??
-								responsible.tutor.cellphone ??
-								"",
+								[responsible.tutor.cellphone, responsible.tutor.telephone].find(
+									Boolean,
+								) ?? "",
 							address: {
 								street: responsible.tutor.street ?? "",
 								number: responsible.tutor.number ?? "",
@@ -866,6 +864,14 @@ export default class BusinessUnitFiscalDocumentService {
 							city_code: authCtx.unit.cityCode ?? "",
 						},
 					};
+
+					if (payload.buyer.phone === "") {
+						throw new BadRequestException(
+							"Cliente não tem um telefone para contato",
+							400,
+							"E_ERR",
+						);
+					}
 
 					const result = await this.focusNfe.sendNfse(
 						serviceDocument.id,

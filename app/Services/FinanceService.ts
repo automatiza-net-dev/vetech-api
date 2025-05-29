@@ -1642,6 +1642,8 @@ tef_flags.description as tef_flag, payment_methods.tef as pm_tef, payment_method
 						daily_movement_id: finance.daily_movement_id,
 						daily_cashier_id: finance.daily_cashier_id,
 						finance_id: finance.id,
+						acquirer_id: elem.tefAcquirerId,
+						tef_flag_id: elem.tefFlagId,
 
 						paymentMethodDiscountValue: finance.feeDiscountValue,
 						paymentMethodDiscountPercentage: finance.feeDiscountPercentage,

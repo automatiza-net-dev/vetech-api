@@ -153,7 +153,7 @@ export default class FocusNfeBusinessManagementService {
 					: "/v2/empresas";
 
 			const payload: FocusEmpresa = {
-				cnpj: businessUnit.document ?? "23.513.384/0001-41",
+				cnpj: businessUnit.document ?? "",
 				nome: businessUnit.companyName ?? "",
 				nome_fantasia: businessUnit.fantasyName ?? null,
 				inscricao_estadual: businessUnit.stateRegistration ?? "",

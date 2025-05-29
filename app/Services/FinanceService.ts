@@ -349,7 +349,7 @@ export default class FinanceService {
 
 		if (data.iterationDateFrom && data.iterationDateTo) {
 			qb.whereRaw(
-				"( ( finances.payment_date is not null and finances.payment_date between ? and ?) or (finances.payment_date is null and finances.expiration_date between ? and ? ) )",
+				"( ( finances.payment_date is not null and finances.payment_date::date between ? and ?) or (finances.payment_date is null and finances.expiration_date::date between ? and ? ) )",
 				[
 					data.iterationDateFrom,
 					data.iterationDateTo,
@@ -541,7 +541,7 @@ export default class FinanceService {
 
 				if (data.iterationDateFrom && data.iterationDateTo) {
 					builder.whereRaw(
-						"( ( borderos.payment_date is not null and borderos.payment_date between ? and ?) or (borderos.payment_date is null and borderos.expiration_date between ? and ? ) )",
+						"( ( borderos.payment_date is not null and borderos.payment_date::date between ? and ?) or (borderos.payment_date is null and borderos.expiration_date::date between ? and ? ) )",
 						[
 							data.iterationDateFrom,
 							data.iterationDateTo,
@@ -710,7 +710,7 @@ export default class FinanceService {
 
 		if (data.iterationDateFrom && data.iterationDateTo) {
 			qb.whereRaw(
-				"( ( finances.payment_date is not null and finances.payment_date between ? and ?) or (finances.payment_date is null and finances.expiration_date between ? and ? ) )",
+				"( ( finances.payment_date is not null and finances.payment_date::date between ? and ?) or (finances.payment_date is null and finances.expiration_date::date between ? and ? ) )",
 				[
 					data.iterationDateFrom,
 					data.iterationDateTo,
@@ -873,7 +873,7 @@ export default class FinanceService {
 
 			if (data.iterationDateFrom && data.iterationDateTo) {
 				builder.whereRaw(
-					"( ( borderos.payment_date is not null and borderos.payment_date between ? and ?) or (borderos.payment_date is null and borderos.expiration_date between ? and ? ) )",
+					"( ( borderos.payment_date is not null and borderos.payment_date::date between ? and ?) or (borderos.payment_date is null and borderos.expiration_date::date between ? and ? ) )",
 					[
 						data.iterationDateFrom,
 						data.iterationDateTo,
@@ -1007,7 +1007,7 @@ export default class FinanceService {
 
 			if (data.iterationDateFrom && data.iterationDateTo) {
 				builder.whereRaw(
-					"( ( finances.payment_date is not null and finances.payment_date between ? and ?) or (finances.payment_date is null and finances.expiration_date between ? and ? ) )",
+					"( ( finances.payment_date is not null and finances.payment_date::date between ? and ?) or (finances.payment_date is null and finances.expiration_date::date between ? and ? ) )",
 					[
 						data.iterationDateFrom,
 						data.iterationDateTo,

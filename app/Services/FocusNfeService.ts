@@ -400,17 +400,30 @@ export default class FocusNfeService {
 			nome_destinatario: rawPayload.buyer.name,
 			cnpj_destinatario: rawPayload.buyer.cnpj_document,
 			cpf_destinatario: rawPayload.buyer.cpf_document,
-			logradouro_destinatario: rawPayload.buyer.location.street,
-			numero_destinatario: rawPayload.buyer.location.number,
-			complemento_destinatario: rawPayload.buyer.location.complement?.substring(
-				0,
-				30,
-			),
-			bairro_destinatario: rawPayload.buyer.location.district,
-			municipio_destinatario: rawPayload.buyer.location.city,
-			uf_destinatario: rawPayload.buyer.location.uf,
-			cep_destinatario: rawPayload.buyer.location.code,
-			telefone_destinatario: rawPayload.buyer.phone,
+			logradouro_destinatario:
+				rawPayload.model === "65"
+					? undefined
+					: rawPayload.buyer.location.street,
+			numero_destinatario:
+				rawPayload.model === "65"
+					? undefined
+					: rawPayload.buyer.location.number,
+			complemento_destinatario:
+				rawPayload.model === "65"
+					? undefined
+					: rawPayload.buyer.location.complement?.substring(0, 30),
+			bairro_destinatario:
+				rawPayload.model === "65"
+					? undefined
+					: rawPayload.buyer.location.district,
+			municipio_destinatario:
+				rawPayload.model === "65" ? undefined : rawPayload.buyer.location.city,
+			uf_destinatario:
+				rawPayload.model === "65" ? undefined : rawPayload.buyer.location.uf,
+			cep_destinatario:
+				rawPayload.model === "65" ? undefined : rawPayload.buyer.location.code,
+			telefone_destinatario:
+				rawPayload.model === "65" ? undefined : rawPayload.buyer.phone,
 			inscricao_estadual_destinatario:
 				rawPayload.buyer.code === "1" ? rawPayload.buyer.ie : undefined,
 			indicador_inscricao_estadual_destinatario: rawPayload.buyer.code,
@@ -530,7 +543,7 @@ export default class FocusNfeService {
 				numero: "numero" in data ? (data.numero as string) : null,
 			};
 		} catch (error) {
-			Logger.error(error.response);
+			// Logger.error(error.response);
 
 			type T = TypedAxiosError<{ mensagem: string }, unknown>;
 			return {
@@ -604,48 +617,17 @@ export default class FocusNfeService {
 
 			const zodResponse = nfeResponseSchema.safeParse(data);
 			if (!zodResponse.success) {
-				// await FocusLog.create({
-				// 	document_id: ref,
-				// 	origin: "FocusNfeService.getNfe",
-				// 	description: "Schema inválido",
-				// 	error: zodResponse.error.issues,
-				// }).catch((err) => {
-				// 	Logger.error("Erro ao criar log", err);
-				// });
-
-				// Logger.info(JSON.stringify(data, undefined, 2));
-				//
-				// Logger.error("invalid schema");
-				// Logger.error(JSON.stringify(zodResponse.error.issues, undefined, 2));
 				return {
 					success: false as const,
 					error: "Resposta inválida",
 				};
 			}
 
-			// await FocusLog.create({
-			// 	document_id: ref,
-			// 	origin: "FocusNfeService.getNfe",
-			// 	description: "Resposta completa",
-			// 	data: zodResponse.data,
-			// }).catch((err) => {
-			// 	Logger.error("Erro ao criar log", err);
-			// });
 			return {
 				success: true as const,
 				data: zodResponse.data,
 			};
 		} catch (error) {
-			// Logger.error(JSON.stringify(error.response.data, null, 2));
-			// await FocusLog.create({
-			// 	document_id: ref,
-			// 	origin: "FocusNfeService.getNfe",
-			// 	description: "Erro na chamada",
-			// 	error: error.response.data,
-			// }).catch((err) => {
-			// 	Logger.error("Erro ao criar log", err);
-			// });
-
 			return {
 				success: false as const,
 				error: "Erro ao chamar",
@@ -665,49 +647,14 @@ export default class FocusNfeService {
 
 			const zodResponse = nfseResponseSchema.safeParse(data);
 			if (!zodResponse.success) {
-				// await FocusLog.create({
-				// 	document_id: ref,
-				// 	origin: "FocusNfeService.getNfse",
-				// 	description: "Schema inválido",
-				// 	error: zodResponse.error.issues,
-				// }).catch((err) => {
-				// 	Logger.error("Erro ao criar log", err);
-				// });
-
-				// Logger.info(JSON.stringify(data, undefined, 2));
-				// Logger.error(JSON.stringify(zodResponse.error.issues, undefined, 2));
 				return null;
 			}
-
-			// await FocusLog.create({
-			// 	document_id: ref,
-			// 	origin: "FocusNfeService.getNfse",
-			// 	description: "Resposta completa",
-			// 	data: zodResponse.data,
-			// }).catch((err) => {
-			// 	Logger.error("Erro ao criar log", err);
-			// });
-
 			return zodResponse.data;
 		} catch (error) {
-			// type T = TypedAxiosError<{ mensagem: string }, unknown>;
-			// Logger.error((error as T).response?.data.mensagem ?? "");
-
-			// await FocusLog.create({
-			// 	document_id: ref,
-			// 	origin: "FocusNfeService.getNfse",
-			// 	description: "Chamada inválida",
-			// 	error: error.response.data,
-			// }).catch((err) => {
-			// 	Logger.error("Erro ao criar log", err);
-			// });
-
 			return null;
 		}
 	}
 
-	// hora do evento?
-	// https://atendimento.tecnospeed.com.br/hc/pt-br/articles/360015591514-Rejei%C3%A7%C3%A3o-578-A-data-do-evento-n%C3%A3o-pode-ser-maior-que-a-data-do-processamento
 	public async cancelNfe(ref: string, reason: string, token: string) {
 		try {
 			const { data } = await this.ax.delete(`/v2/nfe/${ref}`, {
@@ -723,13 +670,12 @@ export default class FocusNfeService {
 			return data;
 		} catch (error) {
 			type T = TypedAxiosError<{ mensagem: string }, unknown>;
-			Logger.error((error as T).response?.data.mensagem ?? "");
+			// Logger.error((error as T).response?.data.mensagem ?? "");
 
 			return null;
 		}
 	}
 
-	// não é possível inutilizar nfe já autorizada
 	// https://atendimento.tecnospeed.com.br/hc/pt-br/articles/360015738793-Rejei%C3%A7%C3%A3o-241-Um-n%C3%BAmero-da-faixa-j%C3%A1-foi-utilizado
 	public async disable(_ref: string, disableData: IDisableNfe, token: string) {
 		try {
@@ -752,9 +698,9 @@ export default class FocusNfeService {
 
 			const zodResponse = disableNfeResponseSchema.safeParse(data);
 			if (!zodResponse.success) {
-				Logger.info(JSON.stringify(data, undefined, 2));
-				Logger.error("invalid schema");
-				Logger.error(JSON.stringify(zodResponse.error.issues, undefined, 2));
+				// Logger.info(JSON.stringify(data, undefined, 2));
+				// Logger.error("invalid schema");
+				// Logger.error(JSON.stringify(zodResponse.error.issues, undefined, 2));
 				return {
 					success: true,
 					data: null,
@@ -766,8 +712,8 @@ export default class FocusNfeService {
 				data: zodResponse.data,
 			};
 		} catch (error) {
-			type T = TypedAxiosError<{ mensagem: string }, unknown>;
-			Logger.error((error as T).response?.data.mensagem ?? "");
+			// type T = TypedAxiosError<{ mensagem: string }, unknown>;
+			// Logger.error((error as T).response?.data.mensagem ?? "");
 
 			return {
 				success: false as const,
@@ -836,7 +782,7 @@ export default class FocusNfeService {
 			payload["situacao"] = "tt";
 		}
 
-		Logger.info(JSON.stringify(payload, undefined, 2));
+		// Logger.info(JSON.stringify(payload, undefined, 2));
 
 		try {
 			const { data } = await this.ax.post(
@@ -850,12 +796,12 @@ export default class FocusNfeService {
 				},
 			);
 
-			Logger.info(JSON.stringify(data, undefined, 2));
+			// Logger.info(JSON.stringify(data, undefined, 2));
 
 			const parsedResponse = createNfseResponseSchema.safeParse(data);
 			if (!parsedResponse.success) {
-				Logger.error("invalid schema");
-				Logger.error(JSON.stringify(parsedResponse.error.issues, undefined, 2));
+				// Logger.error("invalid schema");
+				// Logger.error(JSON.stringify(parsedResponse.error.issues, undefined, 2));
 				return {
 					success: true,
 					data: null,
@@ -867,7 +813,7 @@ export default class FocusNfeService {
 				data: parsedResponse.data,
 			};
 		} catch (error) {
-			Logger.error(error.response);
+			// Logger.error(error.response);
 
 			type T = TypedAxiosError<{ mensagem: string }, unknown>;
 			return {
@@ -891,7 +837,7 @@ export default class FocusNfeService {
 				},
 			});
 
-			Logger.info(JSON.stringify(data, undefined, 2));
+			// Logger.info(JSON.stringify(data, undefined, 2));
 
 			return {
 				success: true as const,
@@ -916,7 +862,7 @@ export default class FocusNfeService {
 				},
 				unknown
 			>;
-			Logger.error((error as T).response?.data.status ?? "");
+			// Logger.error((error as T).response?.data.status ?? "");
 
 			return {
 				success: false as const,
@@ -937,7 +883,7 @@ export default class FocusNfeService {
 
 			return data;
 		} catch (error) {
-			Logger.error(JSON.stringify(error, null, 2));
+			// Logger.error(JSON.stringify(error, null, 2));
 			throw new InternalErrorException(
 				"Falha ao buscar na focus",
 				500,
@@ -957,7 +903,7 @@ export default class FocusNfeService {
 
 			return data;
 		} catch (error) {
-			Logger.error(JSON.stringify(error, null, 2));
+			// Logger.error(JSON.stringify(error, null, 2));
 			throw new InternalErrorException(
 				"Falha ao buscar na focus",
 				500,

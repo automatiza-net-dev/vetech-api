@@ -28,7 +28,7 @@ export default class CreateBusinessValidator {
 			rules.required(),
 			rules.exists({ table: "business_units", column: "id" }),
 		]),
-		models: schema.array().members(schema.number()),
+		models: schema.enumSet([0, 55, 65] as const),
 	});
 
 	/**

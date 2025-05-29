@@ -25,91 +25,92 @@ type FocusEmpresa = {
 	pais: string;
 	telefone: string;
 	uf: string;
-	regime_tributario: string | null;
-	codigo_municipio: string | null;
-	email: string | null;
-	codigo_pais: string | null;
-	enviar_email_destinatario: boolean | null;
-	enviar_email_homologacao: boolean | null;
+	regime_tributario: string;
+	codigo_municipio: string;
+	email: string;
+	codigo_pais: string;
+	enviar_email_destinatario: boolean;
+	enviar_email_homologacao: boolean;
 
-	codigo_uf: string | null;
-	//
-	// habilita_nfce: boolean | null;
-	// proximo_numero_nfce_producao: number | null;
-	// csc_nfce_producao: string | null;
-	// id_token_nfce_producao: number | null;
-	// serie_nfce_producao: number | null;
-	//
-	// habilita_nfe: boolean | null;
-	// proximo_numero_nfe_producao: number | null;
-	// serie_nfe_producao: number | null;
-	// nfe_sincrono: boolean | null;
-	// orientacao_danfe: "portrait" | "landscape" | null;
-	// recibo_danfe: boolean | null;
-	// arquivo_certificado_base64: string | null;
-	// senha_certificado: string | null;
-	//
-	// habilita_nfse: boolean | null;
-	// inscricao_municipal: string | null;
-	// serie_nfse_producao: number | null;
-	// proximo_numero_nfse_producao: number | null;
-	//
-	// // id: 123;
-	// cpf_cnpj_contabilidade: string | null;
-	// cpf_responsavel: string | null;
-	// cargo_responsavel: string | null;
-	// nome_responsavel: string | null;
-	// discrimina_impostos: boolean | null;
-	//
-	// habilita_nfsen_producao: boolean | null;
-	// habilita_nfsen_homologacao: boolean | null;
-	// habilita_cte: boolean | null;
-	// habilita_mdfe: boolean | null;
-	// habilita_manifestacao: boolean | null;
-	// habilita_manifestacao_homologacao: boolean | null;
-	// habilita_manifestacao_cte: boolean | null;
-	// habilita_manifestacao_cte_homologacao: boolean | null;
-	//
-	// habilita_contingencia_offline_nfce: boolean | null;
-	// habilita_contingencia_epec_nfce: boolean | null;
-	// reaproveita_numero_nfce_contingencia: boolean | null;
-	// mostrar_danfse_badge: boolean | null;
-	// csc_nfce_homologacao: string | null;
-	// id_token_nfce_homologacao: number | null;
-	// proximo_numero_nfe_homologacao: number | null;
-	// serie_nfe_homologacao: number | null;
-	//
-	// serie_nfse_homologacao: number | null;
-	// proximo_numero_nfse_homologacao: number | null;
-	// proximo_numero_nfsen_producao: number | null;
-	// proximo_numero_nfsen_homologacao: number | null;
-	//
-	// serie_nfsen_producao: number | null;
-	// serie_nfsen_homologacao: number | null;
-	//
-	// proximo_numero_nfce_homologacao: number | null;
-	//
-	// serie_nfce_homologacao: number | null;
-	// proximo_numero_cte_producao: number | null;
-	// proximo_numero_cte_homologacao: number | null;
-	// serie_cte_producao: number | null;
-	// serie_cte_homologacao: number | null;
-	// proximo_numero_cte_os_producao: number | null;
-	// proximo_numero_cte_os_homologacao: number | null;
-	// serie_cte_os_producao: number | null;
-	// serie_cte_os_homologacao: number | null;
-	// proximo_numero_mdfe_producao: number | null;
-	// proximo_numero_mdfe_homologacao: number | null;
-	// serie_mdfe_producao: number | null;
-	// serie_mdfe_homologacao: number | null;
-	// certificado_valido_ate: string | null;
-	// certificado_valido_de: string | null;
-	// certificado_cnpj: string | null;
-	// certificado_especifico: boolean | null;
-	// data_ultima_emissao: string | null;
-	// caminho_logo: string | null;
-	// login_responsavel: string | null;
-	// senha_responsavel_preenchida: boolean | null;
+	codigo_uf?: string | null;
+
+	habilita_nfce?: boolean;
+	proximo_numero_nfce_producao?: number;
+	csc_nfce_producao?: string;
+	id_token_nfce_producao?: number;
+	serie_nfce_producao?: number;
+
+	habilita_nfe?: boolean;
+	proximo_numero_nfe_producao?: number;
+	serie_nfe_producao?: number;
+	nfe_sincrono?: boolean;
+	orientacao_danfe?: "portrait" | "landscape";
+	recibo_danfe?: boolean;
+	arquivo_certificado_base64?: string;
+	senha_certificado?: string;
+
+	habilita_nfse?: boolean;
+	inscricao_municipal?: string;
+	serie_nfse_producao?: number;
+	proximo_numero_nfse_producao?: number;
+
+	// id?: 123;
+	cpf_cnpj_contabilidade?: string;
+	cpf_responsavel?: string;
+	cargo_responsavel?: string;
+	nome_responsavel?: string;
+	discrimina_impostos?: boolean;
+
+	habilita_nfsen_producao?: boolean;
+	habilita_nfsen_homologacao?: boolean;
+	habilita_cte?: boolean;
+	habilita_mdfe?: boolean;
+	habilita_manifestacao?: boolean;
+	habilita_manifestacao_homologacao?: boolean;
+	habilita_manifestacao_cte?: boolean;
+	habilita_manifestacao_cte_homologacao?: boolean;
+
+	habilita_contingencia_offline_nfce?: boolean;
+	habilita_contingencia_epec_nfce?: boolean;
+	reaproveita_numero_nfce_contingencia?: boolean;
+	mostrar_danfse_badge?: boolean;
+	csc_nfce_homologacao?: string;
+	id_token_nfce_homologacao?: number;
+	proximo_numero_nfe_homologacao?: number;
+	serie_nfe_homologacao?: number;
+
+	serie_nfse_homologacao?: number;
+	proximo_numero_nfse_homologacao?: number;
+	proximo_numero_nfsen_producao?: number;
+	proximo_numero_nfsen_homologacao?: number;
+
+	serie_nfsen_producao?: number;
+	serie_nfsen_homologacao?: number;
+
+	proximo_numero_nfce_homologacao?: number;
+
+	serie_nfce_homologacao?: number;
+	proximo_numero_cte_producao?: number;
+	proximo_numero_cte_homologacao?: number;
+	serie_cte_producao?: number;
+	serie_cte_homologacao?: number;
+	proximo_numero_cte_os_producao?: number;
+	proximo_numero_cte_os_homologacao?: number;
+	serie_cte_os_producao?: number;
+	serie_cte_os_homologacao?: number;
+	proximo_numero_mdfe_producao?: number;
+	proximo_numero_mdfe_homologacao?: number;
+	serie_mdfe_producao?: number;
+	serie_mdfe_homologacao?: number;
+	certificado_valido_ate?: string;
+	certificado_valido_de?: string;
+	certificado_cnpj?: string;
+	certificado_especifico?: boolean;
+	data_ultima_emissao?: string;
+	caminho_logo?: string;
+	login_responsavel?: string;
+	senha_responsavel?: string;
+	senha_responsavel_preenchida?: boolean;
 };
 
 @inject()
@@ -123,14 +124,13 @@ export default class FocusNfeBusinessManagementService {
 		},
 	});
 
-	public async createBusiness<
-		T extends Record<string, string | number | number[]>,
-	>(
+	public async createBusiness(
 		_authCtx: AuthContext,
 		data: {
 			businessUnitId: string;
-			models: number[];
-		} & T,
+			models: [0, 55, 65][number][];
+		},
+		dynamicData: Record<string, string | number>,
 	) {
 		await Database.transaction(async (trx) => {
 			const businessUnit = await BusinessUnit.query()
@@ -168,14 +168,63 @@ export default class FocusNfeBusinessManagementService {
 				telefone: businessUnit.phone ?? "",
 
 				regime_tributario: businessUnit.simple ? "1" : "3",
-				codigo_municipio: businessUnit.cityCode ?? null,
-				email: businessUnit.email ?? null,
+				codigo_municipio: businessUnit.cityCode ?? "",
+				email: businessUnit.email ?? "",
 				codigo_pais: "1058",
 				enviar_email_destinatario: true,
 				enviar_email_homologacao: false,
 
 				codigo_uf: "26",
 			};
+
+			if (data.models.includes(0)) {
+				payload.inscricao_municipal = businessUnit.cityRegistration;
+				payload.serie_nfse_producao = +dynamicData.serieNfseProducao;
+				payload.proximo_numero_nfse_producao =
+					+dynamicData.proximoNumeroNfseProducao;
+				payload.login_responsavel = dynamicData.loginResponsavel.toString();
+				payload.senha_responsavel = dynamicData.senhaResponsavel.toString();
+				payload.senha_responsavel_preenchida = true;
+				payload.habilita_nfse = true;
+			}
+
+			if (data.models.includes(65)) {
+				payload.proximo_numero_nfce_producao =
+					+dynamicData.proximoNumeroNfceProducao;
+				payload.csc_nfce_producao = dynamicData.cscNfceProducao.toString();
+				payload.id_token_nfce_producao = +dynamicData.idTokenNfceProducao;
+				payload.serie_nfce_producao = +dynamicData.serieNfceProducao;
+				payload.habilita_nfce = true;
+				payload.habilita_contingencia_offline_nfce = true;
+				payload.reaproveita_numero_nfce_contingencia = true;
+
+				payload.arquivo_certificado_base64 =
+					dynamicData.arquivoCertificadoBase64.toString();
+				payload.senha_certificado = dynamicData.senhaCertificado.toString();
+				payload.certificado_especifico = true;
+				payload.orientacao_danfe = "portrait";
+				payload.discrimina_impostos = true;
+				payload.recibo_danfe = true;
+			}
+
+			if (data.models.includes(55)) {
+				payload.proximo_numero_nfe_producao =
+					+dynamicData.proximo_numero_nfe_producao;
+				payload.serie_nfe_producao = +dynamicData.serie_nfe_producao;
+				payload.habilita_nfe = true;
+				payload.nfe_sincrono = false;
+
+				payload.arquivo_certificado_base64 =
+					dynamicData.arquivoCertificadoBase64.toString();
+				payload.senha_certificado = dynamicData.senhaCertificado.toString();
+				payload.certificado_especifico = true;
+				payload.orientacao_danfe = "portrait";
+				payload.discrimina_impostos = true;
+				payload.recibo_danfe = true;
+			}
+
+      return payload
+
 			try {
 				// {data} => {id: number}
 				const { data } = await this.ax.post(url, payload);

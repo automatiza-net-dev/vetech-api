@@ -21,44 +21,44 @@ export default class FocusManagementController {
 		auth,
 	}: HttpContextContract) {
 		const authCtx = await this.sharedService.getAuthContext(auth);
-		let payload: {
-			businessUnitId: string;
-			models: number[];
-		} & Record<string, string | number | number[]> = await request.validate(
-			CreateBusinessValidator,
-		);
+		const fixedPayload = await request.validate(CreateBusinessValidator);
+		let dynamicPayload: Record<string, string | number> = {};
 
-		if (payload.models.includes(0)) {
-			payload = Object.assign(
-				payload,
+		if (fixedPayload.models.includes(0)) {
+			dynamicPayload = Object.assign(
+				dynamicPayload,
 				await request.validate(CreateBusiness_0Validator),
 			);
 		}
 
-		if (payload.models.includes(65)) {
-			payload = Object.assign(
-				payload,
+		if (fixedPayload.models.includes(65)) {
+			dynamicPayload = Object.assign(
+				dynamicPayload,
 				await request.validate(CreateBusiness_65Validator),
 			);
-			payload = Object.assign(
-				payload,
+			dynamicPayload = Object.assign(
+				dynamicPayload,
 				await request.validate(CreateBusiness_55_65Validator),
 			);
 		}
 
-		if (payload.models.includes(55)) {
-			payload = Object.assign(
-				payload,
+		if (fixedPayload.models.includes(55)) {
+			dynamicPayload = Object.assign(
+				dynamicPayload,
 				await request.validate(CreateBusiness_55Validator),
 			);
-			payload = Object.assign(
-				payload,
+			dynamicPayload = Object.assign(
+				dynamicPayload,
 				await request.validate(CreateBusiness_55_65Validator),
 			);
 		}
 
-		await this.service.createBusiness(authCtx, payload);
+		const result = await this.service.createBusiness(
+			authCtx,
+			fixedPayload,
+			dynamicPayload,
+		);
 
-		return response.ok(null);
+		return response.ok(result);
 	}
 }

@@ -3,10 +3,12 @@ import { DateTime } from 'luxon';
 
 export interface IUpsertBankingData {
   clientId: string;
-  type: BankingType;
   accountPlanId: string;
   paymentMethodId: string;
   checkingAccountId: string;
+  tefFlagId?: string;
+  acquirerId?: string;
+  type: BankingType;
   document: string;
   historic?: string;
   issueDate: DateTime;

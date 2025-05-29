@@ -73,7 +73,13 @@ export default class BankingService {
 					query.preload("accountPlan");
 				});
 			})
-			.preload("accountPlan");
+			.preload("accountPlan")
+			.preload("tefFlag", (query) => {
+				query.select(["id", "description"]);
+			})
+			.preload("acquirer", (query) => {
+				query.select(["id", "description"]);
+			});
 
 		return qb;
 	}
@@ -221,6 +227,8 @@ export default class BankingService {
 					daily_movement_id: dailyMovement?.id,
 					daily_cashier_id: dailyCashier?.id,
 					finance_id: finance.id,
+					tef_flag_id: data.tefFlagId,
+					acquirer_id: data.acquirerId,
 
 					type: data.type,
 					document: data.document,
@@ -323,6 +331,8 @@ export default class BankingService {
 				checking_account_id: data.checkingAccountId,
 				daily_movement_id: dailyMovement?.id,
 				daily_cashier_id: dailyCashier?.id,
+				tef_flag_id: data.tefFlagId,
+				acquirer_id: data.acquirerId,
 
 				type: data.type,
 				document: data.document,

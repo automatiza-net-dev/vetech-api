@@ -14,6 +14,8 @@ import { DateTime } from "luxon";
 import { v4 } from "uuid";
 
 import CheckingAccount from "./CheckingAccount";
+import TefAcquirer from "./TefAcquirer";
+import TefFlag from "./TefFlag";
 
 export enum BankingType {
 	C = "CREDITO",
@@ -221,4 +223,24 @@ export default class Banking extends BaseModel {
 		foreignKey: "payment_method_id",
 	})
 	public paymentMethod: BelongsTo<typeof PaymentMethod>;
+
+	@column({
+		serializeAs: null,
+	})
+	public tef_flag_id: string | null;
+
+	@belongsTo(() => TefFlag, {
+		foreignKey: "tef_flag_id",
+	})
+	public tefFlag: BelongsTo<typeof TefFlag>;
+
+	@column({
+		serializeAs: null,
+	})
+	public acquirer_id: string | null;
+
+	@belongsTo(() => TefAcquirer, {
+		foreignKey: "acquirer_id",
+	})
+	public acquirer: BelongsTo<typeof TefAcquirer>;
 }

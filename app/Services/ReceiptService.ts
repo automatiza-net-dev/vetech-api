@@ -2387,6 +2387,7 @@ and product_variation_id in (
 					existingFinances.map((f) => f.id),
 				)
 				.update({
+					exclusion_user_id: authCtx.user.id,
 					status: FinanceStatus.E,
 					deletedAt: DateTime.now(),
 				});
@@ -2396,6 +2397,8 @@ and product_variation_id in (
 				.where("receipt_id", data.receiptId)
 				.where("block", data.block)
 				.update({
+					deleted_user_id: authCtx.user.id,
+					deletedAt: DateTime.now(),
 					status: "Excluido" as TReceiptPaymentStatus,
 				});
 

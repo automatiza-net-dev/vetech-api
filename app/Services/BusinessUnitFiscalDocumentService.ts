@@ -392,7 +392,7 @@ export default class BusinessUnitFiscalDocumentService {
 			const offsetPercentage =
 				bill.serviceValue > 0
 					? new Decimal(bill.productValue).div(new Decimal(bill.totalValue))
-					: new Decimal(0);
+					: new Decimal(1);
 			const clearDoc = responsible.tutor.document?.replaceAll(/\D/g, "") ?? "";
 
 			const nfePayload: ISendNfe = {
@@ -431,7 +431,10 @@ export default class BusinessUnitFiscalDocumentService {
 							: responsible.name,
 					cpf_document: clearDoc.length === 11 ? clearDoc : null,
 					cnpj_document: clearDoc.length === 14 ? clearDoc : null,
-					phone: responsible.tutor.cellphone,
+					phone:
+						[responsible.tutor.cellphone, responsible.tutor.telephone].find(
+							Boolean,
+						) ?? "",
 					ie: responsible.tutor.inscription ?? "",
 					email: responsible.tutor.email,
 					authorized: unit.unitConfig.xmlDownloadAuthorization ?? "",
@@ -976,7 +979,10 @@ export default class BusinessUnitFiscalDocumentService {
 						cnpj_document: clearDoc.length === 14 ? clearDoc : null,
 						name: responsible.name,
 						email: responsible.tutor.email,
-						phone: responsible.tutor.telephone ?? "",
+						phone:
+							[responsible.tutor.cellphone, responsible.tutor.telephone].find(
+								Boolean,
+							) ?? "",
 
 						address: {
 							street: responsible.tutor.street ?? "",

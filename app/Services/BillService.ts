@@ -1862,7 +1862,9 @@ where deposit_id = ?
 			.where("economic_group_id", group.id)
 			.where("id", id)
 			.preload("payments")
-			.preload("items")
+			.preload("items", (query) => {
+				query.whereNull("deleted_at");
+			})
 			.first();
 
 		if (!bill) {

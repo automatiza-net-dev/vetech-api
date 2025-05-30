@@ -39,6 +39,14 @@ export default class DownBorderoValidator {
 			rules.uuid(),
 			rules.exists({ table: "payment_methods", column: "id" }),
 		]),
+		tefFlagId: schema.string.optional([
+			rules.uuid(),
+			rules.exists({ table: "tef_flags", column: "id" }),
+		]),
+		tefAcquirerId: schema.string.optional([
+			rules.uuid(),
+			rules.exists({ table: "tef_acquirers", column: "id" }),
+		]),
 
 		interestValue: schema.number(),
 		interestPercentage: schema.number(),

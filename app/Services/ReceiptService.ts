@@ -2895,6 +2895,8 @@ and product_variation_id in (
 				.update({
 					exclusion_user_id: authCtx.user.id,
 					expirationDate: DateTime.now(),
+					deletedAt: DateTime.now(),
+					status: FinanceStatus.E,
 				});
 
 			await ReceiptPayment.query()

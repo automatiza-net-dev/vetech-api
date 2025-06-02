@@ -16,7 +16,7 @@ export default interface IPatientExamData {
 	status?: string;
 }
 export interface IPatientExamAttachmentData {
-	realizedAt: DateTime;
+	realizedAt?: DateTime;
 	patientId: string;
 	attachments: MultipartFileContract[];
 }

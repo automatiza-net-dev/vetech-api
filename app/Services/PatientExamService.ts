@@ -340,6 +340,7 @@ export default class PatientExamService {
 					attachment: url,
 					filename: data.attachments[index].clientName,
 					user_id: authCtx.user.id,
+					realizedAt: data.realizedAt ?? DateTime.now(),
 				})),
 				{
 					client: trx,

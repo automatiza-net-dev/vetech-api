@@ -297,6 +297,10 @@ export default class FinanceService {
 			units.push(data.unit);
 		}
 
+		if (!data.type) {
+			return [];
+		}
+
 		const qb = Database.from("finances")
 			.select(
 				Database.raw(`

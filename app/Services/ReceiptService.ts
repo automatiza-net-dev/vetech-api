@@ -479,35 +479,37 @@ const schema = z.object({
 				_versao: z.optional(z.string()),
 				_Id: z.optional(z.string()),
 			}),
-			Signature: z.object({
-				SignedInfo: z.object({
-					CanonicalizationMethod: z.object({
-						_Algorithm: z.optional(z.string()),
-					}),
-					SignatureMethod: z.object({ _Algorithm: z.optional(z.string()) }),
-					Reference: z.object({
-						Transforms: z.object({
-							Transform: z.array(
-								z.object({ _Algorithm: z.optional(z.string()) }),
-							),
+			Signature: z
+				.object({
+					SignedInfo: z.object({
+						CanonicalizationMethod: z.object({
+							_Algorithm: z.optional(z.string()),
 						}),
-						DigestMethod: z.object({ _Algorithm: z.optional(z.string()) }),
-						DigestValue: z.optional(z.string()),
-						_URI: z.optional(z.string()),
+						SignatureMethod: z.object({ _Algorithm: z.optional(z.string()) }),
+						Reference: z.object({
+							Transforms: z.object({
+								Transform: z.array(
+									z.object({ _Algorithm: z.optional(z.string()) }),
+								),
+							}),
+							DigestMethod: z.object({ _Algorithm: z.optional(z.string()) }),
+							DigestValue: z.optional(z.string()),
+							_URI: z.optional(z.string()),
+						}),
 					}),
-				}),
-				SignatureValue: z.string(),
-				KeyInfo: z.object({
-					X509Data: z.object({ X509Certificate: z.string() }),
-				}),
-				_xmlns: z.optional(z.string()),
-			}),
+					SignatureValue: z.string(),
+					KeyInfo: z.object({
+						X509Data: z.object({ X509Certificate: z.string() }),
+					}),
+					_xmlns: z.optional(z.string()),
+				})
+				.optional(),
 			_xmlns: z.optional(z.string()),
 		}),
 		protNFe: z.object({
 			infProt: z.object({
-				tpAmb: z.string(),
-				verAplic: z.string(),
+				tpAmb: z.string().optional(),
+				verAplic: z.string().optional(),
 				chNFe: z.string(),
 				dhRecbto: z.string(),
 				nProt: z.string(),

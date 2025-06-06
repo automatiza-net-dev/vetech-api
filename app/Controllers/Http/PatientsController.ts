@@ -53,11 +53,17 @@ export default class PatientsController {
 		return response.ok(patients);
 	}
 
-	public async display({ auth, params, response }: HttpContextContract) {
+	public async display({
+		auth,
+		params,
+		request,
+		response,
+	}: HttpContextContract) {
 		return this.sharedService.errorHoc(response, async () => {
 			const patients = await this.service.display(
 				await this.sharedService.getAuthContext(auth),
 				params.id,
+				request.qs(),
 			);
 
 			return response.ok(patients);

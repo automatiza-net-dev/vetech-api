@@ -864,7 +864,7 @@ export default class PatientService {
 
 			scheduleId: scheduleData?.id ?? null,
 			scheduleStartedAt: scheduleData?.started_at ?? null,
-			scheduleAttendance: scheduleData?.aid ?? null,
+			scheduleAttendanceId: scheduleData?.aid ?? null,
 		};
 
 		if (patient.patientAnimal) {

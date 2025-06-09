@@ -53,7 +53,8 @@ export default class ProductivityItemService {
           productivity_item_products.productivity_item_id as p_id,
           productivity_items.description,
           productivity_item_products.quantity,
-          productivity_items.reserved_minutes
+          productivity_items.reserved_minutes,
+          productivity_items.order
       `),
 			)
 			.joinRaw(

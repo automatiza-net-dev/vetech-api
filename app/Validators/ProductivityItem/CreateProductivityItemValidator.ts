@@ -28,6 +28,7 @@ export default class CreateProductivityItemValidator {
 		description: schema.string({ trim: true }),
 		reservedMinutes: schema.number(),
 		origin: schema.enum(ProductivityItemOrigin),
+    order: schema.number(),
 	});
 
 	/**

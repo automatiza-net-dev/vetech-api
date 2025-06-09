@@ -19,7 +19,9 @@ export default class ProductivityItemService {
 			active?: string;
 		},
 	) {
-		const qb = ProductivityItem.query().where("system_id", systemID);
+		const qb = ProductivityItem.query()
+			.where("system_id", systemID)
+			.orderByRaw('"order", description, id desc');
 
 		if (data.origin === "Portal") {
 			qb.whereNull("economic_group_id");
@@ -58,7 +60,9 @@ export default class ProductivityItemService {
 				"join productivity_item_products on productivity_items.id = productivity_item_products.productivity_item_id",
 				[],
 			)
-			.orderBy("productivity_items.id")
+			.orderByRaw(
+				"productivity_items.order, productivity_items.description, productivity_items.id asc",
+			)
 			.where("productivity_item_products.economic_group_id", authCtx.group.id)
 			.where(
 				"productivity_item_products.active",
@@ -79,6 +83,7 @@ export default class ProductivityItemService {
 			description: string;
 			reservedMinutes: number;
 			origin: TProductivityItemOrigin;
+			order: number;
 		},
 	) {
 		if (data.origin === "Portal") {
@@ -86,6 +91,7 @@ export default class ProductivityItemService {
 				system_id: systemID,
 				description: data.description,
 				reservedMinutes: data.reservedMinutes,
+				order: data.order,
 			});
 			return;
 		}
@@ -95,6 +101,7 @@ export default class ProductivityItemService {
 			economic_group_id: groupID,
 			description: data.description,
 			reservedMinutes: data.reservedMinutes,
+			order: data.order,
 		});
 	}
 
@@ -105,6 +112,7 @@ export default class ProductivityItemService {
 			description: string;
 			reservedMinutes: number;
 			active: boolean;
+			order: number;
 		},
 	) {
 		await Database.transaction(async (trx) => {
@@ -123,6 +131,7 @@ export default class ProductivityItemService {
 					description: data.description,
 					reservedMinutes: data.reservedMinutes,
 					active: data.active,
+					order: data.order,
 				})
 				.useTransaction(trx)
 				.save();
@@ -136,6 +145,7 @@ export default class ProductivityItemService {
 				productivityItemId: number;
 				productId: string;
 				quantity: number;
+				order: number;
 			}[];
 		},
 	) {
@@ -156,6 +166,7 @@ export default class ProductivityItemService {
 							economic_group_id: authCtx.group.id,
 							product_id: inner.productId,
 							quantity: inner.quantity,
+							order: inner.order,
 						})),
 					trx,
 				);
@@ -171,6 +182,7 @@ export default class ProductivityItemService {
 			id: number;
 			quantity: number;
 			active: boolean;
+			order: number;
 		},
 	) {
 		await Database.transaction(async (trx) => {
@@ -185,7 +197,11 @@ export default class ProductivityItemService {
 			}
 
 			await item
-				.merge({ quantity: data.quantity, active: data.active })
+				.merge({
+					quantity: data.quantity,
+					active: data.active,
+					order: data.order,
+				})
 				.useTransaction(trx)
 				.save();
 		});

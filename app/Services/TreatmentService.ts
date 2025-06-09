@@ -395,11 +395,15 @@ export default class TreatmentService {
 
 		return Database.from("treatment_executions")
 			.select(
-				Database.raw(`json_build_object('treatmentId', treatment_executions.treatment_id, 'treatmentItemId', treatment_executions.treatment_item_id, 'treatmentExecutionId', treatment_executions.id,
-
-'productId', products.id, 'productDescription', products.description, 'productivityItemid', productivity_items.id, 'productivityItemdescription', productivity_items.description,
-
-'executionUserId', users.id, 'executionUserName', users.name, 'executionDate', treatment_executions.execution_date) as executions`),
+				Database.raw(`json_build_object('treatmentId', treatment_items.id, 'treatmentItemId', treatment_items.id, 'productId',
+                         products.id, 'productDescription', products.description, 'executions',
+                         json_agg(json_build_object('treatmentExecutionId', treatment_executions.id,
+                                                    'productivityItemId', productivity_items.id,
+                                                    'productivityItemDescription',
+                                                    productivity_items.description,
+                                                    'executionUserId', users.id,
+                                                    'executionUserName', users.name,
+                                                    'executionDate', treatment_executions.execution_date))) as items`),
 			)
 			.joinRaw(
 				"join treatment_items on treatment_executions.treatment_id = treatment_items.treatment_id and treatment_executions.treatment_item_id = treatment_items.id",
@@ -412,9 +416,14 @@ export default class TreatmentService {
 				"left join productivity_items on treatment_executions.productivity_item_id = productivity_items.id",
 			)
 			.joinRaw(
+				"left join productivity_item_products pip on products.id = pip.product_id and productivity_items.id = pip.productivity_item_id and pip.economic_group_id = productivity_items.economic_group_id",
+			)
+			.joinRaw(
 				"left join users on treatment_executions.execution_user_id = users.id",
 			)
-
+			.groupByRaw(
+				"treatment_items.id, treatment_items.id, products.id, treatment_executions.treatment_id",
+			)
 			.where("treatment_executions.economic_group_id", authCtx.group.id)
 			.where("treatment_executions.business_unit_id", authCtx.unit.id)
 			.where("treatment_executions.schedule_id", scheduleId);

@@ -740,7 +740,11 @@ export default class PatientService {
 		};
 	}
 
-	public async display(authCtx: AuthContext, patientId: string) {
+	public async display(
+		authCtx: AuthContext,
+		patientId: string,
+		params: { scheduleId?: string },
+	) {
 		const patient = await authCtx.group
 			.related("patients")
 			.query()
@@ -780,13 +784,35 @@ export default class PatientService {
 			.where("patient_id", patient.id)
 			.whereNull("close_user_id");
 
-		const scheduleData: { id: string; started_at: string } | null =
-			await Database.from("schedules")
-				.select(Database.raw("id, started_at"))
-				.whereRaw("patient_id = ?", [patient.id])
-				.whereRaw("start_hour::date = now()::date")
-				.orderByRaw("created_at desc")
-				.first();
+		const scheduleData: {
+			id: string;
+			started_at: string;
+			aid: string | null;
+		} | null = params.scheduleId
+			? await Database.from("schedules")
+					.select(
+						Database.raw(
+							"schedules.id, schedules.started_at, attendances.id as aid",
+						),
+					)
+					.whereRaw("schedules.id = ?", [params.scheduleId])
+					.joinRaw(
+						"left join attendances on attendances.schedule_id = schedules.id",
+					)
+					.first()
+			: await Database.from("schedules")
+					.select(
+						Database.raw(
+							"schedules.id, schedules.started_at, attendances.id as aid",
+						),
+					)
+					.whereRaw("schedules.patient_id = ?", [patient.id])
+					.whereRaw("start_hour::date = now()::date")
+					.joinRaw(
+						"left join attendances on attendances.schedule_id = schedules.id",
+					)
+					.orderByRaw("schedules.created_at desc")
+					.first();
 
 		const s3Urls = await SharedService.ComputePublicS3Link(
 			patient.photo ? [patient.photo] : [],
@@ -838,6 +864,7 @@ export default class PatientService {
 
 			scheduleId: scheduleData?.id ?? null,
 			scheduleStartedAt: scheduleData?.started_at ?? null,
+			scheduleAttendanceId: scheduleData?.aid ?? null,
 		};
 
 		if (patient.patientAnimal) {

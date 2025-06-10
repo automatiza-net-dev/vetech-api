@@ -2823,6 +2823,7 @@ case when p.control_id = 'TRC11' then 'Usuário não possui permissão para reti
 			checkingAccountId: string;
 			paymentMethodId?: string;
 			tefFlagId?: string;
+			tefAcquirerId?: string;
 
 			interestValue: number;
 			interestPercentage: number;
@@ -2856,6 +2857,7 @@ case when p.control_id = 'TRC11' then 'Usuário não possui permissão para reti
 					checking_account_id: data.checkingAccountId,
 					payment_method_id: data.paymentMethodId,
 					tef_flag_id: data.tefFlagId,
+					tef_acquirer_id: data.tefAcquirerId,
 
 					paymentValue:
 						bordero.totalValue + data.interestValue - data.discountValue,
@@ -2880,6 +2882,14 @@ case when p.control_id = 'TRC11' then 'Usuário não possui permissão para reti
 				return elem
 					.merge({
 						checking_account_id: data.checkingAccountId,
+						acquirer_id:
+							bordero.payment_method_id !== updatedBordero.payment_method_id
+								? data.tefAcquirerId
+								: undefined,
+						tef_flag_id:
+							bordero.payment_method_id !== updatedBordero.payment_method_id
+								? data.tefFlagId
+								: undefined,
 
 						paymentDate: data.paymentDate,
 						paymentValue: elem.totalValue,

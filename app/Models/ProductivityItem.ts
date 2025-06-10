@@ -23,6 +23,9 @@ export default class ProductivityItem extends BaseModel {
 	public typeQty: TProductivityItemTypeQty;
 
 	@column()
+	public order: number;
+
+	@column()
 	public active: boolean;
 
 	@column.dateTime({ autoCreate: true })

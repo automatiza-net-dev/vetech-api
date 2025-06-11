@@ -2031,6 +2031,21 @@ export default class ReceiptService {
 				}
 			});
 			await Promise.all(checkTasks);
+
+			const financesTasks = updatedPayments.map(async (elem) => {
+				return Finance.query()
+					.useTransaction(trx)
+					.where("origin_id", elem.id)
+					.update({
+						payment_method_id: elem.payment_method_id,
+						acquirer_id: elem.tef_acquirer_id,
+						tef_flag_id: elem.tef_flag_id,
+						installment: elem.installmentValue,
+						expirationDate: elem.expirationDate,
+						nsuDocument: elem.nsuDocument,
+					});
+			});
+			await Promise.all(financesTasks);
 		});
 	}
 

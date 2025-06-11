@@ -752,6 +752,7 @@ export default class ReceiptService {
 		data: {
 			items: {
 				productId: string;
+				productDescription: string;
 				variationGroupId?: string;
 				subgroupId: string;
 				unitId: string;
@@ -792,6 +793,7 @@ export default class ReceiptService {
 						taxation_group_id: item.taxationGroupId,
 						brand_id: item.brandId,
 
+						description: item.productDescription,
 						referenceCode: item.referenceCode,
 						purpose: item.purpose,
 					})

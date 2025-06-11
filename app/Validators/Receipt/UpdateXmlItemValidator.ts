@@ -57,6 +57,7 @@ export default class UpdateXmlItemValidator {
 					rules.exists({ table: "product_variations", column: "id" }),
 				]),
 
+        productDescription: schema.string(),
 				referenceCode: schema.string.optional(),
 				purpose: schema.enum(Object.values(ProductPurpose)),
 				barcode: schema.string.optional(),

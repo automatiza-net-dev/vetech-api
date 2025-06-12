@@ -57,7 +57,7 @@ export default class UpdateXmlItemValidator {
 					rules.exists({ table: "product_variations", column: "id" }),
 				]),
 
-        productDescription: schema.string(),
+				productDescription: schema.string(),
 				referenceCode: schema.string.optional(),
 				purpose: schema.enum(Object.values(ProductPurpose)),
 				barcode: schema.string.optional(),
@@ -71,6 +71,10 @@ export default class UpdateXmlItemValidator {
 				commissionMeta: schema.number(),
 				metaType: schema.enum(Object.values(BusinessUnitProductMetaType)),
 				meta: schema.number(),
+
+				fractioned: schema.boolean.optional(),
+				fractionUnitId: schema.string.optional([]),
+				fractionValue: schema.number.optional(),
 			}),
 		),
 	});

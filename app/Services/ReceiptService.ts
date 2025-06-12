@@ -760,6 +760,9 @@ export default class ReceiptService {
 				brandId?: string;
 				productVariationId: string;
 
+				fractioned?: boolean;
+				fractionUnitId?: string;
+				fractionValue?: number;
 				referenceCode?: string;
 				purpose: ProductPurpose;
 				barcode?: string;
@@ -792,7 +795,12 @@ export default class ReceiptService {
 						subgroup_id: item.subgroupId,
 						taxation_group_id: item.taxationGroupId,
 						brand_id: item.brandId,
+						fraction_unit_id: item.fractionUnitId,
 
+						fractioned: item.fractioned,
+						fractionValue: item.fractionValue
+							? new Decimal(item.fractionValue)
+							: undefined,
 						description: item.productDescription,
 						referenceCode: item.referenceCode,
 						purpose: item.purpose,

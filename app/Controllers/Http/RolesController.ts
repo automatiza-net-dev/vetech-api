@@ -17,15 +17,10 @@ export default class RolesController {
 	) {}
 
 	public async index({ request, response, auth }: HttpContextContract) {
-		const qs = request.qs();
-
 		response.ok(
 			await this.roleService.index(
 				await this.sharedService.getAuthContext(auth),
-				{
-					name: qs.name,
-					new: qs.new,
-				},
+				request.qs(),
 			),
 		);
 	}

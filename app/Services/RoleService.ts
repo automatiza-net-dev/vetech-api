@@ -21,34 +21,27 @@ export default class RoleService {
 	public async index(authCtx: AuthContext, data: ISearch) {
 		const qb = Role.query()
 			.orderByRaw("name")
-			.where("system_id", authCtx.system.id)
-			.where("economic_group_id", authCtx.group.id);
+			.where("system_id", authCtx.system.id);
 
-		if (authCtx.user.type === "user") {
-			qb.whereIn("type", ["user", "both", "all"] as TRoleType[]);
-		}
+		if (authCtx.group.id) {
+			qb.where("economic_group_id", authCtx.group.id);
+		} else {
+			if (authCtx.user.type === "user") {
+				qb.whereIn("type", ["user", "both", "all"] as TRoleType[]);
+			}
 
-		if (authCtx.user.type === "controller") {
-			qb.whereIn("type", ["controller", "both", "all"] as TRoleType[]);
-		}
+			if (authCtx.user.type === "controller") {
+				qb.whereIn("type", ["controller", "both", "all"] as TRoleType[]);
+			}
 
-		if (authCtx.user.type === "system") {
-			qb.whereIn("type", ["system", "all"] as TRoleType[]);
+			if (authCtx.user.type === "system") {
+				qb.whereIn("type", ["system", "all"] as TRoleType[]);
+			}
 		}
 
 		if (data.name) {
 			qb.where("name", "ilike", `%${data.name}%`);
 		}
-
-		// if (data.new === "true") {
-		// 	qb.whereHas("permissions", (q) => {
-		// 		q.whereNull("status");
-		// 	});
-		// } else {
-		// 	qb.whereHas("permissions", (q) => {
-		// 		q.whereNotNull("status");
-		// 	});
-		// }
 
 		const result = await qb;
 		const permissions = await Database.from("role_permissions")

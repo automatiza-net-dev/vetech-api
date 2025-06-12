@@ -860,6 +860,10 @@ Route.group(() => {
 Route.group(() => {
 	Route.get("/info/:id", "DailyCashiersController.check");
 	Route.get("/dump/:id", "DailyCashiersController.dump");
+	Route.get(
+		"/check-cashier-status",
+		"DailyCashiersController.checkCashierStatus",
+	);
 	Route.get("/", "DailyCashiersController.index");
 	Route.post("/open", "DailyCashiersController.openDailyCashier");
 	Route.post("/close/:id", "DailyCashiersController.closeDailyCashier");
@@ -1061,7 +1065,7 @@ Route.group(() => {
 	);
 	Route.post("/check-item-discount", "BillsController.checkItemDiscount");
 	Route.post("/discount-deposit-items", "BillsController.discountDepositItems");
-  Route.post("/calculate-taxes", "BillsController.calculateBillTaxes")
+	Route.post("/calculate-taxes", "BillsController.calculateBillTaxes");
 
 	Route.post("/create-treatment", "BillsController.createTreatment");
 

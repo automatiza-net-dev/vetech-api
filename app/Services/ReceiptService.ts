@@ -2050,9 +2050,12 @@ export default class ReceiptService {
 						payment_method_id: elem.payment_method_id,
 						acquirer_id: elem.tef_acquirer_id,
 						tef_flag_id: elem.tef_flag_id,
-						installment: elem.installmentValue,
+						// installment: elem.installmentValue,
 						expirationDate: elem.expirationDate,
 						nsuDocument: elem.nsuDocument,
+						originalValue: elem.installmentValue,
+						value: elem.installmentValue,
+						totalValue: elem.installmentValue,
 					});
 			});
 			await Promise.all(financesTasks);

@@ -24,7 +24,7 @@ export default class SwapUnitValidator {
 	 *    ```
 	 */
 	public schema = schema.create({
-		unitId: schema.string.nullableAndOptional([]),
+		unitId: schema.string([rules.uuid()]),
 	});
 
 	/**

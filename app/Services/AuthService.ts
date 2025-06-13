@@ -376,10 +376,29 @@ export default class AuthService {
 		user: User,
 		token: ProviderTokenContract,
 		data: {
-			unitId: string;
+			unitId?: string | null;
 		},
 	) {
 		return Database.transaction(async (trx) => {
+			if (!data.unitId || data.unitId === "") {
+				const result = (await Database.from("api_tokens")
+					.useTransaction(trx)
+					.where("id", token.meta?.id ?? -1)
+					.update({
+						unit_id: null,
+					})) as unknown as number;
+
+				if (result === 0) {
+					throw new BadRequestException(
+						"Token inválido",
+						400,
+						"E_INVALID_TOKEN",
+					);
+				}
+
+				return;
+			}
+
 			const unit = await BusinessUnit.query()
 				.useTransaction(trx)
 				.where("id", data.unitId)

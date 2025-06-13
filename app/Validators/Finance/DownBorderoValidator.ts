@@ -52,7 +52,7 @@ export default class DownBorderoValidator {
 		interestPercentage: schema.number(),
 		discountValue: schema.number(),
 		discountPercentage: schema.number(),
-		paymentDate: schema.date(),
+		paymentDate: schema.string(),
 	});
 
 	/**

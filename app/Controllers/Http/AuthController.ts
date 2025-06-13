@@ -68,6 +68,8 @@ export default class AuthController {
 
 		await this.authService.swapUnit(user, token!, payload);
 
+    throw new BadRequestException("Não autorizado para fazer isso", 422, 'E_ERR');
+
 		return response.noContent();
 	}
 

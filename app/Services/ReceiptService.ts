@@ -2191,17 +2191,31 @@ and product_variation_id in (
 				.exec();
 
 			await Database.rawQuery(
-				`update business_unit_products set cost_price = ( (avg(bup.cost_price) * sum(di.quantity)) + (avg(ri.cost_value) * avg(ri.quantity)) ) / (sum(di.quantity) + avg(ri.quantity * p.fraction_value))
-from business_unit_products bup
-join product_variations pv on pv.id = bup.product_variation_id
-join products p on p.id = pv.product_id
-join deposits d on d.business_unit_id = bup.businness_unit_id and d.type = 'Venda' and d.deleted_at is null and status = 'Ativo'
-join deposit_items di on d.id = di.deposit_id and di.business_unit_product_id = bup.id and di.product_variation_id = bup.product_variation_id and di.status = 'Ativo'
-join receipts on bup.businness_unit_id = receipts.business_unit_id
-join receipt_items ri on ri.receipt_id = receipts.id and ri.product_variation_id = pv.id
-where business_unit_products.id = bup.id
-  and bup.businness_unit_id = business_unit_products.businness_unit_id
-  and receipts.id = ?`,
+				`WITH calculated_costs AS (SELECT bup.id,
+                                 bup.businness_unit_id,
+                                 ((avg(bup.cost_price) * sum(di.quantity)) + (avg(ri.cost_value) * avg(ri.quantity))) /
+                                 (sum(di.quantity) + avg(ri.quantity * p.fraction_value)) AS new_cost_price
+                          FROM business_unit_products bup
+                                   JOIN product_variations pv ON pv.id = bup.product_variation_id
+                                   JOIN products p ON p.id = pv.product_id
+                                   JOIN deposits d ON d.business_unit_id = bup.businness_unit_id
+                              AND d.type = 'Venda'
+                              AND d.deleted_at IS NULL
+                              AND d.status = 'Ativo'
+                                   JOIN deposit_items di ON d.id = di.deposit_id
+                              AND di.business_unit_product_id = bup.id
+                              AND di.product_variation_id = bup.product_variation_id
+                              AND di.status = 'Ativo'
+                                   JOIN receipts ON bup.businness_unit_id = receipts.business_unit_id
+                                   JOIN receipt_items ri ON ri.receipt_id = receipts.id
+                              AND ri.product_variation_id = pv.id
+                          WHERE receipts.id = ?
+                          GROUP BY bup.id, bup.businness_unit_id)
+UPDATE business_unit_products
+SET cost_price = cc.new_cost_price
+FROM calculated_costs cc
+WHERE business_unit_products.id = cc.id
+  AND business_unit_products.businness_unit_id = cc.businness_unit_id;`,
 				[receipt.id],
 			)
 				.useTransaction(trx)

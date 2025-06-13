@@ -379,69 +379,53 @@ export default class AuthService {
 			unitId?: string | null;
 		},
 	) {
-		return Database.transaction(async (trx) => {
-			if (!data.unitId || data.unitId === "") {
-				const result = (await Database.from("api_tokens")
-					.useTransaction(trx)
-					.where("id", token.meta?.id ?? -1)
-					.update({
-						unit_id: null,
-					})) as unknown as number;
-
-				if (result === 0) {
-					throw new BadRequestException(
-						"Token inválido",
-						400,
-						"E_INVALID_TOKEN",
-					);
-				}
-
-				throw new BadRequestException(
-					"Erro temporário",
-					422,
-					"E_ERR",
-				);
-
-				return;
-			}
-
-			const unit = await BusinessUnit.query()
-				.useTransaction(trx)
-				.where("id", data.unitId)
-				.first();
-
-			if (!unit) {
-				throw new BadRequestException(
-					"Unidade não encontrada",
-					400,
-					"E_UNIT_NOT_FOUND",
-				);
-			}
-
-			const userRoles = await UserUnitRole.query()
-				.useTransaction(trx)
-				.where("user_id", user.id)
-				.where("unit_id", data.unitId)
-				.where("active", true);
-			if (userRoles.length === 0) {
-				throw new BadRequestException(
-					"Usuário não possui permissão para acessar a unidade",
-					400,
-					"E_USER_NOT_ALLOWED",
-				);
-			}
-
+		if (!data.unitId || data.unitId === "") {
 			const result = (await Database.from("api_tokens")
-				.useTransaction(trx)
 				.where("id", token.meta?.id ?? -1)
 				.update({
-					unit_id: data.unitId,
+					unit_id: null,
 				})) as unknown as number;
 
 			if (result === 0) {
 				throw new BadRequestException("Token inválido", 400, "E_INVALID_TOKEN");
 			}
-		});
+
+			throw new BadRequestException("Erro temporário", 422, "E_ERR");
+
+			return;
+		}
+
+		const unit = await BusinessUnit.query().where("id", data.unitId).first();
+
+		if (!unit) {
+			throw new BadRequestException(
+				"Unidade não encontrada",
+				400,
+				"E_UNIT_NOT_FOUND",
+			);
+		}
+
+		const userRoles = await UserUnitRole.query()
+			.where("user_id", user.id)
+			.where("unit_id", data.unitId)
+			.where("active", true);
+		if (userRoles.length === 0) {
+			throw new BadRequestException(
+				"Usuário não possui permissão para acessar a unidade",
+				400,
+				"E_USER_NOT_ALLOWED",
+			);
+		}
+
+		const result = (await Database.from("api_tokens")
+			.where("id", token.meta?.id ?? -1)
+			.update({
+				unit_id: data.unitId,
+			})) as unknown as number;
+
+		if (result === 0) {
+			throw new BadRequestException("Token inválido", 400, "E_INVALID_TOKEN");
+		}
 	}
 
 	public async swapTpUnit(

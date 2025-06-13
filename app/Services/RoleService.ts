@@ -18,24 +18,45 @@ interface ISearch {
 export default class RoleService {
 	constructor(private sharedService: SharedService) {}
 
-	public async index(authCtx: AuthContext, data: ISearch) {
-		const qb = Role.query()
-			.orderByRaw("name")
-			.where("system_id", authCtx.system.id);
+	public async index(
+		systemID: number,
+		unitID: string | null,
+		userType: string,
+		data: ISearch,
+	) {
+		const qb = Role.query().orderByRaw("name").where("system_id", systemID);
 
-		if (authCtx.group.id) {
-			qb.where("economic_group_id", authCtx.group.id);
+		if (unitID) {
+			const thing = await Database.from("business_units")
+				.select("economic_group_id")
+				.where("id", unitID)
+				.firstOrFail();
+			qb.where("economic_group_id", thing?.economic_group_id);
+
+			if (userType === "user") {
+				qb.whereIn("type", ["user", "both", "all"]);
+			}
+
+			if (userType === "controller") {
+				qb.whereIn("type", ["controller", "user", "both", "all"]);
+			}
+
+			if (userType === "system") {
+				qb.whereIn("type", ["system", "user", "all"]);
+			}
 		} else {
-			if (authCtx.user.type === "user") {
-				qb.whereIn("type", ["user", "both", "all"] as TRoleType[]);
+			qb.whereRaw("economic_group_id is null");
+
+			if (userType === "user") {
+				qb.whereIn("type", ["user", "both", "all"]);
 			}
 
-			if (authCtx.user.type === "controller") {
-				qb.whereIn("type", ["controller", "both", "all"] as TRoleType[]);
+			if (userType === "controller") {
+				qb.whereIn("type", ["controller", "both", "all"]);
 			}
 
-			if (authCtx.user.type === "system") {
-				qb.whereIn("type", ["system", "all"] as TRoleType[]);
+			if (userType === "system") {
+				qb.whereIn("type", ["system", "all"]);
 			}
 		}
 

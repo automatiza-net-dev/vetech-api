@@ -17,9 +17,23 @@ export default class RolesController {
 	) {}
 
 	public async index({ request, response, auth }: HttpContextContract) {
-		response.ok(
+		const ctx = this.sharedService.extractUser(auth);
+		if (!ctx.unit_id) {
+			return response.ok(
+				await this.roleService.index(
+					ctx.system_id,
+					null,
+					ctx.user.type,
+					request.qs(),
+				),
+			);
+		}
+
+		return response.ok(
 			await this.roleService.index(
-				await this.sharedService.getAuthContext(auth),
+				ctx.system_id,
+				ctx.unit_id,
+				ctx.user.type,
 				request.qs(),
 			),
 		);

@@ -2191,22 +2191,17 @@ and product_variation_id in (
 				.exec();
 
 			await Database.rawQuery(
-				`update business_unit_products
-set cost_price = ((avg(bup.cost_price) * sum(di.quantity)) + (avg(ri.cost_value) * avg(ri.quantity))) /
-                 (sum(di.quantity) + avg(ri.quantity * p.fraction_value))
+				`update business_unit_products set cost_price = ( (avg(bup.cost_price) * sum(di.quantity)) + (avg(ri.cost_value) * avg(ri.quantity)) ) / (sum(di.quantity) + avg(ri.quantity * p.fraction_value))
 from business_unit_products bup
-         join product_variations pv on pv.id = bup.product_variation_id
-         join products p on p.id = pv.product_id
-         join deposits d on d.business_unit_id = bup.businness_unit_id and d.type = 'Venda' and d.deleted_at is null and
-                            status = 'Ativo'
-         join deposit_items di on d.id = di.deposit_id and di.business_unit_product_id = bup.id and
-                                  di.product_variation_id = bup.product_variation_id and di.status = 'Ativo'
-         join receipts on bup.businness_unit_id = receipts.business_unit_id
-         join receipt_items ri on ri.receipt_id = receipts.id and ri.product_variation_id = pv.id
+join product_variations pv on pv.id = bup.product_variation_id
+join products p on p.id = pv.product_id
+join deposits d on d.business_unit_id = bup.businness_unit_id and d.type = 'Venda' and d.deleted_at is null and status = 'Ativo'
+join deposit_items di on d.id = di.deposit_id and di.business_unit_product_id = bup.id and di.product_variation_id = bup.product_variation_id and di.status = 'Ativo'
+join receipts on bup.businness_unit_id = receipts.business_unit_id
+join receipt_items ri on ri.receipt_id = receipts.id and ri.product_variation_id = pv.id
 where business_unit_products.id = bup.id
   and bup.businness_unit_id = business_unit_products.businness_unit_id
-  and receipts.id = ?
-`,
+  and receipts.id = ?`,
 				[receipt.id],
 			)
 				.useTransaction(trx)

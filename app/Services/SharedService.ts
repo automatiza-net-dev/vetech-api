@@ -350,7 +350,9 @@ export default class SharedService {
 				return !!flatPermissions.find((r) => r === controlID);
 			},
 			hasPermissions: (controlIDs) => {
-				return controlIDs.every((r) => flatPermissions.includes(r));
+				return controlIDs.every(
+					(controlID) => !!flatPermissions.find((r) => r === controlID),
+				);
 			},
 		};
 	}

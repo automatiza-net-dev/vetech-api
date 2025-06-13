@@ -6,6 +6,7 @@ import { IVaccineProtocolData } from "Contracts/interfaces/IVaccineProtocolData"
 
 interface ISearch {
 	type?: VaccineType;
+	protocol?: string;
 	vaccine?: string;
 	specie?: string;
 	name?: string;
@@ -18,6 +19,10 @@ export default class VaccineProtocolService {
 
 		if (data.name) {
 			qb.where("name", "ilike", `%${data.name}%`);
+		}
+
+		if (data.protocol) {
+			qb.where("name", "ilike", `%${data.protocol}%`);
 		}
 
 		if (data.specie) {

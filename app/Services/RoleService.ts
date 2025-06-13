@@ -18,37 +18,51 @@ interface ISearch {
 export default class RoleService {
 	constructor(private sharedService: SharedService) {}
 
-	public async index(authCtx: AuthContext, data: ISearch) {
-		const qb = Role.query()
-			.orderByRaw("name")
-			.where("system_id", authCtx.system.id)
-			.where("economic_group_id", authCtx.group.id);
+	public async index(
+		systemID: number,
+		unitID: string | null,
+		userType: string,
+		data: ISearch,
+	) {
+		const qb = Role.query().orderByRaw("name").where("system_id", systemID);
 
-		if (authCtx.user.type === "user") {
-			qb.whereIn("type", ["user", "both", "all"] as TRoleType[]);
-		}
+		if (unitID) {
+			const thing = await Database.from("business_units")
+				.select("economic_group_id")
+				.where("id", unitID)
+				.firstOrFail();
+			qb.where("economic_group_id", thing?.economic_group_id);
 
-		if (authCtx.user.type === "controller") {
-			qb.whereIn("type", ["controller", "both", "all"] as TRoleType[]);
-		}
+			if (userType === "user") {
+				qb.whereIn("type", ["user", "both", "all"]);
+			}
 
-		if (authCtx.user.type === "system") {
-			qb.whereIn("type", ["system", "all"] as TRoleType[]);
+			if (userType === "controller") {
+				qb.whereIn("type", ["controller", "user", "both", "all"]);
+			}
+
+			if (userType === "system") {
+				qb.whereIn("type", ["system", "user", "all"]);
+			}
+		} else {
+			qb.whereRaw("economic_group_id is null");
+
+			if (userType === "user") {
+				qb.whereIn("type", ["user", "both", "all"]);
+			}
+
+			if (userType === "controller") {
+				qb.whereIn("type", ["controller", "both", "all"]);
+			}
+
+			if (userType === "system") {
+				qb.whereIn("type", ["system", "all"]);
+			}
 		}
 
 		if (data.name) {
 			qb.where("name", "ilike", `%${data.name}%`);
 		}
-
-		// if (data.new === "true") {
-		// 	qb.whereHas("permissions", (q) => {
-		// 		q.whereNull("status");
-		// 	});
-		// } else {
-		// 	qb.whereHas("permissions", (q) => {
-		// 		q.whereNotNull("status");
-		// 	});
-		// }
 
 		const result = await qb;
 		const permissions = await Database.from("role_permissions")

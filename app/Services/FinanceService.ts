@@ -2829,7 +2829,7 @@ case when p.control_id = 'TRC11' then 'Usuário não possui permissão para reti
 			interestPercentage: number;
 			discountValue: number;
 			discountPercentage: number;
-			paymentDate: DateTime;
+			paymentDate: string;
 		},
 	) {
 		return Database.transaction(async (trx) => {
@@ -2866,7 +2866,10 @@ case when p.control_id = 'TRC11' then 'Usuário não possui permissão para reti
 					discountValue: data.discountValue,
 					discountPercentage: data.discountPercentage,
 					downDate: DateTime.now(),
-					paymentDate: data.paymentDate,
+					paymentDate:
+						data.paymentDate.length === 10
+							? DateTime.fromISO(data.paymentDate).plus({ hours: 3 })
+							: DateTime.fromISO(data.paymentDate),
 					status: "Baixado",
 				})
 				.useTransaction(trx)

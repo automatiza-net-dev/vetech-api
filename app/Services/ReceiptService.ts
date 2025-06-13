@@ -752,6 +752,7 @@ export default class ReceiptService {
 		data: {
 			items: {
 				productId: string;
+				productDescription: string;
 				variationGroupId?: string;
 				subgroupId: string;
 				unitId: string;
@@ -759,6 +760,9 @@ export default class ReceiptService {
 				brandId?: string;
 				productVariationId: string;
 
+				fractioned?: boolean;
+				fractionUnitId?: string;
+				fractionValue?: number;
 				referenceCode?: string;
 				purpose: ProductPurpose;
 				barcode?: string;
@@ -791,7 +795,13 @@ export default class ReceiptService {
 						subgroup_id: item.subgroupId,
 						taxation_group_id: item.taxationGroupId,
 						brand_id: item.brandId,
+						fraction_unit_id: item.fractionUnitId,
 
+						fractioned: item.fractioned,
+						fractionValue: item.fractionValue
+							? new Decimal(item.fractionValue)
+							: undefined,
+						description: item.productDescription,
 						referenceCode: item.referenceCode,
 						purpose: item.purpose,
 					})
@@ -2031,6 +2041,24 @@ export default class ReceiptService {
 				}
 			});
 			await Promise.all(checkTasks);
+
+			const financesTasks = updatedPayments.map(async (elem) => {
+				return Finance.query()
+					.useTransaction(trx)
+					.where("origin_id", elem.id)
+					.update({
+						payment_method_id: elem.payment_method_id,
+						acquirer_id: elem.tef_acquirer_id,
+						tef_flag_id: elem.tef_flag_id,
+						// installment: elem.installmentValue,
+						expirationDate: elem.expirationDate,
+						nsuDocument: elem.nsuDocument,
+						originalValue: elem.installmentValue,
+						value: elem.installmentValue,
+						totalValue: elem.installmentValue,
+					});
+			});
+			await Promise.all(financesTasks);
 		});
 	}
 
@@ -2158,6 +2186,37 @@ and product_variation_id in (
     select distinct product_variation_id from receipt_items where receipt_id = ? and disabled_date is null
 )`,
 				[receipt.id, authCtx.unit.unitConfig.incoming_deposit_id, receipt.id],
+			)
+				.useTransaction(trx)
+				.exec();
+
+			await Database.rawQuery(
+				`WITH calculated_costs AS (SELECT bup.id,
+                                 bup.businness_unit_id,
+                                 ((avg(bup.cost_price) * sum(di.quantity)) + (avg(ri.cost_value) * avg(ri.quantity))) /
+                                 (sum(di.quantity) + avg(ri.quantity * p.fraction_value)) AS new_cost_price
+                          FROM business_unit_products bup
+                                   JOIN product_variations pv ON pv.id = bup.product_variation_id
+                                   JOIN products p ON p.id = pv.product_id
+                                   JOIN deposits d ON d.business_unit_id = bup.businness_unit_id
+                              AND d.type = 'Venda'
+                              AND d.deleted_at IS NULL
+                              AND d.status = 'Ativo'
+                                   JOIN deposit_items di ON d.id = di.deposit_id
+                              AND di.business_unit_product_id = bup.id
+                              AND di.product_variation_id = bup.product_variation_id
+                              AND di.status = 'Ativo'
+                                   JOIN receipts ON bup.businness_unit_id = receipts.business_unit_id
+                                   JOIN receipt_items ri ON ri.receipt_id = receipts.id
+                              AND ri.product_variation_id = pv.id
+                          WHERE receipts.id = ?
+                          GROUP BY bup.id, bup.businness_unit_id)
+UPDATE business_unit_products
+SET cost_price = cc.new_cost_price
+FROM calculated_costs cc
+WHERE business_unit_products.id = cc.id
+  AND business_unit_products.businness_unit_id = cc.businness_unit_id;`,
+				[receipt.id],
 			)
 				.useTransaction(trx)
 				.exec();

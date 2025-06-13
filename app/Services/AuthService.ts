@@ -396,6 +396,12 @@ export default class AuthService {
 					);
 				}
 
+				throw new BadRequestException(
+					"Erro temporário",
+					422,
+					"E_ERR",
+				);
+
 				return;
 			}
 

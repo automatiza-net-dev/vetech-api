@@ -14,6 +14,7 @@ import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
 import { DateTime } from "luxon";
 import { v4 } from "uuid";
 import AccountPlan from "./AccountPlan";
+import MarketingCampaign from "./MarketingCampaign";
 
 export const TutorResidences = [
 	"CASA",
@@ -169,4 +170,13 @@ export default class PatientTutor extends BaseModel {
 		foreignKey: "account_plan_id",
 	})
 	public accountPlan: BelongsTo<typeof AccountPlan>;
+
+	@column({ serializeAs: null })
+	public marketing_campaign_id: number | null;
+
+	@belongsTo(() => MarketingCampaign, {
+		localKey: "id",
+		foreignKey: "marketing_campaign_id",
+	})
+	public marketingCampaign: BelongsTo<typeof MarketingCampaign>;
 }

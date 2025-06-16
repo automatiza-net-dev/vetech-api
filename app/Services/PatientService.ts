@@ -985,7 +985,9 @@ export default class PatientService {
 				query.preload("tutor").pivotColumns(["is_main"]);
 			})
 			.preload("contacts")
-			.preload("tutor")
+			.preload("tutor", (query) => {
+				query.preload("marketingCampaign");
+			})
 			.preload("dependents")
 			.first();
 
@@ -1047,6 +1049,13 @@ export default class PatientService {
 				id: elem.id,
 				name: elem.name,
 			})),
+			marketingCampaign: this.sharedService.captureGroup(
+				patient?.tutor?.marketingCampaign,
+				(v) => ({
+					id: v.id,
+					description: v.description,
+				}),
+			),
 		};
 	}
 
@@ -1254,9 +1263,10 @@ export default class PatientService {
 			let patient: Patient | null = null;
 
 			await tutor.related("tutor").create({
+				client_origin_id: data.tutorOriginId,
+				marketing_campaign_id: data.marketingCampaignId,
 				email: data.tutorEmail,
 				cellphone: data.tutorPhone,
-				client_origin_id: data.tutorOriginId,
 			});
 
 			await tutor.related("contacts").create(
@@ -1446,6 +1456,7 @@ export default class PatientService {
 				type: (typeof PatientContactType)[number];
 			}[];
 			patients?: { id: string }[];
+			marketingCampaignId?: number;
 		},
 	): Promise<Patient> {
 		return Database.transaction(async (trx) => {
@@ -1509,6 +1520,9 @@ export default class PatientService {
 
 			await patient.related("tutor").create(
 				{
+					profession_id: data.professionId,
+					marketing_campaign_id: data.marketingCampaignId,
+
 					residence: data.address?.residence,
 					document: data.document?.replace(/\D/g, ""),
 					inscription: data.inscription,
@@ -1527,10 +1541,8 @@ export default class PatientService {
 					state: data.address?.uf,
 					client_origin_id: data.clientOriginId,
 					cityCode: data.address?.ibge,
-
 					civilStatus: data.civilStatus,
 					nationality: data.nationality,
-					profession_id: data.professionId,
 				},
 				{
 					client: trx,
@@ -2011,6 +2023,7 @@ export default class PatientService {
 				type: (typeof PatientContactType)[number];
 			}[];
 			patients?: { id: string }[];
+			marketingCampaignId?: number;
 		},
 	): Promise<Patient> {
 		return Database.transaction(async (trx) => {
@@ -2127,6 +2140,7 @@ export default class PatientService {
 
 			await tutor.tutor
 				.merge({
+					marketing_campaign_id: data.marketingCampaignId,
 					residence: data.address?.residence,
 					document: data.document?.replace(/\D/g, ""),
 					inscription: data.inscription,

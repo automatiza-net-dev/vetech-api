@@ -204,7 +204,7 @@ export default class AttendanceService {
 				},
 				timeline_info: {
 					tag: model.patient_id,
-					realizedAt: DateTime.now(),
+					realizedAt: data.realizedAt ?? DateTime.now(),
 					finishedAt: null,
 					resume: data.resume,
 					protocol: data.protocol,
@@ -229,7 +229,12 @@ export default class AttendanceService {
 	public async update(
 		authCtx: AuthContext,
 		id: string,
-		data: { resume?: string; protocol: string; internalObservation?: string },
+		data: {
+			resume?: string;
+			protocol: string;
+			internalObservation?: string;
+			realizedAt?: DateTime;
+		},
 	) {
 		const model = await this.show(authCtx.unit.id, id);
 
@@ -271,6 +276,7 @@ export default class AttendanceService {
 						"timeline_info.protocol": data.protocol,
 						"timeline_info.internalObservation":
 							data.internalObservation ?? null,
+						"timeline_info.realizedAt": data.realizedAt ?? DateTime.now(),
 					},
 				},
 				{ new: true },

@@ -15,6 +15,7 @@ export default class OpenAttendanceValidator {
         column: 'id',
       }),
     ]),
+    realizedAt: schema.date.optional({}),
 
     patientId: schema.string.optional({}, [
       rules.uuid(),

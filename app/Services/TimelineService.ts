@@ -221,7 +221,7 @@ export default class TimelineService {
 					timeline_info: {
 						weight: data.weight,
 						tag: data.tag,
-						realizedAt: data.realizedAt.toJSDate(),
+						realizedAt: data.realizedAt ?? DateTime.now(),
 						technician: {
 							id: technician.id,
 							name: technician.name,
@@ -279,7 +279,7 @@ export default class TimelineService {
 				timeline_info: {
 					pressure: data.pressure,
 					tag: data.tag,
-					realizedAt: data.realizedAt.toJSDate(),
+					realizedAt: data.realizedAt ?? DateTime.now(),
 					technician: {
 						id: technician.id,
 						name: technician.name,
@@ -336,7 +336,7 @@ export default class TimelineService {
 				timeline_info: {
 					value: data.value,
 					tag: data.tag,
-					realizedAt: data.realizedAt.toJSDate(),
+					realizedAt: data.realizedAt ?? DateTime.now(),
 					technician: {
 						id: technician.id,
 						name: technician.name,
@@ -403,7 +403,7 @@ export default class TimelineService {
 				},
 				timeline_info: {
 					tag: data.patientId,
-					realizedAt: data.realizedAt.toJSDate(),
+					realizedAt: data.realizedAt ?? DateTime.now(),
 					resume: data.resume,
 					protocol: data.protocol,
 					observation: data.observation ?? null,

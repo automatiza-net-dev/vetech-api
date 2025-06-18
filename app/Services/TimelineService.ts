@@ -103,7 +103,7 @@ export default class TimelineService {
 		return AnimalTimeline.find({
 			"timeline_info.tag": tag,
 			"extras.deletedAt": null,
-		}).sort({ createdAt: -1 });
+		}).sort({ "timeline_info.realizedAt": -1, createdAt: -1 });
 	}
 
 	public async weightIndex(tag: string) {

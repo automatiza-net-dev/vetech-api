@@ -553,11 +553,7 @@ export default class TimelineService {
 		}).sort({ createdAt: -1 });
 	}
 
-	public async storeDocument(
-		data: IAnimalDocument & {
-			realizedAt?: DateTime;
-		},
-	) {
+	public async storeDocument(data: IAnimalDocument) {
 		const timelineInfo = await TimelineType.firstOrCreate(
 			{
 				description: "Documento",
@@ -572,6 +568,7 @@ export default class TimelineService {
 		const technician = await User.findOrFail(data.technicianId);
 
 		return AnimalTimeline.create({
+			createdAt: data.createdAt,
 			timeline_id: timelineInfo.id,
 			timeline_type: {
 				description: timelineInfo.description,
@@ -751,7 +748,7 @@ export default class TimelineService {
 		const technician = await User.findOrFail(data.technicianId);
 
 		return AnimalTimeline.create({
-      createdAt: data.createdAt,
+			createdAt: data.createdAt,
 			timeline_id: timelineInfo.id,
 			timeline_type: {
 				description: timelineInfo.description,

@@ -16,6 +16,7 @@ export default class CreateAnimalDocumentValidator {
 			}),
 		]),
 		realizedAt: schema.date.optional({}),
+		createdAt: schema.date.optional({}),
 	});
 
 	public messages: CustomMessages = {};

@@ -120,6 +120,11 @@ export default class TimelineService {
 				},
 			},
 			{
+				$addFields: {
+					createdAt: "$sortDate",
+				},
+			},
+			{
 				$project: {
 					sortDate: 0,
 				},

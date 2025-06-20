@@ -100,10 +100,31 @@ export default class TimelineService {
 	}
 
 	public async all(tag: string) {
-		return AnimalTimeline.find({
-			"timeline_info.tag": tag,
-			"extras.deletedAt": null,
-		}).sort({ "timeline_info.realizedAt": -1, createdAt: -1 });
+		return AnimalTimeline.aggregate([
+			{
+				$match: {
+					"timeline_info.tag": tag,
+					"extras.deletedAt": null,
+				},
+			},
+			{
+				$addFields: {
+					sortDate: {
+						$ifNull: ["$timeline_info.realizedAt", "$createdAt"],
+					},
+				},
+			},
+			{
+				$sort: {
+					sortDate: -1,
+				},
+			},
+			{
+				$project: {
+					sortDate: 0,
+				},
+			},
+		]);
 	}
 
 	public async weightIndex(tag: string) {

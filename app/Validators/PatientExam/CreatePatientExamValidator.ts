@@ -6,6 +6,7 @@ export default class CreatePatientExamValidator {
 
 	public schema = schema.create({
 		realizedAt: schema.date.optional(),
+		createdAt: schema.date.optional(),
 		requestedAt: schema.date.optional(),
 		laboratory: schema.string.optional(),
 		report: schema.string(),

@@ -6,4 +6,5 @@ export type IAnimalMedicalRecipe = {
   realizedAt: DateTime;
   technicianId: string;
   recipe: string;
+  createdAt?: DateTime
 };

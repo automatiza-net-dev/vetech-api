@@ -6,6 +6,7 @@ export default class UpdateAttendanceValidator {
 
 	public schema = schema.create({
 		realizedAt: schema.date.optional({}),
+		createdAt: schema.date.optional({}),
 		resume: schema.string.optional(),
 		protocol: schema.string(),
 		internalObservation: schema.string.optional(),

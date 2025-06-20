@@ -196,6 +196,7 @@ export default class AttendanceService {
 			);
 
 			return await AnimalTimeline.create({
+				createdAt: data.createdAt ?? DateTime.now(),
 				timeline_id: timeline.id,
 				timeline_type: {
 					description: timeline.description,
@@ -234,6 +235,7 @@ export default class AttendanceService {
 			protocol: string;
 			internalObservation?: string;
 			realizedAt?: DateTime;
+			createdAt?: DateTime;
 		},
 	) {
 		const model = await this.show(authCtx.unit.id, id);
@@ -277,6 +279,7 @@ export default class AttendanceService {
 						"timeline_info.internalObservation":
 							data.internalObservation ?? null,
 						"timeline_info.realizedAt": data.realizedAt ?? DateTime.now(),
+						createdAt: data.createdAt ?? DateTime.now(),
 					},
 				},
 				{ new: true },

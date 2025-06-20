@@ -155,6 +155,7 @@ export default class TimelineService {
 				.save();
 
 			return AnimalTimeline.create({
+				createdAt: data.createdAt,
 				timeline_id: timelineInfo.id,
 				timeline_type: {
 					description: timelineInfo.description,
@@ -669,6 +670,7 @@ export default class TimelineService {
 		const technician = await User.findOrFail(data.technicianId);
 
 		return AnimalTimeline.create({
+			createdAt: data.createdAt,
 			timeline_id: timelineInfo.id,
 			timeline_type: {
 				description: timelineInfo.description,
@@ -749,6 +751,7 @@ export default class TimelineService {
 		const technician = await User.findOrFail(data.technicianId);
 
 		return AnimalTimeline.create({
+      createdAt: data.createdAt,
 			timeline_id: timelineInfo.id,
 			timeline_type: {
 				description: timelineInfo.description,
@@ -849,7 +852,8 @@ export default class TimelineService {
 
 		const technician = await User.findOrFail(data.technicianId);
 
-		return AnimalTimeline.create({
+		return await AnimalTimeline.create({
+			createdAt: data.createdAt,
 			timeline_id: timelineInfo.id,
 			timeline_type: {
 				description: timelineInfo.description,
@@ -1355,9 +1359,7 @@ export default class TimelineService {
 		}).sort({ createdAt: -1 });
 	}
 
-	public async storeObservations(
-		data: ICreateObservation & { realizedAt?: DateTime },
-	) {
+	public async storeObservations(data: ICreateObservation) {
 		const timelineInfo = await TimelineType.firstOrCreate(
 			{
 				description: "Observação",
@@ -1376,6 +1378,7 @@ export default class TimelineService {
 			: [];
 
 		const result = await AnimalTimeline.create({
+			createdAt: data.createdAt,
 			timeline_id: timelineInfo.id,
 			timeline_type: {
 				description: timelineInfo.description,
@@ -1407,12 +1410,7 @@ export default class TimelineService {
 		);
 	}
 
-	public async updateObservations(
-		id: string,
-		data: ICreateObservation & {
-			realizedAt?: DateTime;
-		},
-	) {
+	public async updateObservations(id: string, data: ICreateObservation) {
 		const record = await AnimalTimeline.findById(id);
 
 		if (!record) {
@@ -1432,7 +1430,7 @@ export default class TimelineService {
 
 		const technician = await User.findOrFail(data.technicianId);
 
-		return AnimalTimeline.findByIdAndUpdate(id, {
+		await AnimalTimeline.findByIdAndUpdate(id, {
 			$set: {
 				timeline_id: timelineInfo.id,
 				"timeline_type.description": timelineInfo.description,
@@ -1454,6 +1452,7 @@ export default class TimelineService {
 							...(await Promise.all(data.medias.map(this.uploadPhoto))),
 						].filter(Boolean)
 					: [],
+				created_at: data.createdAt?.toJSDate() ?? new Date(),
 			},
 		});
 	}

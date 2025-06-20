@@ -7,6 +7,7 @@ export interface ICreateTreatment {
 	protocol: string;
 	internalObservation?: string;
 	realizedAt?: DateTime;
+	createdAt?: DateTime;
 
 	scheduleId?: string;
 }

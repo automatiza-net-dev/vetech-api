@@ -1878,6 +1878,7 @@ export default class PatientService {
 		id: string,
 		data: {
 			deathDate: DateTime;
+			createdAt?: DateTime;
 			technicianId: string;
 			deathObservation: string;
 		},
@@ -1920,6 +1921,7 @@ export default class PatientService {
 			deathDate: DateTime;
 			technicianId: string;
 			deathObservation: string;
+			createdAt?: DateTime;
 		},
 	) {
 		await patient.patientAnimal
@@ -1988,6 +1990,7 @@ export default class PatientService {
 			);
 
 			await AnimalTimeline.create({
+				createdAt: data.createdAt,
 				timeline_id: timelineInfo.id,
 				timeline_type: {
 					description: timelineInfo.description,

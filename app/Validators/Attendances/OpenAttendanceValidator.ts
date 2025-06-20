@@ -1,37 +1,38 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
 
 export default class OpenAttendanceValidator {
-  constructor(protected ctx: HttpContextContract) {}
+	constructor(protected ctx: HttpContextContract) {}
 
-  public schema = schema.create({
-    resume: schema.string.optional(),
-    protocol: schema.string(),
-    internalObservation: schema.string.optional(),
-    scheduleServiceId: schema.string({}, [
-      rules.uuid(),
-      rules.exists({
-        table: 'schedule_service_types',
-        column: 'id',
-      }),
-    ]),
-    realizedAt: schema.date.optional({}),
+	public schema = schema.create({
+		resume: schema.string.optional(),
+		protocol: schema.string(),
+		internalObservation: schema.string.optional(),
+		scheduleServiceId: schema.string({}, [
+			rules.uuid(),
+			rules.exists({
+				table: "schedule_service_types",
+				column: "id",
+			}),
+		]),
+		realizedAt: schema.date.optional({}),
+		createdAt: schema.date.optional({}),
 
-    patientId: schema.string.optional({}, [
-      rules.uuid(),
-      rules.exists({
-        table: 'patients',
-        column: 'id',
-      }),
-    ]),
-    scheduleId: schema.string.optional({}, [
-      rules.uuid(),
-      rules.exists({
-        table: 'schedules',
-        column: 'id',
-      }),
-    ]),
-  });
+		patientId: schema.string.optional({}, [
+			rules.uuid(),
+			rules.exists({
+				table: "patients",
+				column: "id",
+			}),
+		]),
+		scheduleId: schema.string.optional({}, [
+			rules.uuid(),
+			rules.exists({
+				table: "schedules",
+				column: "id",
+			}),
+		]),
+	});
 
-  public messages: CustomMessages = {};
+	public messages: CustomMessages = {};
 }

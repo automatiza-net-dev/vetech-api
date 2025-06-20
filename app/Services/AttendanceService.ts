@@ -81,6 +81,7 @@ export default class AttendanceService {
 			protocol: data.protocol,
 			internalObservation: data.internalObservation,
 			startDate: DateTime.now(),
+			createdAt: data.createdAt,
 		};
 
 		return await Database.transaction(async (trx) => {

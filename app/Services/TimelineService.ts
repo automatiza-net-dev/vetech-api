@@ -100,10 +100,36 @@ export default class TimelineService {
 	}
 
 	public async all(tag: string) {
-		return AnimalTimeline.find({
-			"timeline_info.tag": tag,
-			"extras.deletedAt": null,
-		}).sort({ createdAt: -1 });
+		return AnimalTimeline.aggregate([
+			{
+				$match: {
+					"timeline_info.tag": tag,
+					"extras.deletedAt": null,
+				},
+			},
+			{
+				$addFields: {
+					sortDate: {
+						$ifNull: ["$timeline_info.realizedAt", "$createdAt"],
+					},
+				},
+			},
+			{
+				$sort: {
+					sortDate: -1,
+				},
+			},
+			{
+				$addFields: {
+					createdAt: "$sortDate",
+				},
+			},
+			{
+				$project: {
+					sortDate: 0,
+				},
+			},
+		]);
 	}
 
 	public async weightIndex(tag: string) {
@@ -155,6 +181,7 @@ export default class TimelineService {
 				.save();
 
 			return AnimalTimeline.create({
+				createdAt: data.createdAt,
 				timeline_id: timelineInfo.id,
 				timeline_type: {
 					description: timelineInfo.description,
@@ -164,7 +191,7 @@ export default class TimelineService {
 				timeline_info: {
 					weight: data.weight,
 					tag: data.tag,
-					realizedAt: data.realizedAt.toJSDate(),
+					realizedAt: data.realizedAt ?? DateTime.now(),
 					technician: {
 						id: technician.id,
 						name: technician.name,
@@ -221,7 +248,7 @@ export default class TimelineService {
 					timeline_info: {
 						weight: data.weight,
 						tag: data.tag,
-						realizedAt: data.realizedAt.toJSDate(),
+						realizedAt: data.realizedAt ?? DateTime.now(),
 						technician: {
 							id: technician.id,
 							name: technician.name,
@@ -279,7 +306,7 @@ export default class TimelineService {
 				timeline_info: {
 					pressure: data.pressure,
 					tag: data.tag,
-					realizedAt: data.realizedAt.toJSDate(),
+					realizedAt: data.realizedAt ?? DateTime.now(),
 					technician: {
 						id: technician.id,
 						name: technician.name,
@@ -336,7 +363,7 @@ export default class TimelineService {
 				timeline_info: {
 					value: data.value,
 					tag: data.tag,
-					realizedAt: data.realizedAt.toJSDate(),
+					realizedAt: data.realizedAt ?? DateTime.now(),
 					technician: {
 						id: technician.id,
 						name: technician.name,
@@ -403,7 +430,7 @@ export default class TimelineService {
 				},
 				timeline_info: {
 					tag: data.patientId,
-					realizedAt: data.realizedAt.toJSDate(),
+					realizedAt: data.realizedAt ?? DateTime.now(),
 					resume: data.resume,
 					protocol: data.protocol,
 					observation: data.observation ?? null,
@@ -567,6 +594,7 @@ export default class TimelineService {
 		const technician = await User.findOrFail(data.technicianId);
 
 		return AnimalTimeline.create({
+			createdAt: data.createdAt,
 			timeline_id: timelineInfo.id,
 			timeline_type: {
 				description: timelineInfo.description,
@@ -577,7 +605,7 @@ export default class TimelineService {
 				tag: data.tag,
 				type: data.type,
 				value: data.value,
-				realizedAt: new Date(),
+				realizedAt: data.realizedAt?.toJSDate() ?? new Date(),
 				technician: {
 					id: technician.id,
 					name: technician.name,
@@ -586,7 +614,12 @@ export default class TimelineService {
 		});
 	}
 
-	public async updateDocument(id: string, data: IAnimalDocument) {
+	public async updateDocument(
+		id: string,
+		data: IAnimalDocument & {
+			realizedAt?: DateTime;
+		},
+	) {
 		const record = await AnimalTimeline.findById(id);
 
 		if (!record) {
@@ -617,7 +650,7 @@ export default class TimelineService {
 					tag: data.tag,
 					type: data.type,
 					value: data.value,
-					realizedAt: new Date(),
+					realizedAt: data.realizedAt?.toJSDate() ?? new Date(),
 					update_technician: {
 						id: technician.id,
 						name: technician.name,
@@ -660,6 +693,7 @@ export default class TimelineService {
 		const technician = await User.findOrFail(data.technicianId);
 
 		return AnimalTimeline.create({
+			createdAt: data.createdAt,
 			timeline_id: timelineInfo.id,
 			timeline_type: {
 				description: timelineInfo.description,
@@ -740,6 +774,7 @@ export default class TimelineService {
 		const technician = await User.findOrFail(data.technicianId);
 
 		return AnimalTimeline.create({
+			createdAt: data.createdAt,
 			timeline_id: timelineInfo.id,
 			timeline_type: {
 				description: timelineInfo.description,
@@ -840,7 +875,8 @@ export default class TimelineService {
 
 		const technician = await User.findOrFail(data.technicianId);
 
-		return AnimalTimeline.create({
+		return await AnimalTimeline.create({
+			createdAt: data.createdAt,
 			timeline_id: timelineInfo.id,
 			timeline_type: {
 				description: timelineInfo.description,
@@ -1063,8 +1099,8 @@ export default class TimelineService {
 					schedule: vaccine.schedule_id,
 					calendars: vaccine.calendars.map((c) => c.id),
 				},
-				expectedDate: data.expectedDate?.toJSDate(),
-				applicationDate: data.applicationDate?.toJSDate(),
+				expectedDate: data.expectedDate?.toJSDate() ?? null,
+				applicationDate: data.applicationDate?.toJSDate() ?? null,
 				laboratory: data.laboratory,
 				batch: data.batch,
 			},
@@ -1094,8 +1130,8 @@ export default class TimelineService {
 				schedule: vaccine.schedule_id,
 				calendars: vaccine.calendars.map((c) => c.id),
 			},
-			expectedDate: data.expectedDate?.toJSDate(),
-			applicationDate: data.applicationDate?.toJSDate(),
+			expectedDate: data.expectedDate?.toJSDate() ?? null,
+			applicationDate: data.applicationDate?.toJSDate() ?? null,
 			laboratory: data.laboratory,
 			batch: data.batch,
 		};
@@ -1157,7 +1193,7 @@ export default class TimelineService {
 			timeline_info: {
 				tag: data.tag,
 				name: data.name,
-				realized: data.realizedAt,
+				realized: data.realizedAt ?? DateTime.now(),
 				description: data.description,
 				requester: {
 					id: requester.id,
@@ -1365,6 +1401,7 @@ export default class TimelineService {
 			: [];
 
 		const result = await AnimalTimeline.create({
+			createdAt: data.createdAt,
 			timeline_id: timelineInfo.id,
 			timeline_type: {
 				description: timelineInfo.description,
@@ -1373,6 +1410,7 @@ export default class TimelineService {
 			},
 			timeline_info: {
 				observation: data.observation,
+				realizedAt: data.realizedAt?.toJSDate() ?? new Date(),
 				tag: data.tag,
 				resume: data.resume,
 				technician: {
@@ -1415,7 +1453,7 @@ export default class TimelineService {
 
 		const technician = await User.findOrFail(data.technicianId);
 
-		return AnimalTimeline.findByIdAndUpdate(id, {
+		await AnimalTimeline.findByIdAndUpdate(id, {
 			$set: {
 				timeline_id: timelineInfo.id,
 				"timeline_type.description": timelineInfo.description,
@@ -1424,6 +1462,7 @@ export default class TimelineService {
 				"timeline_info.tag": data.tag,
 				"timeline_info.resume": data.resume,
 				"timeline_info.observation": data.observation ?? null,
+				"timeline_info.realizedAt": data.realizedAt?.toJSDate() ?? new Date(),
 				// "timeline_info.technician.id": technician.id,
 				// "timeline_info.technician.name": technician.name,
 				"timeline_info.update_technician.id": technician.id,
@@ -1436,6 +1475,7 @@ export default class TimelineService {
 							...(await Promise.all(data.medias.map(this.uploadPhoto))),
 						].filter(Boolean)
 					: [],
+				created_at: data.createdAt?.toJSDate() ?? new Date(),
 			},
 		});
 	}
@@ -1464,7 +1504,7 @@ export default class TimelineService {
 
 	public async storeDeath(
 		authCtx: AuthContext,
-		data: { tag: string; technicianId: string },
+		data: { tag: string; technicianId: string; realizedAt?: DateTime },
 	) {
 		return Database.transaction(async (trx) => {
 			const timelineInfo = await TimelineType.firstOrCreate(
@@ -1523,7 +1563,7 @@ export default class TimelineService {
 				timeline_info: {
 					tag: patient.id,
 					event: "OBITO",
-					realized: DateTime.now(),
+					realized: data.realizedAt ?? DateTime.now(),
 					resume: "Óbito",
 					description: "Óbito",
 					technician: {
@@ -1551,7 +1591,7 @@ export default class TimelineService {
 					data: {
 						type: HospitalizationType[hospitalization.type],
 						hospitalizedAt: hospitalization.createdAt,
-						realizedAt: DateTime.now(),
+						realizedAt: data.realizedAt ?? DateTime.now(),
 						issuedAt: DateTime.now(),
 						observation: "-",
 						technician: {

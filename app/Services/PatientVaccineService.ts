@@ -124,6 +124,7 @@ export default class PatientVaccineService {
 			);
 
 			await AnimalTimeline.create({
+				createdAt: data.createdAt ?? DateTime.now(),
 				timeline_id: vaccineTimeline.id,
 				timeline_type: {
 					description: vaccineTimeline.description,

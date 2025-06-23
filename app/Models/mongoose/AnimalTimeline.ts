@@ -17,7 +17,9 @@ export const animalTimelineSchema = new Schema<IAnimalTimeline>(
 		extras: { type: Object, required: false },
 	},
 	{
-		timestamps: true,
+		timestamps: {
+			updatedAt: true,
+		},
 	},
 );
 

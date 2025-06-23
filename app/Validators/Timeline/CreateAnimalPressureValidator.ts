@@ -7,7 +7,7 @@ export default class CreateAnimaPressureValidator {
   public schema = schema.create({
     tag: schema.string({}, [rules.uuid()]),
     pressure: schema.string(),
-    realizedAt: schema.date({}),
+    realizedAt: schema.date.optional({}),
     technicianId: schema.string({}, [
       rules.uuid(),
       rules.exists({

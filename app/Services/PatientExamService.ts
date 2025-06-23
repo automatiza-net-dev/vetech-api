@@ -204,6 +204,7 @@ export default class PatientExamService {
 			);
 
 			await AnimalTimeline.create({
+				createdAt: data.createdAt ?? DateTime.now(),
 				timeline_id: timeline.id,
 				timeline_type: {
 					description: timeline.description,
@@ -295,6 +296,7 @@ export default class PatientExamService {
 						"timeline_info.laboratory": data.laboratory,
 						"timeline_info.report": data.report,
 						"timeline_info.executedAt": data.executedAt,
+						createdAt: data.createdAt,
 					},
 				},
 			);

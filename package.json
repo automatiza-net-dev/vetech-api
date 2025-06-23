@@ -41,6 +41,7 @@
 		"@adonisjs/repl": "^3.1.0",
 		"@adonisjs/view": "^6.1.5",
 		"@axiomhq/js": "^1.2.0",
+		"@biomejs/biome": "^2.0.0",
 		"@opentelemetry/api": "^1.9.0",
 		"@opentelemetry/auto-instrumentations-node": "^0.50.0",
 		"@opentelemetry/exporter-trace-otlp-http": "^0.53.0",
@@ -67,6 +68,5 @@
 		"xlsx": "^0.18.5",
 		"xml2json": "^0.12.0",
 		"zod": "^3.20.2"
-	},
-	"packageManager": "pnpm@10.4.1+sha512.c753b6c3ad7afa13af388fa6d808035a008e30ea9993f58c6663e2bc5ff21679aa834db094987129aa4d488b86df57f7b634981b2f827cdcacc698cc0cfb88af"
+	}
 }

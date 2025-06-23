@@ -3168,7 +3168,7 @@ when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores 
 
 		const starter: Record<string, number> =
 			lateFees.length === 0
-				? { "Valores em Atraso": new Decimal(lateFees[0].total).toNumber() }
+				? { "Valores em Atraso": new Decimal(lateFees[0]?.total ?? 0).toNumber() }
 				: {};
 
 		return result.reduce((acc, row) => {

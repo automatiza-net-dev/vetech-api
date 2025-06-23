@@ -14,6 +14,12 @@ export default class FastCreatePatientValidator {
 				column: "id",
 			}),
 		]),
+		marketingCampaignId: schema.number.optional([
+			rules.exists({
+				table: "marketing_campaigns",
+				column: "id",
+			}),
+		]),
 		patientName: schema.string.optional({}),
 		patientRaceId: schema.string.optional({}, [
 			rules.uuid(),

@@ -35,6 +35,10 @@ import { PatientContactType } from "App/Models/PatientContact";
 import PatientTutor from "App/Models/PatientTutor";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import HolderDependentLog from "App/Models/HolderDependentLog";
+import PatientExam from "App/Models/PatientExam";
+import PatientExamAttachment from "App/Models/PatientExamAttachment";
+import PatientVaccine from "App/Models/PatientVaccine";
+import VaccineCalendar from "App/Models/VaccineCalendar";
 
 interface ISearch {
 	id?: string;
@@ -2613,6 +2617,111 @@ export default class PatientService {
 				};
 			}),
 		}));
+	}
+
+	public async massRemoveRecords(
+		authCtx: AuthContext,
+		data: {
+			baseDate: string;
+			patientId?: string;
+		},
+	) {
+		await Database.transaction(async (trx) => {
+			const attQb = Attendance.query()
+				.useTransaction(trx)
+				.update({
+					deleted_at: DateTime.now(),
+					exclusion_user_id: authCtx.user.id,
+				})
+				.where("business_unit_id", authCtx.unit.id)
+				.whereRaw("created_at < ?", [data.baseDate]);
+			if (data.patientId) {
+				attQb.where("patient_id", data.patientId);
+			}
+
+			const pExamsQb = PatientExam.query()
+				.useTransaction(trx)
+				.where("business_id", authCtx.unit.id)
+				.whereRaw("created_at < ?", [data.baseDate]);
+			if (data.patientId) {
+				pExamsQb.where("patient_id", data.patientId);
+			}
+			const pExams = await pExamsQb;
+
+			await PatientExam.query()
+				.useTransaction(trx)
+				.whereIn(
+					"id",
+					pExams.map((p) => p.id),
+				)
+				.update({
+					deleted_at: DateTime.now(),
+				});
+
+			await PatientExamAttachment.query()
+				.useTransaction(trx)
+				.whereIn(
+					"patient_exam_id",
+					pExams.map((p) => p.id),
+				)
+				.delete();
+
+			const pVaccinesQb = PatientVaccine.query()
+				.useTransaction(trx)
+				.where("business_unit_id", authCtx.unit.id)
+				.whereRaw("created_at < ?", [data.baseDate]);
+			if (data.patientId) {
+				pVaccinesQb.where("patient_id", data.patientId);
+			}
+			const pVaccines = await pVaccinesQb;
+			await PatientVaccine.query()
+				.useTransaction(trx)
+				.whereIn(
+					"id",
+					pVaccines.map((p) => p.id),
+				)
+				.update({
+					deleted_at: DateTime.now(),
+				});
+
+			await VaccineCalendar.query()
+				.useTransaction(trx)
+				.whereIn(
+					"patient_vaccine_id",
+					pVaccines.map((p) => p.id),
+				)
+				.delete();
+
+			if (data.patientId) {
+				await AnimalTimeline.findOneAndUpdate(
+					{
+						"timeline_info.tag": data.patientId,
+						"timeline_type.description": {
+							$in: [
+								"Documento",
+								"Exames",
+								"Fotos",
+								"Observação",
+								"Patologia",
+								"Formato Receita Médica",
+								"Consulta", // Campo para manter compatibilidade
+								authCtx.system.type !== "Vet" && "Avaliação",
+								authCtx.system.type === "Vet" && "Atendimento",
+							].filter(Boolean),
+						},
+						"extras.deletedAt": null,
+					},
+					{
+						$set: {
+							"extras.deletedAt": DateTime.now().toJSDate(),
+							"extras.user.id": authCtx.user.id,
+							"extras.user.name": authCtx.user.name,
+							"extras.user.email": authCtx.user.email,
+						},
+					},
+				);
+			}
+		});
 	}
 
 	private async uploadPhoto(file: MultipartFileContract): Promise<string> {

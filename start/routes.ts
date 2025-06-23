@@ -265,6 +265,7 @@ Route.group(() => {
 	Route.put("/unlink", "PatientsController.unlinkHolderDependent");
 	Route.put("/:id", "PatientsController.update");
 	Route.delete("/:id", "PatientsController.destroy");
+	Route.post("/mass-remove", "PatientsController.massRemoveRecords");
 })
 	.prefix("patients")
 	.middleware("auth");

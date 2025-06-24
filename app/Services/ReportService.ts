@@ -426,44 +426,56 @@ export default class ReportService {
 		data: {
 			businessUnit?: string;
 		},
-	) {
-		const qb = CheckingAccount.query()
-			.preload("unit")
-			.where("economic_group_id", authCtx.group.id)
-			.whereNotNull("business_unit_id");
+	): Promise<
+		{
+			id: string | null;
+			identification: string;
+			total: number;
+			checkingaccounts: {
+				id: string;
+				description: string;
+				account_number: string;
+				bank_code: string;
+				agency: string;
+				balance: number;
+				type: string;
+			}[];
+		}[]
+	> {
+		const qb = Database.from("checking_accounts")
+			.select(
+				Database.raw(`checking_accounts.business_unit_id as id,
+       case
+           when checking_accounts.business_unit_id is null then 'Conta Grupo Economico'
+           else coalesce(business_units.identification, business_units.fantasy_name, business_units.company_name,
+                         'Unidade sem nome definido') end as identification,
+       sum(checking_accounts.balance)::float                     as total,
+       json_agg(json_build_object('id', checking_accounts.id,
+                                  'description', checking_accounts.description,
+                                  'account_number', checking_accounts.account_number,
+                                  'bank_code',
+                                  format('%s - %s', checking_accounts.bank_code, checking_accounts.bank_name),
+                                  'agency', checking_accounts.agency,
+                                  'balance', checking_accounts.balance,
+                                  'type', checking_accounts.type
+                ))                                        as checkingAccounts`),
+			)
+			.joinRaw(
+				"left join business_units on business_units.id = checking_accounts.business_unit_id and checking_accounts.deleted_at is null",
+			)
+			.groupByRaw(
+				"checking_accounts.business_unit_id, business_units.identification, business_units.fantasy_name, business_units.company_name",
+			)
+			.orderByRaw("identification desc")
+			.whereRaw("checking_accounts.economic_group_id = ?", [authCtx.group.id]);
 
 		if (data.businessUnit) {
-			qb.where("business_unit_id", data.businessUnit);
+			qb.whereRaw("checking_accounts.business_unit_id = ?", [
+				data.businessUnit,
+			]);
 		}
 
-		const result = await qb;
-
-		const unitsSet = new Set<string>(result.map((r) => r.unit.id));
-		const uniqueUnitIds = Array.from(unitsSet);
-		const units = uniqueUnitIds
-			.map((elem) => result.find((r) => r.unit.id === elem)?.unit)
-			.filter(Boolean) as BusinessUnit[];
-
-		const dataSet = new Map<string, number>();
-		result.forEach((r) => {
-			const key = r.business_unit_id;
-			if (!key) {
-				return;
-			}
-
-			if (!dataSet.has(key)) {
-				dataSet.set(key, 0);
-			}
-
-			const entry = dataSet.get(key);
-			dataSet.set(key, (entry ?? 0) + r.balance);
-		});
-
-		return units.map((elem) => ({
-			id: elem.id,
-			identification: elem.identification ?? "-",
-			total: dataSet.get(elem.id) ?? 0,
-		}));
+		return await qb;
 	}
 
 	async expiredFinancesReport(

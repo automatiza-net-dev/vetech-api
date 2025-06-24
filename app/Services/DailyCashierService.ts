@@ -247,6 +247,7 @@ export default class DailyCashierService {
 			const payments = await BillPayment.query()
 				.useTransaction(trx)
 				.where("daily_cashier_id", id)
+				.whereNull("deleted_at")
 				.preload("acquirer")
 				.preload("flag")
 				.preload("paymentMethod")
@@ -552,7 +553,9 @@ export default class DailyCashierService {
 
 		const entries = await dailyCashier.related("entries").query();
 
-		const payments = await BillPayment.query().where("daily_cashier_id", id);
+		const payments = await BillPayment.query()
+			.where("daily_cashier_id", id)
+			.whereNull("deleted_at");
 
 		const salesSum = payments.reduce(
 			(total, payment) => total + payment.totalValue,

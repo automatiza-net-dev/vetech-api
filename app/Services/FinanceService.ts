@@ -616,22 +616,22 @@ export default class FinanceService {
 
 				if (data.nsu) {
 					builder.whereRaw(
-						"(borderos.nsu_document ilike ? or exists (select finInterno.bordero_id from finances finInterno where finInterno.bordero_id = borderos.id ))",
-						[`%${data.nsu}%`],
+						"(borderos.nsu_document = ? or exists (select finInterno.bordero_id from finances finInterno where finInterno.bordero_id = borderos.id and finInterno.nsu_document = ?))",
+						[data.nsu, data.nsu],
 					);
 				}
 
 				if (data.historic) {
 					builder.whereRaw(
-						"(borderos.history ilike ? or exists (select finInterno.bordero_id from finances finInterno where finInterno.bordero_id = borderos.id ))",
-						[`%${data.historic}%`],
+						"(borderos.history ilike ? or exists (select finInterno.bordero_id from finances finInterno where finInterno.bordero_id = borderos.id and finInterno.historic ilike ?))",
+						[`%${data.historic}%`, `%${data.historic}%`],
 					);
 				}
 
 				if (data.document) {
 					builder.whereRaw(
-						"(borderos.document ilike ? or exists (select finInterno.bordero_id from finances finInterno where finInterno.bordero_id = borderos.id ))",
-						[`%${data.document}%`],
+						"(borderos.document ilike ? or exists (select finInterno.bordero_id from finances finInterno where finInterno.bordero_id = borderos.id and finInterno.document ilike ?))",
+						[`%${data.document}%`, `%${data.document}%`],
 					);
 				}
 
@@ -645,7 +645,9 @@ export default class FinanceService {
 			});
 		}
 
-		return qb.orderByRaw("expiration_date, document, installment, issue_date");
+		return qb.orderByRaw(
+			"ordem, expiration_date, document, installment, issue_date",
+		);
 	}
 
 	async groupedIndex(
@@ -928,9 +930,9 @@ export default class FinanceService {
 				builder.where("borderos.client_id", data.client);
 			}
 
-			if (data.document) {
-				builder.whereILike("borderos.document", `%${data.document}%`);
-			}
+			// if (data.document) {
+			// 	builder.whereILike("borderos.document", `%${data.document}%`);
+			// }
 
 			if (data.paymentMethod) {
 				builder.where("borderos.payment_method_id", data.paymentMethod);
@@ -938,22 +940,22 @@ export default class FinanceService {
 
 			if (data.nsu) {
 				builder.whereRaw(
-					"(borderos.nsu_document ilike ? or exists (select finInterno.bordero_id from finances finInterno where finInterno.bordero_id = borderos.id ))",
-					[`%${data.nsu}%`],
+					"(borderos.nsu_document = ? or exists (select finInterno.bordero_id from finances finInterno where finInterno.bordero_id = borderos.id and finInterno.nsu_document = ?))",
+					[data.nsu, data.nsu],
 				);
 			}
 
 			if (data.historic) {
 				builder.whereRaw(
-					"(borderos.history ilike ? or exists (select finInterno.bordero_id from finances finInterno where finInterno.bordero_id = borderos.id ))",
-					[`%${data.historic}%`],
+					"(borderos.history ilike ? or exists (select finInterno.bordero_id from finances finInterno where finInterno.bordero_id = borderos.id and finInterno.historic ilike ?))",
+					[`%${data.historic}%`, `%${data.historic}%`],
 				);
 			}
 
 			if (data.document) {
 				builder.whereRaw(
-					"(borderos.document ilike ? or exists (select finInterno.bordero_id from finances finInterno where finInterno.bordero_id = borderos.id ))",
-					[`%${data.document}%`],
+					"(borderos.document ilike ? or exists (select finInterno.bordero_id from finances finInterno where finInterno.bordero_id = borderos.id and finInterno.document ilike ?))",
+					[`%${data.document}%`, `%${data.document}%`],
 				);
 			}
 
@@ -1146,7 +1148,9 @@ export default class FinanceService {
 			}
 		});
 
-		return qb.orderByRaw("ordem, expiration_date");
+		return qb.orderByRaw(
+			"ordem, expiration_date, document, installment, issue_date",
+		);
 	}
 
 	async financesByPaymentGroup(

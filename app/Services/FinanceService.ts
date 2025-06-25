@@ -649,9 +649,7 @@ export default class FinanceService {
 			});
 		}
 
-		return qb.orderByRaw(
-			"ordem, expiration_date, document, installment, issue_date",
-		);
+		return qb;
 	}
 
 	async groupedIndex(

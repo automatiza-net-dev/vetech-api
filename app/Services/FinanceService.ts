@@ -303,7 +303,7 @@ export default class FinanceService {
 
 		const qb = Database.from("finances")
 			.select(
-				Database.raw(`
+				Database.raw(`2 as ordem,
         finances.id,
         finances.type,
         'FINANCE' as source,
@@ -492,7 +492,7 @@ export default class FinanceService {
 				builder
 					.from("borderos")
 					.select(
-						Database.raw(`
+						Database.raw(`case when borderos.status = 'Aberto' then 1 else 2 end as ordem,
         borderos.id,
         borderos.type,
         'BORDERO' as source,
@@ -599,25 +599,9 @@ export default class FinanceService {
 					builder.where("borderos.client_id", data.client);
 				}
 
-				if (data.document) {
-					builder.whereILike("borderos.document", `%${data.document}%`);
-				}
-
-				// if (data.fiscalNote) {
-				// 	builder.whereILike("borderos.fiscal_note", `%${data.fiscalNote}%`);
-				// }
-
 				if (data.paymentMethod) {
 					builder.where("borderos.payment_method_id", data.paymentMethod);
 				}
-
-				if (data.nsu) {
-					builder.where("borderos.nsu_document", data.nsu);
-				}
-
-				// if (data.status) {
-				// 	builder.whereILike("borderos.status", `%${data.status}%`);
-				// }
 
 				if (data.status === FinanceStatus.A) {
 					builder.whereIn("borderos.status", [
@@ -630,13 +614,26 @@ export default class FinanceService {
 					builder.whereIn("borderos.status", ["Baixado"] as TBorderoStatus[]);
 				}
 
-				// if (data.accept) {
-				// 	builder.where("borderos.accept", data.accept);
-				// }
+				if (data.nsu) {
+					builder.whereRaw(
+						"(borderos.nsu_document ilike ? or exists (select finInterno.bordero_id from finances finInterno where finInterno.bordero_id = borderos.id ))",
+						[`%${data.nsu}%`],
+					);
+				}
 
-				// if (data.reconciled) {
-				// 	builder.where("borderos.reconciled", data.reconciled === "true");
-				// }
+				if (data.historic) {
+					builder.whereRaw(
+						"(borderos.history ilike ? or exists (select finInterno.bordero_id from finances finInterno where finInterno.bordero_id = borderos.id ))",
+						[`%${data.historic}%`],
+					);
+				}
+
+				if (data.document) {
+					builder.whereRaw(
+						"(borderos.document ilike ? or exists (select finInterno.bordero_id from finances finInterno where finInterno.bordero_id = borderos.id ))",
+						[`%${data.document}%`],
+					);
+				}
 
 				if (data.plan) {
 					builder.where("borderos.account_plan_id", data.plan);
@@ -648,7 +645,7 @@ export default class FinanceService {
 			});
 		}
 
-		return qb;
+		return qb.orderByRaw("expiration_date, document, installment, issue_date");
 	}
 
 	async groupedIndex(

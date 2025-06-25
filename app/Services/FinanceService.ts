@@ -460,28 +460,32 @@ export default class FinanceService {
 		}
 
 		if (!data.order || data.order === "expiration_date") {
-			qb.orderByRaw("expiration_date, document, installment, issue_date");
+			qb.orderByRaw(
+				"order, expiration_date, document, installment, issue_date",
+			);
 		}
 
 		if (data.order === "issue_date") {
-			qb.orderByRaw("issue_date,  document, installment , expiration_date");
+			qb.orderByRaw(
+				"order, issue_date,  document, installment , expiration_date",
+			);
 		}
 
 		if (data.order === "payment_date") {
 			qb.orderByRaw(
-				"payment_date, document, installment, issue_date, expiration_date",
+				"order, payment_date, document, installment, issue_date, expiration_date",
 			);
 		}
 
 		if (data.order === "competence_date") {
 			qb.orderByRaw(
-				"competence_date, document, installment, issue_date, expiration_date",
+				"order, competence_date, document, installment, issue_date, expiration_date",
 			);
 		}
 
 		if (data.order === "doc") {
 			qb.orderByRaw(
-				"document, installment, issue_date, expiration_date, client",
+				"order, document, installment, issue_date, expiration_date, client",
 			);
 		}
 

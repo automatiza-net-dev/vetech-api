@@ -667,7 +667,7 @@ export default class FinanceService {
 
 		const qb = Database.from("finances")
 			.select(
-				Database.raw(`
+				Database.raw(`2 as ordem,
        finances.id,
        finances.type,
        'FINANCE'                   as source,
@@ -708,7 +708,6 @@ export default class FinanceService {
 			.joinRaw("left join tef_flags on finances.tef_flag_id = tef_flags.id", [])
 			.whereNull("finances.deleted_at")
 			.whereIn("finances.business_unit_id", units)
-			.whereNot("finances.status", FinanceStatus.E)
 			.whereNull("finances.bordero_id")
 			.where("payment_methods.tef", PaymentMethodTef.N);
 
@@ -829,8 +828,7 @@ export default class FinanceService {
 			builder
 				.from("borderos")
 				.select(
-					Database.raw(`
-                       borderos.id,
+					Database.raw(`case when borderos.status = 'Aberto' then 1 else 2 end as ordem, borderos.id,
        upper(borderos.type)                                                    as type,
        'BORDERO'                                                               as source,
        borderos.document,
@@ -942,7 +940,24 @@ export default class FinanceService {
 			}
 
 			if (data.nsu) {
-				builder.where("borderos.nsu_document", data.nsu);
+				builder.whereRaw(
+					"(borderos.nsu_document ilike ? or exists (select finInterno.bordero_id from finances finInterno where finInterno.bordero_id = borderos.id ))",
+					[`%${data.nsu}%`],
+				);
+			}
+
+			if (data.historic) {
+				builder.whereRaw(
+					"(borderos.history ilike ? or exists (select finInterno.bordero_id from finances finInterno where finInterno.bordero_id = borderos.id ))",
+					[`%${data.historic}%`],
+				);
+			}
+
+			if (data.document) {
+				builder.whereRaw(
+					"(borderos.document ilike ? or exists (select finInterno.bordero_id from finances finInterno where finInterno.bordero_id = borderos.id ))",
+					[`%${data.document}%`],
+				);
 			}
 
 			if (data.status === FinanceStatus.A) {
@@ -977,7 +992,7 @@ export default class FinanceService {
 			builder
 				.from("finances")
 				.select(
-					Database.raw(`null as id, finances.type, 'GROUP' as source, 'Cartoes' as document, 1 as installment, null as issue_date, finances.expiration_date::date as expiration_date,
+					Database.raw(`2 as ordem, null as id, finances.type, 'GROUP' as source, 'Cartoes' as document, 1 as installment, null as issue_date, finances.expiration_date::date as expiration_date,
  finances.payment_date::date as payment_date, sum(finances.value) as value, sum(finances.total_value) as total_value, sum(finances.payment_value) as payment_value,
  null as historic, null as origin_flag, null as origin_down_flag, null as accept, finances.status as status, null as competence_date, null as nsu_document,
  count(finances.id) as qty_installments, null as bordero_id,
@@ -1112,9 +1127,29 @@ export default class FinanceService {
 			if (data.tefAcquirerId) {
 				builder.where("finances.acquirer_id", data.tefAcquirerId);
 			}
+
+			if (data.internalCode) {
+				builder.whereRaw("finances.internal_code ilike ?", [
+					`%${data.internalCode}%`,
+				]);
+			}
+
+			if (data.historic) {
+				builder.whereRaw("finances.historic ilike ?", [`%${data.historic}%`]);
+			}
+
+			if (data.document) {
+				builder.whereRaw("finances.document ilike ?", [`%${data.document}%`]);
+			}
+
+			if (data.fiscalNote) {
+				builder.whereRaw("finances.fiscal_note ilike ?", [
+					`%${data.fiscalNote}%`,
+				]);
+			}
 		});
 
-		return qb;
+		return qb.orderByRaw("ordem, expiration_date");
 	}
 
 	async financesByPaymentGroup(

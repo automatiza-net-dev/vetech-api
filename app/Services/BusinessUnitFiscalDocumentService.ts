@@ -1100,9 +1100,9 @@ export default class BusinessUnitFiscalDocumentService {
 			.joinRaw(
 				"join business_unit_configs on business_unit_configs.business_unit_id = issued_fiscal_documents.business_unit_id",
 			)
-			.whereRaw("issued_fiscal_documents.authorization_receipt is null")
-			.whereRaw("issued_fiscal_documents.disabling_receipt is null")
-			.whereRaw("issued_fiscal_documents.deleted_at is null")
+			.whereRaw(
+				"(issued_fiscal_documents.cancellation_date is not null and issued_fiscal_documents.cancellation_receipt_date is null)",
+			)
 			.whereRaw(
 				"(business_unit_configs.focus_homologation_token is not null or business_unit_configs.focus_homologation_token is not null)",
 			)

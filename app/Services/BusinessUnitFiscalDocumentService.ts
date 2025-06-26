@@ -492,6 +492,20 @@ export default class BusinessUnitFiscalDocumentService {
 				},
 			};
 
+			const lastItemIdx = items.length - 1;
+			const [normalPrice, priceWithoffset] = items.reduce(
+				(acc, curr, idx) => {
+					if (idx === lastItemIdx) {
+						acc[1] = new Decimal(bill.productValue).minus(acc[0]);
+					} else {
+						acc[0] = acc[0].plus(curr.unitaryValue);
+					}
+
+					return acc;
+				},
+				[new Decimal(0), new Decimal(0)],
+			);
+
 			const cestTasks = items.map((item, idx) => {
 				const result: ISendNfe["items"][number] = {
 					index: (idx + 1).toString(),
@@ -504,7 +518,10 @@ export default class BusinessUnitFiscalDocumentService {
 					cfop: item.fiscalOperationCode,
 					unity: item.productVariation.product.unit.tag,
 					quantity: item.quantity.toString(),
-					value: item.unitaryValue.toString(),
+					value:
+						idx === lastItemIdx
+							? normalPrice.toString()
+							: priceWithoffset.toString(),
 					discount: item.discountValue,
 
 					icms_origin: item.productVariation.product.icmsOrigin,

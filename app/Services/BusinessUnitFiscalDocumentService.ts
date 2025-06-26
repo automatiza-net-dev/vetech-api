@@ -1239,6 +1239,119 @@ export default class BusinessUnitFiscalDocumentService {
 		return await Promise.all(tasks);
 	}
 
+	public static async UpdateOldNfseRecords() {
+		const focus = new FocusNfeService();
+
+		const rowsToUpdate: {
+			id: string;
+			bill_id: string | null;
+			fiscal_document_environment: string | null;
+			focus_homologation_token: string | null;
+			focus_production_token: string | null;
+		}[] = await Database.from("service_issued_fiscal_documents")
+			.select(
+				Database.raw(`service_issued_fiscal_documents.id,
+       service_issued_fiscal_documents.bill_id,
+       business_unit_configs.fiscal_document_environment,
+       business_unit_configs.focus_homologation_token,
+       business_unit_configs.focus_production_token`),
+			)
+			.joinRaw(
+				"join business_unit_configs on business_unit_configs.business_unit_id = service_issued_fiscal_documents.business_unit_id",
+			)
+			.whereRaw("service_issued_fiscal_documents.authorization_receipt is null")
+			.whereRaw(`(service_issued_fiscal_documents.cancellation_date is not null and
+       service_issued_fiscal_documents.cancellation_receipt_date is null)`)
+			.whereRaw("service_issued_fiscal_documents.deleted_at is null")
+			.whereRaw(
+				"(business_unit_configs.focus_homologation_token is not null or business_unit_configs.focus_homologation_token is not null)",
+			)
+			.orderByRaw("service_issued_fiscal_documents.created_at desc");
+
+		const tasks = rowsToUpdate
+			.filter(
+				(row) => !!row.focus_production_token || !!row.focus_homologation_token,
+			)
+			.map(async (row) => {
+				const token =
+					row.fiscal_document_environment === "H"
+						? row.focus_homologation_token
+						: row.fiscal_document_environment;
+				if (!token) {
+					return { [row.id]: "Sem token" };
+				}
+
+				const result = await focus.getNfse(row.id, token);
+				if (!result.success) {
+					return {
+						[row.id]: {
+							msg: "Falha ao pegar resultados da focus",
+							result,
+						},
+					};
+				}
+
+				// const urlPrefix =
+				// 	row.fiscal_document_environment === "P"
+				// 		? "https://api.focusnfe.com.br"
+				// 		: "https://homologacao.focusnfe.com.br";
+
+				await ServiceIssuedFiscalDocument.query()
+					.where("id", row.id)
+					.update({
+						status: result.data.status,
+						sequence: result.data.numero,
+						rpsNumber: result.data.numero_rps,
+						rpsSeries: result.data.serie_rps,
+						rpsType: result.data.tipo_rps,
+						verificationCode: result.data.codigo_verificacao,
+						errors: JSON.stringify(result.data.erros),
+						authorizationDate:
+							result.data.status === "autorizado" ? DateTime.now() : undefined,
+						cancellationDate:
+							result.data.status === "cancelado" ? DateTime.now() : undefined,
+						mirrorPath: result.data.url,
+						authorizationPdfPath: result.data.url_danfse,
+						authorizationXmlPath: result.data.caminho_xml_nota_fiscal,
+					});
+				// if (row.disabling_receipt && row.bill_id) {
+				// 	await BillItem.query()
+				// 		.where("bill_id", row.bill_id)
+				// 		.update({ nfeIssued: false } as Partial<BillItem>);
+				// }
+
+				return {
+					[row.id]: {
+						msg: "Atualizado com sucesso",
+						result,
+						// atualizouBillItem: {
+						// 	disabling: row.disabling_receipt,
+						// 	bill_id: row.bill_id,
+						// },
+						campos: {
+							status: result.data.status,
+							sequence: result.data.numero,
+							rpsNumber: result.data.numero_rps,
+							rpsSeries: result.data.serie_rps,
+							rpsType: result.data.tipo_rps,
+							verificationCode: result.data.codigo_verificacao,
+							errors: JSON.stringify(result.data.erros),
+							authorizationDate:
+								result.data.status === "autorizado"
+									? DateTime.now()
+									: undefined,
+							cancellationDate:
+								result.data.status === "cancelado" ? DateTime.now() : undefined,
+							mirrorPath: result.data.url,
+							authorizationPdfPath: result.data.url_danfse,
+							authorizationXmlPath: result.data.caminho_xml_nota_fiscal,
+						},
+					},
+				};
+			});
+		return await Promise.all(tasks);
+	}
+
 	async updateFromFocus(unitId: string, id: string) {
 		const group = await this.sharedService.getUserGroup(unitId);
 
@@ -1308,7 +1421,7 @@ export default class BusinessUnitFiscalDocumentService {
 			const token = this.getToken(unit);
 
 			const result = await this.focusNfe.getNfse(document.id, token);
-			if (!result) {
+			if (!result.success) {
 				throw new BadRequestException(
 					"Erro ao atualizar nota",
 					400,
@@ -1316,7 +1429,7 @@ export default class BusinessUnitFiscalDocumentService {
 				);
 			}
 
-			await this.mergeNfse(document, result).useTransaction(trx).save();
+			await this.mergeNfse(document, result.data).useTransaction(trx).save();
 		});
 	}
 
@@ -1386,7 +1499,7 @@ export default class BusinessUnitFiscalDocumentService {
 			const token = this.getToken(unit);
 
 			const result = await this.focusNfe.getNfse(document.id, token);
-			if (!result) {
+			if (!result.success) {
 				throw new BadRequestException(
 					"Erro ao atualizar nova",
 					400,
@@ -1394,7 +1507,7 @@ export default class BusinessUnitFiscalDocumentService {
 				);
 			}
 
-			await this.mergeNfse(document, result).useTransaction(trx).save();
+			await this.mergeNfse(document, result.data).useTransaction(trx).save();
 		});
 	}
 

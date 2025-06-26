@@ -647,11 +647,21 @@ export default class FocusNfeService {
 
 			const zodResponse = nfseResponseSchema.safeParse(data);
 			if (!zodResponse.success) {
-				return null;
+				return {
+					success: false as const,
+					error: "Resposta inválida",
+				};
 			}
-			return zodResponse.data;
+
+			return {
+				success: true as const,
+				data: zodResponse.data,
+			};
 		} catch (error) {
-			return null;
+			return {
+				success: false as const,
+				error: "Erro ao chamar",
+			};
 		}
 	}
 

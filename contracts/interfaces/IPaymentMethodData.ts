@@ -41,6 +41,10 @@ export interface IUpdatePaymentMethodFlagData {
 	daysUntilTransfer?: number;
 	installmentsWithoutPassword?: number;
 	active: boolean;
+	flagInstallments: {
+		id: number;
+		fee: number;
+	}[];
 }
 
 export interface ICreatePaymentMethodFeeData {

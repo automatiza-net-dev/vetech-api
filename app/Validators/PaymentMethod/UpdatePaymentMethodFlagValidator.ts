@@ -13,6 +13,17 @@ export default class UpdatePaymentMethodFlagValidator {
 		maxInstallments: schema.number.optional(),
 		daysUntilTransfer: schema.number.optional(),
 		installmentsWithoutPassword: schema.number.optional(),
+		flagInstallments: schema.array().members(
+			schema.object().members({
+				id: schema.number([
+					rules.exists({
+						table: "payment_method_flag_installments",
+						column: "id",
+					}),
+				]),
+				fee: schema.number(),
+			}),
+		),
 	});
 
 	public messages: CustomMessages = {};

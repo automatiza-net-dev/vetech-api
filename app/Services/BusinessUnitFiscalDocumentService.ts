@@ -860,7 +860,7 @@ export default class BusinessUnitFiscalDocumentService {
 								) ?? "",
 							address: {
 								street: responsible.tutor.street ?? "",
-								number: responsible.tutor.number ?? "",
+								number: responsible.tutor.number ?? "s/n",
 								district: responsible.tutor.district ?? "",
 								city_code: responsible.tutor.cityCode ?? "",
 								uf: responsible.tutor.state ?? "",

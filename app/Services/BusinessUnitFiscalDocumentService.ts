@@ -492,20 +492,6 @@ export default class BusinessUnitFiscalDocumentService {
 				},
 			};
 
-			const lastItemIdx = items.length - 1;
-			const [_aggregated, priceWithOffset] = items.reduce(
-				(acc, curr, idx) => {
-					if (idx === lastItemIdx) {
-						acc[1] = new Decimal(bill.productValue).minus(acc[0]);
-					} else {
-						acc[0] = acc[0].plus(curr.unitaryValue);
-					}
-
-					return acc;
-				},
-				[new Decimal(0), new Decimal(0)],
-			);
-
 			const cestTasks = items.map((item, idx) => {
 				const result: ISendNfe["items"][number] = {
 					index: (idx + 1).toString(),
@@ -519,8 +505,11 @@ export default class BusinessUnitFiscalDocumentService {
 					unity: item.productVariation.product.unit.tag,
 					quantity: item.quantity.toString(),
 					value:
-						idx === lastItemIdx
-							? priceWithOffset.toNumber().toFixed(2)
+						idx === items.length - 1
+							? new Decimal(item.totalValue)
+									.minus(new Decimal(item.unitaryValue))
+									.toNumber()
+									.toFixed(2)
 							: item.unitaryValue.toFixed(2),
 					discount: item.discountValue,
 

@@ -493,7 +493,7 @@ export default class BusinessUnitFiscalDocumentService {
 			};
 
 			const lastItemIdx = items.length - 1;
-			const [normalPrice, priceWithoffset] = items.reduce(
+			const [_aggregated, priceWithOffset] = items.reduce(
 				(acc, curr, idx) => {
 					if (idx === lastItemIdx) {
 						acc[1] = new Decimal(bill.productValue).minus(acc[0]);
@@ -520,8 +520,8 @@ export default class BusinessUnitFiscalDocumentService {
 					quantity: item.quantity.toString(),
 					value:
 						idx === lastItemIdx
-							? normalPrice.toString()
-							: priceWithoffset.toString(),
+							? priceWithOffset.toNumber().toFixed(2)
+							: item.unitaryValue.toFixed(2),
 					discount: item.discountValue,
 
 					icms_origin: item.productVariation.product.icmsOrigin,

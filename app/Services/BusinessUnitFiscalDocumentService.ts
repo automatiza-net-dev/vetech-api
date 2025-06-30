@@ -389,10 +389,9 @@ export default class BusinessUnitFiscalDocumentService {
 			);
 
 			const responsible = bill.financialResponsible ?? bill.client;
-			const offsetPercentage =
-				bill.serviceValue > 0
-					? new Decimal(bill.productValue).div(new Decimal(bill.totalValue))
-					: new Decimal(1);
+			const offsetPercentage = new Decimal(bill.productValue).div(
+				new Decimal(bill.totalValue),
+			);
 			const clearDoc = responsible.tutor.document?.replaceAll(/\D/g, "") ?? "";
 
 			const nfePayload: ISendNfe = {

@@ -389,10 +389,75 @@ export default class BusinessUnitFiscalDocumentService {
 			);
 
 			const responsible = bill.financialResponsible ?? bill.client;
-			const offsetPercentage = new Decimal(bill.productValue).div(
-				new Decimal(bill.totalValue),
-			);
 			const clearDoc = responsible.tutor.document?.replaceAll(/\D/g, "") ?? "";
+
+			const precalculatedValues: {
+				payment_id: string;
+				installment_value: string;
+				product_installment_value: string;
+			}[] = await Database.from("payments_with_order")
+				.useTransaction(trx)
+				.with("block_totals", (qb) => {
+					qb.from("bills")
+						.select(
+							Database.raw(`bills.id,
+                             bill_payments.block,
+                             bills.product_value / bills.total_value as product_proportion,
+                             round(SUM(bill_payments.total_value * (bills.product_value / bills.total_value))::numeric,
+                                   2)                                as block_total,
+                             bill_payments.qty_installments          as total_installments`),
+						)
+						.joinRaw("join bill_payments on bills.id = bill_payments.bill_id")
+						.where("bills.id", bill.id)
+						.whereRaw("bill_payments.deleted_at IS NULL")
+						.groupByRaw(
+							"bills.id, bill_payments.block, bill_payments.qty_installments, bill_payments.block",
+						);
+				})
+				.with("block_calculations", (qb) => {
+					qb.from("block_totals").select(
+						Database.raw(`block_totals.block,
+                    block_totals.block_total,
+                    block_totals.total_installments,
+                    round((block_totals.block_total / block_totals.total_installments)::numeric, 2) as base_value,
+                    block_totals.block_total -
+                    (round((block_totals.block_total / block_totals.total_installments)::numeric, 2) *
+                     block_totals.total_installments)                                               as remainder,
+                    block_totals.product_proportion`),
+					);
+				})
+				.with("payments_with_order", (qb) => {
+					qb.from("bill_payments")
+						.select(
+							Database.raw(`bill_payments.*,
+                                    ROW_NUMBER() OVER (PARTITION BY bill_payments.block ORDER BY bill_payments.installments) as row_num,
+                                    COUNT(*) OVER (PARTITION BY bill_payments.block)                              as total_in_block`),
+						)
+						.where("bill_payments.bill_id", bill.id)
+						.whereRaw("bill_payments.deleted_at IS NULL");
+				})
+				.select(
+					Database.raw(`payments_with_order.id as payment_id,
+       CASE
+           WHEN payments_with_order.row_num = payments_with_order.total_in_block THEN
+               block_calculations.base_value + block_calculations.remainder
+           ELSE
+               block_calculations.base_value
+           END                as installment_value,
+       CASE
+           WHEN payments_with_order.row_num = payments_with_order.total_in_block THEN
+               (block_calculations.base_value + block_calculations.remainder)
+           ELSE
+               block_calculations.base_value
+           END                as product_installment_value`),
+				)
+				.joinRaw("join bills ON payments_with_order.bill_id = bills.id")
+				.joinRaw(
+					"join block_calculations ON payments_with_order.block = block_calculations.block",
+				)
+				.orderByRaw(
+					"payments_with_order.bill_id, payments_with_order.block, payments_with_order.installments",
+				);
 
 			const nfePayload: ISendNfe = {
 				nfe_series: issuedDocument.series,
@@ -456,9 +521,10 @@ export default class BusinessUnitFiscalDocumentService {
 						item.paymentMethod.nfe_code === "99"
 							? item.paymentMethod.description
 							: null,
-					installment: new Decimal(item.installmentValue)
-						.times(offsetPercentage)
-						.toNumber(),
+					installment: new Decimal(
+						precalculatedValues.find((pv) => pv.payment_id === item.id)
+							?.product_installment_value ?? 0,
+					).toNumber(),
 					integration_type:
 						// eslint-disable-next-line no-nested-ternary
 						item.paymentMethod.tef === PaymentMethodTef.N
@@ -503,9 +569,7 @@ export default class BusinessUnitFiscalDocumentService {
 					cfop: item.fiscalOperationCode,
 					unity: item.productVariation.product.unit.tag,
 					quantity: item.quantity.toString(),
-					value: new Decimal(item.unitaryValue)
-						.times(offsetPercentage)
-						.toFixed(2),
+					value: item.unitaryValue.toString(),
 					discount: item.discountValue,
 
 					icms_origin: item.productVariation.product.icmsOrigin,
@@ -576,24 +640,6 @@ export default class BusinessUnitFiscalDocumentService {
 				token,
 			);
 
-			// await FocusLog.create(
-			// 	{
-			// 		document_id: issuedDocument.id,
-			// 		description: "Emissão de NF-e",
-			// 		origin: "BusinessUnitFiscalDocumentService.authorize",
-			// 		input: nfePayload,
-			// 		data: result,
-			// 	},
-			// 	{
-			// 		client: trx,
-			// 	},
-			// );
-
-			// if (!result.success) {
-			// throw new BadRequestException(result.message, 400, 'E_EXTERNAL_ERROR');
-			// Logger.info(JSON.stringify(result, undefined, 2));
-			// }
-
 			await BillItem.query()
 				.useTransaction(trx)
 				.whereIn(
@@ -622,19 +668,6 @@ export default class BusinessUnitFiscalDocumentService {
 					.useTransaction(trx)
 					.save();
 			}
-
-			// await item
-			//   .merge({
-			//     nfeIssued: result.success,
-			//   })
-			//   .useTransaction(trx)
-			//   .save();
-			// await issuedDocument
-			//   .merge({
-			//     sefazMessage: result.message,
-			//   })
-			//   .useTransaction(trx)
-			//   .save();
 
 			if (!result.success) {
 				return {
@@ -883,15 +916,6 @@ export default class BusinessUnitFiscalDocumentService {
 						token,
 					);
 
-					// if (!result.success) {
-					// 	Logger.info(JSON.stringify(result, undefined, 2));
-					// throw new BadRequestException(
-					//   result.message ?? 'Erro ao emitir NFSe',
-					//   400,
-					//   'E_EXTERNAL_ERROR',
-					// );
-					// }
-
 					await serviceDocument
 						.merge({
 							rpsNumber: result.data?.numero_rps,
@@ -908,20 +932,6 @@ export default class BusinessUnitFiscalDocumentService {
 						})
 						.useTransaction(trx)
 						.save();
-
-					// await FocusLog.create(
-					// 	{
-					// 		document_id: serviceDocument.id,
-					// 		description: "Emissão de NFS-e",
-					// 		origin: "BusinessUnitFiscalDocumentService.$sendNfse",
-					// 		input: payload,
-					// 		data: result.data,
-					// 		error: result.message,
-					// 	},
-					// 	{
-					// 		client: trx,
-					// 	},
-					// );
 
 					return result;
 				}),
@@ -1018,15 +1028,6 @@ export default class BusinessUnitFiscalDocumentService {
 				token,
 			);
 
-			// if (!result.success) {
-			// Logger.info(JSON.stringify(result, undefined, 2));
-			// throw new BadRequestException(
-			//   result.message ?? 'Erro ao emitir NFSe',
-			//   400,
-			//   'E_EXTERNAL_ERROR',
-			// );
-			// }
-
 			await BillItem.query()
 				.useTransaction(trx)
 				.whereIn(
@@ -1054,7 +1055,6 @@ export default class BusinessUnitFiscalDocumentService {
 				{ client: trx },
 			);
 
-			// console.log(JSON.stringify(results, undefined, 2));
 			return result;
 		});
 

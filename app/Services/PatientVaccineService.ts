@@ -77,6 +77,7 @@ export default class PatientVaccineService {
 					vaccine_protocol_id: data.vaccineProtocolId,
 					schedule_id: data.scheduleId,
 
+					importField: data.importField ?? "",
 					status: "Incompleto",
 				},
 				{

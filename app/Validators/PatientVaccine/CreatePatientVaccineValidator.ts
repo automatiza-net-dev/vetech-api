@@ -31,6 +31,7 @@ export default class CreatePatientVaccineValidator {
 				date: schema.date(),
 			}),
 		),
+		importField: schema.string.optional(),
 		createdAt: schema.date.optional(),
 	});
 

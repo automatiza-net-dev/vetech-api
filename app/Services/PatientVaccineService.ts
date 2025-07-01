@@ -189,7 +189,15 @@ export default class PatientVaccineService {
 			throw new ResourceNotFoundException("Recurso não encontrado");
 		}
 
-		return entity;
+		return {
+			...entity.toJSON(),
+			vaccine: {
+				...entity.vaccine.toJSON(),
+				name: [entity.importField, entity.vaccine.name]
+					.filter(Boolean)
+					.join(" - "),
+			},
+		};
 	}
 
 	public async update(

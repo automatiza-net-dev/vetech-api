@@ -34,6 +34,12 @@ export default class PatientVaccine extends BaseModel {
 	})
 	public validUntil: DateTime | null;
 
+	@column({
+		columnName: "import_field",
+		serializeAs: "importField",
+	})
+	public importField: string;
+
 	@column({})
 	public status: "Completo" | "Incompleto" | null;
 

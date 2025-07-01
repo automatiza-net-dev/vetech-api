@@ -38,20 +38,26 @@ export default class PatientVaccineService {
 			qb.where("patient_id", data.patient);
 		}
 
-		await Promise.all([
-			qb.preload("vaccine"),
-			qb.preload("protocol"),
-			qb.preload("patient"),
-			qb.preload("user", (query) => {
+		qb.preload("vaccine")
+			.preload("protocol")
+			.preload("patient")
+			.preload("user", (query) => {
 				query.select("id", "name", "email");
-			}),
-			qb.preload("schedule"),
-			qb.preload("calendars", (query) => {
+			})
+			.preload("schedule")
+			.preload("calendars", (query) => {
 				query.orderBy("dose");
-			}),
-		]);
+			});
 
-		return qb;
+		const result = await qb;
+
+		return result.map((r) => ({
+			...r.toJSON(),
+			vaccine: {
+				...r.vaccine.toJSON(),
+				name: [r.importField, r.vaccine.name].filter(Boolean).join(" - "),
+			},
+		}));
 	}
 
 	public async store(authCtx: AuthContext, data: IPatientVaccineData) {

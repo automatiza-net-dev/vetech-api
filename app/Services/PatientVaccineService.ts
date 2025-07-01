@@ -49,15 +49,16 @@ export default class PatientVaccineService {
 				query.orderBy("dose");
 			});
 
-		const result = await qb;
-
-		return result.map((r) => ({
-			...r.toJSON(),
-			vaccine: {
-				...r.vaccine.toJSON(),
-				name: [r.importField, r.vaccine.name].filter(Boolean).join(" - "),
-			},
-		}));
+		return qb;
+		// const result = await qb;
+		//
+		// return result.map((r) => ({
+		// 	...r.toJSON(),
+		// 	vaccine: {
+		// 		...r.vaccine.toJSON(),
+		// 		name: [r.importField, r.vaccine.name].filter(Boolean).join(" - "),
+		// 	},
+		// }));
 	}
 
 	public async store(authCtx: AuthContext, data: IPatientVaccineData) {

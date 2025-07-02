@@ -1479,9 +1479,8 @@ where deposit_id = ?
 					const installmentValue =
 						v === installment.installment - 1 ? withOffset : singleValue;
 
-					const shouldUseFlag =
-						paymentMethod.tef !== PaymentMethodTef.N &&
-						paymentMethod.type === PaymentMethodType.D;
+					const shouldUseFlag = paymentMethod.tef !== PaymentMethodTef.N;
+
 					const feeCtx = shouldUseFlag
 						? flags.reduce((acc, cur) => {
 								const ctx = cur.installments.find(
@@ -1528,8 +1527,9 @@ where deposit_id = ?
 							(installmentValue - (installmentValue * feeCtx) / 100),
 						feeValue: 0,
 						// feeDiscountPercentage: paymentMethod.fee,
-						feeDiscountPercentage:
-							payments.at(v)?.paymentMethodDiscountPercentage,
+						// feeDiscountPercentage:
+						// 	payments.at(v)?.paymentMethodDiscountPercentage,
+						feeDiscountPercentage: feeCtx,
 						accept: FinanceAccept.N,
 						reconciled: authCtx.unit.unitConfig.balanceControl === "previsto",
 						competenceDate: DateTime.now().toFormat("MM/yyyy"),

@@ -118,4 +118,26 @@ export default class ProductivityItemsController {
 
 		return response.ok(result);
 	}
+
+	public async deleteItem({ auth, request, response }: HttpContextContract) {
+		await this.service.deleteProductivityItem(
+			await this.sharedService.getAuthContext(auth),
+			request.param("itemID", "-1"),
+		);
+
+		return response.noContent();
+	}
+
+	public async deleteItemProduct({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		await this.service.deleteProductivityItemProduct(
+			await this.sharedService.getAuthContext(auth),
+			request.param("productItemID", "-1"),
+		);
+
+		return response.noContent();
+	}
 }

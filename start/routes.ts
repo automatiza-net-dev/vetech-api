@@ -1581,6 +1581,15 @@ Route.group(() => {
 		"/update-item-product",
 		"ProductivityItemsController.updateItemProduct",
 	).middleware("auth");
+
+	Route.delete(
+		"/delete-item/:itemID",
+		"ProductivityItemsController.deleteItem",
+	).middleware("auth");
+	Route.delete(
+		"/delete-item-product/:productItemID",
+		"ProductivityItemsController.deleteItemProduct",
+	).middleware("auth");
 }).prefix("productivity-items");
 
 Route.group(() => {

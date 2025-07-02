@@ -1,8 +1,10 @@
 import { inject } from "@adonisjs/fold";
 import Database from "@ioc:Adonis/Lucid/Database";
+import BadRequestException from "App/Exceptions/BadRequestException";
 import ProductivityItem from "App/Models/ProductivityItem";
 import ProductivityItemProduct from "App/Models/ProductivityItemProduct";
 import SharedService, { AuthContext } from "App/Services/SharedService";
+import { DateTime } from "luxon";
 
 export const ProductivityItemOrigin = ["Portal", "Unidade"] as const;
 export type TProductivityItemOrigin = (typeof ProductivityItemOrigin)[number];
@@ -211,6 +213,65 @@ export default class ProductivityItemService {
 				})
 				.useTransaction(trx)
 				.save();
+		});
+	}
+
+	public async deleteProductivityItem(authCtx: AuthContext, itemID: string) {
+		await Database.transaction(async (trx) => {
+			const checkResult: { src: string }[] = await Database.from(
+				"productivity_item_products",
+			)
+				.useTransaction(trx)
+				.select(Database.raw("'Produtos' as src"))
+				.where("productivity_item_id", itemID)
+				.whereNull("deleted_at")
+				.union((union1) => {
+					union1
+						.from("treatment_items")
+						.select(Database.raw("'Tratamentos' as src"))
+						.where("productivity_item_id", itemID);
+				})
+				.union((union2) => {
+					union2
+						.from("treatment_executions")
+						.select(Database.raw("'Execuções' as src"))
+						.where("productivity_item_id", itemID);
+				});
+
+			if (checkResult.length > 0) {
+				throw new BadRequestException(
+					"Este item de produtividade não pode ser excluido pois está relacionado a produtos, serviços ou tratamentos. Marque o item como 'Ativo = Não'",
+					400,
+					"E_ERR",
+				);
+			}
+
+			await ProductivityItem.query()
+				.useTransaction(trx)
+				.where("id", itemID)
+				.where("economic_group_id", authCtx.group.id)
+				.whereNull("deleted_at")
+				.update({
+					exclusion_user_id: authCtx.user.id,
+					deleted_at: DateTime.now(),
+				});
+		});
+	}
+
+	public async deleteProductivityItemProduct(
+		authCtx: AuthContext,
+		itemProductID: string,
+	) {
+		await Database.transaction(async (trx) => {
+			await ProductivityItemProduct.query()
+				.useTransaction(trx)
+				.where("id", itemProductID)
+				.where("economic_group_id", authCtx.group.id)
+				.whereNull("deleted_at")
+				.update({
+					exclusion_user_id: authCtx.user.id,
+					deleted_at: DateTime.now(),
+				});
 		});
 	}
 }

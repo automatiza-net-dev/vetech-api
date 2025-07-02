@@ -34,6 +34,9 @@ export default class ProductivityItem extends BaseModel {
 	@column.dateTime({ autoCreate: true, autoUpdate: true })
 	public updatedAt: DateTime;
 
+	@column.dateTime({ serializeAs: null })
+	public deletedAt: DateTime | null;
+
 	@column({
 		serializeAs: null,
 	})
@@ -43,6 +46,11 @@ export default class ProductivityItem extends BaseModel {
 		serializeAs: null,
 	})
 	public economic_group_id: string;
+
+	@column({
+		serializeAs: null,
+	})
+	public exclusion_user_id: string | null;
 
 	@hasMany(() => ProductivityItemProduct, {
 		foreignKey: "productivity_item_id",

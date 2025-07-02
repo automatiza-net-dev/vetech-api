@@ -21,6 +21,7 @@ export default class ProductivityItemService {
 	) {
 		const qb = ProductivityItem.query()
 			.where("system_id", systemID)
+			.whereNull("deleted_at")
 			.orderByRaw('"order", description, id desc');
 
 		if (data.origin === "Portal") {
@@ -68,7 +69,9 @@ export default class ProductivityItemService {
 			.where(
 				"productivity_item_products.active",
 				data.active ? data.active === "1" : true,
-			);
+			)
+			.whereNull("productivity_items.deleted_at")
+			.whereNull("productivity_item_products.deleted_at");
 
 		if (data.product) {
 			qb.where("product_id", data.product);
@@ -87,16 +90,6 @@ export default class ProductivityItemService {
 			order: number;
 		},
 	) {
-		if (data.origin === "Portal") {
-			await ProductivityItem.create({
-				system_id: systemID,
-				description: data.description,
-				reservedMinutes: data.reservedMinutes,
-				order: data.order,
-			});
-			return;
-		}
-
 		await ProductivityItem.create({
 			system_id: systemID,
 			economic_group_id: groupID,
@@ -151,15 +144,24 @@ export default class ProductivityItemService {
 		},
 	) {
 		await Database.transaction(async (trx) => {
+			const maxQueryResult: { max: number; product_id: string }[] =
+				await Database.from("productivity_item_products")
+					.useTransaction(trx)
+					.select(Database.raw(`coalesce(max("order"), 0), product_id`))
+					.where("economic_group_id", authCtx.group.id)
+					.whereNull("deleted_at")
+					.groupByRaw("product_id");
+
 			const prodItems = await ProductivityItem.query()
 				.useTransaction(trx)
 				.where("economic_group_id", authCtx.group.id)
 				.whereIn(
 					"id",
 					data.items.map((e) => e.productivityItemId),
-				);
+				)
+				.whereNull("deleted_at");
 
-			const tasks = prodItems.map((elem) => {
+			const tasks = prodItems.map((elem, idx) => {
 				return elem.related("products").createMany(
 					data.items
 						.filter((inner) => inner.productivityItemId === elem.id)
@@ -167,7 +169,11 @@ export default class ProductivityItemService {
 							economic_group_id: authCtx.group.id,
 							product_id: inner.productId,
 							quantity: inner.quantity,
-							order: inner.order,
+							order:
+								(maxQueryResult.find((r) => r.product_id === inner.productId)
+									?.max ?? 0) +
+								1 +
+								idx,
 						})),
 					trx,
 				);

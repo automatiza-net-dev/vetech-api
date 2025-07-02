@@ -3546,11 +3546,14 @@ where deposit_id = ?
 
 			const productivityItems = await ProductivityItem.query()
 				.useTransaction(trx)
+				.whereNull("deleted_at")
 				.whereHas("products", (query) => {
-					query.whereIn(
-						"product_id",
-						services.map((p) => p.id),
-					);
+					query
+						.whereIn(
+							"product_id",
+							services.map((p) => p.id),
+						)
+						.whereNull("deleted_at");
 				})
 				.preload("products", (query) => {
 					query.whereIn(

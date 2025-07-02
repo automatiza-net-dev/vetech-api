@@ -30,7 +30,6 @@ export default class UpdateProductivityItemProductValidator {
 				column: "id",
 			}),
 		]),
-		quantity: schema.number(),
 		active: schema.boolean(),
 		order: schema.number(),
 	});

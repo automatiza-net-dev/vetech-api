@@ -53,11 +53,13 @@ export default class ProductivityItemService {
 		const qb = Database.from("productivity_items")
 			.select(
 				Database.raw(`
+          productivity_item_products.id,
           productivity_item_products.productivity_item_id as p_id,
           productivity_items.description,
           productivity_item_products.quantity,
           productivity_items.reserved_minutes,
-          productivity_items.order
+          productivity_item_products.order,
+          productivity_items.active
       `),
 			)
 			.joinRaw(
@@ -141,7 +143,6 @@ export default class ProductivityItemService {
 				productivityItemId: number;
 				productId: string;
 				quantity: number;
-				order: number;
 			}[];
 		},
 	) {
@@ -189,7 +190,6 @@ export default class ProductivityItemService {
 		authCtx: AuthContext,
 		data: {
 			id: number;
-			quantity: number;
 			active: boolean;
 			order: number;
 		},
@@ -207,7 +207,6 @@ export default class ProductivityItemService {
 
 			await item
 				.merge({
-					quantity: data.quantity,
 					active: data.active,
 					order: data.order,
 				})

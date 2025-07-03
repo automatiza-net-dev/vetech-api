@@ -265,6 +265,7 @@ Route.group(() => {
 	Route.put("/unlink", "PatientsController.unlinkHolderDependent");
 	Route.put("/:id", "PatientsController.update");
 	Route.delete("/:id", "PatientsController.destroy");
+	Route.post("/mass-remove", "PatientsController.massRemoveRecords");
 })
 	.prefix("patients")
 	.middleware("auth");
@@ -1579,6 +1580,15 @@ Route.group(() => {
 	Route.post(
 		"/update-item-product",
 		"ProductivityItemsController.updateItemProduct",
+	).middleware("auth");
+
+	Route.delete(
+		"/delete-item/:itemID",
+		"ProductivityItemsController.deleteItem",
+	).middleware("auth");
+	Route.delete(
+		"/delete-item-product/:productItemID",
+		"ProductivityItemsController.deleteItemProduct",
 	).middleware("auth");
 }).prefix("productivity-items");
 

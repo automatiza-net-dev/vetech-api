@@ -141,6 +141,7 @@ export default class FinancesController {
 				unit: qs.unit,
 				plan: qs.plan,
 				competence: qs.competence,
+				order: qs.order,
 
 				historic: qs.historic,
 				internalCode: qs.internalCode,

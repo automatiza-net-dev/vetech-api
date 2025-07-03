@@ -21,6 +21,9 @@ export default class ProductivityItemProduct extends BaseModel {
 	@column.dateTime({ autoCreate: true, autoUpdate: true })
 	public updatedAt: DateTime;
 
+	@column.dateTime({ serializeAs: null })
+	public deletedAt: DateTime | null;
+
 	@column({
 		serializeAs: null,
 	})
@@ -40,4 +43,9 @@ export default class ProductivityItemProduct extends BaseModel {
 		foreignKey: "product_id",
 	})
 	public product: BelongsTo<typeof Product>;
+
+	@column({
+		serializeAs: null,
+	})
+	public exclusion_user_id: string | null;
 }

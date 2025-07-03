@@ -1150,9 +1150,37 @@ export default class FinanceService {
 			}
 		});
 
-		return qb.orderByRaw(
-			"ordem, expiration_date, document, installment, issue_date",
-		);
+		if (!data.order || data.order === "expiration_date") {
+			qb.orderByRaw(
+				"ordem, expiration_date, document, installment, issue_date",
+			);
+		}
+
+		if (data.order === "issue_date") {
+			qb.orderByRaw(
+				"ordem, issue_date,  document, installment , expiration_date",
+			);
+		}
+
+		if (data.order === "payment_date") {
+			qb.orderByRaw(
+				"ordem, payment_date, document, installment, issue_date, expiration_date",
+			);
+		}
+
+		if (data.order === "competence_date") {
+			qb.orderByRaw(
+				"ordem, competence_date, document, installment, issue_date, expiration_date",
+			);
+		}
+
+		if (data.order === "doc") {
+			qb.orderByRaw(
+				"ordem, document, installment, issue_date, expiration_date, client",
+			);
+		}
+
+		return qb;
 	}
 
 	async financesByPaymentGroup(

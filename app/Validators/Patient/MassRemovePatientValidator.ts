@@ -1,7 +1,7 @@
-import { schema, CustomMessages, rules } from "@ioc:Adonis/Core/Validator";
+import { schema, CustomMessages } from "@ioc:Adonis/Core/Validator";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 
-export default class UpdateProductivityItemProductValidator {
+export default class MassRemovePatientValidator {
 	constructor(protected ctx: HttpContextContract) {}
 
 	/*
@@ -11,27 +11,21 @@ export default class UpdateProductivityItemProductValidator {
 	 * 1. The username must be of data type string. But then also, it should
 	 *    not contain special characters or numbers.
 	 *    ```
-	 *     schema.string({}, [ rules.alpha() ])
+	 *     schema.string([ rules.alpha() ])
 	 *    ```
 	 *
 	 * 2. The email must be of data type string, formatted as a valid
 	 *    email. But also, not used by any other user.
 	 *    ```
-	 *     schema.string({}, [
+	 *     schema.string([
 	 *       rules.email(),
 	 *       rules.unique({ table: 'users', column: 'email' }),
 	 *     ])
 	 *    ```
 	 */
 	public schema = schema.create({
-		id: schema.number([
-			rules.exists({
-				table: "productivity_item_products",
-				column: "id",
-			}),
-		]),
-		active: schema.boolean(),
-		order: schema.number(),
+		baseDate: schema.string(),
+		patientId: schema.string.optional(),
 	});
 
 	/**

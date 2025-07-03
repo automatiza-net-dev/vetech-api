@@ -40,7 +40,6 @@ export default class CreateProductivityItemProductValidator {
 					}),
 				]),
 				quantity: schema.number(),
-				order: schema.number(),
 			}),
 		),
 	});

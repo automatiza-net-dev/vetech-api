@@ -22,7 +22,10 @@ import Finance, {
 import IssuedFiscalDocument from "App/Models/IssuedFiscalDocument";
 import Kit from "App/Models/Kit";
 import Patient, { PatientType } from "App/Models/Patient";
-import PaymentMethod from "App/Models/PaymentMethod";
+import PaymentMethod, {
+	PaymentMethodTef,
+	PaymentMethodType,
+} from "App/Models/PaymentMethod";
 import PaymentMethodFlagInstallment from "App/Models/PaymentMethodFlagInstallment";
 import Product, { ProductPurpose, ProductType } from "App/Models/Product";
 import ProductVariation from "App/Models/ProductVariation";
@@ -1458,10 +1461,38 @@ where deposit_id = ?
 					.where("payment_method_id", data.paymentMethodId)
 					.first();
 
+			const flagsQb = PaymentMethodFlag.query()
+				.useTransaction(trx)
+				.preload("installments", (query) => {
+					if (data.paymentMethodFlagInstallmentId) {
+						query.where("id", data.paymentMethodFlagInstallmentId);
+					}
+				})
+				.where("payment_method_id", paymentMethod.id);
+			if (data.paymentMethodFlagId) {
+				flagsQb.where("id", data.paymentMethodFlagId);
+			}
+			const flags = await flagsQb;
+
 			await Finance.createMany(
 				Array.from({ length: installment.installment }, (_, v) => {
 					const installmentValue =
 						v === installment.installment - 1 ? withOffset : singleValue;
+
+					const shouldUseFlag = paymentMethod.tef !== PaymentMethodTef.N;
+
+					const feeCtx = shouldUseFlag
+						? flags.reduce((acc, cur) => {
+								const ctx = cur.installments.find(
+									(f) => f.installment === installment.installment,
+								);
+								if (ctx) {
+									return ctx.fee;
+								}
+
+								return acc;
+							}, paymentMethod.fee)
+						: paymentMethod.fee;
 
 					return {
 						user_id: authCtx.user.id,
@@ -1489,17 +1520,16 @@ where deposit_id = ?
 						discountPercentage: 0,
 						expirationDate: payments.at(v)?.expirationDate,
 						originalValue: installmentValue,
-						value:
-							installmentValue - (installmentValue * installment.fee) / 100,
-						totalValue:
-							installmentValue - (installmentValue * installment.fee) / 100,
+						value: installmentValue - (installmentValue * feeCtx) / 100,
+						totalValue: installmentValue - (installmentValue * feeCtx) / 100,
 						feeDiscountValue:
 							(payments.at(v)?.installmentValue ?? 0) -
-							(installmentValue - (installmentValue * installment.fee) / 100),
+							(installmentValue - (installmentValue * feeCtx) / 100),
 						feeValue: 0,
 						// feeDiscountPercentage: paymentMethod.fee,
-						feeDiscountPercentage:
-							payments.at(v)?.paymentMethodDiscountPercentage,
+						// feeDiscountPercentage:
+						// 	payments.at(v)?.paymentMethodDiscountPercentage,
+						feeDiscountPercentage: feeCtx,
 						accept: FinanceAccept.N,
 						reconciled: authCtx.unit.unitConfig.balanceControl === "previsto",
 						competenceDate: DateTime.now().toFormat("MM/yyyy"),
@@ -3516,11 +3546,14 @@ where deposit_id = ?
 
 			const productivityItems = await ProductivityItem.query()
 				.useTransaction(trx)
+				.whereNull("deleted_at")
 				.whereHas("products", (query) => {
-					query.whereIn(
-						"product_id",
-						services.map((p) => p.id),
-					);
+					query
+						.whereIn(
+							"product_id",
+							services.map((p) => p.id),
+						)
+						.whereNull("deleted_at");
 				})
 				.preload("products", (query) => {
 					query.whereIn(

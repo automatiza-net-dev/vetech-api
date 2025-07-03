@@ -8,6 +8,7 @@ import CreatePatientValidator from "App/Validators/Patient/CreatePatientValidato
 import CreateSchedulePatientValidator from "App/Validators/Patient/CreateSchedulePatientValidator";
 import DeclareDeathValidator from "App/Validators/Patient/DeclareDeathValidator";
 import FastCreatePatientValidator from "App/Validators/Patient/FastCreatePatientValidator";
+import MassRemovePatientValidator from "App/Validators/Patient/MassRemovePatientValidator";
 import UnlinkTutorPatientValidator from "App/Validators/Patient/UnlinkTutorPatientValidator";
 import UpdatePatientValidator from "App/Validators/Patient/UpdatePatientValidator";
 import ISearchPatient from "Contracts/interfaces/ISearchPatient";
@@ -230,6 +231,21 @@ export default class PatientsController {
 		const payload = await request.validate(UnlinkTutorPatientValidator);
 
 		await this.service.unlinkHolderDependent(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.noContent();
+	}
+
+	public async massRemoveRecords({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const payload = await request.validate(MassRemovePatientValidator);
+
+		await this.service.massRemoveRecords(
 			await this.sharedService.getAuthContext(auth),
 			payload,
 		);

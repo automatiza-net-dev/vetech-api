@@ -19,10 +19,15 @@ export default class BusinessUnitFiscalDocumentsController {
 	) {}
 
 	public async tmpSync({ response }: HttpContextContract) {
-		const result =
+		const nfeResult =
 			await BusinessUnitFiscalDocumentService.UpdateOldNfeRecords();
+		const nfseResult =
+			await BusinessUnitFiscalDocumentService.UpdateOldNfseRecords();
 
-		return response.ok(result);
+		return response.ok({
+			nfe: nfeResult,
+			nfse: nfseResult,
+		});
 	}
 
 	public async indexNfe({ auth, request, response }: HttpContextContract) {

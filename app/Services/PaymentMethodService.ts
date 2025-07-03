@@ -365,6 +365,17 @@ export default class PaymentMethodService {
 				);
 			}
 
+			await Promise.all(
+				data.flagInstallments.map(async (installment) => {
+					await PaymentMethodFlagInstallment.query()
+						.useTransaction(trx)
+						.where("id", installment.id)
+						.update({
+							fee: installment.fee,
+						});
+				}),
+			);
+
 			return updatedFlag;
 		});
 	}

@@ -151,7 +151,9 @@ export default class ProductivityItemService {
 				await Database.from("productivity_item_products")
 					.useTransaction(trx)
 					.select(Database.raw(`coalesce(max("order"), 0), product_id`))
-					.where("economic_group_id", authCtx.group.id)
+					.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
+						authCtx.group.id,
+					])
 					.whereNull("deleted_at")
 					.groupByRaw("product_id");
 

@@ -13,6 +13,7 @@ import SharedService, { AuthContext } from "App/Services/SharedService";
 import { DateTime } from "luxon";
 import { validate } from "uuid";
 import TemplateReplacementService from "App/Services/TemplateReplacementService";
+import Product from "App/Models/Product";
 
 @inject()
 export default class ProductDocumentService {
@@ -21,22 +22,18 @@ export default class ProductDocumentService {
 		private templateService: TemplateReplacementService,
 	) {}
 
-	public async index(
-		authCtx: AuthContext,
-		data: { systemProduct?: string; product?: string },
-	) {
-		if (!data.systemProduct) {
-			throw new BadRequestException(
-				"É preciso informar o Produto de Sistema",
-				400,
-				"E_ERR",
-			);
-		}
+	public async index(authCtx: AuthContext, data: { product?: string }) {
+		// if (!data.product) {
+		// 	throw new BadRequestException(
+		// 		"É preciso informar o Produto ",
+		// 		400,
+		// 		"E_ERR",
+		// 	);
+		// }
 
 		const qb = ProductDocument.query()
 			.preload("documentTemplate")
 			.where("system_id", authCtx.system.id)
-			.where("system_product_id", data.systemProduct)
 			.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
 				authCtx.group.id,
 			])
@@ -103,7 +100,7 @@ export default class ProductDocumentService {
 	public async store(
 		authCtx: AuthContext,
 		data: {
-			systemProductId: number;
+			// systemProductId: number;
 			economicGroupId: string;
 			businessUnitId: string;
 			productId?: string;
@@ -111,15 +108,26 @@ export default class ProductDocumentService {
 			type: TProductDocumentType;
 		},
 	) {
-		return ProductDocument.create({
-			system_id: authCtx.system.id,
-			system_product_id: data.systemProductId,
-			economic_group_id: data.economicGroupId,
-			business_unit_id: data.businessUnitId,
-			product_id: data.productId,
-			document_template_id: data.documentTemplateId,
-			type: data.type,
-			active: true,
+		return Database.transaction(async (trx) => {
+			let systemProductID: number | null = null;
+			if (data.productId) {
+				const product = await Product.query()
+					.useTransaction(trx)
+					.where("id", data.productId)
+					.firstOrFail();
+				systemProductID = product.system_product_id;
+			}
+
+			return ProductDocument.create({
+				system_id: authCtx.system.id,
+				system_product_id: systemProductID ?? undefined,
+				economic_group_id: data.economicGroupId,
+				business_unit_id: data.businessUnitId,
+				product_id: data.productId,
+				document_template_id: data.documentTemplateId,
+				type: data.type,
+				active: true,
+			});
 		});
 	}
 
@@ -151,8 +159,8 @@ export default class ProductDocumentService {
 					[authCtx.unit.id],
 				)
 				.whereRaw(
-					`product_documents.system_product_id in
-      (select p2.system_product_id
+					`product_documents.product_id in
+      (select p2.id
        from product_variations
                 join products p2 on product_variations.product_id = p2.id
                 join bill_items on product_variations.id = bill_items.product_variation_id
@@ -333,21 +341,27 @@ export default class ProductDocumentService {
 	}
 
 	public async destroy(authCtx: AuthContext, id: string) {
-		const elem = await ProductDocument.query()
-			.where("system_id", authCtx.system.id)
-			.where("id", id)
-			.first();
+		await Database.transaction(async (trx) => {
+			const elem = await ProductDocument.query()
+				.useTransaction(trx)
+				.whereRaw("(system_id = ? or system_id is null)", [authCtx.system.id])
+				.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
+					authCtx.group.id,
+				])
+				.where("id", id)
+				.first();
 
-		if (
-			!elem ||
-			(elem.economic_group_id && elem.economic_group_id !== authCtx.group.id) ||
-			(elem.business_unit_id && elem.business_unit_id !== authCtx.unit.id)
-		) {
-			throw this.shared.ResourceNotFound();
-		}
+			if (!elem) {
+				throw this.shared.ResourceNotFound();
+			}
 
-		await elem
-			.merge({ exclusion_user_id: authCtx.user.id, deletedAt: DateTime.now() })
-			.save();
+			await elem
+				.merge({
+					exclusion_user_id: authCtx.user.id,
+					deletedAt: DateTime.now(),
+				})
+				.useTransaction(trx)
+				.save();
+		});
 	}
 }

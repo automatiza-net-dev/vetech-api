@@ -25,9 +25,9 @@ export default class CreateProductDocumentValidator {
 	 *    ```
 	 */
 	public schema = schema.create({
-		systemProductId: schema.number([
-			rules.exists({ table: "system_products", column: "id" }),
-		]),
+		// systemProductId: schema.number([
+		// 	rules.exists({ table: "system_products", column: "id" }),
+		// ]),
 		economicGroupId: schema.string([
 			rules.exists({ table: "economic_groups", column: "id" }),
 		]),

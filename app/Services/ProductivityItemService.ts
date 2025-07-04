@@ -250,7 +250,9 @@ export default class ProductivityItemService {
 			await ProductivityItem.query()
 				.useTransaction(trx)
 				.where("id", itemID)
-				.where("economic_group_id", authCtx.group.id)
+				.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
+					authCtx.group.id,
+				])
 				.whereNull("deleted_at")
 				.update({
 					exclusion_user_id: authCtx.user.id,
@@ -267,7 +269,9 @@ export default class ProductivityItemService {
 			await ProductivityItemProduct.query()
 				.useTransaction(trx)
 				.where("id", itemProductID)
-				.where("economic_group_id", authCtx.group.id)
+				.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
+					authCtx.group.id,
+				])
 				.whereNull("deleted_at")
 				.update({
 					exclusion_user_id: authCtx.user.id,

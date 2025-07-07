@@ -2387,10 +2387,12 @@ case when p.control_id = 'TRC11' then 'Usuário não possui permissão para reti
 			openingDate: elem.openingDate,
 			closingDate: elem.closingDate,
 
-			userWhoClosed: {
-				id: elem.userWhoClosed.id,
-				name: elem.userWhoClosed.name,
-			},
+			userWhoClosed: elem.userWhoClosed
+				? {
+						id: elem.userWhoClosed.id,
+						name: elem.userWhoClosed.name,
+					}
+				: null,
 		}));
 	}
 

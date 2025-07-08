@@ -24,6 +24,12 @@ export default class DestroyDepartmentItemValidator {
 	 *    ```
 	 */
 	public schema = schema.create({
+		departmentItemId: schema.number([
+			rules.exists({
+				table: "department_items",
+				column: "id",
+			}),
+		]),
 		departmentId: schema.number([
 			rules.exists({
 				table: "departments",

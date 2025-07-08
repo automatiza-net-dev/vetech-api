@@ -65,6 +65,9 @@ export default class DepartmentService {
 		const qb = Department.query()
 			.preload("creationUser")
 			.preload("updateUser")
+			.preload("products", (query) => {
+				query.preload("product");
+			})
 			.preload("items", (query) => {
 				query.whereNull("deleted_at");
 			})
@@ -126,6 +129,16 @@ export default class DepartmentService {
 				description: row.description,
 				photo: row.photo ? (s3Urls[row.photo] ?? null) : null,
 				requiresObservation: row.requiresObservation,
+				active: row.active,
+				order: row.order,
+			})),
+			products: r.products.map((row) => ({
+				id: row.id,
+				active: row.active,
+				product: {
+					id: row.product.id,
+					description: row.product.description,
+				},
 			})),
 		}));
 	}
@@ -138,25 +151,77 @@ export default class DepartmentService {
 
 			description: string;
 			image?: MultipartFileContract;
+
+			items?: {
+				description: string;
+				requiresObservation: boolean;
+				order: number;
+				photo?: MultipartFileContract;
+			}[];
+
+			products?: string[];
 		},
 	) {
-		let img: string | null = null;
+		return Database.transaction(async (trx) => {
+			let img: string | null = null;
 
-		if (data.image) {
-			const s3Key = `${authCtx.unit.id}/${Date.now()}-${data.image.clientName}`;
-			await data.image.moveToDisk("departments", { name: s3Key }, "s3");
-			img = `departments/${s3Key}`;
-		}
+			if (data.image) {
+				const s3Key = `${authCtx.unit.id}/${Date.now()}-${data.image.clientName}`;
+				await data.image.moveToDisk("departments", { name: s3Key }, "s3");
+				img = `departments/${s3Key}`;
+			}
 
-		return Department.create({
-			economic_group_id: data.economicGroupId,
-			business_unit_id: data.businessUnitId,
-			system_id: authCtx.system.id,
-			creation_user_id: authCtx.user.id,
+			const depto = await Department.create(
+				{
+					economic_group_id: data.economicGroupId,
+					business_unit_id: data.businessUnitId,
+					system_id: authCtx.system.id,
+					creation_user_id: authCtx.user.id,
 
-			description: data.description,
-			image: img,
-			active: true,
+					description: data.description,
+					image: img,
+					active: true,
+				},
+				{
+					client: trx,
+				},
+			);
+
+			const itemTasks = data.items?.map(async (r) => {
+				const photoKey = r.photo ? `${v4()}.${r.photo.extname}` : null;
+				if (r.photo) {
+					await r.photo.moveToDisk(
+						"department-items",
+						{
+							name: photoKey ?? "--",
+							visibility: "private",
+						},
+						"s3",
+					);
+				}
+
+				return depto.related("items").create(
+					{
+						creation_user_id: authCtx.user.id,
+						description: r.description,
+						photo: photoKey ? `department-items/${photoKey}` : undefined,
+						requiresObservation: r.requiresObservation,
+						order: r.order,
+					},
+					{ client: trx },
+				);
+			});
+			await Promise.all(itemTasks ?? []);
+
+			await depto.related("products").createMany(
+				data.products?.map((r) => ({
+					product_id: r,
+					creation_user_id: authCtx.user.id,
+					active: true,
+				})) ?? [],
+			);
+
+			return depto;
 		});
 	}
 
@@ -705,8 +770,8 @@ order by products.description ) deptProd_temp  on departments.id = deptProd_temp
 
 	async deleteDepartmentItem(
 		authCtx: AuthContext,
-		departmentItemID: string,
 		data: {
+			departmentItemId: number;
 			departmentId: number;
 		},
 	) {

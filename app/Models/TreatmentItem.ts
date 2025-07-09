@@ -9,6 +9,7 @@ import {
 import Kit from "App/Models/Kit";
 import ProductVariation from "App/Models/ProductVariation";
 import { DateTime } from "luxon";
+import Treatment from "./Treatment";
 
 import TreatmentExecution from "./TreatmentExecution";
 
@@ -68,6 +69,11 @@ export default class TreatmentItem extends BaseModel {
 		serializeAs: null,
 	})
 	public treatment_id: number;
+
+	@belongsTo(() => Treatment, {
+		foreignKey: "treatment_id",
+	})
+	public treatment: BelongsTo<typeof Treatment>;
 
 	@column({
 		serializeAs: null,

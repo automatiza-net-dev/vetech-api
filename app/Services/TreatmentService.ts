@@ -423,7 +423,7 @@ export default class TreatmentService {
 							scheduledQuantity: execution.scheduledQuantity,
 							quantityExecuted: data.quantity,
 							scheduleDate: execution.scheduleDate,
-							productivitiItemId: execution.productivityItem?.id ?? null,
+							productivityItemId: execution.productivityItem?.id ?? null,
 							productivityItemDescription:
 								execution.productivityItem?.description ?? null,
 							executionUserId: authCtx.user.id,

@@ -800,7 +800,7 @@ order by products.description ) deptProd_temp  on departments.id = deptProd_temp
 
 			const item = await DepartmentItem.query()
 				.where("department_id", data.departmentId)
-				.where("id", departmentItemID)
+				.where("id", data.departmentItemId)
 				.firstOrFail();
 
 			await item

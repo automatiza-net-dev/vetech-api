@@ -333,7 +333,9 @@ export default class TreatmentService {
 				.useTransaction(trx)
 				.where("id", data.treatmentItemId)
 				.where("treatment_id", data.treatmentId)
-				.preload("treatment")
+				.preload("treatment", (qb) => {
+					qb.preload("client");
+				})
 				.preload("productVariation", (query) => {
 					query.preload("product");
 				})
@@ -412,6 +414,10 @@ export default class TreatmentService {
 					},
 					treatment: {
 						id: execution.treatment_id,
+						client: {
+							id: treatmentItem.treatment.client.id,
+							name: treatmentItem.treatment.client.name,
+						},
 						item: {
 							id: treatmentItem.id,
 							productVariationId: treatmentItem.product_variation_id,

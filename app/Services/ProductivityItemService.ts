@@ -166,7 +166,7 @@ export default class ProductivityItemService {
 				)
 				.whereNull("deleted_at");
 
-			const tasks = prodItems.map((elem, idx) => {
+			const tasks = prodItems.map((elem) => {
 				return elem.related("products").createMany(
 					data.items
 						.filter((inner) => inner.productivityItemId === elem.id)
@@ -176,9 +176,7 @@ export default class ProductivityItemService {
 							quantity: inner.quantity,
 							order:
 								(maxQueryResult.find((r) => r.product_id === inner.productId)
-									?.max ?? 0) +
-								1 +
-								idx,
+									?.max ?? 0) + 1,
 						})),
 					trx,
 				);

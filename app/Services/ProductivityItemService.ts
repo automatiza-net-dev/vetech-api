@@ -156,6 +156,10 @@ export default class ProductivityItemService {
 					.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
 						authCtx.group.id,
 					])
+					.whereIn(
+						"product_id",
+						data.items.map((item) => item.productId),
+					)
 					.whereNull("deleted_at")
 					.groupByRaw("product_id");
 

@@ -150,7 +150,7 @@ export default class ProductivityItemService {
 			const maxQueryResult: { max: number; product_id: string }[] =
 				await Database.from("productivity_item_products")
 					.useTransaction(trx)
-					.select(Database.raw(`coalesce(max("order"), 0), product_id`))
+					.select(Database.raw(`coalesce(max("order"), 0) + 1, product_id`))
 					.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
 						authCtx.group.id,
 					])
@@ -159,7 +159,9 @@ export default class ProductivityItemService {
 
 			const prodItems = await ProductivityItem.query()
 				.useTransaction(trx)
-				.where("economic_group_id", authCtx.group.id)
+				.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
+					authCtx.group.id,
+				])
 				.whereIn(
 					"id",
 					data.items.map((e) => e.productivityItemId),
@@ -175,8 +177,8 @@ export default class ProductivityItemService {
 							product_id: inner.productId,
 							quantity: inner.quantity,
 							order:
-								(maxQueryResult.find((r) => r.product_id === inner.productId)
-									?.max ?? 0) + 1,
+								maxQueryResult.find((r) => r.product_id === inner.productId)
+									?.max ?? 1,
 						})),
 					trx,
 				);

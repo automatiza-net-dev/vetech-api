@@ -898,7 +898,7 @@ export default class BudgetService {
 			.whereRaw("products.deleted_at is null");
 
 		if (data.description) {
-			qb.whereRaw("products.description like ?", [`%${data.description}%`]);
+			qb.whereRaw("products.description ilike ?", [`%${data.description}%`]);
 		}
 
 		if (data.unit) {

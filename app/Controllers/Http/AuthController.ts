@@ -196,6 +196,7 @@ export default class AuthController {
 				"sync_schedule_movements",
 				"sync_crm_schedules",
 				"budgets_payments_required",
+				"treatment",
 				"config",
 			]);
 		});
@@ -235,6 +236,7 @@ export default class AuthController {
 					syncScheduleMovements: unit.unitConfig.syncScheduleMovements,
 					syncCrmSchedules: unit.unitConfig.syncCrmSchedules,
 					budgetsPaymentsRequired: unit.unitConfig.budgetsPaymentsRequired,
+          treatment: unit.unitConfig.treatment,
 				},
 				configs: unit.unitConfig.config,
 				phone: unit.phone,

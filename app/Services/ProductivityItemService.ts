@@ -151,7 +151,9 @@ export default class ProductivityItemService {
 				await Database.from("productivity_item_products")
 					.useTransaction(trx)
 					.select(Database.raw(`coalesce(max("order"), 0), product_id`))
-					.where("economic_group_id", authCtx.group.id)
+					.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
+						authCtx.group.id,
+					])
 					.whereNull("deleted_at")
 					.groupByRaw("product_id");
 
@@ -164,7 +166,7 @@ export default class ProductivityItemService {
 				)
 				.whereNull("deleted_at");
 
-			const tasks = prodItems.map((elem, idx) => {
+			const tasks = prodItems.map((elem) => {
 				return elem.related("products").createMany(
 					data.items
 						.filter((inner) => inner.productivityItemId === elem.id)
@@ -174,9 +176,7 @@ export default class ProductivityItemService {
 							quantity: inner.quantity,
 							order:
 								(maxQueryResult.find((r) => r.product_id === inner.productId)
-									?.max ?? 0) +
-								1 +
-								idx,
+									?.max ?? 0) + 1,
 						})),
 					trx,
 				);
@@ -248,7 +248,9 @@ export default class ProductivityItemService {
 			await ProductivityItem.query()
 				.useTransaction(trx)
 				.where("id", itemID)
-				.where("economic_group_id", authCtx.group.id)
+				.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
+					authCtx.group.id,
+				])
 				.whereNull("deleted_at")
 				.update({
 					exclusion_user_id: authCtx.user.id,
@@ -265,7 +267,9 @@ export default class ProductivityItemService {
 			await ProductivityItemProduct.query()
 				.useTransaction(trx)
 				.where("id", itemProductID)
-				.where("economic_group_id", authCtx.group.id)
+				.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
+					authCtx.group.id,
+				])
 				.whereNull("deleted_at")
 				.update({
 					exclusion_user_id: authCtx.user.id,

@@ -2387,10 +2387,12 @@ case when p.control_id = 'TRC11' then 'Usuário não possui permissão para reti
 			openingDate: elem.openingDate,
 			closingDate: elem.closingDate,
 
-			userWhoClosed: {
-				id: elem.userWhoClosed.id,
-				name: elem.userWhoClosed.name,
-			},
+			userWhoClosed: elem.userWhoClosed
+				? {
+						id: elem.userWhoClosed.id,
+						name: elem.userWhoClosed.name,
+					}
+				: null,
 		}));
 	}
 
@@ -3381,7 +3383,7 @@ case when p.control_id = 'TRC11' then 'Usuário não possui permissão para reti
 				title: "Para conferência",
 				data: closed.map((elem) => [
 					`<strong>Abertura:</strong> ${elem.openingDate.toFormat("dd/MM/yyyy HH:mm")}`,
-					elem.userWhoClosed.name,
+					elem.userWhoClosed?.name ?? "-",
 					`<strong>Fechamento:</strong> ${elem.closingDate?.toFormat("dd/MM/yyyy HH:mm") ?? "-"}`,
 					elem.tag,
 				]),

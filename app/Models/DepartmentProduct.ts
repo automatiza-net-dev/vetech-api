@@ -3,9 +3,12 @@ import {
 	BaseModel,
 	beforeFetch,
 	beforeFind,
+	belongsTo,
+	BelongsTo,
 	column,
 } from "@ioc:Adonis/Lucid/Orm";
 import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import Product from "./Product";
 
 export default class DepartmentProduct extends BaseModel {
 	@column({ isPrimary: true })
@@ -42,6 +45,11 @@ export default class DepartmentProduct extends BaseModel {
 		serializeAs: null,
 	})
 	public product_id: string;
+
+	@belongsTo(() => Product, {
+		foreignKey: "product_id",
+	})
+	public product: BelongsTo<typeof Product>;
 
 	@column({
 		serializeAs: null,

@@ -1,4 +1,5 @@
 import { inject } from "@adonisjs/fold";
+import { validator } from "@ioc:Adonis/Core/Validator";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import DepartmentService from "App/Services/DepartmentService";
 import SharedService from "App/Services/SharedService";
@@ -68,8 +69,31 @@ export default class DepartmentsController {
 
 	public async store({ auth, request, response }: HttpContextContract) {
 		const payload = await request.validate(CreateDepartmentValidator);
-		const authCtx = await this.sharedService.getAuthContext(auth);
 
+		const files = request.allFiles()?.["photos"];
+		if (files) {
+			// @ts-ignore error
+			payload.items.map((item, idx) => {
+				// console.log({
+				// 	files,
+				// 	item,
+				//      idx
+				// });
+				const file = files.find((fi) => {
+					return fi.data.fieldName === `photos[${idx}]`;
+				});
+
+				if (!file) {
+					return item;
+				}
+
+				// @ts-ignore error
+				item.photo = file;
+				return item;
+			});
+		}
+
+		const authCtx = await this.sharedService.getAuthContext(auth);
 		const data = await this.service.store(authCtx, payload);
 
 		return response.created(data);
@@ -157,11 +181,7 @@ export default class DepartmentsController {
 		const payload = await request.validate(DestroyDepartmentItemValidator);
 		const authCtx = await this.sharedService.getAuthContext(auth);
 
-		await this.service.deleteDepartmentItem(
-			authCtx,
-			request.param("id", "-1"),
-			payload,
-		);
+		await this.service.deleteDepartmentItem(authCtx, payload);
 
 		return response.noContent();
 	}

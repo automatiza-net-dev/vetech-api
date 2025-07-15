@@ -12,6 +12,7 @@ import {
 import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
 import User from "./User";
 import DepartmentItem from "./DepartmentItem";
+import DepartmentProduct from "./DepartmentProduct";
 
 export default class Department extends BaseModel {
 	@column({ isPrimary: true })
@@ -89,4 +90,9 @@ export default class Department extends BaseModel {
 		foreignKey: "department_id",
 	})
 	public items: HasMany<typeof DepartmentItem>;
+
+	@hasMany(() => DepartmentProduct, {
+		foreignKey: "department_id",
+	})
+	public products: HasMany<typeof DepartmentProduct>;
 }

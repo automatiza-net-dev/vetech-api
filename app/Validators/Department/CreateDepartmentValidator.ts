@@ -33,6 +33,21 @@ export default class CreateDepartmentValidator {
 
 		description: schema.string(),
 		image: schema.file.optional(),
+
+		items: schema.array.optional().members(
+			schema.object().members({
+				description: schema.string(),
+				requiresObservation: schema.boolean(),
+				order: schema.number(),
+				// photo: schema.file.optional(),
+			}),
+		),
+
+		products: schema.array
+			.optional()
+			.members(
+				schema.string([rules.exists({ table: "products", column: "id" })]),
+			),
 	});
 
 	/**

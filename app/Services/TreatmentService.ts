@@ -1,9 +1,9 @@
-import { inject } from "@adonisjs/fold";
-import Database from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
+import AnimalTimeline from "App/Models/mongoose/AnimalTimeline";
 import Product from "App/Models/Product";
 import ProductivityItem from "App/Models/ProductivityItem";
 import Schedule from "App/Models/Schedule";
+import TimelineType from "App/Models/TimelineType";
 import Treatment, { TreatmentStatus } from "App/Models/Treatment";
 import TreatmentExecution, {
 	TreatmentExecutionStatus,
@@ -11,6 +11,8 @@ import TreatmentExecution, {
 import TreatmentExecutionReschedule from "App/Models/TreatmentExecutionReschedule";
 import TreatmentItem, { TreatmentItemStatus } from "App/Models/TreatmentItem";
 import SharedService, { AuthContext } from "App/Services/SharedService";
+import { inject } from "@adonisjs/fold";
+import Database from "@ioc:Adonis/Lucid/Database";
 import { DateTime } from "luxon";
 import { validate } from "uuid";
 
@@ -323,12 +325,20 @@ export default class TreatmentService {
 				.where("treatment_id", data.treatmentId)
 				.where("treatment_item_id", data.treatmentItemId)
 				.preload("treatmentItem")
+				.preload("productivityItem")
+				.preload("exclusionUser")
 				.first();
 
 			const treatmentItem = await TreatmentItem.query()
 				.useTransaction(trx)
 				.where("id", data.treatmentItemId)
 				.where("treatment_id", data.treatmentId)
+				.preload("treatment", (qb) => {
+					qb.preload("client");
+				})
+				.preload("productVariation", (query) => {
+					query.preload("product");
+				})
 				.first();
 
 			if (!execution || !treatmentItem) {
@@ -366,6 +376,71 @@ export default class TreatmentService {
 						(execution.scheduledQuantity - data.quantity),
 				})
 				.useTransaction(trx);
+
+			const timeline = await TimelineType.firstOrCreate(
+				{
+					description: "Execução de Tratamentos",
+				},
+				{
+					description: "Execução de Tratamentos",
+					color: "#000",
+					requiresObservation: false,
+				},
+				{
+					client: trx,
+				},
+			);
+
+			await AnimalTimeline.create({
+				createdAt: DateTime.now(),
+				timeline_id: timeline.id,
+				timeline_type: {
+					description: timeline.description,
+					color: timeline.color,
+					requires_observation: timeline.requiresObservation,
+				},
+				timeline_info: {
+					tag: treatmentItem.treatment.client_id,
+					// name: "data.name",
+					realized: DateTime.now(),
+					description: "data.description",
+					requester: {
+						id: authCtx.user.id,
+						name: authCtx.user.name,
+					},
+					technician: {
+						id: authCtx.user.id,
+						name: authCtx.user.name,
+					},
+					treatment: {
+						id: execution.treatment_id,
+						client: {
+							id: treatmentItem.treatment.client.id,
+							name: treatmentItem.treatment.client.name,
+						},
+						item: {
+							id: treatmentItem.id,
+							productVariationId: treatmentItem.product_variation_id,
+							description: treatmentItem.productVariation.product.description,
+						},
+						execution: {
+							id: execution.id,
+							scheduleId: execution.schedule_id,
+							scheduledQuantity: execution.scheduledQuantity,
+							quantityExecuted: data.quantity,
+							scheduleDate: execution.scheduleDate,
+							productivityItemId: execution.productivityItem?.id ?? null,
+							productivityItemDescription:
+								execution.productivityItem?.description ?? null,
+							executionUserId: authCtx.user.id,
+							executionUserName: authCtx.user.name,
+							executionDate: data.executionDate,
+							issueDate: execution.createdAt,
+							observations: data.observations,
+						},
+					},
+				},
+			});
 		});
 	}
 
@@ -1037,7 +1112,7 @@ export default class TreatmentService {
 			.where("business_unit_id", authCtx.unit.id)
 			.where("client_id", data.client)
 			.whereHas("items", (query) => {
-				query.whereRaw(`quantity > scheduled_quantity`);
+				query.whereRaw("quantity > scheduled_quantity");
 			})
 			.preload("items", (query) => {
 				query.preload("productVariation", (query) => {

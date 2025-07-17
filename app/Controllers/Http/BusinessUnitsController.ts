@@ -1,10 +1,5 @@
 import { inject } from "@adonisjs/fold";
-import {
-	validator,
-	schema,
-	type TypedSchema,
-	StringType,
-} from "@ioc:Adonis/Core/Validator";
+import { validator, schema } from "@ioc:Adonis/Core/Validator";
 import { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import BusinessUnitService from "App/Services/BusinessUnitService";
 import SharedService from "App/Services/SharedService";
@@ -17,7 +12,7 @@ import UpdateBusinessUnitAcquirerValidator from "App/Validators/BusinessUnit/Upd
 import UpdateBusinessUnitValidator from "App/Validators/BusinessUnit/UpdateBusinessUnitValidator";
 import UpdateUnitUserValidator from "App/Validators/BusinessUnit/UpdateUnitUserValidator";
 import UpdateUsersRoleValidator from "App/Validators/Role/UpdateUsersRoleValidator";
-import BadRequestException from "App/Exceptions/BadRequestException";
+import { TDynamicForm } from "App/Models/BusinessUnitConfig";
 
 @inject()
 export default class BusinessUnitsController {
@@ -236,14 +231,115 @@ export default class BusinessUnitsController {
 	}: HttpContextContract) {
 		const authCtx = await this.sharedService.getAuthContext(auth);
 
-		const formEntry = authCtx.unit.unitConfig.formFields[request.param("form")];
-		if (!formEntry) {
-			throw new BadRequestException(
-				`Valores possíveis: ${Object.keys(authCtx.unit.unitConfig.formFields).join(", ")}`,
-				400,
-				"E_ERR",
-			);
-		}
+		// const formEntry = authCtx.unit.unitConfig.formFields[request.param("form")];
+		// if (!formEntry) {
+		// 	throw new BadRequestException(
+		// 		`Valores possíveis: ${Object.keys(authCtx.unit.unitConfig.formFields).join(", ")}`,
+		// 		400,
+		// 		"E_ERR",
+		// 	);
+		// }
+		const formEntry: TDynamicForm["cadastro"] = {
+			str: {
+				title: "Teste",
+				type: "string",
+				required: true,
+				error_message: "Campo é inválido",
+			},
+			num: {
+				title: "Teste",
+				type: "number",
+				required: true,
+				error_message: "Campo é inválido",
+			},
+			dt: {
+				title: "Teste",
+				type: "date",
+				required: true,
+				error_message: "Campo é inválido",
+			},
+			obj1: {
+				title: "Teste",
+				type: "object",
+				required: true,
+				error_message: "Campo é inválido",
+				prop: {
+					title: "Teste",
+					type: "string",
+					key: "foo",
+					required: true,
+				},
+			},
+			obj2: {
+				title: "Teste",
+				type: "object",
+				required: true,
+				error_message: "Campo é inválido",
+				prop: [
+					{
+						title: "Teste",
+						type: "string",
+						key: "foo",
+						required: true,
+					},
+					{
+						title: "Teste",
+						type: "number",
+						key: "bar",
+						required: true,
+					},
+				],
+			},
+			strArr: {
+				title: "Teste",
+				type: "array",
+				required: true,
+				error_message: "Campo deve ser uma lista de strings",
+				prop: {
+					title: "Teste",
+					type: "string",
+					required: true,
+				},
+			},
+			strArr2: {
+				title: "Teste",
+				type: "array",
+				required: true,
+				error_message: "Campo deve ser uma lista de strings",
+				prop: [
+					{
+						title: "Teste",
+						type: "string",
+						required: true,
+					},
+				],
+			},
+			objArr: {
+				title: "Teste",
+				type: "array",
+				required: true,
+				error_message: "Campo deve ser uma lista de objetos",
+				prop: {
+					title: "Teste",
+					type: "object",
+					required: true,
+					prop: [
+						{
+							title: "Teste",
+							type: "string",
+							key: "foo",
+							required: true,
+						},
+						{
+							title: "Teste",
+							type: "number",
+							key: "bar",
+							required: true,
+						},
+					],
+				},
+			},
+		};
 
 		const result = await validator.validate({
 			schema: schema.create(SharedService.CreateDynamicValidator(formEntry)),

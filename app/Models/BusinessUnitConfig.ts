@@ -116,32 +116,19 @@ export const ConfigSchema = z.object({
 const baseFieldSchema = z.object({
 	title: z.string(),
 	required: z.boolean(),
+	key: z.string(),
 	type: z
 		.literal("string")
+		.or(z.literal("number"))
 		.or(z.literal("date"))
+		.or(z.literal("file"))
 		.or(z.literal("object"))
 		.or(z.literal("array")),
 	error_message: z.string().optional(),
+	prop: z.lazy(() => baseFieldSchema),
 });
 
-const fieldWithPropsSchema = baseFieldSchema.extend({
-	prop: z.array(
-		z.object({
-			title: z.string(),
-			key: z.string(),
-			required: z.boolean(),
-			type: z
-				.literal("string")
-				.or(z.literal("date"))
-				.or(z.literal("object"))
-				.or(z.literal("array")),
-		}),
-	),
-});
-
-const fieldSchema = z.union([baseFieldSchema, fieldWithPropsSchema]);
-
-const shapeSchema = z.record(fieldSchema);
+const shapeSchema = z.record(baseFieldSchema);
 
 export const FormValidatorSchema = z.record(shapeSchema);
 

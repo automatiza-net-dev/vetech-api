@@ -623,10 +623,13 @@ export default class SharedService {
 		switch (row.type) {
 			case "string":
 				return row.required ? schema.string() : schema.string.optional();
+			case "file":
+				return row.required ? schema.file() : schema.file.optional();
+			case "number":
+				return row.required ? schema.number() : schema.number.optional();
 			case "date":
 				return row.required ? schema.date() : schema.date.optional();
 			default:
-				console.log({ row });
 				throw new Error("Não deveria chegar aqui?");
 		}
 	}
@@ -643,28 +646,56 @@ export default class SharedService {
 		return schema.object().members(memberProps);
 	}
 
-	private static reduceValidatorArray(rows: TDynamicForm[string]["prop"]) {
-		const memberProps = (Array.isArray(rows) ? rows : [rows])
-			.flat()
-			.reduce((acc, curr) => {
-				acc[curr.key] = SharedService.reduceSimpleValidator(curr);
+	private static reduceValidatorArray(row: TDynamicForm[string]) {
+		if (row.type === "object") {
+			const memberProps = (Array.isArray(row.prop) ? row.prop : [row.prop])
+				.flat()
+				.reduce((acc, curr) => {
+					acc[curr.key] = SharedService.reduceSimpleValidator(curr);
 
-				return acc;
-			}, {} as TypedSchema);
+					return acc;
+				}, {} as TypedSchema);
 
-		return schema.array().members(schema.object().members(memberProps));
+			return schema.array().members(schema.object().members(memberProps));
+		}
+
+		const _row = Array.isArray(row) ? row[0] : row;
+		const _prop = "prop" in _row ? _row.prop[0] : _row;
+
+		if (_prop.type === "array") {
+			throw new BadRequestException("Não é possível processar", 500, "E_ERR");
+		}
+
+		if (_prop.type === "string") {
+			return schema
+				.array()
+				.members(_prop.required ? schema.string() : schema.string.optional());
+		}
+
+		if (_prop.type === "number") {
+			return schema
+				.array()
+				.members(_prop.required ? schema.number() : schema.number.optional());
+		}
+
+		return schema
+			.array()
+			.members(_prop.required ? schema.date() : schema.date.optional());
 	}
 
 	static CreateDynamicValidator(form: TDynamicForm["cadastro"]) {
 		return Object.entries(form).reduce((acc, [key, prop]) => {
 			if (prop.type === "array" && "prop" in prop) {
 				acc[key] = SharedService.reduceValidatorArray(prop.prop);
-			} else if (prop.type === "object" && "prop" in prop) {
-				acc[key] = SharedService.reduceValidatorObject(prop.prop);
-			} else if (prop.type === "string" || prop.type === "date") {
-				acc[key] = SharedService.reduceSimpleValidator(prop);
+				return acc;
 			}
 
+			if (prop.type === "object" && "prop" in prop) {
+				acc[key] = SharedService.reduceValidatorObject(prop.prop);
+				return acc;
+			}
+
+			acc[key] = SharedService.reduceSimpleValidator(prop);
 			return acc;
 		}, {} as TypedSchema);
 	}

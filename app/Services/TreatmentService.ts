@@ -436,7 +436,7 @@ export default class TreatmentService {
 							executionUserId: authCtx.user.id,
 							executionUserName: authCtx.user.name,
 							executionDate: data.executionDate,
-							issueDate: execution.createdAt,
+							issueDate: DateTime.now(),
 							observations: data.observations,
 						},
 					},

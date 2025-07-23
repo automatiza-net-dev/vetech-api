@@ -14,7 +14,22 @@ export default class UpdatePatientValidator {
 		gender: schema.string.optional(),
 		tag: schema.string.optional({}, []),
 		tags: schema.string.optional({}, []),
-		birthDate: schema.date({}),
+		birthDate:
+			this.ctx.request.input("birthDate_change", "false") === "false"
+				? schema.date()
+				: schema.date.optional(),
+		birthDays:
+			this.ctx.request.input("birthDate_change", "false") === "true"
+				? schema.number([])
+				: schema.number.optional(),
+		birthMonths:
+			this.ctx.request.input("birthDate_change", "false") === "true"
+				? schema.number([])
+				: schema.number.optional(),
+		birthYears:
+			this.ctx.request.input("birthDate_change", "false") === "true"
+				? schema.number([])
+				: schema.number.optional(),
 		active: schema.boolean([]),
 		raceId: schema.string({}, [
 			rules.uuid(),

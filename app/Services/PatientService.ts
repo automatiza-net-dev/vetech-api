@@ -1748,6 +1748,24 @@ export default class PatientService {
 		},
 	) {
 		return Database.transaction(async (trx) => {
+			const birthDate =
+				// não tem nenhuma informação de data relativa?
+				!data.birthYears && !data.birthMonths && !data.birthDays
+					? // verifica se tem data
+						data.birthDate
+						? typeof data.birthDate === "string"
+							? DateTime.fromISO(data.birthDate).toJSDate()
+							: data.birthDate.toJSDate()
+						: // se não tiver, usa null
+							null
+					: DateTime.now()
+							.minus({
+								years: data.birthYears ?? 0,
+								months: data.birthMonths ?? 0,
+								days: data.birthDays ?? 0,
+							})
+							.toJSDate();
+
 			const patient = await authCtx.group
 				.related("patients")
 				.query()
@@ -1806,11 +1824,7 @@ export default class PatientService {
 					tags: data.tags,
 					tag: authCtx.hasPermission("TUT04") ? data.tag : patient.tag,
 					community: data.community,
-					birthDate: data.birthDate
-						? typeof data.birthDate === "string"
-							? DateTime.fromISO(data.birthDate).toJSDate()
-							: data.birthDate.toJSDate()
-						: undefined,
+					birthDate: patient.birthDate ?? birthDate ?? undefined,
 					active: data.active,
 					vaccineOrigin: data.vaccineOrigin,
 					hypertension: data.hypertension,

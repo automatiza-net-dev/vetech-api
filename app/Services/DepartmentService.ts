@@ -233,6 +233,7 @@ export default class DepartmentService {
 
 			description: string;
 			image?: MultipartFileContract;
+			active: boolean;
 		},
 	) {
 		const model = await Department.query()
@@ -270,6 +271,7 @@ export default class DepartmentService {
 				updated_user_id: authCtx.user.id,
 				description: data.description,
 				image: img,
+				active: data.active,
 			})
 			.save();
 	}

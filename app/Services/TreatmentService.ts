@@ -312,6 +312,7 @@ export default class TreatmentService {
 			executionId: number;
 			treatmentItemId: number;
 			treatmentId: number;
+			executionUser?: string;
 
 			executionDate: DateTime;
 			quantity: number;
@@ -359,7 +360,7 @@ export default class TreatmentService {
 				.where("treatment_item_id", execution.treatment_item_id)
 				.where("id", data.executionId)
 				.update({
-					execution_user_id: authCtx.user.id,
+					execution_user_id: data.executionUser ?? authCtx.user.id,
 					quantityExecuted: data.quantity,
 					executionDate: data.executionDate,
 					observations: data.observations,
@@ -435,7 +436,7 @@ export default class TreatmentService {
 							executionUserId: authCtx.user.id,
 							executionUserName: authCtx.user.name,
 							executionDate: data.executionDate,
-							issueDate: execution.createdAt,
+							issueDate: DateTime.now(),
 							observations: data.observations,
 						},
 					},

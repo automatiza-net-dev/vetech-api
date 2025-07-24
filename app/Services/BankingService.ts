@@ -1,5 +1,7 @@
 import { inject } from "@adonisjs/fold";
 import Database from "@ioc:Adonis/Lucid/Database";
+import BadRequestException from "App/Exceptions/BadRequestException";
+import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import Banking, { BankingStatus, BankingType } from "App/Models/Banking";
 import CheckingAccount from "App/Models/CheckingAccount";
 import DailyCashier from "App/Models/DailyCashier";
@@ -15,7 +17,9 @@ import PaymentMethod from "App/Models/PaymentMethod";
 import User from "App/Models/User";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import { IUpsertBankingData } from "Contracts/interfaces/IBankingData";
+import Decimal from "decimal.js";
 import { DateTime } from "luxon";
+import { validate } from "uuid";
 
 interface ISearch {
 	type?: string;
@@ -368,5 +372,74 @@ export default class BankingService {
 			.save();
 
 		return banking;
+	}
+
+	public async deleteBanking(authCtx: AuthContext, bankingID: string) {
+		if (!validate(bankingID)) {
+			throw new BadRequestException("Identificador inválido", 400, "E_ERR");
+		}
+
+		await Database.transaction(async (trx) => {
+			// if (!authCtx.hasPermission("BAN03")) {
+			// 	throw new UnauthorizedException(
+			// 		"Usuário não possui permissão para excluir um titulo bancário",
+			// 		401,
+			// 		"E_ERR",
+			// 	);
+			// }
+
+			const banking = await Banking.query()
+				.useTransaction(trx)
+				.where("id", bankingID)
+				.first();
+			if (!banking) {
+				throw new BadRequestException("Registro não encontrado", 401, "E_ERR");
+			}
+
+			await banking
+				.merge({
+					deletedAt: DateTime.now(),
+					user_exclusion_id: authCtx.user.id,
+				})
+				.useTransaction(trx)
+				.save();
+
+			await Finance.query()
+				.useTransaction(trx)
+				.where("origin_id", banking.id)
+				.where("origin_flag", "BANCARIO")
+				.update({
+					deletedAt: DateTime.now(),
+					exclusion_user_id: authCtx.user.id,
+				});
+
+			if (banking.checking_account_id) {
+				const checkingAccounts = await CheckingAccount.query()
+					.useTransaction(trx)
+					.where("id", banking.checking_account_id);
+				const checkingTasks = checkingAccounts.map((ca) =>
+					ca
+						.merge({
+							balance:
+								banking.type === BankingType.C
+									? new Decimal(ca.balance).minus(banking.totalValue).toNumber()
+									: new Decimal(ca.balance).plus(banking.totalValue).toNumber(),
+						})
+						.useTransaction(trx)
+						.save(),
+				);
+				await Promise.all(checkingTasks);
+			}
+
+			await Database.rawQuery(
+				`update bankings set balance = bankings.balance + case when excluido.type = 'CREDITO' then excluido.total_value * (-1) else excluido.total_value end
+from bankings as excluido
+where bankings.checking_account_id = excluido.checking_account_id
+  and bankings.issue_date::date = excluido.issue_date::date
+  and bankings.created_at > excluido.created_at
+  and excluido.id = ?`,
+				[banking.id],
+			).useTransaction(trx);
+		});
 	}
 }

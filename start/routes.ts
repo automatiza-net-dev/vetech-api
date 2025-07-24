@@ -1013,6 +1013,7 @@ Route.group(() => {
 	Route.get("/", "BankingsController.index");
 	Route.post("/create", "BankingsController.storeBanking");
 	Route.put("/update/:id", "BankingsController.updateBanking");
+	Route.delete("/delete/:id", "BankingsController.deleteBanking");
 })
 	.prefix("bankings")
 	.middleware("auth");

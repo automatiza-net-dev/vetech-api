@@ -243,4 +243,9 @@ export default class Banking extends BaseModel {
 		foreignKey: "acquirer_id",
 	})
 	public acquirer: BelongsTo<typeof TefAcquirer>;
+
+	@column({
+		serializeAs: null,
+	})
+	public user_exclusion_id: string | null;
 }

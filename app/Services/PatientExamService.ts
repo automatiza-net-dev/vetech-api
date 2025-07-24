@@ -292,7 +292,7 @@ export default class PatientExamService {
 				},
 				{
 					$set: {
-						"timeline_info.realizedAt": data.realizedAt,
+						// "timeline_info.realizedAt": data.realizedAt,
 						"timeline_info.laboratory": data.laboratory,
 						"timeline_info.report": data.report,
 						"timeline_info.executedAt": data.executedAt,

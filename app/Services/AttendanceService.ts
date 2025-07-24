@@ -279,7 +279,7 @@ export default class AttendanceService {
 						"timeline_info.protocol": data.protocol,
 						"timeline_info.internalObservation":
 							data.internalObservation ?? null,
-						"timeline_info.realizedAt": data.realizedAt ?? DateTime.now(),
+						// "timeline_info.realizedAt": data.realizedAt ?? DateTime.now(),
 						createdAt: data.createdAt ?? DateTime.now(),
 					},
 				},

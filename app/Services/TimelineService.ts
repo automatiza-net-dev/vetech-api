@@ -230,7 +230,7 @@ export default class TimelineService {
 
 			await patient
 				.merge({
-					weight: parseFloat(data.weight),
+					weight: Number.parseFloat(data.weight),
 					weightDate: DateTime.now(),
 					weightOrigin: PatientWeightOrigin.A,
 				})
@@ -641,21 +641,14 @@ export default class TimelineService {
 		return AnimalTimeline.findByIdAndUpdate(id, {
 			$set: {
 				timeline_id: timelineInfo.id,
-				timeline_type: {
-					description: timelineInfo.description,
-					color: timelineInfo.color,
-					requires_observation: timelineInfo.requiresObservation,
-				},
-				timeline_info: {
-					tag: data.tag,
-					type: data.type,
-					value: data.value,
-					realizedAt: data.realizedAt?.toJSDate() ?? new Date(),
-					update_technician: {
-						id: technician.id,
-						name: technician.name,
-					},
-				},
+				"timeline_type.description": timelineInfo.description,
+				"timeline_type.color": timelineInfo.color,
+				"timeline_type.requires_observation": timelineInfo.requiresObservation,
+				// 'timeline_info.tag': data.tag,
+				"timeline_info.type": data.type,
+				"timeline_info.valu": data.value,
+				"timeline_info.update_technician.id": technician.id,
+				"timeline_info.update_technician.name": technician.name,
 			},
 		});
 	}
@@ -729,7 +722,7 @@ export default class TimelineService {
 		return AnimalTimeline.findByIdAndUpdate(id, {
 			$set: {
 				"timeline_info.pathology": data.pathology,
-				"timeline_info.realizedAt": data.realizedAt.toJSDate(),
+				// "timeline_info.realizedAt": data.realizedAt.toJSDate(),
 				// "timeline_info.technician.id": technician.id,
 				// "timeline_info.technician.name": technician.name,
 				"timeline_info.update_technician.id": technician.id,
@@ -817,27 +810,25 @@ export default class TimelineService {
 		return AnimalTimeline.findByIdAndUpdate(id, {
 			$set: {
 				timeline_id: timelineInfo.id,
-				timeline_type: {
-					description: timelineInfo.description,
-					color: timelineInfo.color,
-					requires_observation: timelineInfo.requiresObservation,
-				},
-				timeline_info: {
-					tag: data.tag,
-					name: data.name,
-					realizedAt: data.realizedAt.toJSDate(),
-					technician: {
-						// @ts-expect-error
-						id: record.timeline_info?.technician?.id ?? "-",
-						// @ts-expect-error
-						name: record.timeline_info?.technician?.name ?? "-",
-					},
-					updated_technician: {
-						id: technician.id,
-						name: technician.name,
-					},
-					recipe: data.recipe,
-				},
+				"timeline_type.description": timelineInfo.description,
+				"timeline_type.color": timelineInfo.color,
+				"timeline_type.requires_observation": timelineInfo.requiresObservation,
+
+				"timeline_info.tag": data.tag,
+				"timeline_info.name": data.name,
+				// "timeline_info.realizedAt": data.realizedAt.toJSDate(),
+
+				"timeline_info.technician.id":
+					// @ts-expect-error
+					record.timeline_info?.technician?.id ?? "-",
+				"timeline_info.technician.name":
+					// @ts-expect-error
+					record.timeline_info?.technician?.name ?? "-",
+
+				"timeline_info.updated_technician.id": technician.id,
+				"timeline_info.updated_technician.name": technician.name,
+
+				"timeline_info.recipe": data.recipe,
 			},
 		});
 	}
@@ -1462,7 +1453,7 @@ export default class TimelineService {
 				"timeline_info.tag": data.tag,
 				"timeline_info.resume": data.resume,
 				"timeline_info.observation": data.observation ?? null,
-				"timeline_info.realizedAt": data.realizedAt?.toJSDate() ?? new Date(),
+				// "timeline_info.realizedAt": data.realizedAt?.toJSDate() ?? new Date(),
 				// "timeline_info.technician.id": technician.id,
 				// "timeline_info.technician.name": technician.name,
 				"timeline_info.update_technician.id": technician.id,
@@ -1487,7 +1478,7 @@ export default class TimelineService {
 			throw new ResourceNotFoundException("Recurso não encontrado");
 		}
 
-		const numericIndex = parseInt(index, 10);
+		const numericIndex = Number.parseInt(index, 10);
 
 		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 		// @ts-ignore does have photos

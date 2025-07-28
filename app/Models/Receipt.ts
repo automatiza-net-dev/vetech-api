@@ -18,6 +18,7 @@ import { DateTime } from "luxon";
 import { v4 } from "uuid";
 import Bill from "./Bill";
 import EconomicGroup from "./EconomicGroup";
+import IssuedFiscalDocument from "./IssuedFiscalDocument";
 
 export const ReceiptStatus = [
 	"Aberta",
@@ -340,4 +341,9 @@ export default class Receipt extends BaseModel {
 		foreignKey: "confirmation_user_id",
 	})
 	public confirmationUser: BelongsTo<typeof User>;
+
+	@hasMany(() => IssuedFiscalDocument, {
+		foreignKey: "bill_id",
+	})
+	public issuedFiscalDocuments: HasMany<typeof IssuedFiscalDocument>;
 }

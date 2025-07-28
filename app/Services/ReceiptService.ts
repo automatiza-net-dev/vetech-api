@@ -537,6 +537,7 @@ export default class ReceiptService {
 			supplier?: string;
 			seller?: string;
 			status?: string;
+			fiscalDocumentSequence?: string;
 			receipt_id?: string;
 		},
 	) {
@@ -558,6 +559,12 @@ export default class ReceiptService {
 			})
 			.preload("relatedBill", (query) => {
 				query.select("id", "tag");
+			})
+			.preload("issuedFiscalDocuments", (query) => {
+				query.where("movement_type", "ENTRADA");
+				if (data.fiscalDocumentSequence) {
+					query.where("sequence", data.fiscalDocumentSequence);
+				}
 			})
 			.where("economic_group_id", authCtx.group.id)
 			.where("business_unit_id", authCtx.unit.id)
@@ -604,6 +611,7 @@ export default class ReceiptService {
 			confirmationUser: elem.confirmationUser,
 			originUnit: elem.originUnit,
 			relatedBill: elem.relatedBill,
+      fiscalDocumentSequence: elem.issuedFiscalDocuments.map((r) => r.sequence).join(', ')
 		}));
 	}
 

@@ -34,8 +34,8 @@ export const ConfigFiscalDocumentSchema = z.object({
 	xml_download_authorization: z.string().optional().nullable(),
 	group_nfse_documents: z.boolean().optional().nullable(),
 	default_nfse_description: z.string().optional().nullable(),
-	nfse_hide_cnae: z.boolean().optional().nullable(),
-	nfse_hide_codigo_tributario_municipio: z.boolean().optional().nullable(),
+	nfse_hide_cnae: z.boolean().optional(),
+	nfse_hide_codigo_tributario_municipio: z.boolean().optional(),
 });
 
 export const ConfigSchedulesSchema = z.object({

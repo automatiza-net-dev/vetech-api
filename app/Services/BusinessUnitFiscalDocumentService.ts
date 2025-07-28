@@ -892,17 +892,11 @@ export default class BusinessUnitFiscalDocumentService {
 							percentage_value: item.issPercentage,
 							discount_value: item.discountValue,
 							service_code: item.productVariation.product.serviceCode ?? "",
-							cnae: authCtx.unit.unitConfig.config.fiscalDocuments
-								?.nfse_hide_cnae
-								? undefined
-								: authCtx.unit.cnae,
+							cnae: authCtx.unit.cnae ?? "",
 							description:
 								authCtx.unit.unitConfig.defaultNfseDescription ??
 								item.productVariation.product.description,
-							city_code: authCtx.unit.unitConfig.config.fiscalDocuments
-								?.nfse_hide_codigo_tributario_municipio
-								? undefined
-								: authCtx.unit.cityCode,
+							city_code: authCtx.unit.cityCode ?? "",
 						},
 					};
 
@@ -918,6 +912,13 @@ export default class BusinessUnitFiscalDocumentService {
 						serviceDocument.id,
 						payload,
 						token,
+						{
+							hideCnae:
+								authCtx.unit.unitConfig.config.fiscalDocuments?.nfse_hide_cnae,
+							hideCityCode:
+								authCtx.unit.unitConfig.config.fiscalDocuments
+									?.nfse_hide_codigo_tributario_municipio,
+						},
 					);
 
 					await serviceDocument

@@ -646,7 +646,7 @@ export default class TimelineService {
 				"timeline_type.requires_observation": timelineInfo.requiresObservation,
 				// 'timeline_info.tag': data.tag,
 				"timeline_info.type": data.type,
-				"timeline_info.valu": data.value,
+				"timeline_info.value": data.value,
 				"timeline_info.update_technician.id": technician.id,
 				"timeline_info.update_technician.name": technician.name,
 			},

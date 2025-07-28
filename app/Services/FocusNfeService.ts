@@ -171,9 +171,9 @@ export interface ISendNfse {
 		percentage_value: number;
 		discount_value: number;
 		service_code: string;
-		cnae: string;
+		cnae?: string;
 		description: string;
-		city_code: string;
+		city_code?: string;
 	};
 }
 

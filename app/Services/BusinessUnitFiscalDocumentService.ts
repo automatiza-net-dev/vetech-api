@@ -195,13 +195,11 @@ export default class BusinessUnitFiscalDocumentService {
 		});
 	}
 
-	async authorize(unitId: string, user: User, data: IAuthorizeFiscalDocument) {
-		const group = await this.sharedService.getUserGroup(unitId);
-
+	async authorize(authCtx: AuthContext, data: IAuthorizeFiscalDocument) {
 		return Database.transaction(async (trx) => {
 			const unit = await BusinessUnit.query()
 				.useTransaction(trx)
-				.where("id", unitId)
+				.where("id", authCtx.unit.id)
 				.preload("unitConfig")
 				.preload("acquirers")
 				.firstOrFail();
@@ -320,8 +318,8 @@ export default class BusinessUnitFiscalDocumentService {
 			const issuedDocumentAlready = await IssuedFiscalDocument.query({
 				client: trx,
 			})
-				.where("economic_group_id", group.id)
-				.where("business_unit_id", unitId)
+				.where("economic_group_id", authCtx.group.id)
+				.where("business_unit_id", authCtx.unit.id)
 				.where("bill_id", data.billId)
 				.first();
 
@@ -358,15 +356,15 @@ export default class BusinessUnitFiscalDocumentService {
 
 			const issuedDocument = await IssuedFiscalDocument.create(
 				{
-					economic_group_id: group.id,
-					business_unit_id: unitId,
+					economic_group_id: authCtx.group.id,
+					business_unit_id: authCtx.unit.id,
 					bill_id: data.billId,
 					movementType: data.type,
 					fiscal_document_id: document.id,
 					model: document.model,
 					series: document.series,
 					sequence: (document.sequence + 1).toString(),
-					user_who_authorized_id: user.id,
+					user_who_authorized_id: authCtx.user.id,
 					authorizationDate: DateTime.now(),
 					contingency: IssuedFiscalDocumentContingency.N,
 					active: true,
@@ -894,11 +892,17 @@ export default class BusinessUnitFiscalDocumentService {
 							percentage_value: item.issPercentage,
 							discount_value: item.discountValue,
 							service_code: item.productVariation.product.serviceCode ?? "",
-							cnae: authCtx.unit.cnae ?? "",
+							cnae: authCtx.unit.unitConfig.config.fiscalDocuments
+								?.nfse_hide_cnae
+								? undefined
+								: authCtx.unit.cnae,
 							description:
 								authCtx.unit.unitConfig.defaultNfseDescription ??
 								item.productVariation.product.description,
-							city_code: authCtx.unit.cityCode ?? "",
+							city_code: authCtx.unit.unitConfig.config.fiscalDocuments
+								?.nfse_hide_codigo_tributario_municipio
+								? undefined
+								: authCtx.unit.cityCode,
 						},
 					};
 

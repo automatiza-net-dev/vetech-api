@@ -171,9 +171,9 @@ export interface ISendNfse {
 		percentage_value: number;
 		discount_value: number;
 		service_code: string;
-		cnae?: string;
+		cnae: string;
 		description: string;
-		city_code?: string;
+		city_code: string;
 	};
 }
 
@@ -731,7 +731,15 @@ export default class FocusNfeService {
 		}
 	}
 
-	public async sendNfse(ref: string, data: ISendNfse, token: string) {
+	public async sendNfse(
+		ref: string,
+		data: ISendNfse,
+		token: string,
+		meta: {
+			hideCnae?: boolean;
+			hideCityCode?: boolean;
+		},
+	) {
 		const payload = {
 			data_emissao: data.issuedAt,
 			natureza_operacao: "1",
@@ -772,9 +780,11 @@ export default class FocusNfeService {
 				// desconto_incondicionado: data.service.discount_value,
 				desconto_incondicionado: 0,
 				item_lista_servico: data.service.service_code,
-				codigo_cnae: data.service.cnae,
+				codigo_cnae: meta.hideCnae ? undefined : data.service.cnae,
 				discriminacao: data.service.description,
-				codigo_tributario_municipio: data.service.city_code,
+				codigo_tributario_municipio: meta.hideCityCode
+					? undefined
+					: data.service.city_code,
 			},
 		};
 
@@ -791,6 +801,11 @@ export default class FocusNfeService {
 		if (payload.tomador.cnpj === "53165106001264") {
 			payload["situacao"] = "tt";
 		}
+
+		console.log({
+			payload,
+			meta,
+		});
 
 		// Logger.info(JSON.stringify(payload, undefined, 2));
 

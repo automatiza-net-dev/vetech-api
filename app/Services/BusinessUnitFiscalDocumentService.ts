@@ -1031,6 +1031,13 @@ export default class BusinessUnitFiscalDocumentService {
 					},
 				},
 				token,
+				{
+					hideCnae:
+						authCtx.unit.unitConfig.config.fiscalDocuments?.nfse_hide_cnae,
+					hideCityCode:
+						authCtx.unit.unitConfig.config.fiscalDocuments
+							?.nfse_hide_codigo_tributario_municipio,
+				},
 			);
 
 			await BillItem.query()

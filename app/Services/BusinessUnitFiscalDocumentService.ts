@@ -1935,7 +1935,8 @@ export default class BusinessUnitFiscalDocumentService {
 			status: data.status,
 			sequence: data.numero,
 			rpsNumber: data.numero_rps,
-			rpsSeries: data.serie_rps,
+			rpsSeries:
+				typeof data.serie_rps === "number" ? data.serie_rps : undefined,
 			rpsType: data.tipo_rps,
 			verificationCode: data.codigo_verificacao,
 			// @ts-expect-error json asd

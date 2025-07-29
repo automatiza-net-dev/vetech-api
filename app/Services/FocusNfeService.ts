@@ -307,7 +307,7 @@ export const nfseResponseSchema = z.object({
 	ref: z.string(),
 	numero: z.optional(z.coerce.number()),
 	numero_rps: z.coerce.number(),
-	serie_rps: z.optional(z.coerce.number()),
+	serie_rps: z.optional(z.union([z.coerce.number(), z.string()])),
 	tipo_rps: z.optional(z.string()),
 	erros: z.optional(z.array(z.any())),
 	url: z.optional(z.string()),

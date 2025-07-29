@@ -290,7 +290,7 @@ export const createNfseResponseSchema = z.object({
 	cnpj_prestador: z.string(),
 	ref: z.string(),
 	numero_rps: z.coerce.number(),
-	serie_rps: z.coerce.number(),
+	serie_rps: z.union([z.number(), z.string()]),
 	status: z.enum(["erro_autorizacao", "processando_autorizacao"]),
 	erros: z.optional(z.array(z.any())),
 });
@@ -307,7 +307,7 @@ export const nfseResponseSchema = z.object({
 	ref: z.string(),
 	numero: z.optional(z.coerce.number()),
 	numero_rps: z.coerce.number(),
-	serie_rps: z.optional(z.union([z.coerce.number(), z.string()])),
+	serie_rps: z.union([z.number(), z.string()]),
 	tipo_rps: z.optional(z.string()),
 	erros: z.optional(z.array(z.any())),
 	url: z.optional(z.string()),

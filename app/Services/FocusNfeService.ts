@@ -307,7 +307,7 @@ export const nfseResponseSchema = z.object({
 	ref: z.string(),
 	numero: z.optional(z.coerce.number()),
 	numero_rps: z.coerce.number(),
-	serie_rps: z.coerce.number(),
+	serie_rps: z.optional(z.coerce.number()),
 	tipo_rps: z.optional(z.string()),
 	erros: z.optional(z.array(z.any())),
 	url: z.optional(z.string()),
@@ -650,6 +650,7 @@ export default class FocusNfeService {
 				return {
 					success: false as const,
 					error: "Resposta inválida",
+					idk: zodResponse.error.format(),
 				};
 			}
 
@@ -661,6 +662,7 @@ export default class FocusNfeService {
 			return {
 				success: false as const,
 				error: "Erro ao chamar",
+				idk: "idk",
 			};
 		}
 	}

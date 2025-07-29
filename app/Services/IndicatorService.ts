@@ -6558,17 +6558,16 @@ export default class IndicatorService {
 				: new Date().toISOString(),
 		).plus({ hours: 12 });
 
-		const usefulDays = authCtx.unit.unitConfig.crmUsefulDays
+		const param1 = authCtx.unit.unitConfig.config.crm?.crm_useful_days
 			? differenceInBusinessDays(
 					endOfMonth(dt.toJSDate()),
 					startOfMonth(dt.toJSDate()),
 				)
 			: (dt.daysInMonth ?? 30);
 
-		const usefulDaysUntilNow = differenceInBusinessDays(
-			new Date(),
-			startOfMonth(dt.toJSDate()),
-		);
+		const param2 = authCtx.unit.unitConfig.config.crm?.crm_useful_days
+			? differenceInBusinessDays(dt.toJSDate(), startOfMonth(dt.toJSDate()))
+			: dt.day;
 
 		const {
 			faturamento,
@@ -6585,23 +6584,31 @@ export default class IndicatorService {
 			),
 		);
 
-		const level4 =
+		const Qtd_Vendas_Parcial =
 			Number.isNaN(faturamento) ||
 			!Number.isFinite(faturamento) ||
 			Number.isNaN(tkt_medio) ||
 			!Number.isFinite(tkt_medio)
 				? 0
 				: isSameMonth
-					? // ? (faturamento / tkt_medio / daysOnMonth) * day // ANTIGO
-						(faturamento / tkt_medio) * (usefulDaysUntilNow / usefulDays) // NOVO
+					? (faturamento / tkt_medio) * (param2 / param1)
 					: faturamento / tkt_medio;
-		const level3 = (level4 * 100) / conv_vendas;
-		const level2 = (level3 * 100) / conv_comparecimentos;
-		const level1 = (level2 * 100) / conv_agendamentos;
+		const Qtd_Comparecimentos = (Qtd_Vendas_Parcial * 100) / conv_vendas;
+		const Qtd_Agendamentos = (Qtd_Comparecimentos * 100) / conv_comparecimentos;
+		const Qtd_Novas = (Qtd_Agendamentos * 100) / conv_agendamentos;
 
 		const arrow_1_2 = conv_agendamentos;
 		const arrow_2_3 = conv_comparecimentos;
 		const arrow_3_4 = conv_vendas;
+
+		console.log({
+			param1,
+			param2,
+			Qtd_Vendas_Parcial,
+			Qtd_Comparecimentos,
+			Qtd_Agendamentos,
+			Qtd_Novas,
+		});
 
 		return {
 			name: "opportunities",
@@ -6648,16 +6655,16 @@ export default class IndicatorService {
 
 
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em"><tspan x="105" y="60.9">Novas Oportunidades</tspan></text>
-        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152" y="78.9">${Number.isNaN(level1) || !Number.isFinite(level1) ? 0 : level1.toFixed(0)}</tspan></text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152" y="78.9">${Number.isNaN(Qtd_Novas) || !Number.isFinite(Qtd_Novas) ? 0 : Qtd_Novas.toFixed(0)}</tspan></text>
 
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em"><tspan x="135" y="137.9">Agendamentos</tspan></text>
-        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152" y="155.9">${Number.isNaN(level2) || !Number.isFinite(level2) ? 0 : level2.toFixed(0)}</tspan></text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152" y="155.9">${Number.isNaN(Qtd_Agendamentos) || !Number.isFinite(Qtd_Agendamentos) ? 0 : Qtd_Agendamentos.toFixed(0)}</tspan></text>
 
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em"><tspan x="125" y="214.9">Comparecimentos</tspan></text>
-        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152" y="232.9">${Number.isNaN(level3) || !Number.isFinite(level3) ? 0 : level3.toFixed(0)}</tspan></text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152" y="232.9">${Number.isNaN(Qtd_Comparecimentos) || !Number.isFinite(Qtd_Comparecimentos) ? 0 : Qtd_Comparecimentos.toFixed(0)}</tspan></text>
 
         <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" font-weight="bold" letter-spacing="0em"><tspan x="145" y="295">Vendas</text>
-        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152" y="310">${Number.isNaN(level4) || !Number.isFinite(level4) ? 0 : level4.toFixed(0)}</tspan></text>
+        <text fill="#2B2B2B" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="14" letter-spacing="0em"><tspan x="152" y="310">${Number.isNaN(Qtd_Vendas_Parcial) || !Number.isFinite(Qtd_Vendas_Parcial) ? 0 : Qtd_Vendas_Parcial.toFixed(0)}</tspan></text>
 
         </g>
         <path d="M350.187 79.95C349.247 79.3 348.107 79 346.967 79H323.407C322.507 79 321.687 79.53 321.327 80.36L318.487 86.81C317.827 88.31 318.927 90 320.567 90H339.037L329.647 114.1H319.867L321.557 108.35C321.887 107.22 320.687 106.27 319.657 106.84L304.667 115.29C304.027 115.65 303.807 116.48 304.187 117.11L312.637 131C313.227 131.97 314.687 131.78 315.007 130.69L316.647 125.11H333.407C335.677 125.11 337.707 123.72 338.527 121.61L352.217 86.5C353.117 84.19 352.377 81.48 350.197 79.95H350.187Z" fill="#828282"/>

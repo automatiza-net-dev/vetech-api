@@ -6566,8 +6566,14 @@ export default class IndicatorService {
 			: (dt.daysInMonth ?? 30);
 
 		const param2 = authCtx.unit.unitConfig.config.crm?.crm_useful_days
-			? differenceInBusinessDays(dt.toJSDate(), startOfMonth(dt.toJSDate()))
+			? differenceInBusinessDays(startOfMonth(dt.toJSDate()), dt.toJSDate())
 			: dt.day;
+
+		console.log(authCtx.unit.unitConfig.config.crm?.crm_useful_days, {
+			dt: dt.toJSDate(),
+			start: startOfMonth(dt.toJSDate()),
+			day: dt.day,
+		});
 
 		const {
 			faturamento,

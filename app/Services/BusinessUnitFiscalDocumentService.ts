@@ -1696,10 +1696,8 @@ export default class BusinessUnitFiscalDocumentService {
 				.merge({
 					status: cancelResult.status,
 					user_who_cancelled_id: user.id,
-					cancellationDate:
-						cancelResult.status === "cancelado" ? DateTime.now() : undefined,
-					cancellationReason:
-						cancelResult.status === "cancelado" ? data.reason : undefined,
+					cancellationDate: DateTime.now(),
+					cancellationReason: data.reason,
 					// @ts-expect-error json asd
 					errors: JSON.stringify(data.erros),
 

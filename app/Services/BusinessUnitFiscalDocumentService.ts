@@ -1650,7 +1650,9 @@ export default class BusinessUnitFiscalDocumentService {
 				.where("economic_group_id", group.id)
 				.where("business_unit_id", unitId)
 				.where("id", data.issuedDocumentId)
-				.preload("billItem")
+				.preload("items", (query) => {
+					query.preload("billItem");
+				})
 				.first();
 
 			if (!document) {
@@ -1678,12 +1680,15 @@ export default class BusinessUnitFiscalDocumentService {
 				);
 			}
 
-			await document.billItem
-				.merge({
-					nfeIssued: cancelResult.status !== "cancelado",
-				})
-				.useTransaction(trx)
-				.save();
+			const tasks = document.items.map((item) =>
+				item.billItem
+					.merge({
+						nfeIssued: cancelResult.status !== "cancelado",
+					})
+					.useTransaction(trx)
+					.save(),
+			);
+			await Promise.all(tasks);
 
 			await document
 				.merge({

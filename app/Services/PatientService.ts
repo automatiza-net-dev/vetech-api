@@ -1804,7 +1804,7 @@ export default class PatientService {
 				}
 			}
 
-			if (!patient?.patientAnimal.death && data.death) {
+			if (!patient?.patientAnimal?.death && data.death) {
 				await this.$declareDeath(trx, authCtx, patient, {
 					deathDate: data.deathDate ?? DateTime.now(),
 					technicianId: data.technicianId ?? authCtx.user.id,
@@ -1824,7 +1824,7 @@ export default class PatientService {
 					tags: data.tags,
 					tag: authCtx.hasPermission("TUT04") ? data.tag : patient.tag,
 					community: data.community,
-					birthDate: patient.birthDate ?? birthDate ?? undefined,
+					birthDate: birthDate ?? patient.birthDate ?? undefined,
 					active: data.active,
 					vaccineOrigin: data.vaccineOrigin,
 					hypertension: data.hypertension,

@@ -774,7 +774,7 @@ export default class BillService {
 					additionalInformation: data.additionalInformation,
 					internalCode: data.internalCode,
 
-					billDate: data.billDate,
+					// billDate: data.billDate,
 				})
 				.useTransaction(trx)
 				.save();

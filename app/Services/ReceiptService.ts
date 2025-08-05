@@ -611,7 +611,9 @@ export default class ReceiptService {
 			confirmationUser: elem.confirmationUser,
 			originUnit: elem.originUnit,
 			relatedBill: elem.relatedBill,
-      fiscalDocumentSequence: elem.issuedFiscalDocuments.map((r) => r.sequence).join(', ')
+			fiscalDocumentSequence: elem.issuedFiscalDocuments
+				.map((r) => r.sequence)
+				.join(", "),
 		}));
 	}
 
@@ -753,6 +755,29 @@ export default class ReceiptService {
 			});
 
 		return rows;
+	}
+
+	async updateReceiptItems(
+		authCtx: AuthContext,
+		data: {
+			receiptId: string;
+			items: { receiptItemId: number; fractionValue: number }[];
+		},
+	) {
+		await Database.transaction(async (trx) => {
+			const tasks = data.items.map(async (item) => {
+				return await ReceiptItem.query()
+					.useTransaction(trx)
+					.where("economic_group_id", authCtx.group.id)
+					.where("business_unit_id", authCtx.unit.id)
+					.where("id", item.receiptItemId)
+					.where("receipt_id", data.receiptId)
+					.update({
+						fractionValue: item.fractionValue,
+					});
+			});
+			await Promise.all(tasks);
+		});
 	}
 
 	async updateXmlItems(
@@ -1095,9 +1120,7 @@ export default class ReceiptService {
 					receipt_id: newReceipt.id,
 
 					quantity: new Decimal(item.prod.qCom),
-					fractionValue: anotherExistingProduct
-						? anotherExistingProduct.fractionValue
-						: undefined,
+					// fractionValue: undefined,
 					costValue: item.prod.vUnCom,
 					unitaryValue: item.prod.vUnCom,
 					discountValue: item.prod.vDesc,
@@ -1767,7 +1790,7 @@ export default class ReceiptService {
 				unitaryValue: data.unitaryValue,
 				discountValue: data.discountValue,
 				totalValue: data.unitaryValue * data.quantity - data.discountValue,
-				fractionValue: productVariation.product.fractionValue,
+				fractionValue: new Decimal(1),
 				status: "Ativo",
 				issueDate: DateTime.now(),
 
@@ -2122,6 +2145,14 @@ export default class ReceiptService {
 					"É necessário completar os dados dos pagamentos da Nota de Entrada",
 					400,
 					"E_NO_PAYMENT",
+				);
+			}
+
+			if (receipt.items.some((p) => !p.fractionValue)) {
+				throw new BadRequestException(
+					"Existem items que não tem o multiplicador definido, altere a nota de entrada para definir esta informação",
+					400,
+					"E_NO_F_VALUE",
 				);
 			}
 

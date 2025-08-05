@@ -14,6 +14,7 @@ import ExcludeReceiptValidator from "App/Validators/Receipt/ExcludeReceiptValida
 import FinishReceiptImportValidator from "App/Validators/Receipt/FinishReceiptImportValidator";
 import ImportFromXmlValidator from "App/Validators/Receipt/ImportFromXmlValidator";
 import ReopenReceiptValidator from "App/Validators/Receipt/ReopenReceiptValidator";
+import UpdateReceiptItemValidator from "App/Validators/Receipt/UpdateReceiptItemValidator";
 import UpdateReceiptPaymentValidator from "App/Validators/Receipt/UpdateReceiptPaymentValidator";
 import UpdateXmlItemValidator from "App/Validators/Receipt/UpdateXmlItemValidator";
 
@@ -66,6 +67,21 @@ export default class ReceiptsController {
 		const payload = await request.validate(ConfirmTransferenceValidator);
 
 		await this.service.confirmTransference(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.noContent();
+	}
+
+	public async updateReceiptItems({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		const payload = await request.validate(UpdateReceiptItemValidator);
+
+		await this.service.updateReceiptItems(
 			await this.sharedService.getAuthContext(auth),
 			payload,
 		);

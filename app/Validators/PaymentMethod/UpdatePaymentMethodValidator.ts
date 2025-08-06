@@ -13,7 +13,7 @@ export default class UpdatePaymentMethodValidator {
     description: schema.string(),
     requiresDocument: schema.boolean(),
     tef: schema.enum(Object.values(PaymentMethodTef)),
-    automaticCancellation: schema.boolean(),
+    automaticCancellation: schema.boolean.optional(),
     daysFirstInstallment: schema.number(),
     daysBetweenInstallments: schema.number(),
     allowChangeExpirationDate: schema.boolean(),

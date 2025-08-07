@@ -30,6 +30,9 @@ export default class TemplateReplacement extends BaseModel {
 	@column()
 	public replacer: string;
 
+	@column()
+	public signature: string;
+
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
 

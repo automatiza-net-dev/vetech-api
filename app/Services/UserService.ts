@@ -1,4 +1,5 @@
 import { inject } from "@adonisjs/fold";
+import { MultipartFileContract } from "@ioc:Adonis/Core/BodyParser";
 import Mail from "@ioc:Adonis/Addons/Mail";
 import Encryption from "@ioc:Adonis/Core/Encryption";
 import Database, {} from "@ioc:Adonis/Lucid/Database";
@@ -1101,6 +1102,33 @@ export default class UserService {
 				.merge({
 					completed: true,
 				})
+				.useTransaction(trx)
+				.save();
+		});
+	}
+
+	public async uploadSignature(
+		authCtx: AuthContext,
+		data: {
+			userId: string;
+			signature: MultipartFileContract;
+		},
+	): Promise<void> {
+		await Database.transaction(async (trx) => {
+			const user = await User.query()
+				.useTransaction(trx)
+				.where("system_id", authCtx.system.id)
+				.where("id", data.userId)
+				.first();
+			if (!user) {
+				throw new BadRequestException("Usuário não encontrado", 400, "E_ERR");
+			}
+
+			const s3Key = `${authCtx.unit.id}/${user.id}/${Date.now()}-${data.signature.clientName}`;
+			await data.signature.moveToDisk("signatures", { name: s3Key }, "s3");
+
+			await user
+				.merge({ signatureImagePath: `signatures/${s3Key}` })
 				.useTransaction(trx)
 				.save();
 		});

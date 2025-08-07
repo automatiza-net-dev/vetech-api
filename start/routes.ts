@@ -52,6 +52,10 @@ Route.group(() => {
 		"UsersController.fetchUserControllers",
 	).middleware(["auth:tpApi,api"]);
 	Route.post(
+		"/upload-signature",
+		"UsersController.uploadUserSignature",
+	).middleware("auth");
+	Route.post(
 		"/create-user-controller",
 		"UsersController.createUserController",
 	).middleware(["auth:tpApi,api"]);

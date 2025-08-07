@@ -6566,14 +6566,15 @@ export default class IndicatorService {
 			: (dt.daysInMonth ?? 30);
 
 		const param2 = authCtx.unit.unitConfig.config.crm?.crm_useful_days
-			? differenceInBusinessDays(startOfMonth(dt.toJSDate()), dt.toJSDate())
-			: dt.day;
+			? differenceInBusinessDays(new Date(), startOfMonth(dt.toJSDate())) + 1
+			: DateTime.now().get('day')
 
-		console.log(authCtx.unit.unitConfig.config.crm?.crm_useful_days, {
-			dt: dt.toJSDate(),
-			start: startOfMonth(dt.toJSDate()),
-			day: dt.day,
-		});
+		// console.log({
+		// 	crm_useful_days: authCtx.unit.unitConfig.config.crm?.crm_useful_days,
+		// 	dt: dt.toJSDate(),
+		// 	start: startOfMonth(dt.toJSDate()),
+		// 	day: dt.day,
+		// });
 
 		const {
 			faturamento,
@@ -6607,14 +6608,16 @@ export default class IndicatorService {
 		const arrow_2_3 = conv_comparecimentos;
 		const arrow_3_4 = conv_vendas;
 
-		console.log({
-			param1,
-			param2,
-			Qtd_Vendas_Parcial,
-			Qtd_Comparecimentos,
-			Qtd_Agendamentos,
-			Qtd_Novas,
-		});
+		// console.log({
+		// 	unitId: authCtx.unit.id,
+		// 	crm_useful_days: authCtx.unit.unitConfig.config.crm?.crm_useful_days,
+		// 	param1,
+		// 	param2,
+		// 	Qtd_Vendas_Parcial,
+		// 	Qtd_Comparecimentos,
+		// 	Qtd_Agendamentos,
+		// 	Qtd_Novas,
+		// });
 
 		return {
 			name: "opportunities",

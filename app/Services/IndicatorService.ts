@@ -6976,11 +6976,11 @@ export default class IndicatorService {
 				)
 				.where("metas.system_id", systemID)
 				.whereRaw(
-					unit.unitConfig.default_funnel_meta_id ? "metas.id = ?" : "",
-					[unit.unitConfig.default_funnel_meta_id ?? 0].filter(Boolean),
+					unit.unitConfig.config.crm?.default_funnel_meta_id ? "metas.id = ?" : "",
+					[unit.unitConfig.config.crm?.default_funnel_meta_id ?? 0].filter(Boolean),
 				)
 				.whereRaw(
-					unit.unitConfig.default_funnel_meta_id === null
+					unit.unitConfig.config.crm?.default_funnel_meta_id === null
 						? "metas.description = 'Faturamento'"
 						: "",
 				)

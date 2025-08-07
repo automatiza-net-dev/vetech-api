@@ -541,79 +541,126 @@ export default class ReceiptService {
 			receipt_id?: string;
 		},
 	) {
-		const qb = Receipt.query()
-			.preload("user", (query) => {
-				query.select("id", "name");
-			})
-			.preload("seller", (query) => {
-				query.select("id", "name");
-			})
-			.preload("supplier", (query) => {
-				query.select("id", "name");
-			})
-			.preload("confirmationUser", (query) => {
-				query.select("id", "name");
-			})
-			.preload("originUnit", (query) => {
-				query.select("id", "identification");
-			})
-			.preload("relatedBill", (query) => {
-				query.select("id", "tag");
-			})
-			.preload("issuedFiscalDocuments", (query) => {
-				query.where("movement_type", "ENTRADA");
-				if (data.fiscalDocumentSequence) {
-					query.where("sequence", data.fiscalDocumentSequence);
-				}
-			})
-			.where("economic_group_id", authCtx.group.id)
-			.where("business_unit_id", authCtx.unit.id)
-			.orderByRaw("receipt_date desc");
-
-		if (data.receipt_id) {
-			qb.where("id", data.receipt_id);
-		}
-
-		if (data.from) {
-			qb.whereRaw("receipt_date::date >= ?", [data.from]);
-		}
-
-		if (data.to) {
-			qb.whereRaw("receipt_date::date <= ?", [data.to]);
-		}
+		const qb = Database.from("receipts")
+			.select(
+				Database.raw(`receipts.id,
+       receipts.tag,
+       receipts.origin,
+       receipts.issue_date,
+       receipts.receipt_date,
+       receipts.total_value,
+       receipts.paid_value,
+       receipts.status,
+       receipts.receipt_type,
+       receipts.transfer_confirmation_date,
+       json_build_object('id', _user.id, 'name', _user.name)       as "user",
+       json_build_object('id', seller.id, 'name', seller.name)     as seller,
+       json_build_object('id', supplier.id, 'name', supplier.name) as supplier,
+       case
+           when confirmationUser is not null then json_build_object('id', confirmationUser.id, 'name',
+                                                                    confirmationUser.name)
+           end                                                     as "confirmation_user",
+       case
+           when originUnit is not null then json_build_object('id', originUnit.id, 'identification',
+                                                              originUnit.identification)
+           end
+                                                                   as origin_unit,
+       case
+           when relatedBill is not null then json_build_object('id', relatedBill.id, 'tag',
+                                                               relatedBill.tag)
+           end                                                     as related_bill,
+       issuedDocuments.sequence                                    as raw_fiscal_document_sequence`),
+			)
+			.joinRaw("join users _user on receipts.user_id = _user.id")
+			.joinRaw("join users seller on receipts.seller_id = seller.id")
+			.joinRaw("join patients supplier on receipts.supplier_id = supplier.id")
+			.joinRaw(
+				"left join users confirmationUser on receipts.confirmation_user_id = confirmationUser.id",
+			)
+			.joinRaw(
+				"left join business_units originUnit on receipts.origin_business_unit_id = originUnit.id",
+			)
+			.joinRaw(
+				"left join bills relatedBill on receipts.related_bill_id = relatedBill.id",
+			)
+			.joinRaw(`left join issued_fiscal_documents issuedDocuments
+                   on issuedDocuments.bill_id = receipts.id and issuedDocuments.movement_type = 'ENTRADA'`)
+			.whereRaw("receipts.economic_group_id = ?", [authCtx.group.id])
+			.whereRaw("receipts.business_unit_id = ?", [authCtx.unit.id]);
 
 		if (data.tag) {
-			qb.where("tag", data.tag);
+			qb.whereRaw("receipts.tag = ?", [data.tag]);
 		}
 
-		if (data.supplier) {
-			qb.where("supplier_id", data.supplier);
+		if (data.fiscalDocumentSequence) {
+			qb.whereRaw("issuedDocuments.sequence = ?", [
+				data.fiscalDocumentSequence,
+			]);
 		}
 
-		if (data.seller) {
-			qb.where("seller_id", data.seller);
+		if (!data.tag && !data.fiscalDocumentSequence) {
+			if (data.receipt_id) {
+				qb.whereRaw("receipts.id = ?", [data.receipt_id]);
+			}
+
+			if (data.from && data.to) {
+				qb.whereRaw("receipts.receipt_date between ? and ?", [
+					data.from,
+					data.to,
+				]);
+			}
+
+			if (data.supplier) {
+				qb.whereRaw("receipts.supplier_id = ?", [data.supplier]);
+			}
+
+			if (data.seller) {
+				qb.whereRaw("receipts.seller_id = ?", [data.seller]);
+			}
+
+			if (data.status) {
+				qb.whereRaw("receipts.status = ?", [data.status]);
+			}
 		}
 
-		return (await qb).map((elem) => ({
-			id: elem.id,
-			tag: elem.tag,
-			origin: elem.origin,
-			issueDate: elem.issueDate,
-			receiptDate: elem.receiptDate,
-			totalValue: elem.totalValue,
-			paidValue: elem.paidValue,
-			status: elem.status,
-			receiptType: elem.receiptType,
-			transferConfirmationDate: elem.transferConfirmationDate,
-			user: elem.user,
-			seller: elem.seller,
-			supplier: elem.supplier,
-			confirmationUser: elem.confirmationUser,
-			originUnit: elem.originUnit,
-			relatedBill: elem.relatedBill,
-			fiscalDocumentSequence: elem.issuedFiscalDocuments
-				.map((r) => r.sequence)
-				.join(", "),
+		const result: {
+			id: string;
+			tag: string;
+			origin: string;
+			issue_date: string;
+			receipt_date: string;
+			total_value: string;
+			paid_value: string;
+			status: string;
+			receipt_type: string;
+			transfer_confirmation_date: string | null;
+			user: { id: string; name: string };
+			seller: { id: string; name: string };
+			supplier: { id: string; name: string };
+			confirmation_user: { id: string; name: string };
+			origin_unit: { id: string; identification: string };
+			related_bill: { id: string; tag: string };
+			raw_fiscal_document_sequence: string | null;
+		}[] = await qb;
+
+		return result.map((r) => ({
+			id: r.id,
+			tag: r.tag,
+			origin: r.origin,
+			issueDate: r.issue_date,
+			receiptDate: r.receipt_date,
+			totalValue: r.total_value,
+			paidValue: r.paid_value,
+			status: r.status,
+			receiptType: r.receipt_type,
+			transferConfirmationDate: r.transfer_confirmation_date,
+			user: r.user,
+			seller: r.seller,
+			supplier: r.supplier,
+			confirmationUser: r.confirmation_user,
+			originUnit: r.origin_unit,
+			relatedBill: r.related_bill,
+			fiscalDocumentSequence: r.raw_fiscal_document_sequence,
 		}));
 	}
 

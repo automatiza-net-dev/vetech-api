@@ -10,6 +10,7 @@ import DisableUserControllerRoleValidator from "App/Validators/User/DisableUserC
 import UpdateUserControllerValidator from "App/Validators/User/UpdateUserControllerValidator";
 import UpdateUserValidator from "App/Validators/User/UpdateUserValidator";
 import { ValidationException } from "@ioc:Adonis/Core/Validator";
+import UploadSignatureValidator from "App/Validators/User/UploadSignatureValidator";
 
 @inject()
 export default class UsersController {
@@ -284,6 +285,20 @@ export default class UsersController {
 	}: HttpContextContract) {
 		const payload = await request.validate(DisableUserControllerRoleValidator);
 		await this.service.disableUserControllerRole(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
+
+		return response.noContent();
+	}
+
+	public async uploadUserSignature({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const payload = await request.validate(UploadSignatureValidator);
+		await this.service.uploadSignature(
 			await this.sharedService.getAuthContext(auth),
 			payload,
 		);

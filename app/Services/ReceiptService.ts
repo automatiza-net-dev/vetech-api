@@ -32,7 +32,7 @@ import PaymentMethod, {
 } from "App/Models/PaymentMethod";
 import Product, { ProductPurpose, ProductType } from "App/Models/Product";
 import ProductVariation from "App/Models/ProductVariation";
-import Receipt, { TReceiptStatus } from "App/Models/Receipt";
+import Receipt, { ReceiptStatus, TReceiptStatus } from "App/Models/Receipt";
 import ReceiptItem, {
 	ReceiptItemStatus,
 	TReceiptItemStatus,
@@ -589,12 +589,12 @@ export default class ReceiptService {
 			.whereRaw("receipts.business_unit_id = ?", [authCtx.unit.id]);
 
 		if (data.tag) {
-			qb.whereRaw("receipts.tag = ?", [data.tag]);
+			qb.whereRaw("receipts.tag ilike ?", [`%${data.tag}%`]);
 		}
 
 		if (data.fiscalDocumentSequence) {
-			qb.whereRaw("issuedDocuments.sequence = ?", [
-				data.fiscalDocumentSequence,
+			qb.whereRaw("issuedDocuments.sequence ilike ?", [
+				`%${data.fiscalDocumentSequence}%`,
 			]);
 		}
 
@@ -604,7 +604,7 @@ export default class ReceiptService {
 			}
 
 			if (data.from && data.to) {
-				qb.whereRaw("receipts.receipt_date between ? and ?", [
+				qb.whereRaw("receipts.receipt_date::date between ? and ?", [
 					data.from,
 					data.to,
 				]);
@@ -641,7 +641,9 @@ export default class ReceiptService {
 			origin_unit: { id: string; identification: string };
 			related_bill: { id: string; tag: string };
 			raw_fiscal_document_sequence: string | null;
-		}[] = await qb;
+		}[] = await qb.orderByRaw(
+			"receipt_date::date desc, receipts.created_at desc",
+		);
 
 		return result.map((r) => ({
 			id: r.id,
@@ -790,7 +792,10 @@ export default class ReceiptService {
 				if (data.status) {
 					query.where("status", data.status);
 				} else {
-					query.where("status", "Ativo" as TReceiptItemStatus);
+					query.whereIn("status", [
+						"Ativo",
+						"PendenteXml",
+					] as TReceiptItemStatus[]);
 				}
 
 				query.orderBy("description_xml", "asc");
@@ -799,7 +804,8 @@ export default class ReceiptService {
 					query.preload("variationOptions");
 					query.preload("product");
 				});
-			});
+			})
+			.whereIn("status", ["Aberta", "PendenteXml"] as TReceiptStatus[]);
 
 		return rows;
 	}

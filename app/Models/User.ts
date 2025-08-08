@@ -104,6 +104,11 @@ export default class User extends BaseModel {
 	})
 	public scheduleSequence: boolean;
 
+	@column({
+		columnName: "signature_image_path",
+	})
+	public signatureImagePath: string | null;
+
 	@column()
 	public active?: boolean;
 

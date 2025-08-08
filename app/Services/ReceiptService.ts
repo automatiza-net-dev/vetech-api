@@ -604,7 +604,7 @@ export default class ReceiptService {
 			}
 
 			if (data.from && data.to) {
-				qb.whereRaw("receipts.receipt_date between ? and ?", [
+				qb.whereRaw("receipts.receipt_date::date between ? and ?", [
 					data.from,
 					data.to,
 				]);

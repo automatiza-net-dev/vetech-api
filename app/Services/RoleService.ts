@@ -200,15 +200,14 @@ values (?, ?, now(), now(), ?, ?)`,
 	}
 
 	public async update(
-		authCtx: AuthContext,
+		systemID: string,
 		id: number,
 		data: IRoleData & { active: boolean },
 	): Promise<Role> {
 		return Database.transaction(async (trx) => {
 			const role = await Role.query()
 				.useTransaction(trx)
-				.where("system_id", authCtx.system.id)
-				.where("economic_group_id", authCtx.group.id)
+				.where("system_id", systemID)
 				.where("id", id)
 				.first();
 

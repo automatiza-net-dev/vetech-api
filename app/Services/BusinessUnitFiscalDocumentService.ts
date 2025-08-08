@@ -1298,7 +1298,7 @@ export default class BusinessUnitFiscalDocumentService {
 						status: result.data.status,
 						sequence: result.data.numero,
 						rpsNumber: result.data.numero_rps,
-						rpsSeries: result.data.serie_rps,
+						rpsSeries: result.data.serie_rps.toString(),
 						rpsType: result.data.tipo_rps,
 						verificationCode: result.data.codigo_verificacao,
 						errors: JSON.stringify(result.data.erros),
@@ -1328,7 +1328,7 @@ export default class BusinessUnitFiscalDocumentService {
 							status: result.data.status,
 							sequence: result.data.numero,
 							rpsNumber: result.data.numero_rps,
-							rpsSeries: result.data.serie_rps,
+							rpsSeries: result.data.serie_rps.toString(),
 							rpsType: result.data.tipo_rps,
 							verificationCode: result.data.codigo_verificacao,
 							errors: JSON.stringify(result.data.erros),
@@ -1690,8 +1690,6 @@ export default class BusinessUnitFiscalDocumentService {
 			);
 			await Promise.all(tasks);
 
-			console.log(cancelResult);
-
 			await document
 				.merge({
 					status: cancelResult.status,
@@ -1931,9 +1929,6 @@ export default class BusinessUnitFiscalDocumentService {
 		document: ServiceIssuedFiscalDocument,
 		data: z.infer<typeof nfseResponseSchema>,
 	) {
-		console.log("document:", document.toJSON());
-		console.log("focus nfse payload", data);
-
 		return document.merge({
 			status: data.status,
 			sequence: data.numero,

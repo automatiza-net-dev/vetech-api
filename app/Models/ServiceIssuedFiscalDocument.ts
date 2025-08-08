@@ -32,7 +32,7 @@ export default class ServiceIssuedFiscalDocument extends BaseModel {
 	@column({
 		columnName: "rps_series",
 	})
-	rpsSeries: number;
+	rpsSeries: string;
 
 	@column({
 		columnName: "rps_type",

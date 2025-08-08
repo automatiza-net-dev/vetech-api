@@ -1531,6 +1531,7 @@ Route.group(() => {
 	Route.post("/update-payment", "ReceiptsController.updateReceiptPayment");
 	Route.post("/finish-import", "ReceiptsController.finishReceiptImport");
 	Route.post("/reopen", "ReceiptsController.reopenReceipt");
+	Route.post("/update-receipt-items", "ReceiptsController.updateReceiptItems");
 
 	Route.post("/delete-receipt", "ReceiptsController.deleteReceipt");
 	Route.post("/delete-item", "ReceiptsController.deleteReceiptItem");

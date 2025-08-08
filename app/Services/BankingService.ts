@@ -138,7 +138,7 @@ export default class BankingService {
 
 					document: data.document,
 					historic: data.historic,
-					issueDate: data.issueDate,
+					issueDate: data.issueDate.plus({ hours: 3 }),
 					expirationDate: data.issueDate,
 					paymentDate: data.issueDate,
 					originalValue: data.documentValue,

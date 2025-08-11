@@ -1,7 +1,7 @@
 import { schema, CustomMessages, rules } from "@ioc:Adonis/Core/Validator";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import { BusinessUnitProductMetaType } from "App/Models/BusinessUnitProduct";
-import { ProductPurpose } from "App/Models/Product";
+import { ProductIcmsOrigin, ProductPurpose } from "App/Models/Product";
 
 export default class UpdateXmlItemValidator {
 	constructor(protected ctx: HttpContextContract) {}
@@ -72,9 +72,12 @@ export default class UpdateXmlItemValidator {
 				metaType: schema.enum(Object.values(BusinessUnitProductMetaType)),
 				meta: schema.number(),
 
-				fractioned: schema.boolean.optional(),
-				fractionUnitId: schema.string.optional([]),
-				fractionValue: schema.number.optional(),
+				icmsOrigin: schema.enum(Object.values(ProductIcmsOrigin), []),
+				ncm: schema.string.optional({}, []),
+				cest: schema.string.optional({}, []),
+				// fractioned: schema.boolean.optional(),
+				// fractionUnitId: schema.string.optional([]),
+				// fractionValue: schema.number.optional(),
 			}),
 		),
 	});

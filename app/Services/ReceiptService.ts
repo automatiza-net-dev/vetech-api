@@ -30,7 +30,11 @@ import PaymentMethod, {
 	PaymentMethodTef,
 	PaymentMethodUsage,
 } from "App/Models/PaymentMethod";
-import Product, { ProductPurpose, ProductType } from "App/Models/Product";
+import Product, {
+	ProductIcmsOrigin,
+	ProductPurpose,
+	ProductType,
+} from "App/Models/Product";
 import ProductVariation from "App/Models/ProductVariation";
 import Receipt, { ReceiptStatus, TReceiptStatus } from "App/Models/Receipt";
 import ReceiptItem, {
@@ -846,9 +850,12 @@ export default class ReceiptService {
 				brandId?: string;
 				productVariationId: string;
 
-				fractioned?: boolean;
-				fractionUnitId?: string;
-				fractionValue?: number;
+				// fractioned?: boolean;
+				// fractionUnitId?: string;
+				// fractionValue?: number;
+				ncm?: string;
+				cest?: string;
+				icmsOrigin: (typeof ProductIcmsOrigin)[number];
 				referenceCode?: string;
 				purpose: ProductPurpose;
 				barcode?: string;
@@ -881,12 +888,15 @@ export default class ReceiptService {
 						subgroup_id: item.subgroupId,
 						taxation_group_id: item.taxationGroupId,
 						brand_id: item.brandId,
-						fraction_unit_id: item.fractionUnitId,
+						// fraction_unit_id: item.fractionUnitId,
 
-						fractioned: item.fractioned,
-						fractionValue: item.fractionValue
-							? new Decimal(item.fractionValue)
-							: undefined,
+						// fractioned: item.fractioned,
+						// fractionValue: item.fractionValue
+						// 	? new Decimal(item.fractionValue)
+						// 	: undefined,
+						icmsOrigin: item.icmsOrigin,
+						ncm: item.ncm,
+						cest: item.cest,
 						description: item.productDescription,
 						referenceCode: item.referenceCode,
 						purpose: item.purpose,

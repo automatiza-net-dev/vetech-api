@@ -111,6 +111,56 @@ export default class FinancesController {
 		return response.ok(result);
 	}
 
+	async getControlResume({ auth, request, response }: HttpContextContract) {
+		const qs = request.qs();
+		const result = await this.service.getControlResume(
+			await this.sharedService.getAuthContext(auth),
+			{
+				fromIssueDate: qs.fromIssue,
+				toIssueDate: qs.toIssue,
+
+				fromExpirationDate: qs.fromExpiration,
+				toExpirationDate: qs.toExpiration,
+
+				fromAcceptDate: qs.fromAcceptDate,
+				toAcceptDate: qs.toAcceptDate,
+
+				fromPaymentDate: qs.fromPayment,
+				toPaymentDate: qs.toPayment,
+
+				ids: qs.ids,
+				client: qs.client,
+				document: qs.document,
+				fiscalNote: qs.fiscalNote,
+				paymentMethod: qs.paymentMethod,
+				nsu: qs.nsu,
+				status: qs.status,
+				accept: qs.accept,
+				reconciled: qs.reconciled,
+				type: qs.type,
+				unit: qs.unit,
+				plan: qs.plan,
+				competence: qs.competence,
+				order: qs.order,
+
+				historic: qs.historic,
+				internalCode: qs.internalCode,
+
+				groupBorderos: qs.groupBorderos,
+
+				checkingAccountId: qs.checkingAccountId,
+
+				tefAcquirerId: qs.tefAcquirerId,
+				tefFlagId: qs.tefFlagId,
+
+				iterationDateTo: qs.iterationDateTo,
+				iterationDateFrom: qs.iterationDateFrom,
+			},
+		);
+
+		return response.ok(result);
+	}
+
 	async groupedIndex({ auth, request, response }: HttpContextContract) {
 		const qs = request.qs();
 		const result = await this.service.groupedIndex(

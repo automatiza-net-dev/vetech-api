@@ -109,6 +109,7 @@ export default class BudgetService {
 			.where("business_unit_id", authCtx.unit.id)
 			.where("patient_id", patientId)
 			.whereHas("budgets", (query) => {
+        query.orderByRaw('created_at, tag')
 				query.whereNot("status", BudgetStatus.N);
 				query.whereNull("deleted_at");
 

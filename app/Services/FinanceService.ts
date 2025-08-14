@@ -2358,10 +2358,10 @@ case when p.control_id = 'TRC11' then 'Usuário não possui permissão para reti
                             when ((payment_date is not null and payment_date <= ?) or
                                   (payment_date is null and expiration_date <= ?)) and
                                  finances.type = 'DEBITO' then coalesce(finances.total_value, 0)
-                            else 0 end), 0) as asaldoFinal`,
+                            else 0 end), 0) as saldoFinal`,
 					[
-						data.iterationDateTo,
-						data.iterationDateTo,
+						data.iterationDateFrom,
+						data.iterationDateFrom,
 						data.iterationDateFrom,
 						data.iterationDateFrom,
 						data.iterationDateTo,

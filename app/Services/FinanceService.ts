@@ -2369,7 +2369,12 @@ case when p.control_id = 'TRC11' then 'Usuário não possui permissão para reti
 			rowsQb.whereRaw(
 				`((payment_date is not null and payment_date between ? and ?) or
        (payment_date is null and expiration_date between ? and ?))`,
-				[data.iterationDateFrom, data.iterationDateTo],
+				[
+					data.iterationDateFrom,
+					data.iterationDateTo,
+					data.iterationDateFrom,
+					data.iterationDateTo,
+				],
 			);
 		}
 

@@ -431,7 +431,7 @@ export default class TimelineService {
 				timeline_info: {
 					tag: data.patientId,
 					realizedAt: data.realizedAt ?? DateTime.now(),
-					resume: data.resume,
+					resume: data.resume ?? null,
 					protocol: data.protocol,
 					observation: data.observation ?? null,
 					internalObservation: data.internalObservation ?? null,
@@ -507,7 +507,7 @@ export default class TimelineService {
 					$set: {
 						"timeline_info.tag": data.patientId,
 						"timeline_info.realizedAt": data.realizedAt.toJSDate(),
-						"timeline_info.resume": data.resume,
+						"timeline_info.resume": data.resume ?? null,
 						"timeline_info.protocol": data.protocol,
 						"timeline_info.observation": data.observation ?? null,
 						"timeline_info.internalObservation":

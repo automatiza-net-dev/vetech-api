@@ -2331,33 +2331,45 @@ case when p.control_id = 'TRC11' then 'Usuário não possui permissão para reti
 
 		const rowsQb = Database.from("finances")
 			.select(
-				Database.raw(`ca.id                                as idConta,
+				Database.raw(
+					`ca.id                                as idConta,
        ca.description                       as descricaoConta,
        ca.balance                           as saldoConta,
        coalesce(sum(
                         case
-                            when ((payment_date is not null and payment_date <= 'iterationDateFrom') or
-                                  (payment_date is null and expiration_date <= 'iterationDateFrom')) and
+                            when ((payment_date is not null and payment_date <= ?) or
+                                  (payment_date is null and expiration_date <= ?)) and
                                  finances.type = 'CREDITO' then coalesce(finances.total_value, 0)
                             else 0 end
                             -
                         case
-                            when ((payment_date is not null and payment_date <= 'iterationDateFrom') or
-                                  (payment_date is null and expiration_date <= 'iterationDateFrom')) and
+                            when ((payment_date is not null and payment_date <= ?) or
+                                  (payment_date is null and expiration_date <= ?)) and
                                  finances.type = 'DEBITO' then coalesce(finances.total_value, 0)
                             else 0 end), 0) as saldoInicial,
        coalesce(sum(
                         case
-                            when ((payment_date is not null and payment_date <= 'iterationDateTo') or
-                                  (payment_date is null and expiration_date <= 'iterationDateTo')) and
+                            when ((payment_date is not null and payment_date <= ?) or
+                                  (payment_date is null and expiration_date <= ?)) and
                                  finances.type = 'CREDITO' then coalesce(finances.total_value, 0)
                             else 0 end
                             -
                         case
-                            when ((payment_date is not null and payment_date <= 'iterationDateTo') or
-                                  (payment_date is null and expiration_date <= 'iterationDateTo')) and
+                            when ((payment_date is not null and payment_date <= ?) or
+                                  (payment_date is null and expiration_date <= ?)) and
                                  finances.type = 'DEBITO' then coalesce(finances.total_value, 0)
-                            else 0 end), 0) as asaldoFinal`),
+                            else 0 end), 0) as asaldoFinal`,
+					[
+						data.iterationDateTo,
+						data.iterationDateTo,
+						data.iterationDateFrom,
+						data.iterationDateFrom,
+						data.iterationDateTo,
+						data.iterationDateTo,
+						data.iterationDateTo,
+						data.iterationDateTo,
+					],
+				),
 			)
 			.joinRaw(
 				"join checking_accounts ca on finances.checking_account_id = ca.id",
@@ -2367,8 +2379,8 @@ case when p.control_id = 'TRC11' then 'Usuário não possui permissão para reti
 
 		if (data.iterationDateFrom && data.iterationDateTo) {
 			rowsQb.whereRaw(
-				`((payment_date is not null and payment_date between ? and ?) or
-       (payment_date is null and expiration_date between ? and ?))`,
+				`((payment_date is not null and payment_date::date between ? and ?) or
+       (payment_date is null and expiration_date::date between ? and ?))`,
 				[
 					data.iterationDateFrom,
 					data.iterationDateTo,
@@ -2492,7 +2504,7 @@ case when p.control_id = 'TRC11' then 'Usuário não possui permissão para reti
 		}[] = await rowsQb.groupByRaw("ca.id, ca.description, ca.balance");
 
 		if (result.length === 0) {
-			return { saldoinicial: "-", saldofinal: "-", saldoconta: "-" };
+			return { saldoinicial: "S/R", saldofinal: "S/R", saldoconta: "S/R" };
 		}
 
 		const row = result[0];

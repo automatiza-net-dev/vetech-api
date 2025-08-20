@@ -2381,7 +2381,7 @@ where
 		receipt_items ri
 	where
 		ri.receipt_id = ?
-		and di.product_variation_id = ri.product_variation_id);`,
+		and di.product_variation_id = ri.product_variation_id limit 1);`,
 				[authCtx.unit.id, receipt.id],
 			)
 				.useTransaction(trx)

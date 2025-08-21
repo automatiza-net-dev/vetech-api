@@ -32,7 +32,7 @@ import PaymentMethod, {
 } from "App/Models/PaymentMethod";
 import Product, { ProductPurpose, ProductType } from "App/Models/Product";
 import ProductVariation from "App/Models/ProductVariation";
-import Receipt, { ReceiptStatus, TReceiptStatus } from "App/Models/Receipt";
+import Receipt, { TReceiptStatus } from "App/Models/Receipt";
 import ReceiptItem, {
 	ReceiptItemStatus,
 	TReceiptItemStatus,
@@ -586,7 +586,8 @@ export default class ReceiptService {
 			.joinRaw(`left join issued_fiscal_documents issuedDocuments
                    on issuedDocuments.bill_id = receipts.id and issuedDocuments.movement_type = 'ENTRADA'`)
 			.whereRaw("receipts.economic_group_id = ?", [authCtx.group.id])
-			.whereRaw("receipts.business_unit_id = ?", [authCtx.unit.id]);
+			.whereRaw("receipts.business_unit_id = ?", [authCtx.unit.id])
+			.whereRaw("receipts.status <> 'Excluida'", []);
 
 		if (data.tag) {
 			qb.whereRaw("receipts.tag ilike ?", [`%${data.tag}%`]);
@@ -804,8 +805,7 @@ export default class ReceiptService {
 					query.preload("variationOptions");
 					query.preload("product");
 				});
-			})
-			.whereIn("status", ["Aberta", "PendenteXml"] as TReceiptStatus[]);
+			});
 
 		return rows;
 	}

@@ -2360,41 +2360,41 @@ WHERE business_unit_products.id = cc.id
 				);
 			}
 
-			const otherRows = await Database.rawQuery(
-				`select
-	di.id,
-	p.description
-from
-	deposit_items di
-join business_unit_configs buc on
-	di.deposit_id = buc.incoming_deposit_id
-join product_variations pv on
-	pv.id = di.product_variation_id
-join products p on
-	p.id = pv.product_id
-where
-	buc.business_unit_id = ?
-	and di.quantity < (
-	select
-		(ri.quantity * ri.fraction_value)
-	from
-		receipt_items ri
-	where
-		ri.receipt_id = ?
-		and di.product_variation_id = ri.product_variation_id limit 1);`,
-				[authCtx.unit.id, receipt.id],
-			)
-				.useTransaction(trx)
-				.exec();
-			if (otherRows.length > 0) {
-				throw new BadRequestException(
-					`Não existe quantidade suficiente no Deposito de Estoque para fazer a Reabertura da Nota de Entrada: ${otherRows
-						.map((r) => r.description)
-						.join(", ")}`,
-					400,
-					"E_ERR",
-				);
-			}
+			// 			const otherRows = await Database.rawQuery(
+			// 				`select
+			// 	di.id,
+			// 	p.description
+			// from
+			// 	deposit_items di
+			// join business_unit_configs buc on
+			// 	di.deposit_id = buc.incoming_deposit_id
+			// join product_variations pv on
+			// 	pv.id = di.product_variation_id
+			// join products p on
+			// 	p.id = pv.product_id
+			// where
+			// 	buc.business_unit_id = ?
+			// 	and di.quantity < (
+			// 	select
+			// 		(ri.quantity * ri.fraction_value)
+			// 	from
+			// 		receipt_items ri
+			// 	where
+			// 		ri.receipt_id = ?
+			// 		and di.product_variation_id = ri.product_variation_id limit 1);`,
+			// 				[authCtx.unit.id, receipt.id],
+			// 			)
+			// 				.useTransaction(trx)
+			// 				.exec();
+			// 			if (otherRows.length > 0) {
+			// 				throw new BadRequestException(
+			// 					`Não existe quantidade suficiente no Deposito de Estoque para fazer a Reabertura da Nota de Entrada: ${otherRows
+			// 						.map((r) => r.description)
+			// 						.join(", ")}`,
+			// 					400,
+			// 					"E_ERR",
+			// 				);
+			// 			}
 
 			await receipt
 				.merge({

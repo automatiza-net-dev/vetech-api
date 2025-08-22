@@ -12,8 +12,11 @@ export default class VaccineProtocolsController {
 		private readonly service: VaccineProtocolService,
 	) {}
 
-	public async index({ request, response }: HttpContextContract) {
-		const result = await this.service.index(request.qs());
+	public async index({ auth, request, response }: HttpContextContract) {
+		const result = await this.service.index(
+			await this.sharedService.getAuthContext(auth),
+			request.qs(),
+		);
 
 		return response.ok(result);
 	}

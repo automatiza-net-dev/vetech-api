@@ -3,6 +3,7 @@ import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException"
 import { VaccineType } from "App/Models/Vaccine";
 import VaccineProtocol from "App/Models/VaccineProtocol";
 import { IVaccineProtocolData } from "Contracts/interfaces/IVaccineProtocolData";
+import { AuthContext } from "./SharedService";
 
 interface ISearch {
 	type?: VaccineType;
@@ -14,8 +15,15 @@ interface ISearch {
 
 @inject()
 export default class VaccineProtocolService {
-	public async index(data: ISearch) {
-		const qb = VaccineProtocol.query().preload("vaccine").preload("specie");
+	public async index(authCtx: AuthContext, data: ISearch) {
+		const qb = VaccineProtocol.query()
+			.whereHas("vaccine", (qb) => {
+				qb.whereRaw("economic_group_id is null or economic_group_id = ?", [
+					authCtx.group.id,
+				]);
+			})
+			.preload("vaccine")
+			.preload("specie");
 
 		if (data.name) {
 			qb.whereHas("vaccine", (qb) => {

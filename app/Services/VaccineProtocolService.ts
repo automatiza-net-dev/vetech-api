@@ -3,6 +3,7 @@ import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException"
 import { VaccineType } from "App/Models/Vaccine";
 import VaccineProtocol from "App/Models/VaccineProtocol";
 import { IVaccineProtocolData } from "Contracts/interfaces/IVaccineProtocolData";
+import { AuthContext } from "./SharedService";
 
 interface ISearch {
 	type?: VaccineType;
@@ -14,14 +15,27 @@ interface ISearch {
 
 @inject()
 export default class VaccineProtocolService {
-	public async index(data: ISearch) {
-		const qb = VaccineProtocol.query().preload("vaccine").preload("specie");
+	public async index(authCtx: AuthContext, data: ISearch) {
+		const qb = VaccineProtocol.query()
+			.whereHas("vaccine", (qb) => {
+				qb.whereRaw("(economic_group_id is null or economic_group_id = ?)", [
+					authCtx.group.id,
+				]);
 
-		if (data.name) {
-			qb.whereHas("vaccine", (qb) => {
-				qb.where("name", "ilike", `%${data.name}%`);
-			});
-		}
+				if (data.name) {
+					qb.where("name", "ilike", `%${data.name}%`);
+				}
+
+				if (data.type) {
+					qb.where("type", data.type);
+				}
+
+				if (data.vaccine) {
+					qb.where("id", data.vaccine);
+				}
+			})
+			.preload("vaccine")
+			.preload("specie");
 
 		if (data.protocol) {
 			qb.where("name", "ilike", `%${data.protocol}%`);
@@ -29,22 +43,6 @@ export default class VaccineProtocolService {
 
 		if (data.specie) {
 			qb.whereRaw("(specie_id = ? or specie_id is null)", [data.specie]);
-		}
-
-		if (data.type || data.vaccine) {
-			qb.whereHas("vaccine", (query) => {
-				if (data.type) {
-					query.where("type", data.type);
-
-					// if (data.type === "vermifuge") {
-					// } else {
-					// }
-				}
-
-				if (data.vaccine) {
-					query.where("id", data.vaccine);
-				}
-			});
 		}
 
 		// TODO paginate

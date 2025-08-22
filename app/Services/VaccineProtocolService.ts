@@ -18,7 +18,9 @@ export default class VaccineProtocolService {
 		const qb = VaccineProtocol.query().preload("vaccine").preload("specie");
 
 		if (data.name) {
-			qb.where("name", "ilike", `%${data.name}%`);
+			qb.whereHas("vaccine", (qb) => {
+				qb.where("name", "ilike", `%${data.name}%`);
+			});
 		}
 
 		if (data.protocol) {

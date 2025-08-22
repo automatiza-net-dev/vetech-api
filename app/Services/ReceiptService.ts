@@ -1084,7 +1084,9 @@ export default class ReceiptService {
 				.whereHas("variations", (query) => {
 					query.whereNot("barcode", "SEM GTIN");
 				})
-				.preload("variations");
+				.preload("variations", (query) => {
+					query.whereNot("barcode", "SEM GTIN");
+				});
 
 			const supplierProducts = await SupplierProduct.query()
 				.useTransaction(trx)
@@ -1094,6 +1096,7 @@ export default class ReceiptService {
 					query.whereNot("barcode", "SEM GTIN");
 				})
 				.preload("productVariation", (query) => {
+					query.whereNot("barcode", "SEM GTIN");
 					query.preload("product");
 				});
 

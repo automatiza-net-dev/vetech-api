@@ -37,6 +37,7 @@ import { DateTime } from "luxon";
 import { ObjectId } from "mongoose";
 import { v4 } from "uuid";
 import Env from "@ioc:Adonis/Core/Env";
+import PatientExamAttachment from "App/Models/PatientExamAttachment";
 
 @inject()
 export default class TimelineService {
@@ -547,17 +548,19 @@ export default class TimelineService {
 
 		const numericIndex = Number.parseInt(index, 10);
 
-		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-		// @ts-ignore does have photos
-		const cleanPhotos = record.timeline_info?.photos?.filter(
-			(_, idx) => idx !== numericIndex,
-		);
+		if (!record.timeline_info?.patient_exam?.id) {
+			return;
+		}
 
-		return AnimalTimeline.findByIdAndUpdate(id, {
-			$set: {
-				"timeline_info.photos": cleanPhotos,
-			},
-		});
+		const patientExam = await PatientExamAttachment.query().where(
+			"patient_exam_id",
+			record.timeline_info?.patient_exam?.id,
+		);
+		if (patientExam.length < numericIndex) {
+			return;
+		}
+
+		await patientExam.at(numericIndex)?.softDelete();
 	}
 
 	public async documentIndex(tag: string) {

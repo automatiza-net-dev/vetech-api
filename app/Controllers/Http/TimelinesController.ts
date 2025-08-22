@@ -83,7 +83,10 @@ export default class TimelinesController {
 		response,
 	}: HttpContextContract) {
 		return this.sharedService.errorHoc(response, async () => {
-			await this.timelineService.deleteEvaluationPhoto(params.id, params.index);
+			await this.timelineService.deleteEvaluationPhoto(
+				params.id,
+				params.index,
+			);
 			return response.noContent();
 		});
 	}

@@ -83,10 +83,7 @@ export default class TimelinesController {
 		response,
 	}: HttpContextContract) {
 		return this.sharedService.errorHoc(response, async () => {
-			await this.timelineService.deleteEvaluationPhoto(
-				params.id,
-				params.index,
-			);
+			await this.timelineService.deleteEvaluationPhoto(params.id, params.index);
 			return response.noContent();
 		});
 	}
@@ -301,6 +298,20 @@ export default class TimelinesController {
 			const { id } = params;
 			const payload = await request.validate(UpsertAnimalVaccineValidator);
 			await this.timelineService.updateVaccine(id, payload);
+			return response.noContent();
+		});
+	}
+
+	public async deleteAnimalVaccine({
+		auth,
+		params,
+		response,
+	}: HttpContextContract) {
+		return this.sharedService.errorHoc(response, async () => {
+			await this.timelineService.deleteVaccine(
+				await this.sharedService.getAuthContext(auth),
+				params.id,
+			);
 			return response.noContent();
 		});
 	}

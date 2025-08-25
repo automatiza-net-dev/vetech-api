@@ -35,9 +35,10 @@ import { ICreateObservation } from "Contracts/interfaces/ICreateObservation";
 import { ICreateTimelineDischarge } from "Contracts/interfaces/ICreateTimelineHospitalization";
 import { DateTime } from "luxon";
 import { ObjectId } from "mongoose";
-import { v4 } from "uuid";
+import { v4, validate } from "uuid";
 import Env from "@ioc:Adonis/Core/Env";
 import PatientExamAttachment from "App/Models/PatientExamAttachment";
+import VaccineCalendar from "App/Models/VaccineCalendar";
 
 @inject()
 export default class TimelineService {
@@ -1133,6 +1134,94 @@ export default class TimelineService {
 		await resource.save();
 
 		return resource;
+	}
+
+	public async deleteVaccine(authCtx: AuthContext, id: string) {
+		if (validate(id)) {
+			// postgresql.patient_vaccines.id
+			const pv = await PatientVaccine.query().where("id", id).first();
+			if (!pv) {
+				return;
+			}
+			await this.innerValidateDeleteVaccine(id);
+			await this.innerDeleteVaccine(authCtx, id);
+
+			return;
+		}
+
+		const resource = await AnimalTimeline.findById(id);
+
+		if (!resource) {
+			throw new ResourceNotFoundException("Vaccine not found");
+		}
+
+		if (resource.timeline_info?.patient_vaccine?.id) {
+			await this.innerValidateDeleteVaccine(
+				resource.timeline_info?.patient_vaccine?.id,
+			);
+		}
+
+		await AnimalTimeline.updateOne(
+			{
+				_id: id,
+			},
+			{
+				$set: {
+					"extras.deletedAt": DateTime.now().toJSDate(),
+					"extras.user.id": authCtx.user.id,
+					"extras.user.name": authCtx.user.name,
+					"extras.user.email": authCtx.user.email,
+				},
+			},
+		);
+
+		if (resource.timeline_info?.patient_vaccine?.id) {
+			await this.innerDeleteVaccine(
+				authCtx,
+				resource.timeline_info?.patient_vaccine?.id,
+			);
+		}
+	}
+
+	private async innerValidateDeleteVaccine(id: string) {
+		const appliedVaccines = await VaccineCalendar.query()
+			.where("patient_vaccine_id", id)
+			.whereRaw("application_date is null");
+		if (appliedVaccines.length > 0) {
+			throw new BadRequestException(
+				"Esta vacina possui doses já aplicadas, não é possível excluí-la!",
+				400,
+				"E_ERR",
+			);
+		}
+	}
+
+	private async innerDeleteVaccine(authCtx: AuthContext, id: string) {
+		await AnimalTimeline.updateMany(
+			{
+				"timeline_info.patient_vaccine.id": id,
+			},
+			{
+				$set: {
+					"extras.deletedAt": DateTime.now().toJSDate(),
+					"extras.user.id": authCtx.user.id,
+					"extras.user.name": authCtx.user.name,
+					"extras.user.email": authCtx.user.email,
+				},
+			},
+		);
+
+		await Database.from("patient_vaccines").where("id", id).update({
+			deleted_at: DateTime.now(),
+			exclusion_user_id: authCtx.user.id,
+		});
+
+		await Database.from("vaccine_calendars")
+			.where("patient_vaccine_id", id)
+			.update({
+				deleted_at: DateTime.now(),
+				exclusion_user_id: authCtx.user.id,
+			});
 	}
 
 	public async examIndex(tag: string) {

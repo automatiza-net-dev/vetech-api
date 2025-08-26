@@ -1186,7 +1186,7 @@ export default class TimelineService {
 	private async innerValidateDeleteVaccine(id: string) {
 		const appliedVaccines = await VaccineCalendar.query()
 			.where("patient_vaccine_id", id)
-			.whereRaw("application_date is null");
+			.whereRaw("application_date is not null");
 		if (appliedVaccines.length > 0) {
 			throw new BadRequestException(
 				"Esta vacina possui doses já aplicadas, não é possível excluí-la!",

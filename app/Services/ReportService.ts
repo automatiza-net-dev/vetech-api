@@ -2978,7 +2978,9 @@ ON bills.patient_id = Dep."id"`,
 			)
 			.where("vaccines.system_id", authCtx.system.id)
 			.where("business_units.economic_group_id", authCtx.group.id)
-			.where("vaccines.type", data.type);
+			.where("vaccines.type", data.type)
+			.whereNull("patient_vaccines.deleted_at")
+			.whereNull("vaccine_calendars.deleted_at");
 
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("patient_vaccines.business_unit_id", data.units);

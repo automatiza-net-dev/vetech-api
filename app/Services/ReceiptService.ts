@@ -1,13 +1,14 @@
 import { inject } from "@adonisjs/fold";
-import Hash from "@ioc:Adonis/Core/Hash";
 import { MultipartFileContract } from "@ioc:Adonis/Core/BodyParser";
 import Drive from "@ioc:Adonis/Core/Drive";
+import Hash from "@ioc:Adonis/Core/Hash";
 import Logger from "@ioc:Adonis/Core/Logger";
 import Database, {
 	TransactionClientContract,
 } from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
+import Bill from "App/Models/Bill";
 import BusinessUnit from "App/Models/BusinessUnit";
 import BusinessUnitCheckingAccountPaymentMethod from "App/Models/BusinessUnitCheckingAccountPaymentMethod";
 import { BusinessUnitFiscalDocumentMovementType } from "App/Models/BusinessUnitFiscalDocument";
@@ -30,7 +31,11 @@ import PaymentMethod, {
 	PaymentMethodTef,
 	PaymentMethodUsage,
 } from "App/Models/PaymentMethod";
-import Product, { ProductPurpose, ProductType } from "App/Models/Product";
+import Product, {
+	ProductIcmsOrigin,
+	ProductPurpose,
+	ProductType,
+} from "App/Models/Product";
 import ProductVariation from "App/Models/ProductVariation";
 import Receipt, { TReceiptStatus } from "App/Models/Receipt";
 import ReceiptItem, {
@@ -48,6 +53,7 @@ import TaxationGroupRule, {
 	MovementCategory,
 	MovementType,
 } from "App/Models/TaxationGroupRule";
+import UfIcms from "App/Models/UfIcms";
 import User from "App/Models/User";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import { GenerateTag } from "App/Utils/GenerateTag";
@@ -56,8 +62,6 @@ import { Decimal } from "decimal.js";
 import { DateTime } from "luxon";
 import xmlParser from "xml2json";
 import { z } from "zod";
-import Bill from "App/Models/Bill";
-import UfIcms from "App/Models/UfIcms";
 
 const detSchema = z.object({
 	prod: z.object({
@@ -846,9 +850,12 @@ export default class ReceiptService {
 				brandId?: string;
 				productVariationId: string;
 
-				fractioned?: boolean;
-				fractionUnitId?: string;
-				fractionValue?: number;
+				// fractioned?: boolean;
+				// fractionUnitId?: string;
+				// fractionValue?: number;
+				ncm?: string;
+				cest?: string;
+				icmsOrigin: (typeof ProductIcmsOrigin)[number];
 				referenceCode?: string;
 				purpose: ProductPurpose;
 				barcode?: string;
@@ -881,12 +888,15 @@ export default class ReceiptService {
 						subgroup_id: item.subgroupId,
 						taxation_group_id: item.taxationGroupId,
 						brand_id: item.brandId,
-						fraction_unit_id: item.fractionUnitId,
+						// fraction_unit_id: item.fractionUnitId,
 
-						fractioned: item.fractioned,
-						fractionValue: item.fractionValue
-							? new Decimal(item.fractionValue)
-							: undefined,
+						// fractioned: item.fractioned,
+						// fractionValue: item.fractionValue
+						// 	? new Decimal(item.fractionValue)
+						// 	: undefined,
+						icmsOrigin: item.icmsOrigin,
+						ncm: item.ncm,
+						cest: item.cest,
 						description: item.productDescription,
 						referenceCode: item.referenceCode,
 						purpose: item.purpose,
@@ -1074,7 +1084,9 @@ export default class ReceiptService {
 				.whereHas("variations", (query) => {
 					query.whereNot("barcode", "SEM GTIN");
 				})
-				.preload("variations");
+				.preload("variations", (query) => {
+					query.whereNot("barcode", "SEM GTIN");
+				});
 
 			const supplierProducts = await SupplierProduct.query()
 				.useTransaction(trx)
@@ -1084,6 +1096,7 @@ export default class ReceiptService {
 					query.whereNot("barcode", "SEM GTIN");
 				})
 				.preload("productVariation", (query) => {
+					query.whereNot("barcode", "SEM GTIN");
 					query.preload("product");
 				});
 

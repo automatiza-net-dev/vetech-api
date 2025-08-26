@@ -3,7 +3,7 @@ import { DateTime } from "luxon";
 
 export type IPatientEvaluation = {
 	patientId: string;
-	resume: string;
+	resume?: string;
 	protocol: string;
 	realizedAt: DateTime;
 	technicianId: string;

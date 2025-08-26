@@ -2308,6 +2308,638 @@ case when p.control_id = 'TRC11' then 'Usuário não possui permissão para reti
 		}));
 	}
 
+	async getControlResumeOptional(
+		authCtx: AuthContext,
+		data: ISearch & {
+			tefFlagId?: string;
+			tefAcquirerId?: string;
+			iterationDateFrom?: string;
+			iterationDateTo?: string;
+		},
+	) {
+		if (
+			!data.checkingAccountId ||
+			!data.iterationDateFrom ||
+			!data.iterationDateTo
+		) {
+			return {
+				saldoinicial: "-",
+				saldofinal: "-",
+				saldoconta: "-",
+			};
+		}
+
+		const rowsQb = Database.from("finances")
+			.select(
+				Database.raw(
+					`ca.id                                as idConta,
+       ca.description                       as descricaoConta,
+       ca.balance                           as saldoConta,
+       coalesce(sum(
+                        case
+                            when ((payment_date is not null and payment_date <= ?) or
+                                  (payment_date is null and expiration_date <= ?)) and
+                                 finances.type = 'CREDITO' then coalesce(finances.total_value, 0)
+                            else 0 end
+                            -
+                        case
+                            when ((payment_date is not null and payment_date <= ?) or
+                                  (payment_date is null and expiration_date <= ?)) and
+                                 finances.type = 'DEBITO' then coalesce(finances.total_value, 0)
+                            else 0 end), 0) as saldoInicial,
+       coalesce(sum(
+                        case
+                            when ((payment_date is not null and payment_date <= ?) or
+                                  (payment_date is null and expiration_date <= ?)) and
+                                 finances.type = 'CREDITO' then coalesce(finances.total_value, 0)
+                            else 0 end
+                            -
+                        case
+                            when ((payment_date is not null and payment_date <= ?) or
+                                  (payment_date is null and expiration_date <= ?)) and
+                                 finances.type = 'DEBITO' then coalesce(finances.total_value, 0)
+                            else 0 end), 0) as saldoFinal`,
+					[
+						data.iterationDateFrom,
+						data.iterationDateFrom,
+						data.iterationDateFrom,
+						data.iterationDateFrom,
+						data.iterationDateTo,
+						data.iterationDateTo,
+						data.iterationDateTo,
+						data.iterationDateTo,
+					],
+				),
+			)
+			.joinRaw(
+				"join checking_accounts ca on finances.checking_account_id = ca.id",
+			)
+			.whereRaw("finances.economic_group_id = ?", [authCtx.group.id])
+			.whereRaw("finances.business_unit_id = ?", [authCtx.unit.id]);
+
+		if (data.iterationDateFrom && data.iterationDateTo) {
+			rowsQb.whereRaw(
+				`((payment_date is not null and payment_date::date <= ?) or
+       (payment_date is null and expiration_date::date <= ?))`,
+				[data.iterationDateTo, data.iterationDateTo],
+			);
+		}
+
+		if (data.fromIssueDate) {
+			rowsQb.whereRaw("finances.issue_date::date >= ?", [data.fromIssueDate]);
+		}
+
+		if (data.toIssueDate) {
+			rowsQb.whereRaw("finances.issue_date::date <= ?", [data.toIssueDate]);
+		}
+
+		if (data.internalCode) {
+			rowsQb.whereRaw("finances.internal_code ilike ?", [
+				`%${data.internalCode}%`,
+			]);
+		}
+
+		if (data.historic) {
+			rowsQb.whereRaw("finances.historic ilike ?", [`%${data.historic}%`]);
+		}
+
+		if (data.fromExpirationDate) {
+			rowsQb.whereRaw("finances.expiration_date::date >= ?", [
+				data.fromExpirationDate,
+			]);
+		}
+
+		if (data.toExpirationDate) {
+			rowsQb.whereRaw("finances.expiration_date::date <= ?", [
+				data.toExpirationDate,
+			]);
+		}
+
+		if (data.fromPaymentDate) {
+			rowsQb.whereRaw("finances.payment_date::date >= ?", [
+				data.fromPaymentDate,
+			]);
+		}
+
+		if (data.toPaymentDate) {
+			rowsQb.whereRaw("finances.payment_date::date <= ?", [data.toPaymentDate]);
+		}
+
+		if (data.fromAcceptDate && data.toAcceptDate) {
+			rowsQb.whereRaw("finances.accepted_date::date between ? and ?", [
+				data.fromAcceptDate,
+				data.toAcceptDate,
+			]);
+		}
+
+		if (data.client) {
+			rowsQb.where("finances.client_id", data.client);
+		}
+
+		if (data.document) {
+			rowsQb.whereILike("finances.document", `%${data.document}%`);
+		}
+
+		if (data.fiscalNote) {
+			rowsQb.whereILike("finances.fiscal_note", `%${data.fiscalNote}%`);
+		}
+
+		if (data.paymentMethod) {
+			rowsQb.where("finances.payment_method_id", data.paymentMethod);
+		}
+
+		if (data.nsu) {
+			rowsQb.where("finances.nsu_document", data.nsu);
+		}
+
+		if (data.status) {
+			rowsQb.where("finances.status", data.status);
+		} else {
+			rowsQb.whereNot("finances.status", FinanceStatus.E);
+		}
+
+		if (data.accept) {
+			rowsQb.where("finances.accept", data.accept);
+		}
+
+		if (data.reconciled) {
+			rowsQb.where("finances.reconciled", data.reconciled === "true");
+		}
+
+		if (data.type) {
+			rowsQb.where("finances.type", data.type);
+		}
+
+		if (data.plan) {
+			rowsQb.where("finances.account_plan_id", data.plan);
+		}
+
+		if (data.competence) {
+			rowsQb.where("finances.competence_date", data.competence);
+		}
+
+		if (data.tefFlagId) {
+			rowsQb.where("finances.tef_flag_id", data.tefFlagId);
+		}
+
+		if (data.tefAcquirerId) {
+			rowsQb.where("finances.acquirer_id", data.tefAcquirerId);
+		}
+
+		if (data.checkingAccountId) {
+			rowsQb.where("finances.checking_account_id", data.checkingAccountId);
+		}
+
+		const result: {
+			idconta: string;
+			descricaoconta: string;
+			saldoconta: number;
+			saldoinicial: number;
+			saldofinal: number;
+		}[] = await rowsQb.groupByRaw("ca.id, ca.description, ca.balance");
+
+		if (result.length === 0) {
+			return { saldoinicial: "S/R", saldofinal: "S/R", saldoconta: "S/R" };
+		}
+
+		const row = result[0];
+		return {
+			saldoinicial: this.sharedService.formatter.format(row.saldoinicial),
+			saldofinal: this.sharedService.formatter.format(row.saldofinal),
+			saldoconta: this.sharedService.formatter.format(row.saldoconta),
+		};
+	}
+
+	async getControlResume(
+		authCtx: AuthContext,
+		data: ISearch & {
+			tefFlagId?: string;
+			tefAcquirerId?: string;
+			iterationDateFrom?: string;
+			iterationDateTo?: string;
+		},
+	) {
+		const rowsQb = Database.from("titulos")
+			.select(
+				Database.raw(`sum(creditoTotal)    as creditoTotal,
+       sum(creditoAberto)   as creditoAberto,
+       sum(creditoRecebido) as creditoRecebido,
+       sum(debitoTotal)     as debitoTotal,
+       sum(debitoAberto)    as debitoAberto,
+       sum(debitoPago)      as debitoPago`),
+			)
+			.with("titulos", (cteQb) => {
+				cteQb
+					.from("finances")
+					.select(
+						Database.raw(`coalesce(sum(case when type = 'CREDITO' then coalesce(total_value, 0) else 0 end), 0) as creditoTotal,
+       coalesce(sum(case
+                        when (type = 'CREDITO' and (config -> 'businessUnits' ->> 'balance_control' = 'realizado') and
+                              payment_date is null)
+                            or
+                             (type = 'CREDITO' and (config -> 'businessUnits' ->> 'balance_control' <> 'realizado') and
+                              expiration_date::date >= now()::date) then coalesce(total_value, 0)
+                        else 0 end),
+                0)                                                                           as creditoAberto,
+       coalesce(sum(case
+                        when (type = 'CREDITO' and (config -> 'businessUnits' ->> 'balance_control' = 'realizado') and
+                              payment_date is not null)
+                            or
+                             (type = 'CREDITO' and (config -> 'businessUnits' ->> 'balance_control' <> 'realizado') and
+                              expiration_date::date < now()::date) then coalesce(total_value, 0)
+                        else 0 end),
+                0)                                                                           as creditoRecebido,
+       coalesce(sum(case when type = 'DEBITO' then coalesce(total_value, 0) else 0 end),
+                0)                                                                           as debitoTotal,
+       coalesce(sum(case when type = 'DEBITO' and payment_date is null then coalesce(total_value, 0) else 0 end),
+                0)                                                                           as debitoAberto,
+       coalesce(sum(case when type = 'DEBITO' and payment_date is not null then coalesce(total_value, 0) else 0 end),
+                0)                                                                           as debitoPago`),
+					)
+					.joinRaw(
+						"join business_unit_configs buc on finances.business_unit_id = buc.business_unit_id",
+					)
+					.whereRaw("economic_group_id = ?", [authCtx.group.id])
+					.whereRaw("finances.business_unit_id = ?", [authCtx.unit.id])
+					.whereRaw("finances.deleted_at is null", [])
+					.whereRaw("finances.bordero_id is null", []);
+
+				if (data.iterationDateFrom && data.iterationDateTo) {
+					cteQb.whereRaw(
+						`((payment_date is not null and payment_date::date between ? and ?) or
+       (payment_date is null and expiration_date::date between ? and ?))`,
+						[
+							data.iterationDateFrom,
+							data.iterationDateTo,
+							data.iterationDateFrom,
+							data.iterationDateTo,
+						],
+					);
+				}
+
+				if (data.fromIssueDate) {
+					cteQb.whereRaw("finances.issue_date::date >= ?", [
+						data.fromIssueDate,
+					]);
+				}
+
+				if (data.toIssueDate) {
+					cteQb.whereRaw("finances.issue_date::date <= ?", [data.toIssueDate]);
+				}
+
+				if (data.internalCode) {
+					cteQb.whereRaw("finances.internal_code ilike ?", [
+						`%${data.internalCode}%`,
+					]);
+				}
+
+				if (data.historic) {
+					cteQb.whereRaw("finances.historic ilike ?", [`%${data.historic}%`]);
+				}
+
+				if (data.fromExpirationDate) {
+					cteQb.whereRaw("finances.expiration_date::date >= ?", [
+						data.fromExpirationDate,
+					]);
+				}
+
+				if (data.toExpirationDate) {
+					cteQb.whereRaw("finances.expiration_date::date <= ?", [
+						data.toExpirationDate,
+					]);
+				}
+
+				if (data.fromPaymentDate) {
+					cteQb.whereRaw("finances.payment_date::date >= ?", [
+						data.fromPaymentDate,
+					]);
+				}
+
+				if (data.toPaymentDate) {
+					cteQb.whereRaw("finances.payment_date::date <= ?", [
+						data.toPaymentDate,
+					]);
+				}
+
+				if (data.fromAcceptDate && data.toAcceptDate) {
+					cteQb.whereRaw("finances.accepted_date::date between ? and ?", [
+						data.fromAcceptDate,
+						data.toAcceptDate,
+					]);
+				}
+
+				if (data.client) {
+					cteQb.where("finances.client_id", data.client);
+				}
+
+				if (data.document) {
+					cteQb.whereILike("finances.document", `%${data.document}%`);
+				}
+
+				if (data.fiscalNote) {
+					cteQb.whereILike("finances.fiscal_note", `%${data.fiscalNote}%`);
+				}
+
+				if (data.paymentMethod) {
+					cteQb.where("finances.payment_method_id", data.paymentMethod);
+				}
+
+				if (data.nsu) {
+					cteQb.where("finances.nsu_document", data.nsu);
+				}
+
+				if (data.status) {
+					cteQb.where("finances.status", data.status);
+				} else {
+					cteQb.whereNot("finances.status", FinanceStatus.E);
+				}
+
+				if (data.accept) {
+					cteQb.where("finances.accept", data.accept);
+				}
+
+				if (data.reconciled) {
+					cteQb.where("finances.reconciled", data.reconciled === "true");
+				}
+
+				if (data.type) {
+					cteQb.where("finances.type", data.type);
+				}
+
+				if (data.plan) {
+					cteQb.where("finances.account_plan_id", data.plan);
+				}
+
+				if (data.competence) {
+					cteQb.where("finances.competence_date", data.competence);
+				}
+
+				if (data.tefFlagId) {
+					cteQb.where("finances.tef_flag_id", data.tefFlagId);
+				}
+
+				if (data.tefAcquirerId) {
+					cteQb.where("finances.acquirer_id", data.tefAcquirerId);
+				}
+
+				if (data.checkingAccountId) {
+					cteQb.where("finances.checking_account_id", data.checkingAccountId);
+				}
+
+				cteQb.union((unionQb) => {
+					unionQb
+						.from("borderos")
+						.select(
+							Database.raw(`coalesce(sum(case when type = 'Credito' then coalesce(total_value, 0) else 0 end),
+                                 0) as creditoTotal,
+                        coalesce(sum(case
+                                         when (type = 'Credito' and
+                                               (config -> 'businessUnits' ->> 'balance_control' = 'realizado') and
+                                               payment_date is null)
+                                             or
+                                              (type = 'Credito' and
+                                               (config -> 'businessUnits' ->> 'balance_control' <> 'realizado') and
+                                               expiration_date::date >= now()::date) then coalesce(total_value, 0)
+                                         else 0 end),
+                                 0) as creditoAberto,
+                        coalesce(sum(case
+                                         when (type = 'Credito' and
+                                               (config -> 'businessUnits' ->> 'balance_control' = 'realizado') and
+                                               payment_date is not null)
+                                             or
+                                              (type = 'Credito' and
+                                               (config -> 'businessUnits' ->> 'balance_control' <> 'realizado') and
+                                               expiration_date::date < now()::date) then coalesce(total_value, 0)
+                                         else 0 end),
+                                 0) as creditoRecebido,
+                        coalesce(sum(case when type = 'Debito' then coalesce(total_value, 0) else 0 end),
+                                 0) as debitoTotal,
+                        coalesce(sum(case
+                                         when type = 'Debito' and payment_date is null then coalesce(total_value, 0)
+                                         else 0 end),
+                                 0) as debitoAberto,
+                        coalesce(sum(case
+                                         when type = 'Debito' and payment_date is not null then coalesce(total_value, 0)
+                                         else 0 end),
+                                 0) as debitoPago`),
+						)
+						.joinRaw(
+							"join business_unit_configs buc on borderos.business_unit_id = buc.business_unit_id",
+						)
+						.whereIn("borderos.business_unit_id", [authCtx.unit.id])
+						.whereRaw("borderos.deleted_at is null", []);
+
+					if (data.iterationDateFrom && data.iterationDateTo) {
+						unionQb.whereRaw(
+							`((payment_date is not null and payment_date::date between ? and ?) or
+       (payment_date is null and expiration_date::date between ? and ?))`,
+							[
+								data.iterationDateFrom,
+								data.iterationDateTo,
+								data.iterationDateFrom,
+								data.iterationDateTo,
+							],
+						);
+					}
+
+					if (data.fromIssueDate) {
+						unionQb.whereRaw("borderos.issue_date::date >= ?", [
+							data.fromIssueDate,
+						]);
+					}
+
+					if (data.toIssueDate) {
+						unionQb.whereRaw("borderos.issue_date::date <= ?", [
+							data.toIssueDate,
+						]);
+					}
+
+					if (data.internalCode) {
+						unionQb.whereRaw("borderos.internal_code ilike ?", [
+							`%${data.internalCode}%`,
+						]);
+					}
+
+					if (data.historic) {
+						unionQb.whereRaw("borderos.historic ilike ?", [
+							`%${data.historic}%`,
+						]);
+					}
+
+					if (data.fromExpirationDate) {
+						unionQb.whereRaw("borderos.expiration_date::date >= ?", [
+							data.fromExpirationDate,
+						]);
+					}
+
+					if (data.toExpirationDate) {
+						unionQb.whereRaw("borderos.expiration_date::date <= ?", [
+							data.toExpirationDate,
+						]);
+					}
+
+					if (data.fromPaymentDate) {
+						unionQb.whereRaw("borderos.payment_date::date >= ?", [
+							data.fromPaymentDate,
+						]);
+					}
+
+					if (data.toPaymentDate) {
+						unionQb.whereRaw("borderos.payment_date::date <= ?", [
+							data.toPaymentDate,
+						]);
+					}
+
+					if (data.fromAcceptDate && data.toAcceptDate) {
+						unionQb.whereRaw("borderos.accepted_date::date between ? and ?", [
+							data.fromAcceptDate,
+							data.toAcceptDate,
+						]);
+					}
+
+					if (data.client) {
+						unionQb.where("borderos.client_id", data.client);
+					}
+
+					if (data.document) {
+						unionQb.whereILike("borderos.document", `%${data.document}%`);
+					}
+
+					if (data.fiscalNote) {
+						unionQb.whereILike("borderos.fiscal_note", `%${data.fiscalNote}%`);
+					}
+
+					if (data.paymentMethod) {
+						unionQb.where("borderos.payment_method_id", data.paymentMethod);
+					}
+
+					if (data.nsu) {
+						unionQb.where("borderos.nsu_document", data.nsu);
+					}
+
+					if (data.status) {
+						unionQb.where("borderos.status", data.status);
+					} else {
+						unionQb.whereNot("borderos.status", FinanceStatus.E);
+					}
+
+					if (data.accept) {
+						unionQb.where("borderos.accept", data.accept);
+					}
+
+					if (data.reconciled) {
+						unionQb.where("borderos.reconciled", data.reconciled === "true");
+					}
+
+					if (data.type) {
+						unionQb.where("borderos.type", data.type);
+					}
+
+					if (data.plan) {
+						unionQb.where("borderos.account_plan_id", data.plan);
+					}
+
+					if (data.competence) {
+						unionQb.where("borderos.competence_date", data.competence);
+					}
+
+					if (data.tefFlagId) {
+						unionQb.where("borderos.tef_flag_id", data.tefFlagId);
+					}
+
+					if (data.tefAcquirerId) {
+						unionQb.where("borderos.acquirer_id", data.tefAcquirerId);
+					}
+
+					if (data.checkingAccountId) {
+						unionQb.where(
+							"borderos.checking_account_id",
+							data.checkingAccountId,
+						);
+					}
+				});
+			});
+
+		const result: {
+			creditototal: number;
+			creditoaberto: number;
+			creditorecebido: number;
+			debitototal: number;
+			debitoaberto: number;
+			debitopago: number;
+		}[] = await rowsQb;
+
+		if (result.length === 0) {
+			return [
+				{
+					label: "Total Credito Periodo",
+					value: "-",
+				},
+				{
+					label: "Recebido Periodo",
+					value: "-",
+				},
+				{
+					label: "A Receber Periodo",
+					value: "-",
+				},
+				{
+					label: "Total Debito Periodo",
+					value: "-",
+				},
+				{
+					label: "Pago Periodo",
+					value: "-",
+				},
+				{
+					label: "A Pagar Periodo",
+					value: "-",
+				},
+			];
+		}
+
+		const opt = await this.getControlResumeOptional(authCtx, data);
+		const row = result[0];
+		return [
+			{
+				label: "Total Credito Periodo",
+				value: this.sharedService.formatter.format(row.creditototal),
+			},
+			{
+				label: "Recebido Periodo",
+				value: this.sharedService.formatter.format(row.creditorecebido),
+			},
+			{
+				label: "A Receber Periodo",
+				value: this.sharedService.formatter.format(row.creditoaberto),
+			},
+			{
+				label: "Total Debito Periodo",
+				value: this.sharedService.formatter.format(row.debitototal),
+			},
+			{
+				label: "Pago Periodo",
+				value: this.sharedService.formatter.format(row.debitopago),
+			},
+			{
+				label: "A Pagar Periodo",
+				value: this.sharedService.formatter.format(row.debitoaberto),
+			},
+			{
+				label: "Saldo Inicial Periodo",
+				value: opt.saldoinicial,
+			},
+			{
+				label: "Saldo Final Periodo",
+				value: opt.saldofinal,
+			},
+			{
+				label: "Saldo Atual C/C",
+				value: opt.saldoconta,
+			},
+		];
+	}
+
 	async getCheckingAccountsResume(authCtx: AuthContext) {
 		const hasPermission = await this.sharedService.userHasPermission(
 			authCtx,

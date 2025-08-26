@@ -302,6 +302,20 @@ export default class TimelinesController {
 		});
 	}
 
+	public async deleteAnimalVaccine({
+		auth,
+		params,
+		response,
+	}: HttpContextContract) {
+		return this.sharedService.errorHoc(response, async () => {
+			await this.timelineService.deleteVaccine(
+				await this.sharedService.getAuthContext(auth),
+				params.id,
+			);
+			return response.noContent();
+		});
+	}
+
 	public async animalExamIndex({ params, response }: HttpContextContract) {
 		return response.ok(await this.timelineService.examIndex(params.id));
 	}

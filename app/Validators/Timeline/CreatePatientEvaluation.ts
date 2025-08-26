@@ -6,7 +6,7 @@ export default class CreatePatientEvaluationValidator {
 
 	public schema = schema.create({
 		patientId: schema.string({}, [rules.uuid()]),
-		resume: schema.string(),
+		resume: schema.string.optional(),
 		protocol: schema.string(),
 		realizedAt: schema.date(),
 		observation: schema.string.optional(),

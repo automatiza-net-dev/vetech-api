@@ -108,8 +108,15 @@ export default class BankingService {
 				trx,
 			);
 
-			const checkingAccount = await CheckingAccount.findOrFail(
-				data.checkingAccountId,
+			const fromCheckingAccount = await CheckingAccount.findOrFail(
+				data.fromCheckingAccountId,
+				{
+					client: trx,
+				},
+			);
+
+			const toCheckingAccount = await CheckingAccount.findOrFail(
+				data.toCheckingAccountId,
 				{
 					client: trx,
 				},
@@ -130,9 +137,9 @@ export default class BankingService {
 					business_unit_id: authCtx.unit.id,
 					client_id: data.clientId,
 					type: data.type === BankingType.C ? FinanceType.C : FinanceType.D,
-					account_plan_id: data.accountPlanId,
+					account_plan_id: data.fromAccountPlanId,
 					payment_method_id: data.paymentMethodId,
-					checking_account_id: data.checkingAccountId,
+					checking_account_id: data.fromCheckingAccountId,
 					daily_movement_id: dailyMovement?.id,
 					daily_cashier_id: dailyCashier?.id,
 
@@ -147,8 +154,8 @@ export default class BankingService {
 					accept: FinanceAccept.S,
 					installment:
 						typeof data.installment !== "undefined" ? data.installment : 1,
-					originFlag: FinanceOriginFlag.B,
-					originDownFlag: FinanceOriginDownFlag.B,
+					originFlag: FinanceOriginFlag.F,
+					originDownFlag: FinanceOriginDownFlag.F,
 					downDate: data.issueDate,
 					paymentValue: total,
 					feeValue: data.feeValue,
@@ -173,24 +180,82 @@ export default class BankingService {
 				},
 			);
 
-			const existingBankingsBefore = await Banking.query()
-				.where("economic_group_id", authCtx.group.id)
-				.whereRaw("issue_date::date <= ?", [data.issueDate.toJSDate()])
-				.where("checking_account_id", data.checkingAccountId)
-				.limit(1)
-				.orderBy("issue_date", "desc");
-			const prevBalance = existingBankingsBefore.at(0)?.balance ?? 0;
-
-			await Database.rawQuery(
-				`update bankings set prev_balance = prev_balance ${
-					data.type === BankingType.C ? `+ ${total}` : `- ${total}`
-				}, balance = balance ${
-					data.type === BankingType.C ? `+ ${total}` : `- ${total}`
-				} where checking_account_id = :id and issue_date::date > ${`'${data.issueDate}'::date`}`,
+			const finance2 = await Finance.create(
 				{
-					id: data.checkingAccountId,
+					user_id: authCtx.user.id,
+					economic_group_id: authCtx.group.id,
+					business_unit_id: authCtx.unit.id,
+					client_id: data.clientId,
+					type: data.type === BankingType.C ? FinanceType.D : FinanceType.C,
+					account_plan_id: data.toAccountPlanId,
+					payment_method_id: data.paymentMethodId,
+					checking_account_id: data.toCheckingAccountId,
+					daily_movement_id: dailyMovement?.id,
+					daily_cashier_id: dailyCashier?.id,
+					origin_id: finance.id,
+
+					document: data.document,
+					historic: data.historic,
+					issueDate: data.issueDate.plus({ hours: 3 }),
+					expirationDate: data.issueDate,
+					paymentDate: data.issueDate,
+					originalValue: data.documentValue,
+					value: data.documentValue,
+					totalValue: total,
+					accept: FinanceAccept.S,
+					installment:
+						typeof data.installment !== "undefined" ? data.installment : 1,
+					originFlag: FinanceOriginFlag.F,
+					originDownFlag: FinanceOriginDownFlag.F,
+					downDate: data.issueDate,
+					paymentValue: total,
+					feeValue: data.feeValue,
+					feePercentage: data.feePercentage,
+					discountValue: data.discountValue,
+					discountPercentage: data.discountPercentage,
+					additionValue: 0,
+					additionPercentage: 0,
+					status: FinanceStatus.B,
+					feeDiscountPercentage: paymentMethod.fee,
+					feeDiscountValue: discount,
+					observation: data.observation,
+					competenceDate: data.competenceDate,
+					fiscalNote: data.fiscalNote,
+					userDocument: data.userDocument,
+					nsuDocument: data.nsuDocument,
+					barCode: data.barCode,
+					qtyInstallments: 1,
 				},
-			).useTransaction(trx);
+				{
+					client: trx,
+				},
+			);
+
+			await finance
+				.merge({
+					origin_id: finance2.id,
+				})
+				.useTransaction(trx)
+				.save();
+
+			// const existingBankingsBefore = await Banking.query()
+			// 	.where("economic_group_id", authCtx.group.id)
+			// 	.whereRaw("issue_date::date <= ?", [data.issueDate.toJSDate()])
+			// 	.where("checking_account_id", data.checkingAccountId)
+			// 	.limit(1)
+			// 	.orderBy("issue_date", "desc");
+			// const prevBalance = existingBankingsBefore.at(0)?.balance ?? 0;
+			//
+			// await Database.rawQuery(
+			// 	`update bankings set prev_balance = prev_balance ${
+			// 		data.type === BankingType.C ? `+ ${total}` : `- ${total}`
+			// 	}, balance = balance ${
+			// 		data.type === BankingType.C ? `+ ${total}` : `- ${total}`
+			// 	} where checking_account_id = :id and issue_date::date > ${`'${data.issueDate}'::date`}`,
+			// 	{
+			// 		id: data.checkingAccountId,
+			// 	},
+			// ).useTransaction(trx);
 
 			// const existingBankingsAfter = await Banking.query()
 			//   .where('economic_group_id', group.id)
@@ -220,73 +285,83 @@ export default class BankingService {
 			//   await Promise.all(promises);
 			// }
 
-			const banking = await Banking.create(
-				{
-					economic_group_id: authCtx.group.id,
-					business_unit_id: authCtx.unit.id,
-					client_id: data.clientId,
-					account_plan_id: data.accountPlanId,
-					payment_method_id: data.paymentMethodId,
-					checking_account_id: data.checkingAccountId,
-					daily_movement_id: dailyMovement?.id,
-					daily_cashier_id: dailyCashier?.id,
-					finance_id: finance.id,
-					tef_flag_id: data.tefFlagId,
-					acquirer_id: data.acquirerId,
+			// const banking = await Banking.create(
+			// 	{
+			// 		economic_group_id: authCtx.group.id,
+			// 		business_unit_id: authCtx.unit.id,
+			// 		client_id: data.clientId,
+			// 		account_plan_id: data.accountPlanId,
+			// 		payment_method_id: data.paymentMethodId,
+			// 		checking_account_id: data.checkingAccountId,
+			// 		daily_movement_id: dailyMovement?.id,
+			// 		daily_cashier_id: dailyCashier?.id,
+			// 		finance_id: finance.id,
+			// 		tef_flag_id: data.tefFlagId,
+			// 		acquirer_id: data.acquirerId,
+			//
+			// 		type: data.type,
+			// 		document: data.document,
+			// 		historic: data.historic,
+			// 		issueDate: data.issueDate,
+			// 		documentValue: data.documentValue,
+			// 		feeValue: data.feeValue,
+			// 		feePercentage: data.feePercentage,
+			// 		discountValue: data.discountValue,
+			// 		discountPercentage: data.discountPercentage,
+			// 		reconciled: data.reconciled,
+			// 		installment: data.installment,
+			// 		originFlag: data.originFlag,
+			//
+			// 		observation: data.observation,
+			//
+			// 		totalValue: total,
+			// 		status: BankingStatus.B,
+			// 		prevBalance,
+			// 		balance:
+			// 			data.type === BankingType.C
+			// 				? prevBalance + total
+			// 				: prevBalance - total,
+			// 		paymentMethodDiscountPercentage: paymentMethod.fee,
+			// 		paymentMethodDiscountValue: discount,
+			// 		competenceDate: data.competenceDate,
+			// 		fiscalNote: data.fiscalNote,
+			// 		userDocument: data.userDocument,
+			// 		nsuDocument: data.nsuDocument,
+			// 		barCode: data.barCode,
+			// 	},
+			// 	{
+			// 		client: trx,
+			// 	},
+			// );
 
-					type: data.type,
-					document: data.document,
-					historic: data.historic,
-					issueDate: data.issueDate,
-					documentValue: data.documentValue,
-					feeValue: data.feeValue,
-					feePercentage: data.feePercentage,
-					discountValue: data.discountValue,
-					discountPercentage: data.discountPercentage,
-					reconciled: data.reconciled,
-					installment: data.installment,
-					originFlag: data.originFlag,
+			// await finance
+			// 	.merge({
+			// 		banking_id: banking.id,
+			// 	})
+			// 	.useTransaction(trx)
+			// 	.save();
 
-					observation: data.observation,
-
-					totalValue: total,
-					status: BankingStatus.B,
-					prevBalance,
+			await fromCheckingAccount
+				.merge({
 					balance:
 						data.type === BankingType.C
-							? prevBalance + total
-							: prevBalance - total,
-					paymentMethodDiscountPercentage: paymentMethod.fee,
-					paymentMethodDiscountValue: discount,
-					competenceDate: data.competenceDate,
-					fiscalNote: data.fiscalNote,
-					userDocument: data.userDocument,
-					nsuDocument: data.nsuDocument,
-					barCode: data.barCode,
-				},
-				{
-					client: trx,
-				},
-			);
-
-			await finance
-				.merge({
-					banking_id: banking.id,
+							? fromCheckingAccount.balance + total
+							: fromCheckingAccount.balance - total,
 				})
 				.useTransaction(trx)
 				.save();
 
-			await checkingAccount
+			await toCheckingAccount
 				.merge({
 					balance:
 						data.type === BankingType.C
-							? checkingAccount.balance + total
-							: checkingAccount.balance - total,
+							? toCheckingAccount.balance - total
+							: toCheckingAccount.balance + total,
 				})
 				.useTransaction(trx)
 				.save();
 
-			return banking;
+			return finance;
 		});
 	}
 
@@ -330,7 +405,7 @@ export default class BankingService {
 		banking
 			.merge({
 				client_id: data.clientId,
-				account_plan_id: data.accountPlanId,
+				account_plan_id: data.fromAccountPlanId,
 				payment_method_id: data.paymentMethodId,
 				checking_account_id: data.checkingAccountId,
 				daily_movement_id: dailyMovement?.id,

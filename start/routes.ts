@@ -644,6 +644,7 @@ Route.group(() => {
 		Route.get("/:id", "TimelinesController.animalVaccineIndex");
 		Route.post("/", "TimelinesController.animalVaccineStore");
 		Route.put("/:id", "TimelinesController.updateAnimalVaccine");
+		Route.delete("/:id", "TimelinesController.deleteAnimalVaccine");
 	}).prefix("vaccines");
 
 	Route.group(() => {
@@ -957,6 +958,7 @@ Route.group(() => {
 	Route.get("/balance", "FinancesController.accountBalance");
 	Route.get("/reduced", "FinancesController.reducedIndex");
 	Route.get("/grouped", "FinancesController.groupedIndex");
+	Route.get("/control-resume", "FinancesController.getControlResume");
 	Route.get("/payment-group", "FinancesController.byPaymentGroup");
 	Route.get("/", "FinancesController.index");
 	Route.post("/create", "FinancesController.storeFinance");

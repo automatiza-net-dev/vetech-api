@@ -1,4 +1,5 @@
 import { exec } from "node:child_process";
+import { extname } from "node:path";
 import { writeFile } from "node:fs/promises";
 import Application from "@ioc:Adonis/Core/Application";
 import Drive from "@ioc:Adonis/Core/Drive";
@@ -254,8 +255,9 @@ export default class TemplateReplacementService {
 				exec(
 					`python3 ${Env.get(
 						"DOCX_RESOLVER_PATH",
-					)} ${fullInputPath} ${fullResolvedInputPath} '${JSON.stringify(templates.filter((f) => f.complex).map((f) => f.replacer))}'`,
+					)} ${fullInputPath} ${fullResolvedInputPath} '${JSON.stringify(templates.filter((f) => f.complex).map((f) => f.replacer))}' '${JSON.stringify(templates.filter((f) => f.signature).map((f) => f.replacer))}'`,
 					(error, _stdout, _stderr) => {
+						// console.log({ _stdout, _stderr });
 						if (error) {
 							console.error(error);
 							// return rej(false);
@@ -270,11 +272,13 @@ export default class TemplateReplacementService {
 				throw new BadRequestException("Erro corrigindo arquivo", 500, "");
 			}
 
+			console.log(await this.reverseTextTemplateData(textData, templates));
+
 			// create report from docx template
 			// const _template = await readFile(fullInputPath);
 			const buffer = await createReport({
 				template: await readFile(fullResolvedInputPath),
-				data: this.reverseTextTemplateData(textData, templates),
+				data: await this.reverseTextTemplateData(textData, templates),
 				cmdDelimiter: ["[", "]"],
 				failFast: false,
 				errorHandler: (idk) => {
@@ -285,10 +289,13 @@ export default class TemplateReplacementService {
 
 					return "(Valor não encontrado)";
 				},
-				runJs: (o: {
-					sandbox: SandBox;
-					ctx: Context;
-				}) => {
+				additionalJsContext: {
+					getImageObject: (base64data: any) => {
+						const data = base64data;
+						return { width: 8.8, height: 3, data, extension: ".png" };
+					},
+				},
+				runJs: (o: { sandbox: SandBox; ctx: Context }) => {
 					const newSandbox = Object.assign({}, o.sandbox);
 
 					if (!o.sandbox[o.sandbox.__code__ ?? "$"]) {
@@ -331,10 +338,14 @@ export default class TemplateReplacementService {
 		};
 	}
 
-	reverseTextTemplateData(
+	async reverseTextTemplateData(
 		data: RenderTextData,
 		templates: TemplateReplacement[],
 	) {
+		const signatureBuffer = data.USER?.signature_image_path
+			? await Drive.use("s3").get(data.USER.signature_image_path)
+			: null;
+
 		return templates.reduce(
 			(map, templ) => {
 				const elem = data[templ.origin];
@@ -352,6 +363,19 @@ export default class TemplateReplacementService {
 					templ.replacer.length - 1,
 				);
 
+				if (templ.signature && signatureBuffer) {
+					map[parsedKey] = {
+						data: signatureBuffer.buffer.slice(
+							signatureBuffer.byteOffset,
+							signatureBuffer.byteOffset + signatureBuffer.byteLength,
+						),
+						width: 6,
+						height: 6,
+						extension: extname(data.USER?.signature_image_path),
+					};
+					return map;
+				}
+
 				if (Array.isArray(value)) {
 					map[parsedKey] = value;
 					return map;
@@ -361,7 +385,17 @@ export default class TemplateReplacementService {
 				map[parsedKey] = value$;
 				return map;
 			},
-			{} as Record<string, string | string[]>,
+			{} as Record<
+				string,
+				| string
+				| string[]
+				| {
+						data: string | ArrayBuffer;
+						width: number;
+						height: number;
+						extension: string;
+				  }
+			>,
 		);
 	}
 
@@ -384,13 +418,13 @@ export default class TemplateReplacementService {
 		}
 
 		const value = this.$getValue(head.attribute, elem);
-		console.log("value?", value);
+		// console.log("value?", value);
 		if (!value) {
 			return this.parseTextTemplate(raw, data, tail);
 		}
 
 		if (Array.isArray(value)) {
-			console.log("value is array", value);
+			// console.log("value is array", value);
 			const updated = this.parseHtmlTemplate(raw, head, value);
 			return this.parseTextTemplate(updated, data, tail);
 		}

@@ -4200,7 +4200,7 @@ where deposit_id = ?
 					finish_cancel_user_id: null,
 					cancel_reason_id: data.reasonId ?? null,
 					cancelDate: DateTime.now(),
-					cancelReason: data.reasonId,
+					cancelReason: data.cancelReason,
 					finishCancelDate: null,
 					cancelNotes: null,
 					cancelValueTotal: cancelledItems.reduce(

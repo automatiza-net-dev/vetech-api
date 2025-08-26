@@ -106,7 +106,7 @@ export default class PatientTutorsController {
 			if (origin === "" || origin === "Cadastro") {
 				if (authCtx.system.type === "Vet") {
 					await ctx.request.validate(CreateSanclaTutorForRegisterValidator);
-				} else if (authCtx.system.type === "Varejo") {
+				} else if (authCtx.system.type === "Clinicas") {
 					await ctx.request.validate(CreateClinicsTutorValidator);
 				} else {
 					await ctx.request.validate(CreateLiftOneTutorForRegisterValidator);
@@ -116,7 +116,7 @@ export default class PatientTutorsController {
 					await ctx.request.validate(CreateSanclaTutorForGenericValidator);
 				}
 
-				if (authCtx.system.type === "Varejo") {
+				if (authCtx.system.type === "Clinicas") {
 					await ctx.request.validate(CreateLiftOneTutorForGenericValidator);
 				}
 			} else {
@@ -177,7 +177,7 @@ export default class PatientTutorsController {
 			if (origin === "" || origin === "Cadastro") {
 				if (authCtx.system.type === "Vet") {
 					await request.validate(UpdateSanclaTutorForRegisterValidator);
-				} else if (authCtx.system.type === "Varejo") {
+				} else if (authCtx.system.type === "Clinicas") {
 					await request.validate(UpdateClinicsTutorValidator);
 				} else {
 					await request.validate(UpdateLiftOneTutorForRegisterValidator);
@@ -185,7 +185,7 @@ export default class PatientTutorsController {
 			} else if (origin === "Crm" || origin === "Agenda") {
 				if (authCtx.system.type === "Vet") {
 					await request.validate(UpdateSanclaTutorForGenericValidator);
-				} else if (authCtx.system.type === "Varejo") {
+				} else if (authCtx.system.type === "Clinicas") {
 					await request.validate(UpdateClinicsTutorValidator);
 				} else {
 					await request.validate(UpdateLiftOneTutorForGenericValidator);

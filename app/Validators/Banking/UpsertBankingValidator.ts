@@ -11,14 +11,21 @@ export default class UpsertBankingValidator {
 			rules.exists({ table: "patients", column: "id" }),
 		]),
 		type: schema.enum(Object.values(BankingType)),
-		accountPlanId: schema.string({ trim: true }, [
+		fromAccountPlanId: schema.string({ trim: true }, [
+			rules.exists({ table: "account_plans", column: "id" }),
+		]),
+		toAccountPlanId: schema.string({ trim: true }, [
 			rules.exists({ table: "account_plans", column: "id" }),
 		]),
 		paymentMethodId: schema.string({ trim: true }, [
 			rules.uuid(),
 			rules.exists({ table: "payment_methods", column: "id" }),
 		]),
-		checkingAccountId: schema.string({ trim: true }, [
+		fromCheckingAccountId: schema.string({ trim: true }, [
+			rules.uuid(),
+			rules.exists({ table: "checking_accounts", column: "id" }),
+		]),
+		toCheckingAccountId: schema.string({ trim: true }, [
 			rules.uuid(),
 			rules.exists({ table: "checking_accounts", column: "id" }),
 		]),

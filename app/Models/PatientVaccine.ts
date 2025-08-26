@@ -105,6 +105,11 @@ export default class PatientVaccine extends BaseModel {
 	@column({
 		serializeAs: null,
 	})
+	public exclusion_user_id: string;
+
+	@column({
+		serializeAs: null,
+	})
 	public schedule_id: string;
 
 	@belongsTo(() => Schedule, {

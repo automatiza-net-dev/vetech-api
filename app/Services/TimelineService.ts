@@ -35,8 +35,10 @@ import { ICreateObservation } from "Contracts/interfaces/ICreateObservation";
 import { ICreateTimelineDischarge } from "Contracts/interfaces/ICreateTimelineHospitalization";
 import { DateTime } from "luxon";
 import { ObjectId } from "mongoose";
-import { v4 } from "uuid";
+import { v4, validate } from "uuid";
 import Env from "@ioc:Adonis/Core/Env";
+import PatientExamAttachment from "App/Models/PatientExamAttachment";
+import VaccineCalendar from "App/Models/VaccineCalendar";
 
 @inject()
 export default class TimelineService {
@@ -431,7 +433,7 @@ export default class TimelineService {
 				timeline_info: {
 					tag: data.patientId,
 					realizedAt: data.realizedAt ?? DateTime.now(),
-					resume: data.resume,
+					resume: data.resume ?? null,
 					protocol: data.protocol,
 					observation: data.observation ?? null,
 					internalObservation: data.internalObservation ?? null,
@@ -507,7 +509,7 @@ export default class TimelineService {
 					$set: {
 						"timeline_info.tag": data.patientId,
 						"timeline_info.realizedAt": data.realizedAt.toJSDate(),
-						"timeline_info.resume": data.resume,
+						"timeline_info.resume": data.resume ?? null,
 						"timeline_info.protocol": data.protocol,
 						"timeline_info.observation": data.observation ?? null,
 						"timeline_info.internalObservation":
@@ -547,17 +549,19 @@ export default class TimelineService {
 
 		const numericIndex = Number.parseInt(index, 10);
 
-		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-		// @ts-ignore does have photos
-		const cleanPhotos = record.timeline_info?.photos?.filter(
-			(_, idx) => idx !== numericIndex,
-		);
+		if (!record.timeline_info?.patient_exam?.id) {
+			return;
+		}
 
-		return AnimalTimeline.findByIdAndUpdate(id, {
-			$set: {
-				"timeline_info.photos": cleanPhotos,
-			},
-		});
+		const patientExam = await PatientExamAttachment.query().where(
+			"patient_exam_id",
+			record.timeline_info?.patient_exam?.id,
+		);
+		if (patientExam.length < numericIndex) {
+			return;
+		}
+
+		await patientExam.at(numericIndex)?.softDelete();
 	}
 
 	public async documentIndex(tag: string) {
@@ -1130,6 +1134,94 @@ export default class TimelineService {
 		await resource.save();
 
 		return resource;
+	}
+
+	public async deleteVaccine(authCtx: AuthContext, id: string) {
+		if (validate(id)) {
+			// postgresql.patient_vaccines.id
+			const pv = await PatientVaccine.query().where("id", id).first();
+			if (!pv) {
+				return;
+			}
+			await this.innerValidateDeleteVaccine(id);
+			await this.innerDeleteVaccine(authCtx, id);
+
+			return;
+		}
+
+		const resource = await AnimalTimeline.findById(id);
+
+		if (!resource) {
+			throw new ResourceNotFoundException("Vaccine not found");
+		}
+
+		if (resource.timeline_info?.patient_vaccine?.id) {
+			await this.innerValidateDeleteVaccine(
+				resource.timeline_info?.patient_vaccine?.id,
+			);
+		}
+
+		await AnimalTimeline.updateOne(
+			{
+				_id: id,
+			},
+			{
+				$set: {
+					"extras.deletedAt": DateTime.now().toJSDate(),
+					"extras.user.id": authCtx.user.id,
+					"extras.user.name": authCtx.user.name,
+					"extras.user.email": authCtx.user.email,
+				},
+			},
+		);
+
+		if (resource.timeline_info?.patient_vaccine?.id) {
+			await this.innerDeleteVaccine(
+				authCtx,
+				resource.timeline_info?.patient_vaccine?.id,
+			);
+		}
+	}
+
+	private async innerValidateDeleteVaccine(id: string) {
+		const appliedVaccines = await VaccineCalendar.query()
+			.where("patient_vaccine_id", id)
+			.whereRaw("application_date is null");
+		if (appliedVaccines.length > 0) {
+			throw new BadRequestException(
+				"Esta vacina possui doses já aplicadas, não é possível excluí-la!",
+				400,
+				"E_ERR",
+			);
+		}
+	}
+
+	private async innerDeleteVaccine(authCtx: AuthContext, id: string) {
+		await AnimalTimeline.updateMany(
+			{
+				"timeline_info.patient_vaccine.id": id,
+			},
+			{
+				$set: {
+					"extras.deletedAt": DateTime.now().toJSDate(),
+					"extras.user.id": authCtx.user.id,
+					"extras.user.name": authCtx.user.name,
+					"extras.user.email": authCtx.user.email,
+				},
+			},
+		);
+
+		await Database.from("patient_vaccines").where("id", id).update({
+			deleted_at: DateTime.now(),
+			exclusion_user_id: authCtx.user.id,
+		});
+
+		await Database.from("vaccine_calendars")
+			.where("patient_vaccine_id", id)
+			.update({
+				deleted_at: DateTime.now(),
+				exclusion_user_id: authCtx.user.id,
+			});
 	}
 
 	public async examIndex(tag: string) {

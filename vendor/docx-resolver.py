@@ -10,14 +10,16 @@ _output = sys.argv[2]
 _complexinput = sys.argv[3]
 _image = sys.argv[4]
 
-# Download image from presigned URL
-response = requests.get(_image)
-if response.status_code != 200:
-    raise Exception("Failed to download image from URL")
+# Download image from presigned URL if provided
+temp_image_path = None
+if _image and _image.strip():
+    response = requests.get(_image)
+    if response.status_code != 200:
+        raise Exception("Failed to download image from URL")
 
-with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as temp_file:
-    temp_file.write(response.content)
-    temp_image_path = temp_file.name
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as temp_file:
+        temp_file.write(response.content)
+        temp_image_path = temp_file.name
 
 # _complexdata = ["[ABC]", "[DEF]"]
 _complexdata = json.loads(_complexinput)
@@ -79,18 +81,20 @@ for paragraph in document.paragraphs:
   - [= $valor ]
 [END-FOR valor]"""
 
-# Replace [ASSINATURA] with image
-for paragraph in document.paragraphs:
-    for run in paragraph.runs:
-        if '[ASSINATURA]' in run.text:
-            run.text = run.text.replace('[ASSINATURA]', '')
-            if run.text.strip() == '':  # If run is now empty, add picture
-                run.add_picture(temp_image_path)
-            else:
-                # If there's other text, we might need to split, but for simplicity, add picture after
-                run.add_picture(temp_image_path)
+# Replace [ASSINATURA] with image if available
+if temp_image_path:
+    for paragraph in document.paragraphs:
+        for run in paragraph.runs:
+            if '[ASSINATURA]' in run.text:
+                run.text = run.text.replace('[ASSINATURA]', '')
+                if run.text.strip() == '':  # If run is now empty, add picture
+                    run.add_picture(temp_image_path)
+                else:
+                    # If there's other text, we might need to split, but for simplicity, add picture after
+                    run.add_picture(temp_image_path)
 
 document.save(_output)
 
 # Clean up temporary file
-os.unlink(temp_image_path)
+if temp_image_path:
+    os.unlink(temp_image_path)

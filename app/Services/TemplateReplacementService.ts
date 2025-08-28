@@ -265,7 +265,7 @@ export default class TemplateReplacementService {
 						`'${JSON.stringify(
 							templates.filter((f) => f.complex).map((f) => f.replacer),
 						)}'`,
-						`'${textData.ASSINATURA}'`,
+						`'${textData.ASSINATURA ?? ''}'`,
 					].join(" "),
 					(error, _stdout, _stderr) => {
 						// console.log({ _stdout, _stderr });

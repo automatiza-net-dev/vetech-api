@@ -7,4 +7,5 @@ export interface IVaccineCalendarData {
   dose: number;
   laboratory?: string;
   batch?: string;
+  appliedOutside?: boolean
 }

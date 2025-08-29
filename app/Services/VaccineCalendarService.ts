@@ -152,6 +152,7 @@ export default class VaccineCalendarService {
 					},
 					schedulingDate: calendar.schedulingDate,
 					applicationDate: data.applicationDate,
+					realizedAt: data.applicationDate,
 					dose: data.dose,
 					laboratory: data.laboratory,
 					batch: data.batch,

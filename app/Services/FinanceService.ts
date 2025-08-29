@@ -2337,26 +2337,26 @@ case when p.control_id = 'TRC11' then 'Usuário não possui permissão para reti
        ca.balance                           as saldoConta,
        coalesce(sum(
                         case
-                            when ((payment_date is not null and payment_date <= ?) or
-                                  (payment_date is null and expiration_date <= ?)) and
+                            when ((payment_date is not null and payment_date::date < ?) or
+                                  (payment_date is null and expiration_date::date < ?)) and
                                  finances.type = 'CREDITO' then coalesce(finances.total_value, 0)
                             else 0 end
                             -
                         case
-                            when ((payment_date is not null and payment_date <= ?) or
-                                  (payment_date is null and expiration_date <= ?)) and
+                            when ((payment_date is not null and payment_date::date < ?) or
+                                  (payment_date is null and expiration_date::date < ?)) and
                                  finances.type = 'DEBITO' then coalesce(finances.total_value, 0)
                             else 0 end), 0) as saldoInicial,
        coalesce(sum(
                         case
-                            when ((payment_date is not null and payment_date <= ?) or
-                                  (payment_date is null and expiration_date <= ?)) and
+                            when ((payment_date is not null and payment_date::date < ?) or
+                                  (payment_date is null and expiration_date::date < ?)) and
                                  finances.type = 'CREDITO' then coalesce(finances.total_value, 0)
                             else 0 end
                             -
                         case
-                            when ((payment_date is not null and payment_date <= ?) or
-                                  (payment_date is null and expiration_date <= ?)) and
+                            when ((payment_date is not null and payment_date::date < ?) or
+                                  (payment_date is null and expiration_date::date < ?)) and
                                  finances.type = 'DEBITO' then coalesce(finances.total_value, 0)
                             else 0 end), 0) as saldoFinal`,
 					[

@@ -89,4 +89,13 @@ export default class VaccinesController {
 
 		return response.noContent();
 	}
+
+	public async clearCalendar({ auth, params, response }: HttpContextContract) {
+		await this.service.clearCalendar(
+			await this.sharedService.getAuthContext(auth),
+			params.id,
+		);
+
+		return response.noContent();
+	}
 }

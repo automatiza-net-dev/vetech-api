@@ -566,6 +566,7 @@ Route.resource("vaccines", "VaccinesController")
 	});
 Route.group(() => {
 	Route.get("/status/:id", "VaccinesController.status");
+	Route.put("/clear-calendar/:id", "VaccinesController.clearCalendar");
 })
 	.prefix("vaccines")
 	.middleware("auth");

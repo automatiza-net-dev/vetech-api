@@ -2,6 +2,8 @@ import { inject } from "@adonisjs/fold";
 import Database from "@ioc:Adonis/Lucid/Database";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import Vaccine from "App/Models/Vaccine";
+import VaccineCalendar from "App/Models/VaccineCalendar";
+import VaccineCalendarLog from "App/Models/VaccineCalendarLog";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import { IVaccineData } from "Contracts/interfaces/IVaccineData";
 import { validate } from "uuid";
@@ -382,5 +384,43 @@ export default class VaccineService {
 		}
 
 		await vaccine.softDelete();
+	}
+
+	public async clearCalendar(authCtx: AuthContext, vaccineCalendarID: string) {
+		if (!validate(vaccineCalendarID)) {
+			throw new BadRequestException("ID inválido", 400, "E_ERR");
+		}
+
+		await Database.transaction(async (trx) => {
+			const vaccineCalendar = await VaccineCalendar.query()
+				.useTransaction(trx)
+				.where("id", vaccineCalendarID)
+				.firstOrFail();
+
+			if (!vaccineCalendar.applicationDate) {
+				throw new BadRequestException("Vacina não foi aplicada", 400, "E_ERR");
+			}
+
+			await VaccineCalendarLog.create(
+				{
+					application_user_id: vaccineCalendar.user_id,
+					exclusion_user_id: authCtx.user.id,
+					vaccine_calendar_id: vaccineCalendarID,
+
+					applicationDate: vaccineCalendar.applicationDate,
+				},
+				{ client: trx },
+			);
+
+			await vaccineCalendar
+				.merge({
+					applicationDate: null,
+					laboratory: null,
+					batch: null,
+					appliedOutside: false,
+				})
+				.useTransaction(trx)
+				.save();
+		});
 	}
 }

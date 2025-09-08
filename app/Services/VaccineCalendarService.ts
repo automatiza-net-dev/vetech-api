@@ -152,7 +152,10 @@ export default class VaccineCalendarService {
 					},
 					schedulingDate: calendar.schedulingDate,
 					applicationDate: data.applicationDate,
-					realizedAt: data.applicationDate,
+					realizedAt: data.applicationDate?.set({
+						hour: DateTime.now().get("hour"),
+						minute: DateTime.now().get("minute"),
+					}),
 					dose: data.dose,
 					laboratory: data.laboratory,
 					batch: data.batch,

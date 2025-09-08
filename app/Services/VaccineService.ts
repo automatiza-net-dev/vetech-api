@@ -1,11 +1,13 @@
 import { inject } from "@adonisjs/fold";
 import Database from "@ioc:Adonis/Lucid/Database";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
+import AnimalTimeline from "App/Models/mongoose/AnimalTimeline";
 import Vaccine from "App/Models/Vaccine";
 import VaccineCalendar from "App/Models/VaccineCalendar";
 import VaccineCalendarLog from "App/Models/VaccineCalendarLog";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import { IVaccineData } from "Contracts/interfaces/IVaccineData";
+import { DateTime } from "luxon";
 import { validate } from "uuid";
 import BadRequestException from "../Exceptions/BadRequestException";
 
@@ -395,6 +397,7 @@ export default class VaccineService {
 			const vaccineCalendar = await VaccineCalendar.query()
 				.useTransaction(trx)
 				.where("id", vaccineCalendarID)
+				.preload("patientVaccine")
 				.firstOrFail();
 
 			if (!vaccineCalendar.applicationDate) {
@@ -421,6 +424,22 @@ export default class VaccineService {
 				})
 				.useTransaction(trx)
 				.save();
+
+			await AnimalTimeline.updateMany(
+				{
+					"timeline_info.protocol.id":
+						vaccineCalendar.patientVaccine.vaccine_protocol_id,
+					"extras.deletedAt": null,
+				},
+				{
+					$set: {
+						"extras.deletedAt": DateTime.now().toJSDate(),
+						"extras.user.id": authCtx.user.id,
+						"extras.user.name": authCtx.user.name,
+						"extras.user.email": authCtx.user.email,
+					},
+				},
+			);
 		});
 	}
 }

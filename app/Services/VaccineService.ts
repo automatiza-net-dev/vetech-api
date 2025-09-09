@@ -427,8 +427,7 @@ export default class VaccineService {
 
 			await AnimalTimeline.updateMany(
 				{
-					"timeline_info.protocol.id":
-						vaccineCalendar.patientVaccine.vaccine_protocol_id,
+					"timeline_info.calendar.id": vaccineCalendar.id,
 					"extras.deletedAt": null,
 				},
 				{

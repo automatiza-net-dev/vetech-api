@@ -137,6 +137,9 @@ export default class VaccineCalendarService {
 					patient_vaccine: {
 						id: calendar.patientVaccine.id,
 					},
+					calendar: {
+						id: calendar.id,
+					},
 					technician: {
 						id: authCtx.user.id,
 						name: authCtx.user.name,

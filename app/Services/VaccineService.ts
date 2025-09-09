@@ -427,8 +427,21 @@ export default class VaccineService {
 
 			await AnimalTimeline.updateMany(
 				{
-					"timeline_info.calendar.id": vaccineCalendar.id,
+					$or: [
+						{
+							"timeline_info.calendar.id": vaccineCalendar.id,
+						},
+						{
+							$and: [
+								{ dose: vaccineCalendar.dose },
+								{ laboratory: vaccineCalendar.laboratory },
+								{ batch: vaccineCalendar.batch },
+							],
+						},
+					],
 					"extras.deletedAt": null,
+					"timeline_info.patient_vaccine.id":
+						vaccineCalendar.patient_vaccine_id,
 				},
 				{
 					$set: {

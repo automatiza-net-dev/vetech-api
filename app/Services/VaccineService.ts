@@ -425,31 +425,7 @@ export default class VaccineService {
 				.useTransaction(trx)
 				.save();
 
-			console.log(
-				JSON.stringify(
-					await AnimalTimeline.find({
-						$or: [
-							{
-								"timeline_info.calendar.id": vaccineCalendar.id,
-							},
-							{
-								$and: [
-									{ "timeline_info.dose": vaccineCalendar.dose },
-									{ "timeline_info.laboratory": vaccineCalendar.laboratory },
-									{ "timeline_info.batch": vaccineCalendar.batch },
-								],
-							},
-						],
-						"extras.deletedAt": null,
-						"timeline_info.patient_vaccine.id":
-							vaccineCalendar.patient_vaccine_id,
-					}),
-					null,
-					2,
-				),
-			);
-
-			const r = await AnimalTimeline.updateMany(
+			await AnimalTimeline.updateMany(
 				{
 					$or: [
 						{
@@ -476,8 +452,6 @@ export default class VaccineService {
 					},
 				},
 			);
-
-			console.log({ r });
 		});
 	}
 }

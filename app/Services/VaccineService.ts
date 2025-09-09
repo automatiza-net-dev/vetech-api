@@ -434,9 +434,9 @@ export default class VaccineService {
 							},
 							{
 								$and: [
-									{ dose: vaccineCalendar.dose },
-									{ laboratory: vaccineCalendar.laboratory },
-									{ batch: vaccineCalendar.batch },
+									{ "timeline_info.dose": vaccineCalendar.dose },
+									{ "timeline_info.laboratory": vaccineCalendar.laboratory },
+									{ "timeline_info.batch": vaccineCalendar.batch },
 								],
 							},
 						],
@@ -457,9 +457,9 @@ export default class VaccineService {
 						},
 						{
 							$and: [
-								{ dose: vaccineCalendar.dose },
-								{ laboratory: vaccineCalendar.laboratory },
-								{ batch: vaccineCalendar.batch },
+								{ "timeline_info.dose": vaccineCalendar.dose },
+								{ "timeline_info.laboratory": vaccineCalendar.laboratory },
+								{ "timeline_info.batch": vaccineCalendar.batch },
 							],
 						},
 					],

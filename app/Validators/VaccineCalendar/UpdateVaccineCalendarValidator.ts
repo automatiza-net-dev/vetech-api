@@ -17,6 +17,7 @@ export default class UpdateVaccineCalendarValidator {
     dose: schema.number([rules.unsigned()]),
     laboratory: schema.string.optional(),
     batch: schema.string.optional(),
+    appliedOutside: schema.boolean.optional(),
   });
 
   public messages: CustomMessages = {};

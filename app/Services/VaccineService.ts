@@ -1,9 +1,13 @@
 import { inject } from "@adonisjs/fold";
 import Database from "@ioc:Adonis/Lucid/Database";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
+import AnimalTimeline from "App/Models/mongoose/AnimalTimeline";
 import Vaccine from "App/Models/Vaccine";
+import VaccineCalendar from "App/Models/VaccineCalendar";
+import VaccineCalendarLog from "App/Models/VaccineCalendarLog";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import { IVaccineData } from "Contracts/interfaces/IVaccineData";
+import { DateTime } from "luxon";
 import { validate } from "uuid";
 import BadRequestException from "../Exceptions/BadRequestException";
 
@@ -382,5 +386,72 @@ export default class VaccineService {
 		}
 
 		await vaccine.softDelete();
+	}
+
+	public async clearCalendar(authCtx: AuthContext, vaccineCalendarID: string) {
+		if (!validate(vaccineCalendarID)) {
+			throw new BadRequestException("ID inválido", 400, "E_ERR");
+		}
+
+		await Database.transaction(async (trx) => {
+			const vaccineCalendar = await VaccineCalendar.query()
+				.useTransaction(trx)
+				.where("id", vaccineCalendarID)
+				.preload("patientVaccine")
+				.firstOrFail();
+
+			if (!vaccineCalendar.applicationDate) {
+				throw new BadRequestException("Vacina não foi aplicada", 400, "E_ERR");
+			}
+
+			await VaccineCalendarLog.create(
+				{
+					application_user_id: vaccineCalendar.user_id,
+					exclusion_user_id: authCtx.user.id,
+					vaccine_calendar_id: vaccineCalendarID,
+
+					applicationDate: vaccineCalendar.applicationDate,
+				},
+				{ client: trx },
+			);
+
+			await vaccineCalendar
+				.merge({
+					applicationDate: null,
+					laboratory: null,
+					batch: null,
+					appliedOutside: false,
+				})
+				.useTransaction(trx)
+				.save();
+
+			await AnimalTimeline.updateMany(
+				{
+					$or: [
+						{
+							"timeline_info.calendar.id": vaccineCalendar.id,
+						},
+						{
+							$and: [
+								{ "timeline_info.dose": vaccineCalendar.dose },
+								{ "timeline_info.laboratory": vaccineCalendar.laboratory },
+								{ "timeline_info.batch": vaccineCalendar.batch },
+							],
+						},
+					],
+					"extras.deletedAt": null,
+					"timeline_info.patient_vaccine.id":
+						vaccineCalendar.patient_vaccine_id,
+				},
+				{
+					$set: {
+						"extras.deletedAt": DateTime.now().toJSDate(),
+						"extras.user.id": authCtx.user.id,
+						"extras.user.name": authCtx.user.name,
+						"extras.user.email": authCtx.user.email,
+					},
+				},
+			);
+		});
 	}
 }

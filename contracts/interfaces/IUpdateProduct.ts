@@ -17,8 +17,8 @@ export default interface IUpdateProduct {
 	taxBenefitCode?: string;
 	anvisaCode?: string;
 	purpose: ProductPurpose;
-	fractioned?: boolean;
-	fractionUnitId?: string;
-	fractionValue?: number;
+	// fractioned?: boolean;
+	// fractionUnitId?: string;
+	// fractionValue?: number;
 	courtesy?: boolean;
 }

@@ -37,6 +37,12 @@ export default class VaccineCalendar extends BaseModel {
 	@column()
 	public batch: string | null;
 
+	@column({
+		columnName: "applied_outside",
+		serializeAs: "appliedOutside",
+	})
+	public appliedOutside: boolean;
+
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;
 

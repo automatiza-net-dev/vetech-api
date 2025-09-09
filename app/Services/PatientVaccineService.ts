@@ -182,7 +182,9 @@ export default class PatientVaccineService {
 				query.select("id", "name", "email");
 			})
 			.preload("schedule")
-			.preload("calendars");
+			.preload("calendars", (qb) => {
+				qb.orderByRaw("dose");
+			});
 
 		const entity = await qb.first();
 

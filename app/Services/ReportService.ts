@@ -2946,6 +2946,7 @@ ON bills.patient_id = Dep."id"`,
         vaccine_calendars.dose                                                   as dose,
         vaccine_calendars.laboratory                                             as laboratorio,
         vaccine_calendars.batch                                                  as lote,
+        vaccine_calendars.applied_outside                                                  as aplicado_fora,
         case
            when vaccine_calendars.application_date is not null then 'Dose aplicada'
            when vaccine_calendars.application_date is null and vaccine_calendars.scheduling_date::date < now()::date

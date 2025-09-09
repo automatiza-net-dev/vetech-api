@@ -66,7 +66,7 @@ export default class Vaccine extends BaseModel {
 	public system_id: number;
 
 	@column({
-		serializeAs: null,
+		// serializeAs: null,
 	})
 	public economic_group_id?: string;
 

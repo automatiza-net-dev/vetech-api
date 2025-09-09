@@ -37,7 +37,10 @@ interface ISearch {
 	replacer?: string;
 }
 
-type RenderTextData = Record<TemplateReplacementOrigin, ModelObject | null>;
+type RenderTextData = Record<
+	TemplateReplacementOrigin,
+	ModelObject | string | null
+>;
 
 @inject()
 export default class TemplateReplacementService {
@@ -129,6 +132,7 @@ export default class TemplateReplacementService {
 		const textData: RenderTextData = {
 			BUSINESS: null,
 			USER: null,
+			ASSINATURA: null,
 			SCHEDULE: null,
 			TUTOR: null,
 			PATIENT: null,
@@ -154,6 +158,7 @@ export default class TemplateReplacementService {
 
 		if (data.userId) {
 			textData.USER = await this.fetchUser(data.userId, data.businessUnitId);
+			textData.ASSINATURA = await this.fetchUserSignature(data.userId);
 		}
 
 		if (data.scheduleId) {
@@ -251,11 +256,17 @@ export default class TemplateReplacementService {
 			)}/uploads/${resolvedInputPath}`;
 
 			const resolverSuccess = await new Promise<boolean>((res) => {
-				// python3 some/path/to/main.py input.docx input.resolved.docx
 				exec(
-					`python3 ${Env.get(
-						"DOCX_RESOLVER_PATH",
-					)} ${fullInputPath} ${fullResolvedInputPath} '${JSON.stringify(templates.filter((f) => f.complex).map((f) => f.replacer))}' '${JSON.stringify(templates.filter((f) => f.signature).map((f) => f.replacer))}'`,
+					[
+						"python3",
+						Env.get("DOCX_RESOLVER_PATH"),
+						fullInputPath,
+						fullResolvedInputPath,
+						`'${JSON.stringify(
+							templates.filter((f) => f.complex).map((f) => f.replacer),
+						)}'`,
+						`'${textData.ASSINATURA ?? ''}'`,
+					].join(" "),
 					(error, _stdout, _stderr) => {
 						// console.log({ _stdout, _stderr });
 						if (error) {
@@ -271,8 +282,6 @@ export default class TemplateReplacementService {
 			if (!resolverSuccess) {
 				throw new BadRequestException("Erro corrigindo arquivo", 500, "");
 			}
-
-			console.log(await this.reverseTextTemplateData(textData, templates));
 
 			// create report from docx template
 			// const _template = await readFile(fullInputPath);
@@ -342,9 +351,9 @@ export default class TemplateReplacementService {
 		data: RenderTextData,
 		templates: TemplateReplacement[],
 	) {
-		const signatureBuffer = data.USER?.signature_image_path
-			? await Drive.use("s3").get(data.USER.signature_image_path)
-			: null;
+		// const signatureBuffer = data.USER?.signature_image_path
+		// 	? await Drive.use("s3").get(data.USER.signature_image_path)
+		// 	: null;
 
 		return templates.reduce(
 			(map, templ) => {
@@ -363,18 +372,18 @@ export default class TemplateReplacementService {
 					templ.replacer.length - 1,
 				);
 
-				if (templ.signature && signatureBuffer) {
-					map[parsedKey] = {
-						data: signatureBuffer.buffer.slice(
-							signatureBuffer.byteOffset,
-							signatureBuffer.byteOffset + signatureBuffer.byteLength,
-						),
-						width: 6,
-						height: 6,
-						extension: extname(data.USER?.signature_image_path),
-					};
-					return map;
-				}
+				// if (templ.signature && signatureBuffer) {
+				// 	map[parsedKey] = {
+				// 		data: signatureBuffer.buffer.slice(
+				// 			signatureBuffer.byteOffset,
+				// 			signatureBuffer.byteOffset + signatureBuffer.byteLength,
+				// 		),
+				// 		width: 6,
+				// 		height: 6,
+				// 		extension: extname(data.USER?.signature_image_path),
+				// 	};
+				// 	return map;
+				// }
 
 				if (Array.isArray(value)) {
 					map[parsedKey] = value;
@@ -417,7 +426,7 @@ export default class TemplateReplacementService {
 			return this.parseTextTemplate(raw, data, tail);
 		}
 
-		const value = this.$getValue(head.attribute, elem);
+		const value = this.$getValue(head.attribute, elem as ModelObject);
 		// console.log("value?", value);
 		if (!value) {
 			return this.parseTextTemplate(raw, data, tail);
@@ -756,6 +765,15 @@ export default class TemplateReplacementService {
 		}
 
 		return related;
+	}
+
+	async fetchUserSignature(id: string) {
+		const model = await User.query().where("id", id).firstOrFail();
+		if (!model.signatureImagePath) {
+			return "";
+		}
+
+		return await Drive.use("s3").getSignedUrl(model.signatureImagePath);
 	}
 
 	private snakeToCamelCase(value: string) {

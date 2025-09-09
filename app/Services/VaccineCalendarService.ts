@@ -87,12 +87,14 @@ export default class VaccineCalendarService {
 
 			await calendar
 				.merge({
+					product_id: data.productId,
+
 					schedulingDate: data.schedulingDate ?? calendar.schedulingDate,
 					applicationDate: data.applicationDate,
 					dose: data.dose,
 					laboratory: data.laboratory,
 					batch: data.batch,
-					product_id: data.productId,
+					appliedOutside: data.appliedOutside,
 				})
 				.useTransaction(trx)
 				.save();
@@ -135,6 +137,9 @@ export default class VaccineCalendarService {
 					patient_vaccine: {
 						id: calendar.patientVaccine.id,
 					},
+					calendar: {
+						id: calendar.id,
+					},
 					technician: {
 						id: authCtx.user.id,
 						name: authCtx.user.name,
@@ -150,9 +155,14 @@ export default class VaccineCalendarService {
 					},
 					schedulingDate: calendar.schedulingDate,
 					applicationDate: data.applicationDate,
+					realizedAt: data.applicationDate?.set({
+						hour: DateTime.now().get("hour"),
+						minute: DateTime.now().get("minute"),
+					}),
 					dose: data.dose,
 					laboratory: data.laboratory,
 					batch: data.batch,
+					appliedOutside: data.appliedOutside ?? false,
 				},
 			});
 

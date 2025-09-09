@@ -39,12 +39,12 @@ export default class UpdateProductValidator {
 			}),
 		]),
 
-		fractioned: schema.boolean.optional(),
-		fractionUnitId: schema.string.optional({}, [
-			rules.uuid(),
-			rules.exists({ table: "units", column: "id" }),
-		]),
-		fractionValue: schema.number.optional(),
+		// fractioned: schema.boolean.optional(),
+		// fractionUnitId: schema.string.optional({}, [
+		// 	rules.uuid(),
+		// 	rules.exists({ table: "units", column: "id" }),
+		// ]),
+		// fractionValue: schema.number.optional(),
 		taxBenefitCode: schema.string.optional({}, []),
 		anvisaCode: schema.string.optional({}, []),
 		active: schema.boolean([]),

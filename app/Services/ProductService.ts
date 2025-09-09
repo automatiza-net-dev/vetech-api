@@ -424,15 +424,15 @@ export default class ProductService {
 		return product
 			.merge({
 				unit_id: data.unitId,
-				fraction_unit_id: data.fractionUnitId,
+				// fraction_unit_id: data.fractionUnitId,
 				group_id: data.groupId,
 				subgroup_id: data.subgroupId,
 				taxation_group_id: data.taxationGroupId,
 				brand_id: data.brandId,
 
 				courtesy: data.courtesy,
-				fractioned: data.fractioned ?? false,
-				fractionValue: new Decimal(data.fractionValue ?? 1),
+				// fractioned: data.fractioned ?? false,
+				// fractionValue: new Decimal(data.fractionValue ?? 1),
 				description: data.description,
 				referenceCode: data.referenceCode,
 				collectionYear: data.collectionYear,

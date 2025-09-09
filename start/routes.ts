@@ -277,6 +277,7 @@ Route.group(() => {
 Route.group(() => {
 	Route.get("/nr/:id", "PatientTutorsController.notRelated");
 	Route.get("/reduced", "PatientTutorsController.reducedIndex");
+	Route.get("/all", "PatientTutorsController.allIndex");
 	Route.get("/", "PatientTutorsController.index");
 	Route.post("/", "PatientTutorsController.store");
 	Route.post("/assign", "PatientTutorsController.assign");
@@ -565,6 +566,7 @@ Route.resource("vaccines", "VaccinesController")
 	});
 Route.group(() => {
 	Route.get("/status/:id", "VaccinesController.status");
+	Route.put("/clear-calendar/:id", "VaccinesController.clearCalendar");
 })
 	.prefix("vaccines")
 	.middleware("auth");

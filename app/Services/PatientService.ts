@@ -246,6 +246,140 @@ export default class PatientService {
 			}));
 	}
 
+	public async allIndex(
+		authCtx: AuthContext,
+		data: ISearchTutor,
+	): Promise<
+		{
+			id: string;
+			name: string;
+			tag: string;
+			cellphone: string | null;
+			document: string | null;
+			dependents: {
+				id: string;
+				name: string;
+				tag: string;
+			}[];
+		}[]
+	> {
+		const qb = Database.from("patient_economic_groups")
+			.select(
+				Database.raw(`patients.id,
+       patients.name,
+       patients.tag,
+       patient_tutors.cellphone,
+       patient_tutors.document,
+       coalesce(
+                       json_agg(
+                       json_build_object(
+                               'id', dep.id,
+                               'name', dep.name,
+                               'tag', dep.tag
+                       ))
+                       FILTER (WHERE dep.id IS NOT NULL),
+                       '[]'::json
+       ) as dependents`),
+			)
+			.orderByRaw("patients.name asc")
+			.groupByRaw("patients.id, patient_tutors.id")
+			.joinRaw(
+				"join patients on patient_economic_groups.patient_id = patients.id",
+			)
+			.joinRaw("join patient_tutors on patients.id = patient_tutors.patient_id")
+			.joinRaw(
+				"left join client_origins on patient_tutors.client_origin_id = client_origins.id",
+			)
+			.joinRaw(
+				"left join professions on patient_tutors.profession_id = professions.id",
+			)
+			.joinRaw(
+				"left join holder_dependents on patients.id = holder_dependents.holder_id",
+			)
+			.joinRaw(
+				"left join patients dep on holder_dependents.dependent_id = dep.id",
+			)
+			.whereRaw("patient_economic_groups.economic_group_id = ?", [
+				authCtx.group.id,
+			])
+			.whereRaw("patients.type <> ?", [PatientType.ANIMAL])
+			.whereRaw("patients.deleted_at is null", []);
+
+		if (data.id) {
+			qb.where("patients.id", data.id);
+		}
+
+		if (data.name) {
+			qb.whereRaw("unaccent(patients.name) ilike '%' || unaccent(?) || '%'", [
+				data.name.replaceAll(" ", "%"),
+			]);
+		}
+
+		if (data.document) {
+			qb.whereRaw("patient_tutors.document ilike ?", [
+				`%${data.document?.replace(/\D/g, "")}%`,
+			]);
+		}
+
+		if (data.phone) {
+			const clearPhone = data.phone.replace(/\D/g, "");
+			qb.whereRaw(
+				`exists (select *
+              from "patient_contacts"
+              where (patient_contacts.type <> 'email'
+                  and (
+                         case
+                             when
+                                 length(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g')) =
+                                 10 and length(?) = 11 then
+                                 SUBSTRING(
+                                         regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g'),
+                                         1, 2) || '9' || SUBSTRING(
+                                         regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g'),
+                                         3, 8) ilike
+                                 ? -- add o 9
+                             when
+                                 length(regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g')) =
+                                 11 and length(?) = 10 then
+                                 regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g') ilike
+                                 '%' ||
+                                 SUBSTRING(?, 1, 2) ||
+                                 '9' ||
+                                 SUBSTRING(?, 3, 8) ||
+                                 '%' -- add o 9
+                             else
+                                 regexp_replace(patient_contacts.contact, '[^0-9]', '', 'g') ilike
+                                 ? end
+                         ))
+                and ("patients"."id" = "patient_contacts"."patient_id"))`,
+				[
+					clearPhone,
+					`%${clearPhone}%`,
+					clearPhone,
+					clearPhone,
+					clearPhone,
+					`%${clearPhone}%`,
+				],
+			);
+		}
+
+		// if (data.patient || data.patientId) {
+		// 	qb.whereHas("dependents", (query) => {
+		// 		if (data.patient) {
+		// 			query.whereRaw("unaccent(name) ilike '%' || unaccent(?) || '%'", [
+		// 				data.patient!.replaceAll(" ", "%"),
+		// 			]);
+		// 		}
+		//
+		// 		if (data.patientId) {
+		// 			query.where("holder_dependents.dependent_id", data.patientId);
+		// 		}
+		// 	});
+		// }
+
+		return await qb;
+	}
+
 	public async tutorsIndex(
 		authCtx: AuthContext,
 		data: ISearchTutor,

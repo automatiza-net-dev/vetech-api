@@ -185,7 +185,6 @@ export default class SharedService {
 		try {
 			await fn();
 		} catch (e) {
-			console.log("got an error", e);
 			if (e instanceof ValidationException) {
 				return response.unprocessableEntity({
 					data: null,
@@ -214,11 +213,27 @@ export default class SharedService {
 				});
 			}
 
+			console.error(e);
+
+			if (Array.isArray(e)) {
+				return response.badRequest({
+					data: null,
+					status: 400,
+					title: "Requisição inválida",
+					message:
+						e
+							.map((err) => err.message)
+							.join(", ")
+							?.trim() ?? "Algo deu errado",
+					validationErrors: {},
+				});
+			}
+
 			return response.badRequest({
 				data: null,
 				status: 400,
 				title: "Requisição inválida",
-				message: e.message.split(":").at(1)?.trim() ?? "Algo deu errado",
+				message: e.message.split(":")?.at(1)?.trim() ?? "Algo deu errado",
 				validationErrors: {},
 			});
 		}

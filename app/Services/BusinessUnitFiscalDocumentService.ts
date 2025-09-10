@@ -375,11 +375,7 @@ export default class BusinessUnitFiscalDocumentService {
 					)
 						? 4
 						: 1,
-					accessKeyRef: items.some(
-						(c) => c.taxRule.movementCategory === MovementCategory.DS,
-					)
-						? "35240702897843000168550010002305071282195227"
-						: null,
+					accessKeyRef: data.accessKeyRef,
 				},
 				{
 					client: trx,

@@ -695,6 +695,7 @@ export default class ReceiptService {
 							"purpose",
 							"fractioned",
 							"fractionValue",
+							"ncm",
 							"subgroup_id",
 							"unit_id",
 							"fraction_unit_id",

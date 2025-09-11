@@ -169,8 +169,7 @@ export default class VaccineService {
 			.whereRaw("patient_vaccines.deleted_at is null")
 			.where("business_units.economic_group_id", authCtx.group.id)
 			.whereRaw("patient_vaccines.patient_id = ?", [patientID])
-			.orderByRaw(`vaccine_calendars.created_at desc, p.name, vaccines.name, vaccine_protocols."name", vaccine_calendars.dose,
-         vaccine_calendars.scheduling_date, vaccine_calendars.application_date`);
+			.orderByRaw(`vaccine_calendars.dose, vaccine_calendars.created_at desc, p.name, vaccines.name, vaccine_protocols."name", vaccine_calendars.scheduling_date, vaccine_calendars.application_date`);
 
 		if (data.units && Array.isArray(data.units)) {
 			qb.whereIn("patient_vaccines.business_unit_id", data.units);

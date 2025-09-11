@@ -795,14 +795,14 @@ export default class ReceiptService {
 				query.preload("paymentMethod");
 			})
 			.preload("items", (query) => {
-				if (data.status) {
-					query.where("status", data.status);
-				} else {
-					query.whereIn("status", [
-						"Ativo",
-						"PendenteXml",
-					] as TReceiptItemStatus[]);
-				}
+				// if (data.status) {
+				// 	query.where("status", data.status);
+				// } else {
+				// query.whereIn("status", [
+				// 	"Ativo",
+				// 	"PendenteXml",
+				// ] as TReceiptItemStatus[]);
+				// }
 
 				query.orderBy("description_xml", "asc");
 

@@ -2334,7 +2334,24 @@ case when p.control_id = 'TRC11' then 'Usuário não possui permissão para reti
 				Database.raw(
 					`ca.id                                as idConta,
        ca.description                       as descricaoConta,
-       ca.balance                           as saldoConta,
+       (select coalesce(sum(
+                        case
+                            when ((fSaldo.payment_date is not null and fSaldo.payment_date::date <= now()::date) or
+                                  (fSaldo.payment_date is null and fSaldo.expiration_date::date <= now()::date)) and
+                                 fSaldo.type = 'CREDITO' then coalesce(fSaldo.total_value, 0)
+                            else 0 end
+                            -
+                        case
+                            when ((fSaldo.payment_date is not null and fSaldo.payment_date::date <= now()::date) or
+                                  (fSaldo.payment_date is null and fSaldo.expiration_date::date <= now()::date)) and
+                                 fSaldo.type = 'DEBITO' then coalesce(fSaldo.total_value, 0)
+                            else 0 end), 0)
+           from finances fsaldo
+           where fSaldo.economic_group_id = finances.economic_group_id
+             and fSaldo.business_unit_id = finances.business_unit_id
+             and fSaldo.checking_account_id = ca.id
+and (fSaldo.payment_date::date <= now()::date or fSaldo.expiration_date::date <= now()::date)
+ )       as salcoconta,
        coalesce(sum(
                         case
                             when ((payment_date is not null and payment_date::date < ?) or
@@ -2496,7 +2513,7 @@ case when p.control_id = 'TRC11' then 'Usuário não possui permissão para reti
 			saldoconta: number;
 			saldoinicial: number;
 			saldofinal: number;
-		}[] = await rowsQb.groupByRaw("ca.id, ca.description, ca.balance");
+		}[] = await rowsQb.groupByRaw("ca.id, ca.description, ca.balance, finances.economic_group_id , finances.business_unit_id");
 
 		if (result.length === 0) {
 			return { saldoinicial: "S/R", saldofinal: "S/R", saldoconta: "S/R" };

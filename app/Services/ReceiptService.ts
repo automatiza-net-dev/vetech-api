@@ -798,10 +798,10 @@ export default class ReceiptService {
 				if (data.status) {
 					query.where("status", data.status);
 				} else {
-					query.whereIn("status", [
-						"Ativo",
-						"PendenteXml",
-					] as TReceiptItemStatus[]);
+					// query.whereIn("status", [
+					// 	"Ativo",
+					// 	"PendenteXml",
+					// ] as TReceiptItemStatus[]);
 				}
 
 				query.orderBy("description_xml", "asc");

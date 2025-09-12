@@ -2002,7 +2002,8 @@ group by client_id),0) as finances_expired`),
 				.select("id", "day_of_week", "user_id", "start_hour", "end_hour")
 				.where("business_unit_id", authCtx.unit.id)
 				.whereIn("day_of_week", Array.from(new Set(diffDays))) // add all days
-				.whereIn("user_id", userIds);
+				.whereIn("user_id", userIds)
+				.orderByRaw("user_id , start_hour");
 		}
 
 		if (
@@ -3168,7 +3169,11 @@ when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores 
 
 		const starter: Record<string, number> =
 			lateFees.length === 0
-				? { "Valores em Atraso": new Decimal(lateFees[0]?.total ?? 0).toNumber() }
+				? {
+						"Valores em Atraso": new Decimal(
+							lateFees[0]?.total ?? 0,
+						).toNumber(),
+					}
 				: {};
 
 		return result.reduce((acc, row) => {

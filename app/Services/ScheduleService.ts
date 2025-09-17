@@ -1626,6 +1626,24 @@ export default class ScheduleService {
 		}));
 	}
 
+	private isScheduleInsideWorkingHour(
+		startTime: Date | string,
+		endTime: Date | string,
+		start: string,
+		end: string,
+	): boolean {
+		const fmt = (d: Date | string) =>
+			typeof d === "string"
+				? format(new Date(d), "HH:mm:ss")
+				: format(d, "HH:mm:ss");
+
+		const scheduleStart = fmt(startTime);
+		const scheduleEnd = fmt(endTime);
+
+		// intervalo precisa caber 100% dentro do workingDay
+		return scheduleStart >= start && scheduleEnd <= end;
+	}
+
 	private mapSchedulesToDays(
 		keys: string[],
 		wDays: WorkingDay[],
@@ -1976,8 +1994,9 @@ group by client_id),0) as finances_expired`),
 			schedulesQb.whereRaw("ss.type <> 'CANC'", []);
 		}
 
+		const schedules = await schedulesQb;
 		// @ts-ignore
-		resultData[0] = (await schedulesQb).map((elem) => ({
+		resultData[0] = schedules.map((elem) => ({
 			id: elem.id,
 			userId: elem.user_id,
 			major_complaint: elem.major_complaint,
@@ -2002,7 +2021,8 @@ group by client_id),0) as finances_expired`),
 				.select("id", "day_of_week", "user_id", "start_hour", "end_hour")
 				.where("business_unit_id", authCtx.unit.id)
 				.whereIn("day_of_week", Array.from(new Set(diffDays))) // add all days
-				.whereIn("user_id", userIds);
+				.whereIn("user_id", userIds)
+				.orderByRaw("user_id , start_hour");
 		}
 
 		if (
@@ -2053,6 +2073,21 @@ group by client_id),0) as finances_expired`),
 							event: day,
 							name: elem.name,
 							type: this.getEventLabel(day),
+							scheduledOutside:
+								this.getEventLabel(day) === "schedule"
+									? !resultData[1]
+											.filter((wd) => wd.user_id === elem.id)
+											.some((wd) =>
+												this.isScheduleInsideWorkingHour(
+													// @ts-ignore
+													day.startHour,
+													// @ts-ignore
+													day.endHour,
+													wd.startHour,
+													wd.endHour,
+												),
+											)
+									: false,
 						})),
 				};
 			})
@@ -3168,7 +3203,11 @@ when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores 
 
 		const starter: Record<string, number> =
 			lateFees.length === 0
-				? { "Valores em Atraso": new Decimal(lateFees[0]?.total ?? 0).toNumber() }
+				? {
+						"Valores em Atraso": new Decimal(
+							lateFees[0]?.total ?? 0,
+						).toNumber(),
+					}
 				: {};
 
 		return result.reduce((acc, row) => {

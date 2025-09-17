@@ -1044,29 +1044,29 @@ export default class ReceiptService {
 				);
 			}
 
-			// if (parsed.data.nfeProc.NFe.infNFe.dest?.CNPJ) {
-			// 	const unit = await BusinessUnit.query()
-			// 		.useTransaction(trx)
-			// 		.where("document", parsed.data.nfeProc.NFe.infNFe.dest.CNPJ)
-			// 		.whereNull("deleted_at")
-			// 		.first();
-			//
-			// 	if (!unit) {
-			// 		throw new BadRequestException(
-			// 			"CNPJ não percente a nenhuma unidade",
-			// 			400,
-			// 			"E_INVALID_DOC",
-			// 		);
-			// 	}
-			//
-			// 	if (unit.economicGroupId !== authCtx.group.id) {
-			// 		throw new BadRequestException(
-			// 			`O CNPJ do destinatário desta nota fiscal é a Unidade "${unit.identification}" e você está logado na Unidade "${authCtx.unit.identification}"`,
-			// 			400,
-			// 			"E_INVALID_DOC",
-			// 		);
-			// 	}
-			// }
+			if (parsed.data.nfeProc.NFe.infNFe.dest?.CNPJ) {
+				const unit = await BusinessUnit.query()
+					.useTransaction(trx)
+					.where("document", parsed.data.nfeProc.NFe.infNFe.dest.CNPJ)
+					.whereNull("deleted_at")
+					.first();
+
+				if (!unit) {
+					throw new BadRequestException(
+						"CNPJ não percente a nenhuma unidade",
+						400,
+						"E_INVALID_DOC",
+					);
+				}
+
+				if (unit.economicGroupId !== authCtx.group.id) {
+					throw new BadRequestException(
+						`O CNPJ do destinatário desta nota fiscal é a Unidade "${unit.identification}" e você está logado na Unidade "${authCtx.unit.identification}"`,
+						400,
+						"E_INVALID_DOC",
+					);
+				}
+			}
 
 			const dailyMovementId = await this.getDailyMovementForImport(
 				trx,

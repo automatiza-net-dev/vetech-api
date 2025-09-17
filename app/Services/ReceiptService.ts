@@ -1168,12 +1168,6 @@ export default class ReceiptService {
 					(sp) => sp.productVariation.barcode === barcode,
 				)?.productVariation.product;
 
-				const anotherExistingProduct = existingProduct
-					? existingProduct
-					: products.find((p) =>
-							p.variations.find((pv) => pv.barcode === barcode),
-						);
-
 				const cofins = this.getCofins(
 					parsed.data,
 					Number.parseInt(itemIdx, 10),
@@ -1204,46 +1198,88 @@ export default class ReceiptService {
 					ncmXml: item.prod.NCM,
 
 					icmsOriginProduct: icms?.orig,
-					icmsCst:
-						"CSOSN" in icms ? icms.CSOSN : "CST" in icms ? icms.CST : undefined,
-					icmsBase: "vBC" in icms ? icms.vBC : undefined,
-					icmsPercentage: "pICMS" in icms ? icms.pICMS : undefined,
-					icmsValue: "vICMS" in icms ? icms.vICMS : undefined,
-					icmsDeferredValue: "vICMSDif" in icms ? icms.vICMSDif : undefined,
+					icmsCst: icms
+						? "CSOSN" in icms
+							? icms.CSOSN
+							: "CST" in icms
+								? icms.CST
+								: undefined
+						: undefined,
+					icmsBase: icms ? ("vBC" in icms ? icms.vBC : undefined) : undefined,
+					icmsPercentage: icms
+						? "pICMS" in icms
+							? icms.pICMS
+							: undefined
+						: undefined,
+					icmsValue: icms
+						? "vICMS" in icms
+							? icms.vICMS
+							: undefined
+						: undefined,
+					icmsDeferredValue: icms
+						? "vICMSDif" in icms
+							? icms.vICMSDif
+							: undefined
+						: undefined,
 					// icmsPercentageRedAliquot: rule?.icmsPercRedAliquota,
-					icmsPercentageRedBase: "pRedBC" in icms ? icms.pRedBC : undefined,
-					icmsStBase:
-						"vBCSTRet" in icms
+					icmsPercentageRedBase: icms
+						? "pRedBC" in icms
+							? icms.pRedBC
+							: undefined
+						: undefined,
+					icmsStBase: icms
+						? "vBCSTRet" in icms
 							? icms.vBCSTRet
 							: "vBCST" in icms
 								? icms.vBCST
-								: undefined,
-					icmsStPercentageRedBase:
-						"pRedBCST" in icms ? icms.pRedBCST : undefined,
-					icmsStIva: "pMVAST" in icms ? icms.pMVAST : undefined,
-					icmsStPercentageUfDestination:
-						"pICMSSTRet" in icms
+								: undefined
+						: undefined,
+					icmsStPercentageRedBase: icms
+						? "pRedBCST" in icms
+							? icms.pRedBCST
+							: undefined
+						: undefined,
+					icmsStIva: icms
+						? "pMVAST" in icms
+							? icms.pMVAST
+							: undefined
+						: undefined,
+					icmsStPercentageUfDestination: icms
+						? "pICMSSTRet" in icms
 							? // @ts-ignore check if things will work
 								icms.pICMSSTRet
 							: "pICMSST" in icms
 								? icms.pICMSST
-								: undefined,
-					icmsStValue:
-						"vICMSSTRet" in icms
+								: undefined
+						: undefined,
+					icmsStValue: icms
+						? "vICMSSTRet" in icms
 							? icms.vICMSSTRet
 							: "vICMSST" in icms
 								? icms.vICMSST
-								: undefined, // vICMSSTRet ?
+								: undefined
+						: undefined, // vICMSSTRet ?
 					// icmsPartitionValue: 0,
 					// icmsFcpPercentage: 0,
 					// icmsFcpValue: 0,
 					// icmsPartitionOriginUfPercentage: rule?.icmsPerc,
 					// icmsPartitionDestinationUfPercentage: ufIcms?.icmsPercentage,
 					// icmsPartitionInterUfPercentage: ufIcms?.icmsPercentage,
-					icmsExoneratedValue:
-						"vICMSDeson" in icms ? icms.vICMSDeson : undefined,
-					icmsOperationValue: "vICMSOp" in icms ? icms.vICMSOp : undefined,
-					icmsPercentageDeferred: "pDif" in icms ? icms.pDif : undefined,
+					icmsExoneratedValue: icms
+						? "vICMSDeson" in icms
+							? icms.vICMSDeson
+							: undefined
+						: undefined,
+					icmsOperationValue: icms
+						? "vICMSOp" in icms
+							? icms.vICMSOp
+							: undefined
+						: undefined,
+					icmsPercentageDeferred: icms
+						? "pDif" in icms
+							? icms.pDif
+							: undefined
+						: undefined,
 					// icmsCreditValue: "vCredICMSSN" in icms ? icms.vCredICMSSN : undefined,
 					// icmsCreditPercentage: "pCredSN" in icms ? icms.pCredSN : undefined,
 
@@ -1378,7 +1414,8 @@ export default class ReceiptService {
 
 		if (row?.ICMSSN900) return row.ICMSSN900;
 
-		throw new BadRequestException("ICMS não encontrado", 400, "E_NO_ICMS");
+		return null;
+		// throw new BadRequestException("ICMS não encontrado", 400, "E_NO_ICMS");
 	}
 
 	private getCofins(data: z.infer<typeof schema>, idx: number) {

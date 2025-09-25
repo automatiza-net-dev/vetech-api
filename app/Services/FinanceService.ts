@@ -1338,9 +1338,7 @@ tef_flags.description as tef_flag, payment_methods.tef as pm_tef, payment_method
 							(data.feeValue || 0) +
 							(data.increaseValue || 0) -
 							(data.discountValue || 0),
-					)
-						.minus(discount)
-						.toNumber(),
+					).minus(discount),
 					accept: data.accept,
 					installment: data.installment,
 					originFlag: data.originFlag,
@@ -1445,12 +1443,13 @@ tef_flags.description as tef_flag, payment_methods.tef as pm_tef, payment_method
 						expirationDate: item.expirationDate,
 						originalValue: new Decimal(item.originalValue),
 						value: new Decimal(item.originalValue - discount),
-						totalValue:
+						totalValue: new Decimal(
 							item.originalValue +
-							(item.feeValue || 0) +
-							(item.increaseValue || 0) -
-							(item.discountValue || 0) -
-							discount,
+								(item.feeValue || 0) +
+								(item.increaseValue || 0) -
+								(item.discountValue || 0) -
+								discount,
+						),
 						accept: item.accept,
 						installment: item.installment,
 						originFlag: item.originFlag,
@@ -1533,12 +1532,13 @@ tef_flags.description as tef_flag, payment_methods.tef as pm_tef, payment_method
 					expirationDate: data.expirationDate,
 					originalValue: new Decimal(data.originalValue),
 					value: new Decimal(data.originalValue - discount),
-					totalValue:
+					totalValue: new Decimal(
 						data.originalValue +
-						(data.feeValue ?? 0) +
-						(data.increaseValue ?? 0) -
-						(data.discountValue ?? 0) -
-						discount,
+							(data.feeValue ?? 0) +
+							(data.increaseValue ?? 0) -
+							(data.discountValue ?? 0) -
+							discount,
+					),
 					reconciled: data.reconciled,
 
 					issueDate: data.issueDate,
@@ -1799,13 +1799,13 @@ tef_flags.description as tef_flag, payment_methods.tef as pm_tef, payment_method
 						expirationDate: finance.expirationDate,
 						paymentDate: finance.paymentDate ?? undefined,
 						totalValue: finance.totalValue,
-						paymentValue: finance.paymentValue?.toNumber(),
-						feeValue: finance.feeValue.toNumber(),
+						paymentValue: finance.paymentValue ?? undefined,
+						feeValue: finance.feeValue,
 						feePercentage: finance.feePercentage,
-						discountValue: finance.discountValue.toNumber(),
+						discountValue: finance.discountValue,
 						discountPercentage: finance.discountPercentage,
 						additionPercentage: finance.additionPercentage,
-						additionValue: finance.additionValue.toNumber(),
+						additionValue: finance.additionValue,
 
 						competenceDate: finance.competenceDate,
 						fiscalNote: finance.fiscalNote,
@@ -1925,13 +1925,13 @@ tef_flags.description as tef_flag, payment_methods.tef as pm_tef, payment_method
 					expirationDate: finance.expirationDate,
 					paymentDate: finance.paymentDate ?? undefined,
 					totalValue: finance.totalValue,
-					paymentValue: finance.paymentValue?.toNumber() ?? undefined,
-					feeValue: finance.feeValue.toNumber(),
+					paymentValue: finance.paymentValue ?? undefined,
+					feeValue: finance.feeValue,
 					feePercentage: finance.feePercentage,
-					discountValue: finance.discountValue.toNumber(),
+					discountValue: finance.discountValue,
 					discountPercentage: finance.discountPercentage,
 					additionPercentage: finance.additionPercentage,
-					additionValue: finance.additionValue.toNumber(),
+					additionValue: finance.additionValue,
 
 					competenceDate: finance.competenceDate,
 					fiscalNote: finance.fiscalNote,
@@ -4108,11 +4108,11 @@ and (fSaldo.payment_date::date <= now()::date or fSaldo.expiration_date::date <=
 				feeDiscountValue: bordero.discountValue,
 				// expirationDate: bordero.date,
 				paymentDate: bordero.paymentDate,
-				totalValue: bordero.totalValue,
-				paymentValue: bordero.paymentValue,
-				feeValue: bordero.interestValue,
+				totalValue: new Decimal(bordero.totalValue),
+				paymentValue: new Decimal(bordero.paymentValue),
+				feeValue: new Decimal(bordero.interestValue),
 				feePercentage: bordero.interestPercentage,
-				discountValue: bordero.discountValue,
+				discountValue: new Decimal(bordero.discountValue),
 				discountPercentage: bordero.discountPercentage,
 				// additionPercentage: bordero.additionPercentage,
 				// additionValue: bordero.additionValue,
@@ -4144,13 +4144,13 @@ and (fSaldo.payment_date::date <= now()::date or fSaldo.expiration_date::date <=
 					expirationDate: finance.expirationDate,
 					paymentDate: finance.paymentDate ?? undefined,
 					totalValue: finance.totalValue,
-					paymentValue: finance.paymentValue?.toNumber() ?? undefined,
-					feeValue: finance.feeValue.toNumber(),
+					paymentValue: finance.paymentValue ?? undefined,
+					feeValue: finance.feeValue,
 					feePercentage: finance.feePercentage,
-					discountValue: finance.discountValue.toNumber(),
+					discountValue: finance.discountValue,
 					discountPercentage: finance.discountPercentage,
 					additionPercentage: finance.additionPercentage,
-					additionValue: finance.additionValue.toNumber(),
+					additionValue: finance.additionValue,
 
 					competenceDate: finance.competenceDate,
 					fiscalNote: finance.fiscalNote,
@@ -4259,11 +4259,11 @@ and (fSaldo.payment_date::date <= now()::date or fSaldo.expiration_date::date <=
 				feeDiscountValue: bordero.discountValue,
 				// expirationDate: bordero.date,
 				paymentDate: bordero.paymentDate,
-				totalValue: bordero.totalValue,
-				paymentValue: bordero.paymentValue,
-				feeValue: bordero.interestValue,
+				totalValue: new Decimal(bordero.totalValue),
+				paymentValue: new Decimal(bordero.paymentValue),
+				feeValue: new Decimal(bordero.interestValue),
 				feePercentage: bordero.interestPercentage,
-				discountValue: bordero.discountValue,
+				discountValue: new Decimal(bordero.discountValue),
 				discountPercentage: bordero.discountPercentage,
 				// additionPercentage: bordero.additionPercentage,
 				// additionValue: bordero.additionValue,
@@ -4295,13 +4295,13 @@ and (fSaldo.payment_date::date <= now()::date or fSaldo.expiration_date::date <=
 					expirationDate: finance.expirationDate,
 					paymentDate: finance.paymentDate ?? undefined,
 					totalValue: finance.totalValue,
-					paymentValue: finance.paymentValue?.toNumber(),
-					feeValue: finance.feeValue.toNumber(),
+					paymentValue: finance.paymentValue ?? undefined,
+					feeValue: finance.feeValue,
 					feePercentage: finance.feePercentage,
-					discountValue: finance.discountValue.toNumber(),
+					discountValue: finance.discountValue,
 					discountPercentage: finance.discountPercentage,
 					additionPercentage: finance.additionPercentage,
-					additionValue: finance.additionValue.toNumber(),
+					additionValue: finance.additionValue,
 
 					competenceDate: finance.competenceDate,
 					fiscalNote: finance.fiscalNote,
@@ -4394,7 +4394,7 @@ and (fSaldo.payment_date::date <= now()::date or fSaldo.expiration_date::date <=
 			.useTransaction(trx);
 
 		const totalValueSum = finances.reduce(
-			(acc, curr) => acc + curr.totalValue,
+			(acc, curr) => acc + curr.totalValue.toNumber(),
 			0,
 		);
 

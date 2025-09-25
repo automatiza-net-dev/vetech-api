@@ -90,8 +90,11 @@ export default class Bill extends BaseModel {
 
 	@column({
 		columnName: "total_value",
+		consume: (value) => (value ? new Decimal(value) : null),
+		prepare: (value) => value.toString(),
+		serialize: (value: Decimal) => (value ? value.toNumber() : 0),
 	})
-	public totalValue: number;
+	public totalValue: Decimal;
 
 	@column({
 		columnName: "icms_base",

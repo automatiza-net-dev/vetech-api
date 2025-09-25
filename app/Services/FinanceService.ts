@@ -131,12 +131,12 @@ export default class FinanceService {
 			);
 		}
 
-		const discount = (finance.originalValue * installment.fee) / 100;
+		const discount = finance.originalValue.times(installment.fee).div(100);
 
 		return {
 			feeDiscountPercentage: installment.fee,
 			feeDiscountValue: discount,
-			documentValue: finance.originalValue - discount,
+			documentValue: finance.originalValue.minus(discount).toNumber(),
 		};
 	}
 
@@ -1331,8 +1331,8 @@ tef_flags.description as tef_flag, payment_methods.tef as pm_tef, payment_method
 					historic: data.historic,
 					issueDate: data.issueDate,
 					expirationDate: data.expirationDate,
-					originalValue: data.originalValue,
-					value: new Decimal(data.originalValue).minus(discount).toNumber(),
+					originalValue: new Decimal(data.originalValue),
+					value: new Decimal(data.originalValue).minus(discount),
 					totalValue: new Decimal(
 						data.originalValue +
 							(data.feeValue || 0) +
@@ -1353,13 +1353,17 @@ tef_flags.description as tef_flag, payment_methods.tef as pm_tef, payment_method
 
 					paymentDate: data.paymentDate,
 					downDate: data.downDate,
-					paymentValue: data.paymentValue,
-					feeValue: data.feeValue ?? 0,
+					paymentValue: data.paymentValue
+						? new Decimal(data.paymentValue)
+						: null,
+					feeValue: new Decimal(data.feeValue ?? 0),
 					feePercentage: data.feePercentage ?? 0,
-					discountValue: data.discountValue ?? 0,
+					discountValue: new Decimal(data.discountValue ?? 0),
 					discountPercentage: data.discountPercentage ?? 0,
 					additionPercentage: data.increasePercentage,
-					additionValue: data.increaseValue,
+					additionValue: data.increaseValue
+						? new Decimal(data.increaseValue)
+						: undefined,
 					observation: data.observation,
 					competenceDate: data.competenceDate,
 					fiscalNote: data.fiscalNote,
@@ -1439,8 +1443,8 @@ tef_flags.description as tef_flag, payment_methods.tef as pm_tef, payment_method
 						historic: item.historic,
 						issueDate: item.issueDate,
 						expirationDate: item.expirationDate,
-						originalValue: item.originalValue,
-						value: item.originalValue - discount,
+						originalValue: new Decimal(item.originalValue),
+						value: new Decimal(item.originalValue - discount),
 						totalValue:
 							item.originalValue +
 							(item.feeValue || 0) +
@@ -1458,13 +1462,17 @@ tef_flags.description as tef_flag, payment_methods.tef as pm_tef, payment_method
 
 						paymentDate: item.paymentDate,
 						downDate: item.downDate,
-						paymentValue: item.paymentValue,
-						feeValue: item.feeValue ?? 0,
+						paymentValue: item.paymentValue
+							? new Decimal(item.paymentValue)
+							: undefined,
+						feeValue: new Decimal(item.feeValue ?? 0),
 						feePercentage: item.feePercentage ?? 0,
-						discountValue: item.discountValue ?? 0,
+						discountValue: new Decimal(item.discountValue ?? 0),
 						discountPercentage: item.discountPercentage ?? 0,
 						additionPercentage: item.increasePercentage,
-						additionValue: item.increaseValue,
+						additionValue: item.increaseValue
+							? new Decimal(item.increaseValue)
+							: undefined,
 						observation: item.observation,
 						competenceDate: item.competenceDate,
 						fiscalNote: item.fiscalNote,
@@ -1523,8 +1531,8 @@ tef_flags.description as tef_flag, payment_methods.tef as pm_tef, payment_method
 
 					historic: data.historic,
 					expirationDate: data.expirationDate,
-					originalValue: data.originalValue,
-					value: data.originalValue - discount,
+					originalValue: new Decimal(data.originalValue),
+					value: new Decimal(data.originalValue - discount),
 					totalValue:
 						data.originalValue +
 						(data.feeValue ?? 0) +
@@ -1534,12 +1542,16 @@ tef_flags.description as tef_flag, payment_methods.tef as pm_tef, payment_method
 					reconciled: data.reconciled,
 
 					issueDate: data.issueDate,
-					feeValue: data.feeValue ?? 0,
+					feeValue: new Decimal(data.feeValue ?? 0),
 					feePercentage: data.feePercentage ?? 0,
-					discountValue: data.discountValue,
+					discountValue: data.discountValue
+						? new Decimal(data.discountValue)
+						: undefined,
 					discountPercentage: data.discountPercentage,
 					additionPercentage: data.increasePercentage,
-					additionValue: data.increaseValue,
+					additionValue: data.increaseValue
+						? new Decimal(data.increaseValue)
+						: undefined,
 					observation: data.observation,
 					competenceDate: data.competenceDate,
 					fiscalNote: data.fiscalNote,
@@ -1675,20 +1687,22 @@ tef_flags.description as tef_flag, payment_methods.tef as pm_tef, payment_method
 					checking_account_id: elem.checkingAccountId,
 					status: FinanceStatus.B,
 					downDate: DateTime.now(),
-					paymentValue: elem.paymentValue,
+					paymentValue: new Decimal(elem.paymentValue),
 					paymentDate: elem.paymentDate,
 					originDownFlag: elem.originDownFlag,
 					payment_method_id: elem.paymentMethodId,
 					acquirer_id: elem.tefAcquirerId,
 					tef_flag_id: elem.tefFlagId,
 
-					feeValue: elem.feeValue ?? 0,
+					feeValue: new Decimal(elem.feeValue ?? 0),
 					feePercentage: elem.feePercentage ?? 0,
-					discountValue: elem.discountValue ?? 0,
+					discountValue: new Decimal(elem.discountValue ?? 0),
 					discountPercentage: elem.discountPercentage ?? 0,
 
 					additionPercentage: elem.increasePercentage,
-					additionValue: elem.increaseValue,
+					additionValue: elem.increaseValue
+						? new Decimal(elem.increaseValue)
+						: undefined,
 					observation: elem.observation,
 
 					competenceDate: elem.competenceDate,
@@ -1723,10 +1737,10 @@ tef_flags.description as tef_flag, payment_methods.tef as pm_tef, payment_method
 						document: finance.document,
 						historic: finance.historic,
 						issueDate: elem.paymentDate,
-						documentValue: finance.value,
-						feeValue: finance.feeValue,
+						documentValue: finance.value.toNumber(),
+						feeValue: finance.feeValue.toNumber(),
 						feePercentage: finance.feePercentage,
-						discountValue: finance.discountValue,
+						discountValue: finance.discountValue.toNumber(),
 						discountPercentage: finance.discountPercentage,
 						totalValue: elem.paymentValue,
 						reconciled: true,
@@ -1737,8 +1751,10 @@ tef_flags.description as tef_flag, payment_methods.tef as pm_tef, payment_method
 						prevBalance: checkingAccount?.balance,
 						balance:
 							finance.type === FinanceType.C
-								? (checkingAccount?.balance ?? 0) + (finance.paymentValue ?? 0)
-								: (checkingAccount?.balance ?? 0) - (finance.paymentValue ?? 0),
+								? (checkingAccount?.balance ?? 0) +
+									(finance.paymentValue?.toNumber() ?? 0)
+								: (checkingAccount?.balance ?? 0) -
+									(finance.paymentValue?.toNumber() ?? 0),
 
 						competenceDate: finance.competenceDate,
 						fiscalNote: finance.fiscalNote,
@@ -1755,8 +1771,10 @@ tef_flags.description as tef_flag, payment_methods.tef as pm_tef, payment_method
 					.merge({
 						balance:
 							finance.type === FinanceType.C
-								? checkingAccount.balance + (finance.paymentValue ?? 0)
-								: checkingAccount.balance - (finance.paymentValue ?? 0),
+								? checkingAccount.balance +
+									(finance.paymentValue?.toNumber() ?? 0)
+								: checkingAccount.balance -
+									(finance.paymentValue?.toNumber() ?? 0),
 					})
 					.useTransaction(trx)
 					.save();
@@ -1781,13 +1799,13 @@ tef_flags.description as tef_flag, payment_methods.tef as pm_tef, payment_method
 						expirationDate: finance.expirationDate,
 						paymentDate: finance.paymentDate ?? undefined,
 						totalValue: finance.totalValue,
-						paymentValue: finance.paymentValue ?? undefined,
-						feeValue: finance.feeValue,
+						paymentValue: finance.paymentValue?.toNumber(),
+						feeValue: finance.feeValue.toNumber(),
 						feePercentage: finance.feePercentage,
-						discountValue: finance.discountValue,
+						discountValue: finance.discountValue.toNumber(),
 						discountPercentage: finance.discountPercentage,
 						additionPercentage: finance.additionPercentage,
-						additionValue: finance.additionValue,
+						additionValue: finance.additionValue.toNumber(),
 
 						competenceDate: finance.competenceDate,
 						fiscalNote: finance.fiscalNote,
@@ -1858,12 +1876,12 @@ tef_flags.description as tef_flag, payment_methods.tef as pm_tef, payment_method
 					document: finance.document,
 					historic: finance.historic,
 					issueDate: DateTime.now(),
-					documentValue: finance.value,
-					feeValue: finance.feeValue,
+					documentValue: finance.value.toNumber(),
+					feeValue: finance.feeValue.toNumber(),
 					feePercentage: finance.feePercentage,
-					discountValue: finance.discountValue,
+					discountValue: finance.discountValue.toNumber(),
 					discountPercentage: finance.discountPercentage,
-					totalValue: finance.paymentValue ?? -1,
+					totalValue: finance.paymentValue?.toNumber() ?? -1,
 					reconciled: true,
 					installment: finance.installment,
 					originFlag: BankingOriginFlag.F,
@@ -1872,8 +1890,8 @@ tef_flags.description as tef_flag, payment_methods.tef as pm_tef, payment_method
 					prevBalance: balance,
 					balance:
 						finance.type === FinanceType.C
-							? balance - (finance.paymentValue ?? 0)
-							: balance + (finance.paymentValue ?? 0),
+							? balance - (finance.paymentValue?.toNumber() ?? 0)
+							: balance + (finance.paymentValue?.toNumber() ?? 0),
 
 					competenceDate: finance.competenceDate,
 					fiscalNote: finance.fiscalNote,
@@ -1907,13 +1925,13 @@ tef_flags.description as tef_flag, payment_methods.tef as pm_tef, payment_method
 					expirationDate: finance.expirationDate,
 					paymentDate: finance.paymentDate ?? undefined,
 					totalValue: finance.totalValue,
-					paymentValue: finance.paymentValue ?? undefined,
-					feeValue: finance.feeValue,
+					paymentValue: finance.paymentValue?.toNumber() ?? undefined,
+					feeValue: finance.feeValue.toNumber(),
 					feePercentage: finance.feePercentage,
-					discountValue: finance.discountValue,
+					discountValue: finance.discountValue.toNumber(),
 					discountPercentage: finance.discountPercentage,
 					additionPercentage: finance.additionPercentage,
-					additionValue: finance.additionValue,
+					additionValue: finance.additionValue.toNumber(),
 
 					competenceDate: finance.competenceDate,
 					fiscalNote: finance.fiscalNote,
@@ -1936,8 +1954,10 @@ tef_flags.description as tef_flag, payment_methods.tef as pm_tef, payment_method
 					.merge({
 						balance:
 							finance.type === FinanceType.C
-								? checkingAccount.balance - (finance.paymentValue ?? 0)
-								: checkingAccount.balance + (finance.paymentValue ?? 0),
+								? checkingAccount.balance -
+									(finance.paymentValue?.toNumber() ?? 0)
+								: checkingAccount.balance +
+									(finance.paymentValue?.toNumber() ?? 0),
 					})
 					.useTransaction(trx)
 					.save();
@@ -2244,7 +2264,7 @@ case when p.control_id = 'TRC11' then 'Usuário não possui permissão para reti
 			}
 
 			const entry = dataSet.get(key) as { value: number };
-			entry.value += elem.value;
+			entry.value += elem.value.toNumber();
 
 			dataSet.set(key, entry);
 		}
@@ -2513,7 +2533,9 @@ and (fSaldo.payment_date::date <= now()::date or fSaldo.expiration_date::date <=
 			saldoconta: number;
 			saldoinicial: number;
 			saldofinal: number;
-		}[] = await rowsQb.groupByRaw("ca.id, ca.description, ca.balance, finances.economic_group_id , finances.business_unit_id");
+		}[] = await rowsQb.groupByRaw(
+			"ca.id, ca.description, ca.balance, finances.economic_group_id , finances.business_unit_id",
+		);
 
 		if (result.length === 0) {
 			return { saldoinicial: "S/R", saldofinal: "S/R", saldoconta: "S/R" };
@@ -3612,12 +3634,12 @@ and (fSaldo.payment_date::date <= now()::date or fSaldo.expiration_date::date <=
 								: undefined,
 
 						paymentDate: data.paymentDate,
-						paymentValue: elem.totalValue,
+						paymentValue: new Decimal(elem.totalValue),
 						downDate: DateTime.now(),
 						originDownFlag: FinanceOriginDownFlag.BO,
-						feeValue: 0,
+						feeValue: new Decimal(0),
 						feePercentage: 0,
-						discountValue: 0,
+						discountValue: new Decimal(0),
 						discountPercentage: 0,
 						status: FinanceStatus.B,
 					})
@@ -3963,11 +3985,13 @@ and (fSaldo.payment_date::date <= now()::date or fSaldo.expiration_date::date <=
 				hasData: payments.length > 0,
 				title: "Titulos a receber hoje",
 				total: this.sharedService.formatter.format(
-					payments.reduce((acc, curr) => acc + curr.totalValue, 0),
+					payments.reduce((acc, curr) => acc + curr.totalValue.toNumber(), 0),
 				),
 				data: payments.map((elem) => ({
 					description: elem.paymentMethod.description,
-					value: this.sharedService.formatter.format(elem.totalValue),
+					value: this.sharedService.formatter.format(
+						elem.totalValue.toNumber(),
+					),
 				})),
 			},
 			{
@@ -4120,13 +4144,13 @@ and (fSaldo.payment_date::date <= now()::date or fSaldo.expiration_date::date <=
 					expirationDate: finance.expirationDate,
 					paymentDate: finance.paymentDate ?? undefined,
 					totalValue: finance.totalValue,
-					paymentValue: finance.paymentValue ?? undefined,
-					feeValue: finance.feeValue,
+					paymentValue: finance.paymentValue?.toNumber() ?? undefined,
+					feeValue: finance.feeValue.toNumber(),
 					feePercentage: finance.feePercentage,
-					discountValue: finance.discountValue,
+					discountValue: finance.discountValue.toNumber(),
 					discountPercentage: finance.discountPercentage,
 					additionPercentage: finance.additionPercentage,
-					additionValue: finance.additionValue,
+					additionValue: finance.additionValue.toNumber(),
 
 					competenceDate: finance.competenceDate,
 					fiscalNote: finance.fiscalNote,
@@ -4271,13 +4295,13 @@ and (fSaldo.payment_date::date <= now()::date or fSaldo.expiration_date::date <=
 					expirationDate: finance.expirationDate,
 					paymentDate: finance.paymentDate ?? undefined,
 					totalValue: finance.totalValue,
-					paymentValue: finance.paymentValue ?? undefined,
-					feeValue: finance.feeValue,
+					paymentValue: finance.paymentValue?.toNumber(),
+					feeValue: finance.feeValue.toNumber(),
 					feePercentage: finance.feePercentage,
-					discountValue: finance.discountValue,
+					discountValue: finance.discountValue.toNumber(),
 					discountPercentage: finance.discountPercentage,
 					additionPercentage: finance.additionPercentage,
-					additionValue: finance.additionValue,
+					additionValue: finance.additionValue.toNumber(),
 
 					competenceDate: finance.competenceDate,
 					fiscalNote: finance.fiscalNote,

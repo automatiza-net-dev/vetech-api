@@ -9,6 +9,7 @@
   ],
   "compilerOptions": {
     "resolveJsonModule": true,
+    "skipLibCheck": true,
     "outDir": "build",
     "rootDir": "./",
     "lib": [

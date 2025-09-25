@@ -17,6 +17,7 @@ import PaymentMethod, { PaymentMethodTef } from "App/Models/PaymentMethod";
 import TefAcquirer from "App/Models/TefAcquirer";
 import TefFlag, { TefFlagType } from "App/Models/TefFlag";
 import PatientFactory from "Database/factories/PatientFactory";
+import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 import { v4 } from "uuid";
 
@@ -81,7 +82,7 @@ test.group("Finance resource", (group) => {
 			payment_method_id: paymentMethod.id,
 			tef_flag_id: tefFlag.id,
 			status: FinanceStatus.A,
-			value: 100,
+			value: new Decimal(100),
 		});
 
 		const dailyMovement = await DailyMovement.create({

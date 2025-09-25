@@ -1570,7 +1570,7 @@ test.group("Bill resource", (group) => {
 			daily_movement_id: dailyMovement.id,
 			daily_cashier_id: dailyCashier.id,
 			status: BillStatus.A,
-			totalValue: 100,
+			totalValue: new Decimal(100),
 		});
 
 		const response = await client
@@ -1869,7 +1869,7 @@ test.group("Bill resource", (group) => {
 				productValue: 100,
 				serviceValue: 100,
 				discountValue: 0,
-				totalValue: 200,
+				totalValue: new Decimal(200),
 			})
 			.save();
 

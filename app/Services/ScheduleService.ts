@@ -125,8 +125,10 @@ export default class ScheduleService {
 			.joinRaw(
 				"left join schedule_contacts sc on schedules.id = sc.schedule_id",
 			)
-			.joinRaw(`left join (schedule_status_changes ssc join schedule_statuses ss on ssc.schedule_status_id = ss.id)
-                   on ssc.schedule_id = schedules.id`)
+			.joinRaw(
+				`left join (schedule_status_changes ssc join schedule_statuses ss on ssc.schedule_status_id = ss.id)
+                   on ssc.schedule_id = schedules.id`,
+			)
 			.joinRaw("left join reasons r on schedules.reason_id = r.id")
 			.where(
 				"schedules.business_unit_id",
@@ -636,8 +638,8 @@ export default class ScheduleService {
 					data.userId ?? authCtx.user.id,
 					authCtx.unit.id,
 					{
-						start: data.startHour.toJSDate(),
-						end: data.endHour.toJSDate(),
+						start: data.startHour.plus({ hours: 3 }).toJSDate(),
+						end: data.endHour.plus({ hours: 3 }).toJSDate(),
 					},
 				);
 
@@ -1634,8 +1636,8 @@ export default class ScheduleService {
 	): boolean {
 		const fmt = (d: Date | string) =>
 			typeof d === "string"
-				? format(new Date(d), "HH:mm:ss")
-				: format(d, "HH:mm:ss");
+				? DateTime.fromISO(d).plus({ hours: 3 }).toFormat("HH:mm:ss")
+				: DateTime.fromJSDate(d).plus({ hours: 3 }).toFormat("HH:mm:ss");
 
 		const scheduleStart = fmt(startTime);
 		const scheduleEnd = fmt(endTime);
@@ -1953,7 +1955,8 @@ group by client_id),0) as finances_expired`),
 			.joinRaw("left join races rc on pa.race_id = rc.id")
 			.joinRaw("left join species sp on rc.specie_id = sp.id")
 			.joinRaw("left join users cs on schedules.confirmation_user_id = cs.id")
-			.groupByRaw(`schedules.id,
+			.groupByRaw(
+				`schedules.id,
          schedules.user_id,
          schedules.start_hour,
          schedules.end_hour,
@@ -1984,7 +1987,8 @@ group by client_id),0) as finances_expired`),
          h.id,
          h.name,
          pt2.cellphone,
-         cs.id`)
+         cs.id`,
+			)
 			.where("schedules.business_unit_id", authCtx.unit.id)
 			.whereRaw("schedules.start_hour::date between ? and ?", [
 				refStart,
@@ -3196,8 +3200,10 @@ case when expiration_date::date = now()::date then 'Valores Vencimento Hoje'
 			.whereRaw("business_unit_id = ?", [authCtx.unit.id])
 			.whereRaw("client_id = ?", [clientID])
 			.whereRaw("payment_date is null")
-			.groupByRaw(`client_id, case when expiration_date::date = now()::date then 'Valores Vencimento Hoje'
-when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores Futuros' end`)
+			.groupByRaw(
+				`client_id, case when expiration_date::date = now()::date then 'Valores Vencimento Hoje'
+when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores Futuros' end`,
+			)
 			.orderByRaw("tipoVencimento");
 
 		const lateFees: { total: string }[] = await Database.from("finances")
@@ -3406,13 +3412,15 @@ when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores 
 			.joinRaw(
 				"join schedule_service_types sst on schedule_service_type_id = sst.id",
 			)
-			.joinRaw(`left join (treatment_executions te
+			.joinRaw(
+				`left join (treatment_executions te
     join treatment_items ti on te.treatment_item_id = ti.id and te.treatment_id = ti.treatment_id
     join bill_items bi on ti.bill_item_id = bi.id
     join product_variations pv on bi.product_variation_id = pv.id
     join products p on pv.product_id = p.id
     join productivity_items pi2 on te.productivity_item_id = pi2.id
-    ) on schedules.id = te.schedule_id`)
+    ) on schedules.id = te.schedule_id`,
+			)
 			.whereRaw('(schedules.id = ? and schedules."deleted_at" is null)', [
 				scheduleID,
 			])
@@ -3502,9 +3510,11 @@ when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores 
 				.joinRaw(
 					"join schedule_statuses on schedule_statuses.system_id = business_units.system_id",
 				)
-				.whereRaw(`(
+				.whereRaw(
+					`(
     schedule_statuses.economic_group_id is null or schedule_statuses.economic_group_id =
-                                                   business_units.economic_group_id)`)
+                                                   business_units.economic_group_id)`,
+				)
 				.whereRaw("schedule_statuses.type = ?", [data.confirmationType])
 				.whereRaw("schedules.id = ?", [data.scheduleId])
 				.first();

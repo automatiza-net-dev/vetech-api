@@ -1,11 +1,8 @@
-import { inject } from "@adonisjs/fold";
-import Hash from "@ioc:Adonis/Core/Hash";
-import Database, {
-	TransactionClientContract,
-} from "@ioc:Adonis/Lucid/Database";
-import type { ModelObject } from "@ioc:Adonis/Lucid/Orm";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
+import UnauthorizedException from "App/Exceptions/UnauthorizedException";
+import CrmStatus from "App/Models/CrmStatus";
+import Opportunity from "App/Models/Opportunity";
 import Patient from "App/Models/Patient";
 import Reason from "App/Models/Reason";
 import Schedule from "App/Models/Schedule";
@@ -14,19 +11,28 @@ import ScheduleStatus, {
 	ScheduleStatusType,
 	VALID_CHANGES,
 } from "App/Models/ScheduleStatus";
+import ScheduleStatusChange from "App/Models/ScheduleStatusChange";
+import WeekDay from "App/Models/shared/WeekDay";
+import TreatmentExecution from "App/Models/TreatmentExecution";
+import TreatmentExecutionReschedule from "App/Models/TreatmentExecutionReschedule";
 import UnavailableDay from "App/Models/UnavailableDay";
 import User from "App/Models/User";
 import WorkingDay from "App/Models/WorkingDay";
-import WeekDay from "App/Models/shared/WeekDay";
 import OpportunityService from "App/Services/OpportunityService";
-import SharedService from "App/Services/SharedService";
 import type { AuthContext, DateSet } from "App/Services/SharedService";
+import SharedService from "App/Services/SharedService";
 import type IScheduleContactData from "Contracts/interfaces/IScheduleContactData";
 import type IScheduleData from "Contracts/interfaces/IScheduleData";
 import type { IRescheduleData } from "Contracts/interfaces/IScheduleData";
 import type IUpdateScheduleStatus from "Contracts/interfaces/IUpdateScheduleStatus";
 import type IViewDailyServicesRequest from "Contracts/interfaces/IViewDailyServicesRequest";
 import type IViewDisponibilityRequest from "Contracts/interfaces/IViewDisponibilityRequest";
+import { inject } from "@adonisjs/fold";
+import Hash from "@ioc:Adonis/Core/Hash";
+import Database, {
+	TransactionClientContract,
+} from "@ioc:Adonis/Lucid/Database";
+import type { ModelObject } from "@ioc:Adonis/Lucid/Orm";
 import {
 	addDays,
 	differenceInDays,
@@ -38,15 +44,9 @@ import {
 	isSameDay,
 	startOfDay,
 } from "date-fns";
-import { DateTime } from "luxon";
-import UnauthorizedException from "App/Exceptions/UnauthorizedException";
-import Opportunity from "App/Models/Opportunity";
-import { v4, validate } from "uuid";
-import CrmStatus from "App/Models/CrmStatus";
-import TreatmentExecution from "App/Models/TreatmentExecution";
-import TreatmentExecutionReschedule from "App/Models/TreatmentExecutionReschedule";
 import Decimal from "decimal.js";
-import ScheduleStatusChange from "App/Models/ScheduleStatusChange";
+import { DateTime } from "luxon";
+import { v4, validate } from "uuid";
 
 interface ISearch {
 	pid?: string;
@@ -125,8 +125,10 @@ export default class ScheduleService {
 			.joinRaw(
 				"left join schedule_contacts sc on schedules.id = sc.schedule_id",
 			)
-			.joinRaw(`left join (schedule_status_changes ssc join schedule_statuses ss on ssc.schedule_status_id = ss.id)
-                   on ssc.schedule_id = schedules.id`)
+			.joinRaw(
+				`left join (schedule_status_changes ssc join schedule_statuses ss on ssc.schedule_status_id = ss.id)
+                   on ssc.schedule_id = schedules.id`,
+			)
 			.joinRaw("left join reasons r on schedules.reason_id = r.id")
 			.where(
 				"schedules.business_unit_id",
@@ -636,8 +638,8 @@ export default class ScheduleService {
 					data.userId ?? authCtx.user.id,
 					authCtx.unit.id,
 					{
-						start: data.startHour.toJSDate(),
-						end: data.endHour.toJSDate(),
+						start: data.startHour.plus({ hours: 3 }).toJSDate(),
+						end: data.endHour.plus({ hours: 3 }).toJSDate(),
 					},
 				);
 
@@ -1634,8 +1636,8 @@ export default class ScheduleService {
 	): boolean {
 		const fmt = (d: Date | string) =>
 			typeof d === "string"
-				? format(new Date(d), "HH:mm:ss")
-				: format(d, "HH:mm:ss");
+				? DateTime.fromISO(d).plus({ hours: 3 }).toFormat("HH:mm:ss")
+				: DateTime.fromJSDate(d).plus({ hours: 3 }).toFormat("HH:mm:ss");
 
 		const scheduleStart = fmt(startTime);
 		const scheduleEnd = fmt(endTime);
@@ -1713,8 +1715,12 @@ export default class ScheduleService {
 		// if (!data.from || !data.to) {
 		// 	throw new BadRequestException("Data não informada", 400, "E_BAD_REQUEST");
 		// }
-		const refStart = data.from ? new Date(data.from) : new Date();
-		const refEnd = data.to ? new Date(data.to) : new Date();
+		const refStart = data.from
+			? DateTime.fromISO(data.from, { zone: "America/Sao_Paulo" })
+			: DateTime.now();
+		const refEnd = data.to
+			? DateTime.fromISO(data.to, { zone: "America/Sao_Paulo" })
+			: DateTime.now();
 
 		const usersQb = Database.from("users")
 			.select(
@@ -1728,11 +1734,11 @@ export default class ScheduleService {
 			.joinRaw(
 				`left join working_days
                    on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id and working_days.weekday_index = ?`,
-				[refStart.getDay().toString()],
+				[refStart.toJSDate().getDay().toString()],
 			)
 			.joinRaw(
 				"left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?",
-				[refStart, refEnd],
+				[refStart.toJSDate(), refEnd.toJSDate()],
 			)
 			.where("user_unit_roles.unit_id", authCtx.unit.id)
 			.where("users.type", "user")
@@ -1757,9 +1763,12 @@ export default class ScheduleService {
 		}[] = await usersQb;
 		const userIds = Array.from(new Set(users.map((u) => u.id)));
 
-		const days = Math.max(differenceInDays(refStart, refEnd), 1);
+		const days = Math.max(
+			differenceInDays(refStart.toJSDate(), refEnd.toJSDate()),
+			1,
+		);
 		const diffDays = Array.from({ length: days }, (_, k) => {
-			const tmpDate = addDays(refStart, k);
+			const tmpDate = addDays(refStart.toJSDate(), k);
 			return ScheduleService.GetWD(tmpDate);
 		});
 		const resultData: [
@@ -1946,7 +1955,8 @@ group by client_id),0) as finances_expired`),
 			.joinRaw("left join races rc on pa.race_id = rc.id")
 			.joinRaw("left join species sp on rc.specie_id = sp.id")
 			.joinRaw("left join users cs on schedules.confirmation_user_id = cs.id")
-			.groupByRaw(`schedules.id,
+			.groupByRaw(
+				`schedules.id,
          schedules.user_id,
          schedules.start_hour,
          schedules.end_hour,
@@ -1977,7 +1987,8 @@ group by client_id),0) as finances_expired`),
          h.id,
          h.name,
          pt2.cellphone,
-         cs.id`)
+         cs.id`,
+			)
 			.where("schedules.business_unit_id", authCtx.unit.id)
 			.whereRaw("schedules.start_hour::date between ? and ?", [
 				refStart,
@@ -2043,7 +2054,10 @@ group by client_id),0) as finances_expired`),
 				)
 				.where("active", true)
 				.where("business_unit_id", authCtx.unit.id)
-				.whereILike("frequency", `%${ScheduleService.GetWD(refStart)}%`)
+				.whereILike(
+					"frequency",
+					`%${ScheduleService.GetWD(refStart.toJSDate())}%`,
+				)
 				.whereRaw("(start_date::date <= ? or start_date::date is null)", [
 					data.from ?? new Date(),
 				])
@@ -2108,9 +2122,9 @@ group by client_id),0) as finances_expired`),
 		}
 
 		const usersQb = Database.from("users")
-			.select(Database.raw(`distinct users.id, users.name, users.on_duty`))
+			.select(Database.raw("distinct users.id, users.name, users.on_duty"))
 			.joinRaw(
-				`join user_unit_roles on users.id = user_unit_roles.user_id and user_unit_roles.active is true`,
+				"join user_unit_roles on users.id = user_unit_roles.user_id and user_unit_roles.active is true",
 			)
 			.joinRaw(
 				`left join working_days
@@ -2118,13 +2132,13 @@ group by client_id),0) as finances_expired`),
 				[new Date(data.from).getDay().toString()],
 			)
 			.joinRaw(
-				`left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?`,
+				"left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?",
 				[data.from, data.to],
 			)
 			.where("user_unit_roles.unit_id", authCtx.unit.id)
 			.where("users.type", "user")
 			.whereRaw(
-				`((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))`,
+				"((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))",
 			);
 
 		const hasPermission = await this.sharedService.userHasPermission(
@@ -2257,9 +2271,9 @@ group by client_id),0) as finances_expired`),
 		}
 
 		const usersQb = Database.from("users")
-			.select(Database.raw(`distinct users.id, users.name, users.on_duty`))
+			.select(Database.raw("distinct users.id, users.name, users.on_duty"))
 			.joinRaw(
-				`join user_unit_roles on users.id = user_unit_roles.user_id and user_unit_roles.active is true`,
+				"join user_unit_roles on users.id = user_unit_roles.user_id and user_unit_roles.active is true",
 			)
 			.joinRaw(
 				`left join working_days
@@ -2267,13 +2281,13 @@ group by client_id),0) as finances_expired`),
 				[new Date(data.from).getDay().toString()],
 			)
 			.joinRaw(
-				`left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?`,
+				"left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?",
 				[data.from, data.to],
 			)
 			.where("user_unit_roles.unit_id", authCtx.unit.id)
 			.where("users.type", "user")
 			.whereRaw(
-				`((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))`,
+				"((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))",
 			)
 			.whereIn("users.id", data.users);
 		const hasPermission = await this.sharedService.userHasPermission(
@@ -2564,7 +2578,7 @@ group by client_id),0) as finances_expired`),
 			.whereRaw("(start_date <= ? or start_date is null)", [data.start])
 			.whereRaw("(end_date >= ? or end_date is null)", [data.end])
 			.whereRaw(
-				`((? between start_hour and end_hour or ? between start_hour and end_hour) or (? > end_hour and ? < start_hour))`,
+				"((? between start_hour and end_hour or ? between start_hour and end_hour) or (? > end_hour and ? < start_hour))",
 				[strStart, strEnd, strEnd, strStart],
 			);
 
@@ -3186,8 +3200,10 @@ case when expiration_date::date = now()::date then 'Valores Vencimento Hoje'
 			.whereRaw("business_unit_id = ?", [authCtx.unit.id])
 			.whereRaw("client_id = ?", [clientID])
 			.whereRaw("payment_date is null")
-			.groupByRaw(`client_id, case when expiration_date::date = now()::date then 'Valores Vencimento Hoje'
-when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores Futuros' end`)
+			.groupByRaw(
+				`client_id, case when expiration_date::date = now()::date then 'Valores Vencimento Hoje'
+when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores Futuros' end`,
+			)
 			.orderByRaw("tipoVencimento");
 
 		const lateFees: { total: string }[] = await Database.from("finances")
@@ -3396,13 +3412,15 @@ when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores 
 			.joinRaw(
 				"join schedule_service_types sst on schedule_service_type_id = sst.id",
 			)
-			.joinRaw(`left join (treatment_executions te
+			.joinRaw(
+				`left join (treatment_executions te
     join treatment_items ti on te.treatment_item_id = ti.id and te.treatment_id = ti.treatment_id
     join bill_items bi on ti.bill_item_id = bi.id
     join product_variations pv on bi.product_variation_id = pv.id
     join products p on pv.product_id = p.id
     join productivity_items pi2 on te.productivity_item_id = pi2.id
-    ) on schedules.id = te.schedule_id`)
+    ) on schedules.id = te.schedule_id`,
+			)
 			.whereRaw('(schedules.id = ? and schedules."deleted_at" is null)', [
 				scheduleID,
 			])
@@ -3492,9 +3510,11 @@ when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores 
 				.joinRaw(
 					"join schedule_statuses on schedule_statuses.system_id = business_units.system_id",
 				)
-				.whereRaw(`(
+				.whereRaw(
+					`(
     schedule_statuses.economic_group_id is null or schedule_statuses.economic_group_id =
-                                                   business_units.economic_group_id)`)
+                                                   business_units.economic_group_id)`,
+				)
 				.whereRaw("schedule_statuses.type = ?", [data.confirmationType])
 				.whereRaw("schedules.id = ?", [data.scheduleId])
 				.first();

@@ -1713,8 +1713,12 @@ export default class ScheduleService {
 		// if (!data.from || !data.to) {
 		// 	throw new BadRequestException("Data não informada", 400, "E_BAD_REQUEST");
 		// }
-		const refStart = data.from ? new Date(data.from) : new Date();
-		const refEnd = data.to ? new Date(data.to) : new Date();
+		const refStart = data.from
+			? DateTime.fromISO(data.from).plus({ hours: 12 })
+			: DateTime.now();
+		const refEnd = data.to
+			? DateTime.fromISO(data.to).plus({ hours: 12 })
+			: DateTime.now();
 
 		const usersQb = Database.from("users")
 			.select(
@@ -1728,11 +1732,11 @@ export default class ScheduleService {
 			.joinRaw(
 				`left join working_days
                    on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id and working_days.weekday_index = ?`,
-				[refStart.getDay().toString()],
+				[refStart.toJSDate().getDay().toString()],
 			)
 			.joinRaw(
 				"left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?",
-				[refStart, refEnd],
+				[refStart.toJSDate(), refEnd.toJSDate()],
 			)
 			.where("user_unit_roles.unit_id", authCtx.unit.id)
 			.where("users.type", "user")

@@ -10,6 +10,7 @@ import CheckingAccount from "App/Models/CheckingAccount";
 import TefAcquirer from "App/Models/TefAcquirer";
 import TefFlag from "App/Models/TefFlag";
 import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 import { v4 } from "uuid";
 
@@ -125,26 +126,42 @@ export default class Finance extends BaseModel {
 
 	@column({
 		columnName: "original_value",
+		consume: (value) => (value ? new Decimal(value) : null),
+		prepare: (value) => value.toString(),
+		serialize: (value: Decimal) => (value ? value.toNumber() : 0),
 	})
-	public originalValue: number;
+	public originalValue: Decimal;
 
-	@column()
-	public value: number;
+	@column({
+		consume: (value) => (value ? new Decimal(value) : null),
+		prepare: (value) => value.toString(),
+		serialize: (value: Decimal) => (value ? value.toNumber() : 0),
+	})
+	public value: Decimal;
 
 	@column({
 		columnName: "total_value",
+		consume: (value) => (value ? new Decimal(value) : null),
+		prepare: (value) => value.toString(),
+		serialize: (value: Decimal) => (value ? value.toNumber() : 0),
 	})
-	public totalValue: number;
+	public totalValue: Decimal;
 
 	@column({
 		columnName: "payment_value",
+		consume: (value) => (value ? new Decimal(value) : null),
+		prepare: (value) => value.toString(),
+		serialize: (value: Decimal) => (value ? value.toNumber() : 0),
 	})
-	public paymentValue: number | null;
+	public paymentValue: Decimal | null;
 
 	@column({
 		columnName: "fee_value",
+		consume: (value) => (value ? new Decimal(value) : null),
+		prepare: (value) => value.toString(),
+		serialize: (value: Decimal) => (value ? value.toNumber() : 0),
 	})
-	public feeValue: number;
+	public feeValue: Decimal;
 
 	@column({
 		columnName: "fee_percentage",
@@ -153,8 +170,11 @@ export default class Finance extends BaseModel {
 
 	@column({
 		columnName: "discount_value",
+		consume: (value) => (value ? new Decimal(value) : null),
+		prepare: (value) => value.toString(),
+		serialize: (value: Decimal) => (value ? value.toNumber() : 0),
 	})
-	public discountValue: number;
+	public discountValue: Decimal;
 
 	@column({
 		columnName: "discount_percentage",
@@ -163,8 +183,11 @@ export default class Finance extends BaseModel {
 
 	@column({
 		columnName: "addition_value",
+		consume: (value) => (value ? new Decimal(value) : null),
+		prepare: (value) => value.toString(),
+		serialize: (value: Decimal) => (value ? value.toNumber() : 0),
 	})
-	public additionValue: number;
+	public additionValue: Decimal;
 
 	@column({
 		columnName: "addition_percentage",

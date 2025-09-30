@@ -15,7 +15,17 @@ export default class CreateAnimalPhotoValidator {
 		]),
 		photos: schema.array().members(
 			schema.file({
-				extnames: ["jpg", "gif", "png", "jpeg"],
+				extnames: [
+					"jpg",
+					"gif",
+					"png",
+					"jpeg",
+					"doc",
+					"docx",
+					"txt",
+					"xls",
+					"xlsx",
+				],
 			}),
 		),
 		title: schema.string.optional({}, []),

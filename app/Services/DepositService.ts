@@ -63,7 +63,7 @@ export default class DepositService {
 					query.select("id", "barcode", "product_id");
 
 					query.preload("product", (query) => {
-						query.select("id", "description");
+						query.select("id", "description").orderByRaw("description");
 					});
 				});
 			})

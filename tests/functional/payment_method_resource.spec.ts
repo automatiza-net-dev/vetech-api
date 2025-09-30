@@ -235,6 +235,7 @@ test.group("Payment method resource", (group) => {
 			.put(`/payment-methods/update-flag/${flag.id}`)
 			.json({
 				paymentMethodId: paymentMethod.id,
+				flagInstallments: [],
 				tefFlagId: tefFlag.id,
 				tefAcquirerId: tefAcq.id,
 				checkingAccountId: checkingAccount.id,

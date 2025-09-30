@@ -86,9 +86,9 @@ export default class DreService {
 			JSON.stringify(
 				data.map((d) => ({
 					...d,
-					mes: Number.parseInt(d.mes),
+					mes: Number.parseInt(d.mes, 10),
 					valor_pago: Number.parseFloat(d.valor_pago),
-					valor_recebido: Number.parseInt(d.valor_recebido),
+					valor_recebido: Number.parseInt(d.valor_recebido, 10),
 					total: Number.parseFloat(d.total),
 				})),
 			),

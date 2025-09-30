@@ -7,8 +7,8 @@ export default class extends BaseSchema {
 		"total_value",
 		"payment_value",
 		"fee_value",
-    "discount_value"
-    "addition_value"
+		"discount_value",
+		"addition_value",
 	];
 
 	public async up() {

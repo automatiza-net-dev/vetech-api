@@ -150,7 +150,7 @@ export default class Finance extends BaseModel {
 	@column({
 		columnName: "payment_value",
 		consume: (value) => (value ? new Decimal(value) : null),
-		prepare: (value) => value.toString(),
+		prepare: (value) => value?.toString(),
 		serialize: (value: Decimal) => (value ? value.toNumber() : 0),
 	})
 	public paymentValue: Decimal | null;

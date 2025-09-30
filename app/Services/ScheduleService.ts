@@ -1,11 +1,8 @@
-import { inject } from "@adonisjs/fold";
-import Hash from "@ioc:Adonis/Core/Hash";
-import Database, {
-	TransactionClientContract,
-} from "@ioc:Adonis/Lucid/Database";
-import type { ModelObject } from "@ioc:Adonis/Lucid/Orm";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
+import UnauthorizedException from "App/Exceptions/UnauthorizedException";
+import CrmStatus from "App/Models/CrmStatus";
+import Opportunity from "App/Models/Opportunity";
 import Patient from "App/Models/Patient";
 import Reason from "App/Models/Reason";
 import Schedule from "App/Models/Schedule";
@@ -14,19 +11,28 @@ import ScheduleStatus, {
 	ScheduleStatusType,
 	VALID_CHANGES,
 } from "App/Models/ScheduleStatus";
+import ScheduleStatusChange from "App/Models/ScheduleStatusChange";
+import WeekDay from "App/Models/shared/WeekDay";
+import TreatmentExecution from "App/Models/TreatmentExecution";
+import TreatmentExecutionReschedule from "App/Models/TreatmentExecutionReschedule";
 import UnavailableDay from "App/Models/UnavailableDay";
 import User from "App/Models/User";
 import WorkingDay from "App/Models/WorkingDay";
-import WeekDay from "App/Models/shared/WeekDay";
 import OpportunityService from "App/Services/OpportunityService";
-import SharedService from "App/Services/SharedService";
 import type { AuthContext, DateSet } from "App/Services/SharedService";
+import SharedService from "App/Services/SharedService";
 import type IScheduleContactData from "Contracts/interfaces/IScheduleContactData";
 import type IScheduleData from "Contracts/interfaces/IScheduleData";
 import type { IRescheduleData } from "Contracts/interfaces/IScheduleData";
 import type IUpdateScheduleStatus from "Contracts/interfaces/IUpdateScheduleStatus";
 import type IViewDailyServicesRequest from "Contracts/interfaces/IViewDailyServicesRequest";
 import type IViewDisponibilityRequest from "Contracts/interfaces/IViewDisponibilityRequest";
+import { inject } from "@adonisjs/fold";
+import Hash from "@ioc:Adonis/Core/Hash";
+import Database, {
+	TransactionClientContract,
+} from "@ioc:Adonis/Lucid/Database";
+import type { ModelObject } from "@ioc:Adonis/Lucid/Orm";
 import {
 	addDays,
 	differenceInDays,
@@ -38,15 +44,9 @@ import {
 	isSameDay,
 	startOfDay,
 } from "date-fns";
-import { DateTime } from "luxon";
-import UnauthorizedException from "App/Exceptions/UnauthorizedException";
-import Opportunity from "App/Models/Opportunity";
-import { v4, validate } from "uuid";
-import CrmStatus from "App/Models/CrmStatus";
-import TreatmentExecution from "App/Models/TreatmentExecution";
-import TreatmentExecutionReschedule from "App/Models/TreatmentExecutionReschedule";
 import Decimal from "decimal.js";
-import ScheduleStatusChange from "App/Models/ScheduleStatusChange";
+import { DateTime } from "luxon";
+import { v4, validate } from "uuid";
 
 interface ISearch {
 	pid?: string;
@@ -1714,10 +1714,10 @@ export default class ScheduleService {
 		// 	throw new BadRequestException("Data não informada", 400, "E_BAD_REQUEST");
 		// }
 		const refStart = data.from
-			? DateTime.fromISO(data.from).plus({ hours: 12 })
+			? DateTime.fromISO(data.from, { zone: "America/Sao_Paulo" })
 			: DateTime.now();
 		const refEnd = data.to
-			? DateTime.fromISO(data.to).plus({ hours: 12 })
+			? DateTime.fromISO(data.to, { zone: "America/Sao_Paulo" })
 			: DateTime.now();
 
 		const usersQb = Database.from("users")
@@ -1761,9 +1761,12 @@ export default class ScheduleService {
 		}[] = await usersQb;
 		const userIds = Array.from(new Set(users.map((u) => u.id)));
 
-		const days = Math.max(differenceInDays(refStart, refEnd), 1);
+		const days = Math.max(
+			differenceInDays(refStart.toJSDate(), refEnd.toJSDate()),
+			1,
+		);
 		const diffDays = Array.from({ length: days }, (_, k) => {
-			const tmpDate = addDays(refStart, k);
+			const tmpDate = addDays(refStart.toJSDate(), k);
 			return ScheduleService.GetWD(tmpDate);
 		});
 		const resultData: [
@@ -2047,7 +2050,10 @@ group by client_id),0) as finances_expired`),
 				)
 				.where("active", true)
 				.where("business_unit_id", authCtx.unit.id)
-				.whereILike("frequency", `%${ScheduleService.GetWD(refStart)}%`)
+				.whereILike(
+					"frequency",
+					`%${ScheduleService.GetWD(refStart.toJSDate())}%`,
+				)
 				.whereRaw("(start_date::date <= ? or start_date::date is null)", [
 					data.from ?? new Date(),
 				])
@@ -2112,9 +2118,9 @@ group by client_id),0) as finances_expired`),
 		}
 
 		const usersQb = Database.from("users")
-			.select(Database.raw(`distinct users.id, users.name, users.on_duty`))
+			.select(Database.raw("distinct users.id, users.name, users.on_duty"))
 			.joinRaw(
-				`join user_unit_roles on users.id = user_unit_roles.user_id and user_unit_roles.active is true`,
+				"join user_unit_roles on users.id = user_unit_roles.user_id and user_unit_roles.active is true",
 			)
 			.joinRaw(
 				`left join working_days
@@ -2122,13 +2128,13 @@ group by client_id),0) as finances_expired`),
 				[new Date(data.from).getDay().toString()],
 			)
 			.joinRaw(
-				`left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?`,
+				"left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?",
 				[data.from, data.to],
 			)
 			.where("user_unit_roles.unit_id", authCtx.unit.id)
 			.where("users.type", "user")
 			.whereRaw(
-				`((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))`,
+				"((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))",
 			);
 
 		const hasPermission = await this.sharedService.userHasPermission(
@@ -2261,9 +2267,9 @@ group by client_id),0) as finances_expired`),
 		}
 
 		const usersQb = Database.from("users")
-			.select(Database.raw(`distinct users.id, users.name, users.on_duty`))
+			.select(Database.raw("distinct users.id, users.name, users.on_duty"))
 			.joinRaw(
-				`join user_unit_roles on users.id = user_unit_roles.user_id and user_unit_roles.active is true`,
+				"join user_unit_roles on users.id = user_unit_roles.user_id and user_unit_roles.active is true",
 			)
 			.joinRaw(
 				`left join working_days
@@ -2271,13 +2277,13 @@ group by client_id),0) as finances_expired`),
 				[new Date(data.from).getDay().toString()],
 			)
 			.joinRaw(
-				`left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?`,
+				"left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?",
 				[data.from, data.to],
 			)
 			.where("user_unit_roles.unit_id", authCtx.unit.id)
 			.where("users.type", "user")
 			.whereRaw(
-				`((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))`,
+				"((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))",
 			)
 			.whereIn("users.id", data.users);
 		const hasPermission = await this.sharedService.userHasPermission(
@@ -2568,7 +2574,7 @@ group by client_id),0) as finances_expired`),
 			.whereRaw("(start_date <= ? or start_date is null)", [data.start])
 			.whereRaw("(end_date >= ? or end_date is null)", [data.end])
 			.whereRaw(
-				`((? between start_hour and end_hour or ? between start_hour and end_hour) or (? > end_hour and ? < start_hour))`,
+				"((? between start_hour and end_hour or ? between start_hour and end_hour) or (? > end_hour and ? < start_hour))",
 				[strStart, strEnd, strEnd, strStart],
 			);
 

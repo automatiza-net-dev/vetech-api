@@ -638,8 +638,8 @@ export default class ScheduleService {
 					data.userId ?? authCtx.user.id,
 					authCtx.unit.id,
 					{
-						start: data.startHour.plus({ hours: 3 }),
-						end: data.endHour.plus({ hours: 3 }),
+						start: data.startHour,
+						end: data.endHour,
 					},
 				);
 
@@ -950,8 +950,8 @@ export default class ScheduleService {
 						data.userId ?? authCtx.user.id,
 						authCtx.unit.id,
 						{
-							start: data.startHour.plus({ hours: 3 }),
-							end: data.endHour.plus({ hours: 3 }),
+							start: data.startHour,
+							end: data.endHour,
 						},
 					);
 

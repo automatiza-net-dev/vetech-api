@@ -950,8 +950,8 @@ export default class ScheduleService {
 						data.userId ?? authCtx.user.id,
 						authCtx.unit.id,
 						{
-							start: data.startHour.toJSDate(),
-							end: data.endHour.toJSDate(),
+							start: data.startHour.plus({ hours: 3 }).toJSDate(),
+							end: data.endHour.plus({ hours: 3 }).toJSDate(),
 						},
 					);
 
@@ -1123,8 +1123,8 @@ export default class ScheduleService {
 					technician.id,
 					authCtx.unit.id,
 					{
-						start: data.startHour.toJSDate(),
-						end: data.endHour.toJSDate(),
+						start: data.startHour.plus({ hours: 3 }).toJSDate(),
+						end: data.endHour.plus({ hours: 3 }).toJSDate(),
 					},
 				);
 

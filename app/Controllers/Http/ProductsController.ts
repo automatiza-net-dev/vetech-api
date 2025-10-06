@@ -2,6 +2,7 @@ import { inject } from "@adonisjs/fold";
 import { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import ProductService from "App/Services/ProductService";
 import SharedService from "App/Services/SharedService";
+import CalculateStockValidator from "App/Validators/Product/CalculateStockValidator";
 import CreateProductValidator from "App/Validators/Product/CreateProductValidator";
 import UpdateProductValidator from "App/Validators/Product/UpdateProductValidator";
 
@@ -39,8 +40,10 @@ export default class ProductsController {
 	}
 
 	public async show({ auth, params, response }: HttpContextContract) {
-		const { unit_id } = this.sharedService.extractUser(auth);
-		const result = await this.service.show(unit_id, params.id);
+		const result = await this.service.show(
+			await this.sharedService.getAuthContext(auth),
+			params.id,
+		);
 
 		return response.ok(result);
 	}
@@ -61,9 +64,27 @@ export default class ProductsController {
 		response,
 	}: HttpContextContract) {
 		const payload = await request.validate(UpdateProductValidator);
-		const { unit_id } = this.sharedService.extractUser(auth);
 
-		const result = await this.service.update(unit_id, params.id, payload);
+		const result = await this.service.update(
+			await this.sharedService.getAuthContext(auth),
+			params.id,
+			payload,
+		);
+
+		return response.ok(result);
+	}
+
+	public async calculateStock({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		const payload = await request.validate(CalculateStockValidator);
+
+		const result = await this.service.calculateStock(
+			await this.sharedService.getAuthContext(auth),
+			payload,
+		);
 
 		return response.ok(result);
 	}

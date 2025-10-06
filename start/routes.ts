@@ -437,6 +437,7 @@ Route.group(() => {
 Route.group(() => {
 	Route.get("/for-movements", "ProductsController.forMovements");
 	Route.get("/", "ProductsController.index");
+	Route.post("/stock", "ProductsController.calculateStock");
 	Route.post("/", "ProductsController.store");
 	Route.get("/:id", "ProductsController.show");
 	Route.put("/:id", "ProductsController.update");

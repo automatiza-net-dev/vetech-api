@@ -1,4 +1,5 @@
 import BadRequestException from "App/Exceptions/BadRequestException";
+import { platform } from "node:os";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import CrmStatus from "App/Models/CrmStatus";
@@ -63,10 +64,16 @@ interface IHomeSearch {
 
 @inject()
 export default class ScheduleService {
+	private timeOffset = 0;
+
 	constructor(
 		private readonly sharedService: SharedService,
 		private opportunityService: OpportunityService,
-	) {}
+	) {
+		if (platform() === "win32") {
+			this.timeOffset = 3;
+		}
+	}
 
 	public async searchScheduleEvents(
 		authCtx: AuthContext,
@@ -638,8 +645,8 @@ export default class ScheduleService {
 					data.userId ?? authCtx.user.id,
 					authCtx.unit.id,
 					{
-						start: data.startHour,
-						end: data.endHour,
+						start: data.startHour.plus({ hours: this.timeOffset }),
+						end: data.endHour.plus({ hours: this.timeOffset }),
 					},
 				);
 
@@ -950,8 +957,8 @@ export default class ScheduleService {
 						data.userId ?? authCtx.user.id,
 						authCtx.unit.id,
 						{
-							start: data.startHour,
-							end: data.endHour,
+							start: data.startHour.plus({ hours: this.timeOffset }),
+							end: data.endHour.plus({ hours: this.timeOffset }),
 						},
 					);
 
@@ -1123,8 +1130,8 @@ export default class ScheduleService {
 					technician.id,
 					authCtx.unit.id,
 					{
-						start: data.startHour.plus({ hours: 3 }),
-						end: data.endHour.plus({ hours: 3 }),
+						start: data.startHour.plus({ hours: this.timeOffset }),
+						end: data.endHour.plus({ hours: this.timeOffset }),
 					},
 				);
 

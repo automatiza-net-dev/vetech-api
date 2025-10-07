@@ -3991,6 +3991,87 @@ account_plans.tag, ' + ' || tag as ref`),
 		return qb;
 	}
 
+	public async productStockReport(
+		authCtx: AuthContext,
+		data: {
+			subgroups?: string[];
+			active?: string;
+		},
+	) {
+		const qb = Database.from("products")
+			.select(
+				Database.raw(`products.id              AS product_id,
+       products.description     AS product_description,
+       sg.description           AS subgroup_description,
+       d.id                     AS deposit_id,
+       d.description            AS deposit_description,
+       COALESCE(di.quantity, 0::decimal(10, 3)) AS quantity`),
+			)
+			.joinRaw("left join subgroups sg ON sg.id = products.subgroup_id")
+			.joinRaw("left join product_variations pv ON pv.product_id = products.id")
+			.joinRaw(
+				"left join business_unit_products bup ON bup.product_variation_id = pv.id",
+			)
+			.joinRaw(
+				"left join deposits d ON d.economic_group_id = products.economic_group_id and bup.businness_unit_id = d.business_unit_id",
+			)
+			.joinRaw(
+				"left join deposit_items di ON di.deposit_id = d.id AND di.business_unit_product_id = bup.id",
+			)
+			.orderByRaw("products.description, d.description")
+			.whereRaw("products.deleted_at is null", [])
+			.whereRaw("products.type = 'product'", [])
+			.whereRaw("products.economic_group_id = ?", [authCtx.group.id])
+			.whereRaw("bup.businness_unit_id = ?", [authCtx.unit.id]);
+
+		if (data.subgroups) {
+			qb.whereIn("sg.id", data.subgroups);
+		}
+
+		if (data.active === "Ativos") {
+			qb.whereRaw("products.active is true");
+		}
+		if (data.active === "Inativos") {
+			qb.whereRaw("products.active is false");
+		}
+
+		const result: {
+			product_id: string;
+			product_description: string;
+			subgroup_description: string;
+			deposit_id: number;
+			deposit_description: string;
+			quantity: string;
+		}[] = await qb;
+
+		const uniqueProducts = result.reduce((acc, curr) => {
+			if (!acc.includes(curr.product_id)) {
+				acc.push(curr.product_id);
+			}
+
+			return acc;
+		}, [] as string[]);
+
+		return uniqueProducts.map((up) => {
+			const firstRec = result.find((r) => r.product_id === up);
+			if (!firstRec) {
+				throw new BadRequestException("Algo deu muito errado", 500, "E_ERR");
+			}
+			return {
+				productId: firstRec.product_id,
+				productDescription: firstRec.product_description,
+				subgroupDescription: firstRec.subgroup_description,
+				deposits: result
+					.filter((r) => r.product_id === up)
+					.map((r) => ({
+						id: r.deposit_id,
+						description: r.deposit_description,
+						quantity: new Decimal(r.quantity).toNumber(),
+					})),
+			};
+		});
+	}
+
 	private calculateDailyFlow(finances: Finance[]) {
 		const dataSet = new Map<string, { credit: number; debit: number }>();
 

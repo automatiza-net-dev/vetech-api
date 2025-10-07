@@ -381,4 +381,17 @@ export default class ReportsController {
 			),
 		);
 	}
+
+	public async productStockReport({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		response.ok(
+			await this.service.productStockReport(
+				await this.sharedService.getAuthContext(auth),
+				request.qs(),
+			),
+		);
+	}
 }

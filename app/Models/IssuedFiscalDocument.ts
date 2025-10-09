@@ -12,6 +12,7 @@ import BusinessUnit from "App/Models/BusinessUnit";
 import { BusinessUnitFiscalDocumentMovementType } from "App/Models/BusinessUnitFiscalDocument";
 import CorrectedFiscalDocument from "App/Models/CorrectedFiscalDocument";
 import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 import { v4 } from "uuid";
 import Bill from "./Bill";
@@ -45,6 +46,15 @@ export default class IssuedFiscalDocument extends BaseModel {
 
 	@column()
 	finality: 1 | 2 | 3 | 4;
+
+	@column({
+		columnName: "total_value",
+		serializeAs: "totalValue",
+		consume: (value) => (value ? new Decimal(value) : null),
+		prepare: (value) => value?.toNumber(),
+		serialize: (value: Decimal) => (value ? value.toNumber() : 0),
+	})
+	public totalValue: Decimal;
 
 	@column({
 		columnName: "access_key",

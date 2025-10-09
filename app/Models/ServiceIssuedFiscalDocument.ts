@@ -10,6 +10,7 @@ import {
 } from "@ioc:Adonis/Lucid/Orm";
 import BillItem from "App/Models/BillItem";
 import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 import { v4 } from "uuid";
 import ServiceIssuedFiscalDocumentItem from "./ServiceIssuedFiscalDocumentItem";
@@ -46,6 +47,15 @@ export default class ServiceIssuedFiscalDocument extends BaseModel {
 
 	@column({})
 	errors: Array<unknown>;
+
+	@column({
+		columnName: "total_value",
+		serializeAs: "totalValue",
+		consume: (value) => (value ? new Decimal(value) : null),
+		prepare: (value) => value?.toNumber(),
+		serialize: (value: Decimal) => (value ? value.toNumber() : 0),
+	})
+	public totalValue: Decimal;
 
 	// authorization
 	@column.dateTime({

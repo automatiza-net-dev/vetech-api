@@ -1604,6 +1604,7 @@ Route.group(() => {
 }).prefix("productivity-items");
 
 Route.group(() => {
+	Route.get("/fiscal-document", "ReportsController.fiscalDocumentReport");
 	Route.get("/product-stock", "ReportsController.productStockReport");
 	Route.get("/finances", "ReportsController.finances");
 	Route.get("/flow", "ReportsController.dailyFlow");

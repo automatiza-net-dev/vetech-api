@@ -4072,6 +4072,114 @@ account_plans.tag, ' + ' || tag as ref`),
 		});
 	}
 
+	public async fiscalDocumentReport(
+		authCtx: AuthContext,
+		data: {
+			fromDate?: string;
+			toDate?: string;
+			status?: string;
+		},
+	) {
+		const qb = Database.from("bills")
+			.select(
+				Database.raw(`authorization_date::date                   dataEmissao,
+       nf.sequence::varchar(20)                   NUMERONF,
+       to_char(nf.total_value, 'FM9999999999.00') ValorNf,
+       'NFSe'                                     tipoNota,
+       nf.status,
+       ''                                         statusMessage,
+       bills.tag,
+       cli.name                                   cliente,
+       'SAIDA'                                    Movimento,
+       'Emissão'                                  transmissao,
+       nf.model,
+       nf.rps_series::varchar(10),
+       ''                                         chave,
+       authorization_date                         dataRecibo,
+       nf.verification_code,
+       nf.cancellation_receipt_date,
+       ''                                         cancellation_receipt,
+       ''                                         inutilizacaoData,
+       ''                                         inutilizacaoRecibo,
+       ''                                         inutilizacaoMotivo,
+       nf.authorization_xml_path,
+       nf.authorization_pdf_path`),
+			)
+			.joinRaw("join patients cli on bills.client_id = cli.id")
+			.joinRaw(
+				"join service_issued_fiscal_documents nf on bills.id = nf.bill_id and nf.deleted_at is null",
+			)
+			.whereRaw("bills.business_unit_id = ?", [authCtx.unit.id]);
+
+		if (data.fromDate && data.toDate) {
+			qb.whereRaw("authorization_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+		}
+
+		if (data.status === "transmitidas") {
+			qb.whereRaw("(nf.status <> '' and nf.status <> 'erro_autorizacao')");
+		}
+
+		if (data.status === "erros") {
+			qb.whereRaw("(nf.status = '' or nf.status = 'erro_autorizacao')");
+		}
+
+		qb.union((builder) => {
+			builder
+				.from("bills")
+				.select(
+					Database.raw(`nf.authorization_date::date                          dataEmissao,
+       nf.sequence,
+       to_char(nf.total_value, 'FM9999999999.00'),
+       case when nf.model = '55' then 'NFe' else 'NFCe' end tipoNota,
+       nf.sefaz_status,
+       nf.sefaz_message,
+       bills.tag,
+       cli.name                                             cliente,
+       nf.movement_type                                     Movimento,
+       nf.purpose                                           transmissao,
+       nf.model,
+       nf.series,
+       nf.access_key,
+       nf.authorization_receipt_date,
+       nf.authorization_receipt,
+       nf.cancellation_receipt_date,
+       nf.cancellation_receipt,
+       nf.disabling_receipt_date::varchar,
+       nf.disabling_receipt,
+       nf.disabling_reason,
+       nf.authorization_xml_path,
+       nf.authorization_pdf_path`),
+				)
+				.joinRaw("join patients cli on bills.client_id = cli.id")
+				.joinRaw("join issued_fiscal_documents nf on bills.id = nf.bill_id")
+				.whereRaw("bills.business_unit_id = ?", [authCtx.unit.id]);
+
+			if (data.fromDate && data.toDate) {
+				builder.whereRaw("authorization_date::date between ? and ?", [
+					data.fromDate,
+					data.toDate,
+				]);
+			}
+
+			if (data.status === "transmitidas") {
+				builder.whereRaw(
+					"(nf.sefaz_status <> '' and nf.sefaz_status <> 'erro_autorizacao')",
+				);
+			}
+
+			if (data.status === "erros") {
+				builder.whereRaw(
+					"(nf.sefaz_status = '' or nf.sefaz_status = 'erro_autorizacao')",
+				);
+			}
+		});
+
+		return qb.orderByRaw("4, 7, 1");
+	}
+
 	private calculateDailyFlow(finances: Finance[]) {
 		const dataSet = new Map<string, { credit: number; debit: number }>();
 

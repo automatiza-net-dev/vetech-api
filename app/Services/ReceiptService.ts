@@ -2207,7 +2207,11 @@ export default class ReceiptService {
 		await Database.transaction(async (trx) => {
 			const receipt = await Receipt.query()
 				.useTransaction(trx)
-				.preload("items")
+				.preload("items", (query) => {
+					query.preload("productVariation", (query) => {
+						query.preload("product");
+					});
+				})
 				.preload("payments")
 				.where("economic_group_id", authCtx.group.id)
 				.where("business_unit_id", authCtx.unit.id)
@@ -2230,6 +2234,27 @@ export default class ReceiptService {
 				if (receipt.items.some((i) => !i.product_variation_id)) {
 					throw new BadRequestException(
 						"Existem itens da nota que ainda não possuem produto relacionado",
+						400,
+						"E_NO_VARIATION",
+					);
+				}
+				if (
+					receipt.items.some((i) => !i.productVariation.product.subgroup_id)
+				) {
+					throw new BadRequestException(
+						"Existem produtos que não estão com seus cadastros completos: subgrupo | Acesse a tela de produtos pendentes para completar esse cadastro",
+						400,
+						"E_NO_VARIATION",
+					);
+				}
+
+				if (
+					receipt.items.some(
+						(i) => !i.productVariation.product.taxation_group_id,
+					)
+				) {
+					throw new BadRequestException(
+						"Existem produtos que não estão com seus cadastros completos: grupo de imposto | Acesse a tela de produtos pendentes para completar esse cadastro",
 						400,
 						"E_NO_VARIATION",
 					);

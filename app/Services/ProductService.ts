@@ -239,14 +239,17 @@ export default class ProductService {
 			active: product.active,
 			courtesy: product.courtesy,
 			created_at: product.createdAt,
-			subgroup: {
-				id: product.subgroup?.id ?? null,
-				description: product.subgroup?.description ?? null,
-			},
-			taxationGroup: {
-				id: product.taxationGroup?.id ?? null,
-				name: product.taxationGroup?.name ?? null,
-			},
+			subgroup: this.sharedService.captureGroup(product.subgroup, (v) => ({
+				id: v.id,
+				description: v.description,
+			})),
+			taxationGroup: this.sharedService.captureGroup(
+				product.taxationGroup,
+				(v) => ({
+					id: v.id,
+					name: v.name,
+				}),
+			),
 			price: {
 				id: product.variations[0]?.id ?? null,
 				ref: product.variations[0]?.businessUnitProducts[0]?.id ?? null,
@@ -260,10 +263,8 @@ export default class ProductService {
 		}));
 	}
 
-	public async show(unitId: string, id: string): Promise<Product> {
-		const group = await this.sharedService.getUserGroup(unitId);
-
-		const product = await group
+	public async show(authCtx: AuthContext, id: string) {
+		const product = await authCtx.group
 			.related("products")
 			.query()
 			.where("id", id)
@@ -304,7 +305,41 @@ export default class ProductService {
 			);
 		}
 
-		return product;
+		const depositRows: {
+			quantity: string;
+			product_variation_id: string;
+			business_unit_product_id: string;
+		}[] = await Database.from("deposits")
+			.select(
+				Database.raw(
+					"quantity, deposit_items.product_variation_id, deposit_items.business_unit_product_id",
+				),
+			)
+			.joinRaw("join deposit_items on deposits.id = deposit_items.deposit_id")
+			.whereRaw("deposits.business_unit_id = ?", [authCtx.unit.id])
+			.whereRaw("deposits.type = 'Venda'", [])
+			.whereRaw("deposits.deleted_at is null", [])
+			.whereIn(
+				"deposit_items.product_variation_id",
+				product.variations.map((pv) => pv.id),
+			);
+
+		return {
+			...product.toJSON(),
+			variations: product.variations.map((vr) => ({
+				...vr.toJSON(),
+				businessUnitProducts: vr.businessUnitProducts.map((bup) => ({
+					...bup.toJSON(),
+					stock: new Decimal(
+						depositRows.find(
+							(dr) =>
+								dr.product_variation_id === vr.id &&
+								dr.business_unit_product_id === bup.id,
+						)?.quantity ?? "0",
+					).toNumber(),
+				})),
+			})),
+		};
 	}
 
 	public async store(
@@ -415,11 +450,50 @@ export default class ProductService {
 	}
 
 	public async update(
-		unitId: string,
+		authCtx: AuthContext,
 		id: string,
 		data: IUpdateProduct,
 	): Promise<Product> {
-		const product = await this.show(unitId, id);
+		const product = await authCtx.group
+			.related("products")
+			.query()
+			.where("id", id)
+			.preload("brand")
+			.preload("fractionUnit")
+			.preload("unit")
+			.preload("taxationGroup")
+			.preload("group", (query) => {
+				query.select("id", "name", "active");
+			})
+			.preload("subgroup", (query) => {
+				query.select("id", "description");
+			})
+			.preload("variations", (query) => {
+				query.orderBy("created_at", "desc");
+				query.select("id", "barcode", "active");
+
+				query.preload("businessUnitProducts", (query) => {
+					query.preload("businessUnit", (query) => {
+						query.select("id", "fantasyName", "companyName", "identification");
+					});
+				});
+
+				query.preload("variationOptions", (subquery) => {
+					subquery.select("id", "description", "active");
+				});
+			})
+			.preload("variationGroup", (query) => {
+				query.select("id", "description", "active");
+			})
+			.first();
+
+		if (!product) {
+			throw new ResourceNotFoundException(
+				"Recurso não encontrado",
+				404,
+				"E_NOT_FOUND",
+			);
+		}
 
 		return product
 			.merge({
@@ -446,6 +520,29 @@ export default class ProductService {
 				purpose: data.purpose,
 			})
 			.save();
+	}
+
+	public async calculateStock(
+		_authCtx: AuthContext,
+		data: {
+			businessUnitId: string;
+			productVariationId: string;
+			businessUnitProductId: string;
+		},
+	): Promise<{ description: string; quantity: string }[]> {
+		return Database.from("deposits")
+			.select(Database.raw("description, quantity"))
+			.joinRaw("join deposit_items on deposits.id = deposit_items.deposit_id")
+			.whereRaw("deposits.business_unit_id = ?", [data.businessUnitId])
+			.whereRaw("deposits.type = 'Venda'", [])
+			.whereRaw("deposits.deleted_at is null", [])
+			.whereRaw("deposit_items.product_variation_id = ?", [
+				data.productVariationId,
+			])
+			.whereRaw("deposit_items.business_unit_product_id = ?", [
+				data.businessUnitProductId,
+			])
+			.orderByRaw("deposits.description");
 	}
 
 	public async destroy(authCtx: AuthContext, id: string): Promise<void> {

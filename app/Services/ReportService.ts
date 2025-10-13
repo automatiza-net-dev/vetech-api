@@ -3991,6 +3991,195 @@ account_plans.tag, ' + ' || tag as ref`),
 		return qb;
 	}
 
+	public async productStockReport(
+		authCtx: AuthContext,
+		data: {
+			subgroups?: string[];
+			active?: string;
+		},
+	) {
+		const qb = Database.from("products")
+			.select(
+				Database.raw(`products.id              AS product_id,
+       products.description     AS product_description,
+       sg.description           AS subgroup_description,
+       d.id                     AS deposit_id,
+       d.description            AS deposit_description,
+       COALESCE(di.quantity, 0::decimal(10, 3)) AS quantity`),
+			)
+			.joinRaw("left join subgroups sg ON sg.id = products.subgroup_id")
+			.joinRaw("left join product_variations pv ON pv.product_id = products.id")
+			.joinRaw(
+				"left join business_unit_products bup ON bup.product_variation_id = pv.id",
+			)
+			.joinRaw(
+				"left join deposits d ON d.economic_group_id = products.economic_group_id and bup.businness_unit_id = d.business_unit_id",
+			)
+			.joinRaw(
+				"left join deposit_items di ON di.deposit_id = d.id AND di.business_unit_product_id = bup.id",
+			)
+			.orderByRaw("products.description, d.description")
+			.whereRaw("products.deleted_at is null", [])
+			.whereRaw("products.type = 'product'", [])
+			.whereRaw("products.economic_group_id = ?", [authCtx.group.id])
+			.whereRaw("bup.businness_unit_id = ?", [authCtx.unit.id]);
+
+		if (data.subgroups) {
+			qb.whereIn("sg.id", data.subgroups);
+		}
+
+		if (data.active === "Ativos") {
+			qb.whereRaw("products.active is true");
+		}
+		if (data.active === "Inativos") {
+			qb.whereRaw("products.active is false");
+		}
+
+		const result: {
+			product_id: string;
+			product_description: string;
+			subgroup_description: string;
+			deposit_id: number;
+			deposit_description: string;
+			quantity: string;
+		}[] = await qb;
+
+		const uniqueProducts = result.reduce((acc, curr) => {
+			if (!acc.includes(curr.product_id)) {
+				acc.push(curr.product_id);
+			}
+
+			return acc;
+		}, [] as string[]);
+
+		return uniqueProducts.map((up) => {
+			const firstRec = result.find((r) => r.product_id === up);
+			if (!firstRec) {
+				throw new BadRequestException("Algo deu muito errado", 500, "E_ERR");
+			}
+			return {
+				productId: firstRec.product_id,
+				productDescription: firstRec.product_description,
+				subgroupDescription: firstRec.subgroup_description,
+				deposits: result
+					.filter((r) => r.product_id === up)
+					.map((r) => ({
+						id: r.deposit_id,
+						description: r.deposit_description,
+						quantity: new Decimal(r.quantity).toNumber(),
+					})),
+			};
+		});
+	}
+
+	public async fiscalDocumentReport(
+		authCtx: AuthContext,
+		data: {
+			fromDate?: string;
+			toDate?: string;
+			status?: string;
+		},
+	) {
+		const qb = Database.from("bills")
+			.select(
+				Database.raw(`authorization_date::date                   dataEmissao,
+       nf.sequence::varchar(20)                   NUMERONF,
+       to_char(nf.total_value, 'FM9999999999.00') ValorNf,
+       'NFSe'                                     tipoNota,
+       nf.status,
+       ''                                         statusMessage,
+       bills.tag,
+       cli.name                                   cliente,
+       'SAIDA'                                    Movimento,
+       'Emissão'                                  transmissao,
+       nf.model,
+       nf.rps_series::varchar(10),
+       ''                                         chave,
+       authorization_date                         dataRecibo,
+       nf.verification_code,
+       nf.cancellation_receipt_date,
+       ''                                         cancellation_receipt,
+       ''                                         inutilizacaoData,
+       ''                                         inutilizacaoRecibo,
+       ''                                         inutilizacaoMotivo,
+       nf.authorization_xml_path,
+       nf.authorization_pdf_path`),
+			)
+			.joinRaw("join patients cli on bills.client_id = cli.id")
+			.joinRaw(
+				"join service_issued_fiscal_documents nf on bills.id = nf.bill_id and nf.deleted_at is null",
+			)
+			.whereRaw("bills.business_unit_id = ?", [authCtx.unit.id]);
+
+		if (data.fromDate && data.toDate) {
+			qb.whereRaw("authorization_date::date between ? and ?", [
+				data.fromDate,
+				data.toDate,
+			]);
+		}
+
+		if (data.status === "transmitidas") {
+			qb.whereRaw("(nf.status <> '' and nf.status <> 'erro_autorizacao')");
+		}
+
+		if (data.status === "erros") {
+			qb.whereRaw("(nf.status = '' or nf.status = 'erro_autorizacao')");
+		}
+
+		qb.union((builder) => {
+			builder
+				.from("bills")
+				.select(
+					Database.raw(`nf.authorization_date::date                          dataEmissao,
+       nf.sequence,
+       to_char(nf.total_value, 'FM9999999999.00'),
+       case when nf.model = '55' then 'NFe' else 'NFCe' end tipoNota,
+       nf.sefaz_status,
+       nf.sefaz_message,
+       bills.tag,
+       cli.name                                             cliente,
+       nf.movement_type                                     Movimento,
+       nf.purpose                                           transmissao,
+       nf.model,
+       nf.series,
+       nf.access_key,
+       nf.authorization_receipt_date,
+       nf.authorization_receipt,
+       nf.cancellation_receipt_date,
+       nf.cancellation_receipt,
+       nf.disabling_receipt_date::varchar,
+       nf.disabling_receipt,
+       nf.disabling_reason,
+       nf.authorization_xml_path,
+       nf.authorization_pdf_path`),
+				)
+				.joinRaw("join patients cli on bills.client_id = cli.id")
+				.joinRaw("join issued_fiscal_documents nf on bills.id = nf.bill_id")
+				.whereRaw("bills.business_unit_id = ?", [authCtx.unit.id]);
+
+			if (data.fromDate && data.toDate) {
+				builder.whereRaw("authorization_date::date between ? and ?", [
+					data.fromDate,
+					data.toDate,
+				]);
+			}
+
+			if (data.status === "transmitidas") {
+				builder.whereRaw(
+					"(nf.sefaz_status <> '' and nf.sefaz_status <> 'erro_autorizacao')",
+				);
+			}
+
+			if (data.status === "erros") {
+				builder.whereRaw(
+					"(nf.sefaz_status = '' or nf.sefaz_status = 'erro_autorizacao')",
+				);
+			}
+		});
+
+		return qb.orderByRaw("4, 7, 1");
+	}
+
 	private calculateDailyFlow(finances: Finance[]) {
 		const dataSet = new Map<string, { credit: number; debit: number }>();
 

@@ -381,4 +381,30 @@ export default class ReportsController {
 			),
 		);
 	}
+
+	public async productStockReport({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		response.ok(
+			await this.service.productStockReport(
+				await this.sharedService.getAuthContext(auth),
+				request.qs(),
+			),
+		);
+	}
+
+	public async fiscalDocumentReport({
+		request,
+		response,
+		auth,
+	}: HttpContextContract) {
+		response.ok(
+			await this.service.fiscalDocumentReport(
+				await this.sharedService.getAuthContext(auth),
+				request.qs(),
+			),
+		);
+	}
 }

@@ -369,6 +369,10 @@ export default class BusinessUnitFiscalDocumentService {
 					contingency: IssuedFiscalDocumentContingency.N,
 					active: true,
 					purpose: "Emissão", // TODO check
+					totalValue: items.reduce(
+						(acc, curr) => acc.plus(curr.totalValue),
+						new Decimal(0),
+					),
 
 					finality: items.some(
 						(c) => c.taxRule.movementCategory === MovementCategory.DS,
@@ -841,11 +845,16 @@ export default class BusinessUnitFiscalDocumentService {
 							economic_group_id: authCtx.group.id,
 							business_unit_id: authCtx.unit.id,
 							bill_id: data.billId,
+							bill_item_id: item.id,
 							fiscal_document_id: document.id,
 							user_who_authorized_id: authCtx.user.id,
+
 							authorizationDate: DateTime.now(),
-							bill_item_id: item.id,
 							model: document.model,
+							totalValue: items.reduce(
+								(acc, curr) => acc.plus(curr.totalValue),
+								new Decimal(0),
+							),
 						},
 						{
 							client: trx,

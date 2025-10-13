@@ -437,6 +437,7 @@ Route.group(() => {
 Route.group(() => {
 	Route.get("/for-movements", "ProductsController.forMovements");
 	Route.get("/", "ProductsController.index");
+	Route.post("/stock", "ProductsController.calculateStock");
 	Route.post("/", "ProductsController.store");
 	Route.get("/:id", "ProductsController.show");
 	Route.put("/:id", "ProductsController.update");
@@ -1603,6 +1604,8 @@ Route.group(() => {
 }).prefix("productivity-items");
 
 Route.group(() => {
+	Route.get("/fiscal-document", "ReportsController.fiscalDocumentReport");
+	Route.get("/product-stock", "ReportsController.productStockReport");
 	Route.get("/finances", "ReportsController.finances");
 	Route.get("/flow", "ReportsController.dailyFlow");
 	Route.get("/checking-accounts", "ReportsController.checkingAccountsBalance");

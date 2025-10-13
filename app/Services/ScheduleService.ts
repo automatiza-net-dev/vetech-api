@@ -1,4 +1,5 @@
 import BadRequestException from "App/Exceptions/BadRequestException";
+import { platform } from "node:os";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import CrmStatus from "App/Models/CrmStatus";
@@ -63,10 +64,16 @@ interface IHomeSearch {
 
 @inject()
 export default class ScheduleService {
+	private timeOffset = 0;
+
 	constructor(
 		private readonly sharedService: SharedService,
 		private opportunityService: OpportunityService,
-	) {}
+	) {
+		if (platform() === "win32") {
+			this.timeOffset = 3;
+		}
+	}
 
 	public async searchScheduleEvents(
 		authCtx: AuthContext,
@@ -638,8 +645,8 @@ export default class ScheduleService {
 					data.userId ?? authCtx.user.id,
 					authCtx.unit.id,
 					{
-						start: data.startHour.plus({ hours: 3 }).toJSDate(),
-						end: data.endHour.plus({ hours: 3 }).toJSDate(),
+						start: data.startHour.plus({ hours: this.timeOffset }),
+						end: data.endHour.plus({ hours: this.timeOffset }),
 					},
 				);
 
@@ -950,8 +957,8 @@ export default class ScheduleService {
 						data.userId ?? authCtx.user.id,
 						authCtx.unit.id,
 						{
-							start: data.startHour.plus({ hours: 3 }).toJSDate(),
-							end: data.endHour.plus({ hours: 3 }).toJSDate(),
+							start: data.startHour.plus({ hours: this.timeOffset }),
+							end: data.endHour.plus({ hours: this.timeOffset }),
 						},
 					);
 
@@ -1123,8 +1130,8 @@ export default class ScheduleService {
 					technician.id,
 					authCtx.unit.id,
 					{
-						start: data.startHour.plus({ hours: 3 }).toJSDate(),
-						end: data.endHour.plus({ hours: 3 }).toJSDate(),
+						start: data.startHour.plus({ hours: this.timeOffset }),
+						end: data.endHour.plus({ hours: this.timeOffset }),
 					},
 				);
 
@@ -1991,8 +1998,8 @@ group by client_id),0) as finances_expired`),
 			)
 			.where("schedules.business_unit_id", authCtx.unit.id)
 			.whereRaw("schedules.start_hour::date between ? and ?", [
-				refStart,
-				refEnd,
+				refStart.toJSDate(),
+				refEnd.toJSDate(),
 			])
 			.whereIn("schedules.user_id", userIds)
 			.whereNull("schedules.deleted_at");
@@ -2550,12 +2557,12 @@ group by client_id),0) as finances_expired`),
 		const workingDays = await WorkingDay.query()
 			.where("user_id", scheduleUser.id)
 			.where("business_unit_id", unitId)
-			.andWhere("day_of_week", ScheduleService.GetWD(data.start))
+			.andWhere("day_of_week", ScheduleService.GetWD(data.start.toJSDate()))
 			.andWhereRaw("(start_hour <= ? or start_hour is null)", [
-				format(data.start, "HH:mm"),
+				data.start.toFormat("HH:mm"),
 			])
 			.andWhereRaw("(end_hour >= ? or end_hour is null)", [
-				format(data.end, "HH:mm"),
+				data.end.toFormat("HH:mm"),
 			]);
 
 		// if (workingDays.length === 0) {
@@ -2566,17 +2573,22 @@ group by client_id),0) as finances_expired`),
 		//   );
 		// }
 
-		const strStart = format(data.start, "HH:mm");
-		const strEnd = format(data.end, "HH:mm");
+		const strStart = data.start.toFormat("HH:mm");
+		const strEnd = data.end.toFormat("HH:mm");
 
 		const unavailableDays = await scheduleUser
 			.related("unavailableDays")
 			.query()
 			.where("active", true)
 			.where("business_unit_id", unitId)
-			.whereILike("frequency", `%${ScheduleService.GetWD(data.start)}%`)
-			.whereRaw("(start_date <= ? or start_date is null)", [data.start])
-			.whereRaw("(end_date >= ? or end_date is null)", [data.end])
+			.whereILike(
+				"frequency",
+				`%${ScheduleService.GetWD(data.start.toJSDate())}%`,
+			)
+			.whereRaw("(start_date <= ? or start_date is null)", [
+				data.start.toJSDate(),
+			])
+			.whereRaw("(end_date >= ? or end_date is null)", [data.end.toJSDate()])
 			.whereRaw(
 				"((? between start_hour and end_hour or ? between start_hour and end_hour) or (? > end_hour and ? < start_hour))",
 				[strStart, strEnd, strEnd, strStart],

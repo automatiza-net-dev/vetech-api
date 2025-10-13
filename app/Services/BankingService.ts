@@ -1,7 +1,6 @@
 import { inject } from "@adonisjs/fold";
 import Database from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
-import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import Banking, { BankingStatus, BankingType } from "App/Models/Banking";
 import CheckingAccount from "App/Models/CheckingAccount";
 import DailyCashier from "App/Models/DailyCashier";
@@ -148,21 +147,21 @@ export default class BankingService {
 					issueDate: data.issueDate.plus({ hours: 3 }),
 					expirationDate: data.issueDate,
 					paymentDate: data.issueDate,
-					originalValue: data.documentValue,
-					value: data.documentValue,
-					totalValue: total,
+					originalValue: new Decimal(data.documentValue),
+					value: new Decimal(data.documentValue),
+					totalValue: new Decimal(total),
 					accept: FinanceAccept.S,
 					installment:
 						typeof data.installment !== "undefined" ? data.installment : 1,
 					originFlag: FinanceOriginFlag.F,
 					originDownFlag: FinanceOriginDownFlag.F,
 					downDate: data.issueDate,
-					paymentValue: total,
-					feeValue: data.feeValue,
+					paymentValue: new Decimal(total),
+					feeValue: new Decimal(data.feeValue),
 					feePercentage: data.feePercentage,
-					discountValue: data.discountValue,
+					discountValue: new Decimal(data.discountValue),
 					discountPercentage: data.discountPercentage,
-					additionValue: 0,
+					additionValue: new Decimal(0),
 					additionPercentage: 0,
 					status: FinanceStatus.B,
 					feeDiscountPercentage: paymentMethod.fee,
@@ -199,21 +198,21 @@ export default class BankingService {
 					issueDate: data.issueDate.plus({ hours: 3 }),
 					expirationDate: data.issueDate,
 					paymentDate: data.issueDate,
-					originalValue: data.documentValue,
-					value: data.documentValue,
-					totalValue: total,
+					originalValue: new Decimal(data.documentValue),
+					value: new Decimal(data.documentValue),
+					totalValue: new Decimal(total),
 					accept: FinanceAccept.S,
 					installment:
 						typeof data.installment !== "undefined" ? data.installment : 1,
 					originFlag: FinanceOriginFlag.F,
 					originDownFlag: FinanceOriginDownFlag.F,
 					downDate: data.issueDate,
-					paymentValue: total,
-					feeValue: data.feeValue,
+					paymentValue: new Decimal(total),
+					feeValue: new Decimal(data.feeValue),
 					feePercentage: data.feePercentage,
-					discountValue: data.discountValue,
+					discountValue: new Decimal(data.discountValue),
 					discountPercentage: data.discountPercentage,
-					additionValue: 0,
+					additionValue: new Decimal(0),
 					additionPercentage: 0,
 					status: FinanceStatus.B,
 					feeDiscountPercentage: paymentMethod.fee,
@@ -390,7 +389,7 @@ export default class BankingService {
 			.where("user_who_opened_id", user.id)
 			.first();
 		const checkingAccount = await CheckingAccount.findOrFail(
-			data.checkingAccountId,
+			data.fromCheckingAccountId,
 		);
 
 		const discount = data.documentValue * (paymentMethod.fee / 100);
@@ -407,7 +406,7 @@ export default class BankingService {
 				client_id: data.clientId,
 				account_plan_id: data.fromAccountPlanId,
 				payment_method_id: data.paymentMethodId,
-				checking_account_id: data.checkingAccountId,
+				checking_account_id: data.fromCheckingAccountId,
 				daily_movement_id: dailyMovement?.id,
 				daily_cashier_id: dailyCashier?.id,
 				tef_flag_id: data.tefFlagId,

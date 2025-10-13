@@ -27,8 +27,8 @@ import { TDynamicForm } from "App/Models/BusinessUnitConfig";
 type KeySelector<T> = (item: T) => any[];
 
 export type DateSet = {
-	start: Date;
-	end: Date;
+	start: DateTime;
+	end: DateTime;
 };
 
 export type AuthContext = {
@@ -373,8 +373,8 @@ export default class SharedService {
 	}
 
 	public checkOverlapping(ASet: DateSet, BSet: DateSet): boolean {
-		const firstMatch = ASet.start.getTime() < BSet.end.getTime();
-		const secondMatch = BSet.start.getTime() < ASet.end.getTime();
+		const firstMatch = ASet.start.toJSDate().getTime() < BSet.end.toJSDate().getTime();
+		const secondMatch = BSet.start.toJSDate().getTime() < ASet.end.toJSDate().getTime();
 
 		return firstMatch && secondMatch;
 	}

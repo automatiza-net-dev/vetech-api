@@ -2590,7 +2590,7 @@ group by client_id),0) as finances_expired`),
 			])
 			.whereRaw("(end_date >= ? or end_date is null)", [data.end.toJSDate()])
 			.whereRaw(
-				"(((? + interval '3 hours') between start_hour and end_hour or (? + interval '3 hours') between start_hour and end_hour) or ((? + interval '3 hours') > end_hour and (? + interval '3 hours') < start_hour))",
+				"((? between start_hour and end_hour or ? between start_hour and end_hour) or (? > end_hour and ? < start_hour))",
 				[strStart, strEnd, strEnd, strStart],
 			);
 

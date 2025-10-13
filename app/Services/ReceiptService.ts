@@ -2501,20 +2501,21 @@ where
 			}
 
 			await Database.rawQuery(
-				`update deposit_items set quantity =
-(
-    select (di.quantity - (ri.quantity * ri.fraction_value))
-    from deposit_items di
-      join deposits d on di.deposit_id = d.id
-      join receipt_items ri on ri.product_variation_id = di.product_variation_id and ri.business_unit_id = d.business_unit_id
-      join business_unit_configs buc on buc.business_unit_id = d.business_unit_id and d.id = buc.incoming_deposit_id
-    where ri.receipt_id = ?
-      and deposit_items.id = di.id
-          )
+				`update deposit_items
+set quantity =
+        (select sum(di.quantity - (ri.quantity * ri.fraction_value))
+         from deposit_items di
+                  join deposits d on di.deposit_id = d.id
+                  join receipt_items ri
+                       on ri.product_variation_id = di.product_variation_id and ri.business_unit_id = d.business_unit_id
+                  join business_unit_configs buc
+                       on buc.business_unit_id = d.business_unit_id and d.id = buc.incoming_deposit_id
+         where ri.receipt_id = ?
+           and deposit_items.id = di.id)
 where deposit_id = ?
-and product_variation_id in (
-    select product_variation_id from receipt_items where receipt_id = ?
-)`,
+  and product_variation_id in (select product_variation_id
+                               from receipt_items
+                               where receipt_id = ?)`,
 				[receipt.id, authCtx.unit.unitConfig.incoming_deposit_id, receipt.id],
 			)
 				.useTransaction(trx)

@@ -596,7 +596,8 @@ export default class BusinessUnitFiscalDocumentService {
 				if (
 					["10", "30", "70", "90", "201", "202", "203", "900"].includes(
 						item.icmsCst,
-					)
+					) &&
+					(item.icmsStBase ?? 0) > 0
 				) {
 					result.icms_st_modality = 4;
 					result.icms_st_additional = item.icmsStIva;

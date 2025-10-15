@@ -474,8 +474,8 @@ export default class ScheduleService {
 					return day;
 				})
 				.map((day) => ({
-					start: day.startHour.toString(),
-					end: day.endHour.toString(),
+					start: day.startHour.plus({ hours: this.timeOffset }).toString(),
+					end: day.endHour.plus({ hours: this.timeOffset }).toString(),
 					event: {
 						...day.toJSON(),
 						financesExpired:
@@ -484,10 +484,15 @@ export default class ScheduleService {
 							)?.total ?? 0,
 					},
 					name: day.user?.name ?? "-",
-					date: day.startHour.setLocale("pt-BR").toFormat("dd/MM/yy - HH:mm"),
+					date: day.startHour
+						.plus({ hours: this.timeOffset })
+						.setLocale("pt-BR")
+						.toFormat("dd/MM/yy - HH:mm"),
 					late:
-						isAfter(new Date(), day.startHour.plus({ hours: 3 }).toJSDate()) &&
-						["AN", "AC", "ATR"].includes(day.serviceStatus.type)
+						isAfter(
+							new Date(),
+							day.startHour.plus({ hours: this.timeOffset }).toJSDate(),
+						) && ["AN", "AC", "ATR"].includes(day.serviceStatus.type)
 							? differenceInMinutes(
 									new Date(),
 									day.startHour.plus({ hours: 3 }).toJSDate(),
@@ -505,8 +510,8 @@ export default class ScheduleService {
 					return day;
 				})
 				.map((day) => ({
-					start: day.startHour.toString(),
-					end: day.endHour.toString(),
+					start: day.startHour.plus({ hours: this.timeOffset }).toString(),
+					end: day.endHour.plus({ hours: this.timeOffset }).toString(),
 					event: {
 						...day.toJSON(),
 						financesExpired:
@@ -515,13 +520,18 @@ export default class ScheduleService {
 							)?.total ?? 0,
 					},
 					name: day.user?.name ?? "-",
-					date: day.startHour.setLocale("pt-BR").toFormat("dd/MM/yy - HH:mm"),
+					date: day.startHour
+						.plus({ hours: this.timeOffset })
+						.setLocale("pt-BR")
+						.toFormat("dd/MM/yy - HH:mm"),
 					late:
-						isAfter(new Date(), day.startHour.plus({ hours: 3 }).toJSDate()) &&
-						["AN", "AC", "ATR"].includes(day.serviceStatus.type)
+						isAfter(
+							new Date(),
+							day.startHour.plus({ hours: this.timeOffset }).toJSDate(),
+						) && ["AN", "AC", "ATR"].includes(day.serviceStatus.type)
 							? differenceInMinutes(
 									new Date(),
-									day.startHour.plus({ hours: 3 }).toJSDate(),
+									day.startHour.plus({ hours: this.timeOffset }).toJSDate(),
 								)
 							: null,
 					type: this.getEventLabel(day),

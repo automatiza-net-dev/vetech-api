@@ -525,6 +525,13 @@ export default class PatientService {
 					query.where("document", "ilike", `%${data.document}%`);
 					query.where("inscription", "ilike", `%${data.document}%`);
 				}
+
+				if (data.name) {
+					query.whereRaw(
+						"unaccent(corporate_name) ilike '%' || unaccent(?) || '%'",
+						[data.name!.replaceAll(" ", "%")],
+					);
+				}
 			})
 			.preload("tutor", (query) => {
 				query.preload("accountPlan");

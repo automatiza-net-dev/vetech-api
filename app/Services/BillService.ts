@@ -22,10 +22,7 @@ import Finance, {
 import IssuedFiscalDocument from "App/Models/IssuedFiscalDocument";
 import Kit from "App/Models/Kit";
 import Patient, { PatientType } from "App/Models/Patient";
-import PaymentMethod, {
-	PaymentMethodTef,
-	PaymentMethodType,
-} from "App/Models/PaymentMethod";
+import PaymentMethod, { PaymentMethodTef } from "App/Models/PaymentMethod";
 import PaymentMethodFlagInstallment from "App/Models/PaymentMethodFlagInstallment";
 import Product, { ProductPurpose, ProductType } from "App/Models/Product";
 import ProductVariation from "App/Models/ProductVariation";
@@ -64,7 +61,7 @@ import BillAuthorization from "App/Models/BillAuthorization";
 import BillCancelation from "App/Models/BillCancelation";
 import { addHours, format } from "date-fns";
 import Receipt from "App/Models/Receipt";
-import ReceiptItem, { ReceiptItemStatus } from "App/Models/ReceiptItem";
+import ReceiptItem from "App/Models/ReceiptItem";
 import ReceiptPayment from "App/Models/ReceiptPayment";
 
 interface ISearch {
@@ -4838,7 +4835,7 @@ where id = ?`,
 				productValue: productSum,
 				serviceValue: serviceSum,
 				discountValue: discountSum,
-				totalValue: productSum + serviceSum,
+				totalValue: new Decimal(productSum).plus(new Decimal(serviceSum)),
 			})
 			.useTransaction(trx)
 			.save();

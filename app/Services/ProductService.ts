@@ -155,10 +155,8 @@ export default class ProductService {
 		return products.concat(kits);
 	}
 
-	public async index(unitId: string, data: ISearch) {
-		const group = await this.sharedService.getUserGroup(unitId);
-
-		const qb = group
+	public async index(authCtx: AuthContext, data: ISearch) {
+		const qb = authCtx.group
 			.related("products")
 			.query()
 			.preload("brand")
@@ -182,7 +180,7 @@ export default class ProductService {
 				});
 
 				query.preload("businessUnitProducts", (query) => {
-					query.where("businness_unit_id", unitId);
+					query.where("businness_unit_id", authCtx.unit.id);
 
 					query.preload("businessUnit", (query) => {
 						query.select("id", "fantasyName", "companyName", "identification");
@@ -231,6 +229,25 @@ export default class ProductService {
 
 		const result = await qb;
 
+		const depositRows: {
+			quantity: string;
+			product_variation_id: string;
+		}[] = await Database.from("deposits")
+			.select(
+				Database.raw(
+					"sum(quantity) as quantity, deposit_items.product_variation_id",
+				),
+			)
+			.joinRaw("join deposit_items on deposits.id = deposit_items.deposit_id")
+			.whereRaw("deposits.business_unit_id = ?", [authCtx.unit.id])
+			.whereRaw("deposits.type = 'Venda'", [])
+			.whereRaw("deposits.deleted_at is null", [])
+			.whereIn(
+				"deposit_items.product_variation_id",
+				result.flatMap((p) => p.variations.map((pv) => pv.id)),
+			)
+			.groupByRaw("deposit_items.product_variation_id");
+
 		return result.map((product) => ({
 			id: product.id,
 			description: product.description,
@@ -239,6 +256,20 @@ export default class ProductService {
 			active: product.active,
 			courtesy: product.courtesy,
 			created_at: product.createdAt,
+      businessUnitId: authCtx.unit.id,
+			stock: product.variations
+				.reduce((acc, curr) => {
+					return depositRows
+						.filter((row) => row.product_variation_id === curr.id)
+						.reduce((acc2, curr2) => {
+							return acc2.plus(new Decimal(curr2.quantity));
+						}, acc);
+				}, new Decimal(0))
+				.toNumber(),
+			variations: product.variations.map((pv) => pv.id),
+			buProducts: product.variations.flatMap((pv) =>
+				pv.businessUnitProducts.map((bup) => bup.id),
+			),
 			subgroup: this.sharedService.captureGroup(product.subgroup, (v) => ({
 				id: v.id,
 				description: v.description,

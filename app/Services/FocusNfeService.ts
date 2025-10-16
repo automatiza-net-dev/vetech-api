@@ -361,7 +361,7 @@ export default class FocusNfeService {
 
 	public async sendNfe(ref: string, rawPayload: ISendNfe, token: string) {
 		const payload = {
-			natureza_operacao: "Venda",
+			natureza_operacao: rawPayload.finality === 4 ? "Devolução" : "Venda",
 			// serie: data.nfe_series, // THIS
 			numero: rawPayload.nfe_number,
 			data_emissao: rawPayload.issuedAt,

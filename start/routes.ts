@@ -293,6 +293,7 @@ Route.group(() => {
 	Route.post("/", "PatientSuppliersController.store");
 	Route.get("/:id", "PatientSuppliersController.show");
 	Route.put("/:id", "PatientSuppliersController.update");
+	Route.delete("/:id", "PatientSuppliersController.destroy");
 })
 	.prefix("patient-suppliers")
 	.middleware("auth");

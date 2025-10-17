@@ -2523,6 +2523,63 @@ export default class PatientService {
 			.save();
 	}
 
+	public async destroySupplier(
+		authCtx: AuthContext,
+		supplierID: string,
+	): Promise<void> {
+		const patient = await Patient.query().where("id", supplierID).first();
+
+		if (!patient) {
+			throw new BadRequestException("Paciente inválido", 400, "E_BAD_REQUEST");
+		}
+
+		const results: ({ count: string } | undefined)[] = await Promise.all([
+			await Database.from("receipts")
+				.select(Database.raw("count(*) as count"))
+				.where("supplier_id", supplierID)
+				.first(),
+			await Database.from("bills")
+				.select(Database.raw("count(*) as count"))
+				.where("client_id", supplierID)
+				.first(),
+			await Database.from("budgets")
+				.select(Database.raw("count(*) as count"))
+				.where("client_id", supplierID)
+				.first(),
+			await Database.from("finances")
+				.select(Database.raw("count(*) as count"))
+				.where("client_id", supplierID)
+				.first(),
+			await Database.from("bankings")
+				.select(Database.raw("count(*) as count"))
+				.where("client_id", supplierID)
+				.first(),
+		]);
+
+		if (results.some((r) => r?.count && r.count !== "0")) {
+			throw new BadRequestException(
+				"Este registro não pode ser excluido, somente pode ser inativado",
+				400,
+				"E_DANGLING",
+			);
+		}
+
+		const groups = await patient.related("economicGroup").query();
+
+		await patient.related("economicGroup").detach([authCtx.group.id]);
+
+		if (groups.length > 1) {
+			return;
+		}
+
+		await patient
+			.merge({
+				deletedAt: DateTime.now(),
+				exclusion_user_id: authCtx.user.id,
+			})
+			.save();
+	}
+
 	public async setMainTutor(
 		authCtx: AuthContext,
 		patient: string,

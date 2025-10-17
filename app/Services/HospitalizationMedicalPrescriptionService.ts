@@ -1,5 +1,3 @@
-import { inject } from "@adonisjs/fold";
-import Database from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import DrugAdministration from "App/Models/DrugAdministration";
 import Hospitalization, {
@@ -30,6 +28,9 @@ import CreateProcedureRecurrentValidator from "App/Validators/MedicalPrescriptio
 import IHospitalizationMedicalPrescriptionData, {
 	IHospitalizationMedicalPrescriptionSchedulingData,
 } from "Contracts/interfaces/IHospitalizationMedicalPrescriptionData";
+import { platform } from "node:os";
+import { inject } from "@adonisjs/fold";
+import Database from "@ioc:Adonis/Lucid/Database";
 import { differenceInMinutes, format } from "date-fns";
 import { DateTime } from "luxon";
 
@@ -61,7 +62,13 @@ interface ISearchScheduling {
 
 @inject()
 export default class HospitalizationMedicalPrescriptionService {
-	constructor(private sharedService: SharedService) {}
+	private timeOffset = 0;
+
+	constructor(private sharedService: SharedService) {
+		if (platform() === "win32") {
+			this.timeOffset = 3;
+		}
+	}
 
 	public async show(unitId: string, id: string) {
 		const result = await HospitalizationMedicalPrescription.query()
@@ -159,26 +166,22 @@ export default class HospitalizationMedicalPrescriptionService {
 		}
 
 		if (data.fromScheduledDate && data.toScheduledDate) {
-			const d1 = new Date(data.fromScheduledDate);
-			const d2 = new Date(data.toScheduledDate);
+			const d1 = DateTime.fromISO(data.fromScheduledDate).plus({
+				hours: this.timeOffset,
+			});
+			const d2 = DateTime.fromISO(data.toScheduledDate).plus({
+				hours: this.timeOffset,
+			});
 
 			query.whereRaw(
-				`(scheduled_at::date = ? and scheduled_at::time between ? and ?)`,
+				"(scheduled_at::date = ? and scheduled_at::time between ? and ?)",
 				[
-					format(d1, "yyyy-MM-dd"),
-					format(d1, "HH:mm:ss"),
-					format(d2, "HH:mm:ss"),
+					d1.toFormat("yyyy-MM-dd"),
+					d1.toFormat("HH:mm:ss"),
+					d2.toFormat("HH:mm:ss"),
 				],
 			);
 		}
-
-		// if (data.fromScheduledDate) {
-		// 	query.where("scheduled_at", ">=", new Date(data.fromScheduledDate));
-		// }
-		//
-		// if (data.toScheduledDate) {
-		// 	query.where("scheduled_at", "<=", new Date(data.toScheduledDate));
-		// }
 
 		return query;
 	}
@@ -987,10 +990,10 @@ export default class HospitalizationMedicalPrescriptionService {
 					prescription.frequencyUnit === MedicalPrescriptionFrequencyUnit.HOUR
 						? prescription.executionStart.plus({
 								hours: prescription.frequencyInterval * index,
-						  })
+							})
 						: prescription.executionStart.plus({
 								days: prescription.frequencyInterval * index,
-						  });
+							});
 
 				return {
 					type: prescription.type,
@@ -1037,7 +1040,7 @@ export default class HospitalizationMedicalPrescriptionService {
 									prescription.hospitalization.patient.weightDate?.toJSDate(),
 									"dd/MM/yyyy HH:mm",
 								),
-						  ].join(" ")
+							].join(" ")
 						: "Não informado"
 				})`,
 			]

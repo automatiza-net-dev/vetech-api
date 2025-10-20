@@ -539,6 +539,7 @@ export default class ReceiptService {
 			to?: string;
 			tag?: string;
 			supplier?: string;
+			supplierName?: string;
 			seller?: string;
 			status?: string;
 			fiscalDocumentSequence?: string;
@@ -579,6 +580,9 @@ export default class ReceiptService {
 			.joinRaw("join users seller on receipts.seller_id = seller.id")
 			.joinRaw("join patients supplier on receipts.supplier_id = supplier.id")
 			.joinRaw(
+				"join patient_tutors on patient_tutors.patient_id = supplier.id",
+			)
+			.joinRaw(
 				"left join users confirmationUser on receipts.confirmation_user_id = confirmationUser.id",
 			)
 			.joinRaw(
@@ -617,6 +621,22 @@ export default class ReceiptService {
 
 			if (data.supplier) {
 				qb.whereRaw("receipts.supplier_id = ?", [data.supplier]);
+			}
+
+			if (data.supplierName) {
+				qb.whereRaw(
+					"(supplier.name ilike ? or patient_tutors.corporate_name ilike ?)",
+					[
+						`%${data.supplierName
+							.split(" ")
+							.map((s) => s.trim())
+							.join("%")}%`,
+						`%${data.supplierName
+							.split(" ")
+							.map((s) => s.trim())
+							.join("%")}%`,
+					],
+				);
 			}
 
 			if (data.seller) {

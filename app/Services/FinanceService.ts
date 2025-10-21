@@ -2543,9 +2543,15 @@ and (fSaldo.payment_date::date <= now()::date or fSaldo.expiration_date::date <=
 
 		const row = result[0];
 		return {
-			saldoinicial: this.sharedService.formatter.format(row.saldoinicial),
-			saldofinal: this.sharedService.formatter.format(row.saldofinal),
-			saldoconta: this.sharedService.formatter.format(row.saldoconta),
+			saldoinicial: Number.isNaN(row.saldoinicial)
+				? "-"
+				: this.sharedService.formatter.format(row.saldoinicial),
+			saldofinal: Number.isNaN(row.saldofinal)
+				? "-"
+				: this.sharedService.formatter.format(row.saldofinal),
+			saldoconta: Number.isNaN(row.saldoconta)
+				? "-"
+				: this.sharedService.formatter.format(row.saldoconta),
 		};
 	}
 

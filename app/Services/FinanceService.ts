@@ -2542,7 +2542,6 @@ and (fSaldo.payment_date::date <= now()::date or fSaldo.expiration_date::date <=
 		}
 
 		const row = result[0];
-		console.log({ row });
 		return {
 			saldoinicial: Number.isNaN(row.saldoinicial)
 				? "-"

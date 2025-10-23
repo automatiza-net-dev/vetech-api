@@ -466,6 +466,7 @@ export default class BusinessUnitFiscalDocumentService {
 				finality: issuedDocument.finality,
 				accessKeyRef: issuedDocument.accessKeyRef,
 				model: issuedDocument.model,
+				additionalInformation: bill.additionalInformation,
 
 				seller: {
 					cnpj: unit.document?.replace(/\D/g, "") ?? "",

@@ -18,6 +18,7 @@ export interface ISendNfe {
 	finality: IssuedFiscalDocument["finality"];
 	accessKeyRef: string | null;
 	model: "65" | (string & {});
+	additionalInformation: string | null;
 
 	seller: {
 		name: string | undefined;
@@ -508,6 +509,8 @@ export default class FocusNfeService {
 			// cofins_value: data.totalizers.cofins_value,
 			valor_outras_despesas: rawPayload.totalizers.other_value,
 			modalidade_frete: "9",
+
+			informacoes_adicionais_contribuinte: rawPayload.additionalInformation,
 		};
 
 		if (payload.cpf_destinatario) {

@@ -528,8 +528,8 @@ export default class PatientService {
 
 				if (data.name) {
 					query.whereRaw(
-						"unaccent(corporate_name) ilike '%' || unaccent(?) || '%'",
-						[data.name!.replaceAll(" ", "%")],
+						"(unaccent(corporate_name) ilike '%' || unaccent(?) || '%' or unaccent(name) ilike '%' || unaccent(?) || '%')",
+						[data.name!.replaceAll(" ", "%"), data.name!.replaceAll(" ", "%")],
 					);
 				}
 			})
@@ -537,11 +537,11 @@ export default class PatientService {
 				query.preload("accountPlan");
 			});
 
-		if (data.name) {
-			qb.whereRaw("unaccent(name) ilike '%' || unaccent(?) || '%'", [
-				data.name!.replaceAll(" ", "%"),
-			]);
-		}
+		// if (data.name) {
+		// 	qb.whereRaw("", [
+		// 		data.name!.replaceAll(" ", "%"),
+		// 	]);
+		// }
 
 		const result = await qb;
 

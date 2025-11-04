@@ -293,6 +293,7 @@ Route.group(() => {
 	Route.post("/", "PatientSuppliersController.store");
 	Route.get("/:id", "PatientSuppliersController.show");
 	Route.put("/:id", "PatientSuppliersController.update");
+	Route.delete("/:id", "PatientSuppliersController.destroy");
 })
 	.prefix("patient-suppliers")
 	.middleware("auth");
@@ -1428,6 +1429,7 @@ Route.group(() => {
 	Route.post("/", "OpportunitiesController.store");
 	Route.get("/show/:id", "OpportunitiesController.show");
 	Route.put("/patient", "OpportunitiesController.updateOpportunityPatient");
+	Route.put("/client/:id", "OpportunitiesController.updateClient");
 	Route.put("/:id", "OpportunitiesController.update");
 	Route.delete("/:id", "OpportunitiesController.excludeOpportunity");
 

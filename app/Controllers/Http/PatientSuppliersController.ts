@@ -61,4 +61,13 @@ export default class PatientSuppliersController {
 
 		return response.ok(supplier);
 	}
+
+	public async destroy({ auth, params, response }: HttpContextContract) {
+		await this.service.destroySupplier(
+			await this.sharedService.getAuthContext(auth),
+			params.id,
+		);
+
+		return response.noContent();
+	}
 }

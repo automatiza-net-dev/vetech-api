@@ -9,6 +9,7 @@ import CreateOpportunityActivityValidator from "App/Validators/Opportunity/Creat
 import CreateOpportunityFromScheduleValidator from "App/Validators/Opportunity/CreateOpportunityFromScheduleValidator";
 import CreateOpportunityValidator from "App/Validators/Opportunity/CreateOpportunityValidator";
 import SyncScheduleValidator from "App/Validators/Opportunity/SyncScheduleValidator";
+import UpdateClientValidator from "App/Validators/Opportunity/UpdateClientValidator";
 import UpdateOpportunityActivityValidator from "App/Validators/Opportunity/UpdateOpportunityActivityValidator";
 import UpdateOpportunityStatusValidator from "App/Validators/Opportunity/UpdateOpportunityStatusValidator";
 import UpdateOpportunityUserValidator from "App/Validators/Opportunity/UpdateOpportunityUserValidator";
@@ -112,6 +113,20 @@ export default class OpportunitiesController {
 		await this.service.storeFromSchedule(authCtx, payload);
 
 		return response.created();
+	}
+
+	public async updateClient({
+		request,
+		response,
+		auth,
+		params,
+	}: HttpContextContract) {
+		const payload = await request.validate(UpdateClientValidator);
+		const authCtx = await this.sharedService.getAuthContext(auth);
+
+		await this.service.updateClientId(authCtx, params.id, payload);
+
+		return response.noContent();
 	}
 
 	public async update({

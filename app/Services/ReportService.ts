@@ -1071,7 +1071,7 @@ ON bills.patient_id = Dep."id"`,
 				patient: this.sharedService.captureGroup(elem.patient, (v) => ({
 					id: v.id,
 					name: v.name,
-					race: v.patientAnimal.race,
+					race: v.patientAnimal?.race ?? null,
 					tag: v.tag ?? null,
 					gender: v.gender ?? null,
 					castrated: v?.patientAnimal?.castrated ?? null,

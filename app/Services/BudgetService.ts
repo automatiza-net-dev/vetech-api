@@ -109,7 +109,7 @@ export default class BudgetService {
 			.where("business_unit_id", authCtx.unit.id)
 			.where("patient_id", patientId)
 			.whereHas("budgets", (query) => {
-        query.orderByRaw('created_at, tag')
+				query.orderByRaw("created_at, tag");
 				query.whereNot("status", BudgetStatus.N);
 				query.whereNull("deleted_at");
 
@@ -2191,7 +2191,7 @@ export default class BudgetService {
 					productValue: totalProductValue,
 					serviceValue: totalServiceValue,
 					discountValue: totalDiscountValue,
-					totalValue: totalProductValue,
+					totalValue: new Decimal(totalProductValue),
 					deliveryValue: 0,
 					additionalInformation: "[Concluído a partir de um orçamento]",
 					status: BillStatus.A,
@@ -2717,7 +2717,7 @@ export default class BudgetService {
 						tef_acquirer_id: elem.tefAcquirerId,
 
 						pending: elem.maxParcelas ?? false,
-						block: Number.parseInt(count) + index + 1,
+						block: Number.parseInt(count, 10) + index + 1,
 						totalValue: elem.totalValue,
 						installments: elem.installments,
 						status: "Aberto",

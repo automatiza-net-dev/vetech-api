@@ -2371,7 +2371,7 @@ case when p.control_id = 'TRC11' then 'Usuário não possui permissão para reti
              and fSaldo.business_unit_id = finances.business_unit_id
              and fSaldo.checking_account_id = ca.id
 and (fSaldo.payment_date::date <= now()::date or fSaldo.expiration_date::date <= now()::date)
- )       as salcoconta,
+ )       as saldoconta,
        coalesce(sum(
                         case
                             when ((payment_date is not null and payment_date::date < ?) or
@@ -2543,9 +2543,15 @@ and (fSaldo.payment_date::date <= now()::date or fSaldo.expiration_date::date <=
 
 		const row = result[0];
 		return {
-			saldoinicial: this.sharedService.formatter.format(row.saldoinicial),
-			saldofinal: this.sharedService.formatter.format(row.saldofinal),
-			saldoconta: this.sharedService.formatter.format(row.saldoconta),
+			saldoinicial: Number.isNaN(row.saldoinicial)
+				? "-"
+				: this.sharedService.formatter.format(row.saldoinicial),
+			saldofinal: Number.isNaN(row.saldofinal)
+				? "-"
+				: this.sharedService.formatter.format(row.saldofinal),
+			saldoconta: Number.isNaN(row.saldoconta)
+				? "-"
+				: this.sharedService.formatter.format(row.saldoconta),
 		};
 	}
 

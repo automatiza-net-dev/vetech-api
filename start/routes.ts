@@ -1387,6 +1387,16 @@ Route.group(() => {
 	.middleware("auth");
 
 Route.group(() => {
+	Route.get("/", "WhatsAppMessagesConfigsController.index");
+	Route.post("/", "WhatsAppMessagesConfigsController.store");
+	Route.get("/:id", "WhatsAppMessagesConfigsController.show");
+	Route.put("/:id", "WhatsAppMessagesConfigsController.update");
+	Route.delete("/:id", "WhatsAppMessagesConfigsController.destroy");
+})
+	.prefix("whatsapp-messages-configs")
+	.middleware("auth");
+
+Route.group(() => {
 	Route.get("/", "CrmStatusesController.index");
 	Route.post("/", "CrmStatusesController.store");
 	Route.get("/:id", "CrmStatusesController.show");

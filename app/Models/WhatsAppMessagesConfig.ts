@@ -3,7 +3,7 @@ import { BaseModel, column, belongsTo, BelongsTo } from "@ioc:Adonis/Lucid/Orm";
 import BusinessUnit from "./BusinessUnit";
 import User from "./User";
 
-export default class WhatsAppMessagesConfig extends BaseModel {
+export default class WhatsappMessagesConfig extends BaseModel {
 	@column({ isPrimary: true })
 	public id: number;
 

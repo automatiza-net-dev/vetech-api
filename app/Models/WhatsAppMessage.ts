@@ -2,7 +2,7 @@ import { DateTime } from "luxon";
 import { BaseModel, column, belongsTo, BelongsTo } from "@ioc:Adonis/Lucid/Orm";
 import WhatsAppMessagesConfig from "./WhatsAppMessagesConfig";
 
-export default class WhatsAppMessage extends BaseModel {
+export default class WhatsappMessage extends BaseModel {
 	@column({ isPrimary: true })
 	public id: number;
 

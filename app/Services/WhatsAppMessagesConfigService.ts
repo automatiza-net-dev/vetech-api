@@ -8,6 +8,13 @@ interface ISearch {
 	platformIntegration?: string;
 	status?: string;
 	connectionStatus?: string;
+}
+
+interface IMessagesSearch {
+	platformIntegration?: string;
+	whatsappPhone?: string;
+	startDate?: string;
+	endDate?: string;
 	page?: number;
 	limit?: number;
 }
@@ -42,6 +49,34 @@ export default class WhatsAppMessagesConfigService {
 
 		if (data.connectionStatus) {
 			qb.where("connection_status", data.connectionStatus);
+		}
+
+		return qb;
+	}
+
+	public async searchMessages(
+		authCtx: AuthContext,
+		configId: string,
+		data: IMessagesSearch,
+	) {
+		const config = await this.show(authCtx, configId);
+
+		const qb = config.related("messages").query();
+
+		if (data.platformIntegration) {
+			qb.where("platform_integration", data.platformIntegration);
+		}
+
+		if (data.whatsappPhone) {
+			qb.whereILike("phone", `%${data.whatsappPhone}%`);
+		}
+
+		if (data.startDate) {
+			qb.where("created_at", ">=", data.startDate);
+		}
+
+		if (data.endDate) {
+			qb.where("created_at", "<=", data.endDate);
 		}
 
 		return qb;
@@ -134,6 +169,7 @@ export default class WhatsAppMessagesConfigService {
 			first_interaction_at: string;
 			last_interaction_at: string;
 			created: string;
+			created_isoformat: string;
 			visit: { name: string };
 		},
 		rawPayload: unknown,
@@ -151,11 +187,10 @@ export default class WhatsAppMessagesConfigService {
 		await config.related("messages").create({
 			platformIntegration: "tintim",
 			phone: data.phone,
-			// message: data.me,
 			payload: rawPayload,
 			processedMessage: data.visit.name,
 			processed: true,
-			eventCreated: DateTime.fromISO(data.created),
+			eventCreated: DateTime.fromISO(data.created_isoformat),
 			lastEventInteraction: DateTime.fromISO(data.last_interaction_at),
 		});
 	}

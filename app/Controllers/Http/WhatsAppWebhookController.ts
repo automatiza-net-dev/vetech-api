@@ -2,11 +2,13 @@ import { inject } from "@adonisjs/fold";
 import { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import WhatsAppWebhookValidator from "App/Validators/WhatsAppWebhookValidator";
 import WhatsAppMessagesConfigService from "App/Services/WhatsAppMessagesConfigService";
+import SharedService from "App/Services/SharedService";
 
 @inject()
 export default class WhatsAppWebhookController {
 	constructor(
 		private readonly whatsappService: WhatsAppMessagesConfigService,
+		private shared: SharedService,
 	) {}
 
 	public async receive({ request, response }: HttpContextContract) {
@@ -14,7 +16,7 @@ export default class WhatsAppWebhookController {
 			const payload = await request.validate(WhatsAppWebhookValidator);
 
 			await this.whatsappService.processWebhook(
-				request.param("id", "0"),
+				request.param("configID", "0"),
 				payload,
 				request.body(),
 			);
@@ -30,5 +32,19 @@ export default class WhatsAppWebhookController {
 				message: "Erro interno ao processar webhook",
 			});
 		}
+	}
+
+	public async searchMessages({
+		auth,
+		request,
+		response,
+	}: HttpContextContract) {
+		return response.ok(
+			await this.whatsappService.searchMessages(
+				await this.shared.getAuthContext(auth),
+				request.param("configID", "0"),
+				request.qs(),
+			),
+		);
 	}
 }

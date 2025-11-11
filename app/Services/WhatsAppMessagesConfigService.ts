@@ -119,4 +119,44 @@ export default class WhatsAppMessagesConfigService {
 			})
 			.save();
 	}
+
+	public async processWebhook(
+		configID: string,
+		data: {
+			account: {
+				code: string;
+				name: string;
+			};
+			name: string;
+			phone: string;
+			phone_e164: string;
+			event_type: string;
+			first_interaction_at: string;
+			last_interaction_at: string;
+			created: string;
+			visit: { name: string };
+		},
+		rawPayload: unknown,
+	) {
+		const config = await WhatsappMessagesConfig.query()
+			.where("id", configID)
+			.where("active", true)
+			.whereNull("deleted_at")
+			.first();
+
+		if (!config) {
+			return;
+		}
+
+		await config.related("messages").create({
+			platformIntegration: "tintim",
+			phone: data.phone,
+			// message: data.me,
+			payload: rawPayload,
+			processedMessage: data.visit.name,
+			processed: true,
+			eventCreated: DateTime.fromISO(data.created),
+			lastEventInteraction: DateTime.fromISO(data.last_interaction_at),
+		});
+	}
 }

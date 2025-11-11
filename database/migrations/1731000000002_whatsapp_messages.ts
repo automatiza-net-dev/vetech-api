@@ -11,10 +11,16 @@ export default class WhatsAppMessages extends BaseSchema {
 				.references("id")
 				.inTable("whatsapp_messages_configs")
 				.onDelete("CASCADE");
+			table.string("phone").notNullable();
+			// table.string("message").notNullable();
 			table.string("platform_integration").notNullable();
 			table.boolean("processed").defaultTo(false);
 			table.text("processed_message").nullable();
 			table.json("payload").notNullable();
+			table
+				.timestamp("last_event_interaction", { useTz: true })
+				.defaultTo(this.now());
+			table.timestamp("event_created", { useTz: true }).defaultTo(this.now());
 			table.timestamp("created_at", { useTz: true }).defaultTo(this.now());
 		});
 	}

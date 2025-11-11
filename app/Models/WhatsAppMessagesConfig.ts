@@ -1,7 +1,15 @@
 import { DateTime } from "luxon";
-import { BaseModel, column, belongsTo, BelongsTo } from "@ioc:Adonis/Lucid/Orm";
+import {
+	BaseModel,
+	column,
+	belongsTo,
+	BelongsTo,
+	hasMany,
+	HasMany,
+} from "@ioc:Adonis/Lucid/Orm";
 import BusinessUnit from "./BusinessUnit";
 import User from "./User";
+import WhatsAppMessage from "./WhatsAppMessage";
 
 export default class WhatsappMessagesConfig extends BaseModel {
 	@column({ isPrimary: true })
@@ -69,4 +77,7 @@ export default class WhatsappMessagesConfig extends BaseModel {
 
 	@belongsTo(() => User, { foreignKey: "user_id_updated" })
 	public userUpdated: BelongsTo<typeof User>;
+
+	@hasMany(() => WhatsAppMessage, { foreignKey: "whatsapp_messages_config_id" })
+	public messages: HasMany<typeof WhatsAppMessage>;
 }

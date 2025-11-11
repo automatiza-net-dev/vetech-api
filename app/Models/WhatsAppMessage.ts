@@ -6,17 +6,26 @@ export default class WhatsAppMessage extends BaseModel {
 	@column({ isPrimary: true })
 	public id: number;
 
+	@column({})
+	public phone: string;
+
+	@column({})
+	public message: string;
+
 	@column({
 		columnName: "platform_integration",
 		serializeAs: "platformIntegration",
 	})
 	public platformIntegration: string;
 
-	@column({
-		columnName: "payload",
-		serializeAs: "payload",
-	})
+	@column({})
 	public payload: unknown;
+
+	@column.dateTime({ autoCreate: true })
+	public eventCreated: DateTime;
+
+	@column.dateTime({ autoCreate: true })
+	public lastEventInteraction: DateTime;
 
 	@column.dateTime({ autoCreate: true })
 	public createdAt: DateTime;

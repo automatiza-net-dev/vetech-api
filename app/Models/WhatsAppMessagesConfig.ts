@@ -16,6 +16,12 @@ export default class WhatsappMessagesConfig extends BaseModel {
 	public id: number;
 
 	@column({
+		columnName: "tintim_client_id",
+		serializeAs: "tintimClientId",
+	})
+	public tintimClientId: string | null;
+
+	@column({
 		columnName: "whatsapp_phone",
 		serializeAs: "whatsappPhone",
 	})

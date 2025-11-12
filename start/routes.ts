@@ -1250,7 +1250,7 @@ Route.group(() => {
 	Route.post("/nfe", "WebhooksController.nfe");
 	Route.post("/nfse", "WebhooksController.nfse");
 	Route.post("/disable", "WebhooksController.disable");
-	Route.post("/tintim/:configID", "WhatsAppWebhookController.receive");
+	Route.post("/tintim", "WhatsAppWebhookController.receiveTintim");
 	Route.get(
 		"/search-messages/:configID",
 		"WhatsAppWebhookController.searchMessages",

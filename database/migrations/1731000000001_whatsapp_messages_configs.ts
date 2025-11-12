@@ -11,9 +11,6 @@ export default class WhatsAppMessagesConfigs extends BaseSchema {
 				.references("id")
 				.inTable("business_units")
 				.onDelete("CASCADE");
-			table.string("whatsapp_phone").notNullable();
-			table.string("platform_integration").notNullable();
-			table.boolean("active").defaultTo(true);
 			table
 				.uuid("user_id_created")
 				.references("id")
@@ -26,6 +23,11 @@ export default class WhatsAppMessagesConfigs extends BaseSchema {
 				.inTable("users")
 				.onDelete("CASCADE")
 				.nullable();
+
+			table.string("whatsapp_phone").notNullable();
+			table.uuid("tintim_client_id");
+			table.string("platform_integration").notNullable();
+			table.boolean("active").defaultTo(true);
 			table.timestamp("updated_at", { useTz: true }).defaultTo(this.now());
 			table.string("connection_status").nullable();
 			table.timestamp("connection_status_date", { useTz: true }).nullable();

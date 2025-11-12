@@ -105,6 +105,7 @@ export default class WhatsAppMessagesConfigService {
 	public async store(
 		authCtx: AuthContext,
 		data: {
+			tintimClientId: string;
 			whatsappPhone: string;
 			platformIntegration: string;
 		},
@@ -113,9 +114,10 @@ export default class WhatsAppMessagesConfigService {
 			business_unit_id: authCtx.unit.id,
 			user_id_created: authCtx.user.id,
 			user_id_updated: authCtx.user.id,
+			tintimClientId: data.tintimClientId,
 			whatsappPhone: data.whatsappPhone,
 			platformIntegration: data.platformIntegration,
-			connectionStatus: "Teste",
+			connectionStatus: "Pendente",
 			connectionStatusDate: DateTime.now(),
 			active: true,
 		});
@@ -125,10 +127,11 @@ export default class WhatsAppMessagesConfigService {
 		authCtx: AuthContext,
 		id: string,
 		data: {
-			whatsappPhone?: string;
-			platformIntegration?: string;
-			connectionStatus?: string;
-			active?: boolean;
+			whatsappPhone: string;
+			tintinClientId: string;
+			platformIntegration: string;
+			connectionStatus: string;
+			active: boolean;
 		},
 	) {
 		const model = await this.show(authCtx, id);
@@ -137,6 +140,7 @@ export default class WhatsAppMessagesConfigService {
 			.merge({
 				user_id_updated: authCtx.user.id,
 
+				tintimClientId: data.tintinClientId,
 				whatsappPhone: data.whatsappPhone,
 				platformIntegration: data.platformIntegration,
 				connectionStatus: data.connectionStatus,
@@ -155,8 +159,7 @@ export default class WhatsAppMessagesConfigService {
 			.save();
 	}
 
-	public async processWebhook(
-		configID: string,
+	public async processTintimWebhook(
 		data: {
 			account: {
 				code: string;
@@ -175,7 +178,7 @@ export default class WhatsAppMessagesConfigService {
 		rawPayload: unknown,
 	) {
 		const config = await WhatsappMessagesConfig.query()
-			.where("id", configID)
+			.where("tintim_client_id", data.account.code)
 			.where("active", true)
 			.whereNull("deleted_at")
 			.first();

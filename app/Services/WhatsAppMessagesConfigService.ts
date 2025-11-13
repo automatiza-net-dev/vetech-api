@@ -2,6 +2,11 @@ import { inject } from "@adonisjs/fold";
 import { DateTime } from "luxon";
 import WhatsappMessagesConfig from "App/Models/WhatsAppMessagesConfig";
 import SharedService, { AuthContext } from "App/Services/SharedService";
+import Database from "@ioc:Adonis/Lucid/Database";
+import PatientTutor from "App/Models/PatientTutor";
+import Patient, { PatientType } from "App/Models/Patient";
+import CrmStatus from "App/Models/CrmStatus";
+import Opportunity from "App/Models/Opportunity";
 
 interface ISearch {
 	whatsappPhone?: string;
@@ -177,24 +182,112 @@ export default class WhatsAppMessagesConfigService {
 		},
 		rawPayload: unknown,
 	) {
-		const config = await WhatsappMessagesConfig.query()
-			.where("tintim_client_id", data.account.code)
-			.where("active", true)
-			.whereNull("deleted_at")
-			.first();
+		return Database.transaction(async (trx) => {
+			const config = await WhatsappMessagesConfig.query()
+				.useTransaction(trx)
+				.preload("businessUnit", (query) => {
+					query.preload("economicGroup");
+				})
+				.where("tintim_client_id", data.account.code)
+				.where("active", true)
+				.whereNull("deleted_at")
+				.first();
 
-		if (!config) {
-			return;
-		}
+			if (!config) {
+				return;
+			}
 
-		await config.related("messages").create({
-			platformIntegration: "tintim",
-			phone: data.phone,
-			payload: rawPayload,
-			processedMessage: data.visit.name,
-			processed: true,
-			eventCreated: DateTime.fromISO(data.created_isoformat),
-			lastEventInteraction: DateTime.fromISO(data.last_interaction_at),
+			await config.related("messages").create(
+				{
+					platformIntegration: "tintim",
+					phone: data.phone,
+					payload: rawPayload,
+					processedMessage: data.visit.name,
+					processed: true,
+					eventCreated: DateTime.fromISO(data.created_isoformat),
+					lastEventInteraction: DateTime.fromISO(data.last_interaction_at),
+				},
+				{
+					client: trx,
+				},
+			);
+
+			if (data.event_type === "lead.create") {
+				const tutors = await PatientTutor.query()
+					.useTransaction(trx)
+					.whereRaw("(cellphone = ? or telephone = ?)", [
+						data.phone,
+						data.phone,
+					]);
+				if (tutors.length > 0) {
+					return;
+				}
+
+				const [{ next_id = 1 }] = await Database.from("economic_groups")
+					.select(Database.raw(`max(coalesce(tag, '0')::int) + 1 as next_id`))
+					.joinRaw(
+						"left join patient_economic_groups on economic_groups.id = patient_economic_groups.economic_group_id",
+					)
+					.joinRaw(
+						"left join patients on patient_economic_groups.patient_id = patients.id",
+					)
+					.where("economic_groups.id", config.businessUnit.economicGroupId);
+
+				const patient = await Patient.create(
+					{
+						name: data.name,
+						type: PatientType.TUTOR,
+						tag: next_id.toString(),
+						clientOriginItemDescription: "Tintim",
+					},
+					{ client: trx },
+				);
+
+				await patient.related("tutor").create(
+					{
+						cellphone: data.phone,
+					},
+					{
+						client: trx,
+					},
+				);
+
+				await config.businessUnit.economicGroup
+					.related("patients")
+					.attach([patient.id], trx);
+
+				const status = await CrmStatus.query()
+					.useTransaction(trx)
+					.where("system_id", config.businessUnit.economicGroup.system_id)
+					.where("type", "OP")
+					.where("tag", "N")
+					.first();
+				if (!status) {
+					return;
+				}
+
+				await Opportunity.create(
+					{
+						system_id: config.businessUnit.economicGroup.system_id,
+						business_unit_id: config.businessUnit.id,
+						economic_group_id: config.businessUnit.economicGroupId,
+						opening_user_id: config.user_id_created,
+						user_id: config.user_id_created,
+						contact_id: patient.id,
+						status_id: status.id,
+						openingDate: DateTime.now(),
+						contactDate: DateTime.now(),
+						description: "Tintim",
+						value: 0,
+						active: true,
+						origin: "agenda",
+						client_id: patient.id,
+					},
+					{
+						client: trx,
+					},
+				);
+			}
 		});
 	}
 }

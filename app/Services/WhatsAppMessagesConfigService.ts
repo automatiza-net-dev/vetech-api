@@ -7,6 +7,7 @@ import PatientTutor from "App/Models/PatientTutor";
 import Patient, { PatientType } from "App/Models/Patient";
 import CrmStatus from "App/Models/CrmStatus";
 import Opportunity from "App/Models/Opportunity";
+import WhatsappClientOrigin from "App/Models/WhatsappClientOrigin";
 
 interface ISearch {
 	whatsappPhone?: string;
@@ -170,6 +171,7 @@ export default class WhatsAppMessagesConfigService {
 				code: string;
 				name: string;
 			};
+			source: string;
 			name: string;
 			phone: string;
 			phone_e164: string;
@@ -223,6 +225,13 @@ export default class WhatsAppMessagesConfigService {
 					return;
 				}
 
+				const origin = await WhatsappClientOrigin.query()
+					.useTransaction(trx)
+					.where("system_id", config.businessUnit.economicGroup.system_id)
+					.where("platform_integration", "Tintim")
+					.where("description_origin", data.source)
+					.first();
+
 				const [{ next_id = 1 }] = await Database.from("economic_groups")
 					.select(Database.raw(`max(coalesce(tag, '0')::int) + 1 as next_id`))
 					.joinRaw(
@@ -245,6 +254,7 @@ export default class WhatsAppMessagesConfigService {
 
 				await patient.related("tutor").create(
 					{
+						client_origin_id: origin?.client_origin_id,
 						cellphone: data.phone,
 					},
 					{

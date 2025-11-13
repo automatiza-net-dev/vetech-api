@@ -77,11 +77,11 @@ export default class WhatsAppMessagesConfigService {
 		}
 
 		if (data.startDate) {
-			qb.where("created_at", ">=", data.startDate);
+			qb.whereRaw("created_at::date >= ?", [data.startDate]);
 		}
 
 		if (data.endDate) {
-			qb.where("created_at", "<=", data.endDate);
+			qb.whereRaw("created_at::date <= ?", [data.endDate]);
 		}
 
 		return qb;
@@ -197,6 +197,10 @@ export default class WhatsAppMessagesConfigService {
 				return;
 			}
 
+			const tutors = await PatientTutor.query()
+				.useTransaction(trx)
+				.whereRaw("(cellphone = ? or telephone = ?)", [data.phone, data.phone]);
+
 			await config.related("messages").create(
 				{
 					platformIntegration: "tintim",
@@ -206,6 +210,8 @@ export default class WhatsAppMessagesConfigService {
 					processed: true,
 					eventCreated: DateTime.fromISO(data.created_isoformat),
 					lastEventInteraction: DateTime.fromISO(data.last_interaction_at),
+					message:
+						tutors.length > 0 ? "Cliente já existente" : "Criou oportunidade",
 				},
 				{
 					client: trx,
@@ -213,12 +219,6 @@ export default class WhatsAppMessagesConfigService {
 			);
 
 			if (data.event_type === "lead.create") {
-				const tutors = await PatientTutor.query()
-					.useTransaction(trx)
-					.whereRaw("(cellphone = ? or telephone = ?)", [
-						data.phone,
-						data.phone,
-					]);
 				if (tutors.length > 0) {
 					return;
 				}

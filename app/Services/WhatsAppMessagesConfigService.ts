@@ -291,7 +291,7 @@ export default class WhatsAppMessagesConfigService {
 						value: 0,
 						active: true,
 						origin: "agenda",
-						client_id: patient.id,
+						// client_id: patient.id,
 					},
 					{
 						client: trx,

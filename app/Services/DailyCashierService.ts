@@ -19,6 +19,7 @@ import {
 	IOpenCashierData,
 	IReviewCashierData,
 } from "Contracts/interfaces/IDailyCashierData";
+import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 
 import BillPayment from "../Models/BillPayment";
@@ -340,7 +341,9 @@ export default class DailyCashierService {
 						expiration_date: e.expirationDate,
 						installments: e.installments,
 						installment_value: e.installmentValue,
-						total_value: e.installmentValue * e.installments,
+						total_value: new Decimal(e.installmentValue)
+							.times(e.installments)
+							.toNumber(),
 						nsu_document: e.nsuDocument,
 					},
 				})),

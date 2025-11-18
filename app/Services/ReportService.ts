@@ -15,6 +15,7 @@ import AnimalTimeline from "App/Models/mongoose/AnimalTimeline";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import { string } from "@ioc:Adonis/Core/Helpers";
 import Decimal from "decimal.js";
+import Deposit from "App/Models/Deposit";
 
 @inject()
 export default class ReportService {
@@ -4019,6 +4020,7 @@ account_plans.tag, ' + ' || tag as ref`),
 				"left join deposit_items di ON di.deposit_id = d.id AND di.business_unit_product_id = bup.id",
 			)
 			.orderByRaw("products.description, d.description")
+			.whereRaw("d.type = ?", ["Venda"])
 			.whereRaw("products.deleted_at is null", [])
 			.whereRaw("products.type = 'product'", [])
 			.whereRaw("products.economic_group_id = ?", [authCtx.group.id])

@@ -1250,6 +1250,11 @@ Route.group(() => {
 	Route.post("/nfe", "WebhooksController.nfe");
 	Route.post("/nfse", "WebhooksController.nfse");
 	Route.post("/disable", "WebhooksController.disable");
+	Route.post("/tintim", "WhatsAppWebhookController.receiveTintim");
+	Route.get(
+		"/search-messages/:configID",
+		"WhatsAppWebhookController.searchMessages",
+	).middleware(["auth"]);
 }).prefix("webhooks");
 
 Route.group(() => {
@@ -1384,6 +1389,16 @@ Route.group(() => {
 	Route.delete("/:id", "ActivitiesController.destroy");
 })
 	.prefix("activities")
+	.middleware("auth");
+
+Route.group(() => {
+	Route.get("/", "WhatsAppMessagesConfigsController.index");
+	Route.post("/", "WhatsAppMessagesConfigsController.store");
+	Route.get("/:id", "WhatsAppMessagesConfigsController.show");
+	Route.put("/:id", "WhatsAppMessagesConfigsController.update");
+	Route.delete("/:id", "WhatsAppMessagesConfigsController.destroy");
+})
+	.prefix("whatsapp-messages-configs")
 	.middleware("auth");
 
 Route.group(() => {

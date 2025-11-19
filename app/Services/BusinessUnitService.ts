@@ -1,4 +1,5 @@
 import { inject } from "@adonisjs/fold";
+import Drive from "@ioc:Adonis/Core/Drive";
 import Logger from "@ioc:Adonis/Core/Logger";
 import Database from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
@@ -486,7 +487,7 @@ export default class BusinessUnitService {
 			return unit
 				.merge({
 					identification: data.identification,
-					fantasyName: data.fantasyName,
+					fantasyName: data.fantasy_name,
 					companyName: data.companyName,
 					email: data.email,
 					document: data.document,
@@ -615,6 +616,20 @@ export default class BusinessUnitService {
 			query.preload("role");
 		});
 
+		let signature = user.signatureImagePath;
+		if (data.signature) {
+			const key = `${user.id}-${data.signature.clientName}`;
+			await data.signature.moveToDisk(
+				"assinaturas",
+				{
+					name: key,
+					visibility: "public",
+				},
+				"s3-cdn",
+			);
+			signature = `assinaturas/${key}`;
+		}
+
 		await Database.transaction(async (trx) => {
 			await user
 				.merge({
@@ -632,6 +647,7 @@ export default class BusinessUnitService {
 					licensingJob: data.licensingJob,
 					onDuty: data.onDuty,
 					birthDate: data.birthDate,
+					signatureImagePath: signature,
 				})
 				.useTransaction(trx)
 				.save();

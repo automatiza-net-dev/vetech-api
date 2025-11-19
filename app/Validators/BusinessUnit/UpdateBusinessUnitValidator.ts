@@ -12,7 +12,7 @@ export default class UpdateBusinessUnitValidator {
 		companyName: schema.string.optional({}, [rules.maxLength(80)]),
 		email: schema.string.optional({}, [rules.email()]),
 		document: schema.string.optional({}),
-		postalCode: schema.string.optional({}),
+		postal_code: schema.string.optional({}),
 		address: schema.string.optional({}),
 		number: schema.string.optional({}),
 		complement: schema.string.optional({}),
@@ -21,9 +21,9 @@ export default class UpdateBusinessUnitValidator {
 		state: schema.string.optional({}),
 		active: schema.boolean.optional([]),
 
-		stateRegistration: schema.string.optional({}),
+		state_registration: schema.string.optional({}),
 		cityCode: schema.string.optional({}),
-		cityRegistration: schema.string.optional({}),
+		city_registration: schema.string.optional({}),
 		cnae: schema.string.optional({}),
 		simple: schema.boolean(),
 

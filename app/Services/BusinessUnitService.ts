@@ -477,7 +477,7 @@ export default class BusinessUnitService {
 					.useTransaction(trx);
 				await Database.from("patient_tutors")
 					.update({
-						corporate_name: data.companyName,
+						corporate_name: data.companyName ?? "Sem identificação",
 					})
 					.where("patient_id", unit.unit_patient_id)
 					.useTransaction(trx);
@@ -491,7 +491,7 @@ export default class BusinessUnitService {
 					email: data.email,
 					document: data.document,
 					phone: data.phone,
-					postalCode: data.postalCode,
+					postalCode: data.postal_code,
 					address: data.address,
 					number: data.number,
 					complement: data.complement,
@@ -500,8 +500,8 @@ export default class BusinessUnitService {
 					state: data.state,
 					active: data.active,
 
-					stateRegistration: data.stateRegistration,
-					cityRegistration: data.cityRegistration,
+					stateRegistration: data.state_registration,
+					cityRegistration: data.city_registration,
 					cnae: data.cnae,
 					simple: data.simple,
 					cityCode: data.cityCode,

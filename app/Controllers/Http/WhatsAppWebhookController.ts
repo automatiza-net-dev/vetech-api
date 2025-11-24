@@ -11,6 +11,11 @@ export default class WhatsAppWebhookController {
 		private shared: SharedService,
 	) {}
 
+	public async healthcheckTintim({ response }: HttpContextContract) {
+		return response.status(200).json({
+			success: true,
+		});
+	}
 	public async receiveTintim({ request, response }: HttpContextContract) {
 		try {
 			const payload = await request.validate(WhatsAppWebhookValidator);

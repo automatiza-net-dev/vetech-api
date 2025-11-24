@@ -265,7 +265,7 @@ export default class TemplateReplacementService {
 						`'${JSON.stringify(
 							templates.filter((f) => f.complex).map((f) => f.replacer),
 						)}'`,
-						`'${textData.ASSINATURA ?? ''}'`,
+						`'${textData.ASSINATURA ?? ""}'`,
 					].join(" "),
 					(error, _stdout, _stderr) => {
 						// console.log({ _stdout, _stderr });
@@ -357,12 +357,15 @@ export default class TemplateReplacementService {
 
 		return templates.reduce(
 			(map, templ) => {
+				if (templ.replacer === "[ASSINATURA]") {
+					return map;
+				}
 				const elem = data[templ.origin];
 				if (!elem) {
 					return map;
 				}
 
-				const value = this.$getValue(templ.attribute, elem);
+				const value = this.$getValue(templ.attribute, elem as ModelObject);
 				if (!value) {
 					return map;
 				}
@@ -773,7 +776,7 @@ export default class TemplateReplacementService {
 			return "";
 		}
 
-		return await Drive.use("s3").getSignedUrl(model.signatureImagePath);
+		return await Drive.use("s3-cdn").getSignedUrl(model.signatureImagePath);
 	}
 
 	private snakeToCamelCase(value: string) {

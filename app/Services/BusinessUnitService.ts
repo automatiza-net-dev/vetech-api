@@ -1,4 +1,6 @@
 import { inject } from "@adonisjs/fold";
+import sharp from "sharp";
+import { readFile } from "node:fs/promises";
 import Drive from "@ioc:Adonis/Core/Drive";
 import Logger from "@ioc:Adonis/Core/Logger";
 import Database from "@ioc:Adonis/Lucid/Database";
@@ -617,17 +619,22 @@ export default class BusinessUnitService {
 		});
 
 		let signature = user.signatureImagePath;
-		if (data.signature) {
-			const key = `${user.id}-${data.signature.clientName}`;
-			await data.signature.moveToDisk(
-				"assinaturas",
-				{
-					name: key,
-					visibility: "public",
-				},
-				"s3-cdn",
-			);
-			signature = `assinaturas/${key}`;
+		if (data.signature?.tmpPath) {
+			const fileBuffer = await readFile(data.signature.tmpPath);
+			const resizedBuffer = await sharp(fileBuffer)
+				.resize({
+					width: 600,
+					height: 150,
+					fit: "contain",
+					background: { r: 255, g: 255, b: 255, alpha: 0 },
+				})
+				.png()
+				.toBuffer();
+
+			signature = `assinaturas/${user.id}-${data.signature.clientName}`;
+			Drive.use("s3-cdn").put(signature, resizedBuffer, {
+				visibility: "public",
+			});
 		}
 
 		await Database.transaction(async (trx) => {

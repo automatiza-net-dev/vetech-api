@@ -634,6 +634,7 @@ export default class BusinessUnitService {
 			signature = `assinaturas/${user.id}-${data.signature.clientName}`;
 			Drive.use("s3-cdn").put(signature, resizedBuffer, {
 				visibility: "public",
+				contentDisposition: "inline",
 			});
 		}
 

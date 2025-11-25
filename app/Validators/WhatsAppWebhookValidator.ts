@@ -18,7 +18,7 @@ export default class WhatsAppWebhookValidator {
 		last_interaction_at: schema.string(),
 		created: schema.string(),
 		created_isoformat: schema.string(),
-		visit: schema.object().members({
+		visit: schema.object.optional().members({
 			name: schema.string(),
 		}),
 	});

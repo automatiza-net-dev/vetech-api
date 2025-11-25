@@ -180,7 +180,7 @@ export default class WhatsAppMessagesConfigService {
 			last_interaction_at: string;
 			created: string;
 			created_isoformat: string;
-			visit: { name: string };
+			visit?: { name: string };
 		},
 		rawPayload: unknown,
 	) {
@@ -208,7 +208,7 @@ export default class WhatsAppMessagesConfigService {
 					platformIntegration: "tintim",
 					phone: data.phone,
 					payload: rawPayload,
-					processedMessage: data.visit.name,
+					processedMessage: data.visit?.name ?? "Sem informação",
 					processed: true,
 					eventCreated: DateTime.fromISO(data.created_isoformat),
 					lastEventInteraction: DateTime.fromISO(data.last_interaction_at),

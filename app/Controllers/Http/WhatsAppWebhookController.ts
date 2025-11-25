@@ -38,7 +38,7 @@ export default class WhatsAppWebhookController {
 				});
 			}
 			console.error("Erro ao processar webhook do WhatsApp:", {
-				error,
+				error: JSON.stringify(error),
 				body: request.body(),
 			});
 			return response.status(500).json({

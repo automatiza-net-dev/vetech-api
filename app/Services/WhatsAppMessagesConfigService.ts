@@ -172,7 +172,7 @@ export default class WhatsAppMessagesConfigService {
 				name: string;
 			};
 			source: string;
-			name: string;
+			name?: string;
 			phone: string;
 			phone_e164: string;
 			event_type: string;
@@ -251,7 +251,7 @@ export default class WhatsAppMessagesConfigService {
 
 				const patient = await Patient.create(
 					{
-						name: data.name,
+						name: data.name ?? 'sem nome (tintim)',
 						type: PatientType.TUTOR,
 						tag: next_id.toString(),
 						clientOriginItemDescription: "Tintim",

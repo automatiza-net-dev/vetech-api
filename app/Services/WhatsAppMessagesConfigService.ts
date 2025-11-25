@@ -199,9 +199,16 @@ export default class WhatsAppMessagesConfigService {
 				return;
 			}
 
-			const tutors = await PatientTutor.query()
+			const tutors = await config.businessUnit.economicGroup
+				.related("patients")
+				.query()
 				.useTransaction(trx)
-				.whereRaw("(cellphone = ? or telephone = ?)", [data.phone, data.phone]);
+				.whereHas("tutor", (query) => {
+					query.whereRaw("(cellphone = ? or telephone = ?)", [
+						data.phone,
+						data.phone,
+					]);
+				});
 
 			await config.related("messages").create(
 				{

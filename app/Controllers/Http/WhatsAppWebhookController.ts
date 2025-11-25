@@ -4,61 +4,80 @@ import { ValidationException } from "@ioc:Adonis/Core/Validator";
 import WhatsAppWebhookValidator from "App/Validators/WhatsAppWebhookValidator";
 import WhatsAppMessagesConfigService from "App/Services/WhatsAppMessagesConfigService";
 import SharedService from "App/Services/SharedService";
+import { v4 } from "uuid";
+import { DateTime } from "luxon";
 
 @inject()
 export default class WhatsAppWebhookController {
-	constructor(
-		private readonly whatsappService: WhatsAppMessagesConfigService,
-		private shared: SharedService,
-	) {}
+  constructor(
+    private readonly whatsappService: WhatsAppMessagesConfigService,
+    private shared: SharedService,
+  ) {}
 
-	public async healthcheckTintim({ response }: HttpContextContract) {
-		return response.status(200).json({
-			success: true,
-		});
-	}
-	public async receiveTintim({ request, response }: HttpContextContract) {
-		try {
-			const payload = await request.validate(WhatsAppWebhookValidator);
+  public async healthcheckTintim({ response }: HttpContextContract) {
+    return response.status(200).json({
+      success: true,
+    });
+  }
+  public async receiveTintim({ request, response }: HttpContextContract) {
+    const body = request.body();
+    const cfg = await this.whatsappService.findConfigForTintim(
+      body?.account?.code ?? v4(),
+    );
+    if (cfg) {
+      await cfg.related("messages").create({
+        platformIntegration: "tintim",
+        phone: body?.phone,
+        payload: body ?? null,
+        processedMessage: body?.visit?.name ?? "Sem informação",
+        processed: true,
+        eventCreated: DateTime.fromISO(body?.created_isoformat),
+        lastEventInteraction: DateTime.fromISO(body?.last_interaction_at),
+        message: "",
+      });
+    }
 
-			await this.whatsappService.processTintimWebhook(payload, request.body());
+    try {
+      const payload = await request.validate(WhatsAppWebhookValidator);
 
-			return response.status(200).json({
-				success: true,
-				message: "Webhook processado com sucesso",
-			});
-		} catch (error) {
-			if (
-				error instanceof ValidationException &&
-				request.body().event_type === "message.create"
-			) {
-				return response.status(200).json({
-					success: true,
-					message: "Envio de mensagem, ainda não usado",
-				});
-			}
-			console.error("Erro ao processar webhook do WhatsApp:", {
-				error: JSON.stringify(error),
-				body: request.body(),
-			});
-			return response.status(500).json({
-				success: false,
-				message: "Erro interno ao processar webhook",
-			});
-		}
-	}
+      await this.whatsappService.processTintimWebhook(payload);
 
-	public async searchMessages({
-		auth,
-		request,
-		response,
-	}: HttpContextContract) {
-		return response.ok(
-			await this.whatsappService.searchMessages(
-				await this.shared.getAuthContext(auth),
-				request.param("configID", "0"),
-				request.qs(),
-			),
-		);
-	}
+      return response.status(200).json({
+        success: true,
+        message: "Webhook processado com sucesso",
+      });
+    } catch (error) {
+      if (
+        error instanceof ValidationException &&
+        request.body().event_type === "message.create"
+      ) {
+        return response.status(200).json({
+          success: true,
+          message: "Envio de mensagem, ainda não usado",
+        });
+      }
+      console.error("Erro ao processar webhook do WhatsApp:", {
+        error: JSON.stringify(error),
+        body: request.body(),
+      });
+      return response.status(500).json({
+        success: false,
+        message: "Erro interno ao processar webhook",
+      });
+    }
+  }
+
+  public async searchMessages({
+    auth,
+    request,
+    response,
+  }: HttpContextContract) {
+    return response.ok(
+      await this.whatsappService.searchMessages(
+        await this.shared.getAuthContext(auth),
+        request.param("configID", "0"),
+        request.qs(),
+      ),
+    );
+  }
 }

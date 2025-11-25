@@ -976,9 +976,14 @@ export default class BusinessUnitFiscalDocumentService {
 					business_unit_id: authCtx.unit.id,
 					fiscal_document_id: document.id,
 					user_who_authorized_id: authCtx.user.id,
+					bill_id: bill.id,
+
 					authorizationDate: DateTime.now(),
 					model: document.model,
-					bill_id: bill.id,
+					totalValue: mapItems.reduce(
+						(acc, curr) => acc.plus(curr.totalValue),
+						new Decimal(0),
+					),
 				},
 				{
 					client: trx,

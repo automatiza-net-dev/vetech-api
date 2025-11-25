@@ -10,7 +10,7 @@ export default class WhatsAppWebhookValidator {
 			name: schema.string(),
 		}),
 		source: schema.string(),
-		name: schema.string(),
+		name: schema.string.optional(),
 		phone: schema.string(),
 		phone_e164: schema.string(),
 		event_type: schema.string(),

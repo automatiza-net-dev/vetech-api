@@ -1,4 +1,7 @@
 import { inject } from "@adonisjs/fold";
+import sharp from "sharp";
+import { readFile } from "node:fs/promises";
+import Drive from "@ioc:Adonis/Core/Drive";
 import Logger from "@ioc:Adonis/Core/Logger";
 import Database from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
@@ -477,7 +480,7 @@ export default class BusinessUnitService {
 					.useTransaction(trx);
 				await Database.from("patient_tutors")
 					.update({
-						corporate_name: data.companyName,
+						corporate_name: data.companyName ?? "Sem identificação",
 					})
 					.where("patient_id", unit.unit_patient_id)
 					.useTransaction(trx);
@@ -486,12 +489,12 @@ export default class BusinessUnitService {
 			return unit
 				.merge({
 					identification: data.identification,
-					fantasyName: data.fantasyName,
+					fantasyName: data.fantasy_name,
 					companyName: data.companyName,
 					email: data.email,
 					document: data.document,
 					phone: data.phone,
-					postalCode: data.postalCode,
+					postalCode: data.postal_code,
 					address: data.address,
 					number: data.number,
 					complement: data.complement,
@@ -500,8 +503,8 @@ export default class BusinessUnitService {
 					state: data.state,
 					active: data.active,
 
-					stateRegistration: data.stateRegistration,
-					cityRegistration: data.cityRegistration,
+					stateRegistration: data.state_registration,
+					cityRegistration: data.city_registration,
 					cnae: data.cnae,
 					simple: data.simple,
 					cityCode: data.cityCode,
@@ -615,6 +618,26 @@ export default class BusinessUnitService {
 			query.preload("role");
 		});
 
+		let signature = user.signatureImagePath;
+		if (data.signature?.tmpPath) {
+			const fileBuffer = await readFile(data.signature.tmpPath);
+			const resizedBuffer = await sharp(fileBuffer)
+				.resize({
+					width: 600,
+					height: 150,
+					fit: "contain",
+					background: { r: 255, g: 255, b: 255, alpha: 0 },
+				})
+				.png()
+				.toBuffer();
+
+			signature = `assinaturas/${user.id}-${data.signature.clientName}`;
+			Drive.use("s3-cdn").put(signature, resizedBuffer, {
+				visibility: "public",
+				contentDisposition: "inline",
+			});
+		}
+
 		await Database.transaction(async (trx) => {
 			await user
 				.merge({
@@ -632,6 +655,7 @@ export default class BusinessUnitService {
 					licensingJob: data.licensingJob,
 					onDuty: data.onDuty,
 					birthDate: data.birthDate,
+					signatureImagePath: signature,
 				})
 				.useTransaction(trx)
 				.save();

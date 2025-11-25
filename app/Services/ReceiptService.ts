@@ -379,7 +379,7 @@ const schema = z.object({
 				emit: z.object({
 					CNPJ: z.string(),
 					xNome: z.string(),
-					xFant: z.string(),
+					xFant: z.string().optional(),
 					enderEmit: z.object({
 						xLgr: z.string(),
 						nro: z.string(),
@@ -579,9 +579,7 @@ export default class ReceiptService {
 			.joinRaw("join users _user on receipts.user_id = _user.id")
 			.joinRaw("join users seller on receipts.seller_id = seller.id")
 			.joinRaw("join patients supplier on receipts.supplier_id = supplier.id")
-			.joinRaw(
-				"join patient_tutors on patient_tutors.patient_id = supplier.id",
-			)
+			.joinRaw("join patient_tutors on patient_tutors.patient_id = supplier.id")
 			.joinRaw(
 				"left join users confirmationUser on receipts.confirmation_user_id = confirmationUser.id",
 			)
@@ -1654,7 +1652,7 @@ export default class ReceiptService {
 
 			const newSupplier = await Patient.create(
 				{
-					name: data.nfeProc.NFe.infNFe.emit.xFant,
+					name: data.nfeProc.NFe.infNFe.emit.xFant ?? "Não informado",
 					type: PatientType.SUPPLIER,
 					tag: next_id.toString(),
 				},

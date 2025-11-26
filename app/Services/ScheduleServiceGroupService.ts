@@ -24,6 +24,7 @@ type IndexResult = {
 interface ISearch {
 	description?: string;
 	patient?: string;
+	tutor?: string;
 }
 
 @inject()
@@ -113,10 +114,16 @@ export default class ScheduleServiceGroupService {
 					.whereRaw("business_unit_configs.business_unit_id = ?", [
 						authCtx.unit.id,
 					])
-					.whereRaw("treatments.client_id = ?", [data.patient ?? v4()])
 					.whereRaw(
 						"(business_unit_configs.config #>> '{schedules, show_treatment_executions_schedule}')::boolean is true",
 					);
+
+				if (data.patient || data.tutor) {
+					builder.whereIn(
+						"treatments.client_id",
+						[data.patient, data.tutor].filter(Boolean) as string[],
+					);
+				}
 			})
 			.groupByRaw("schedule_service_types.id")
 			.orderByRaw("ordem, schedule_service_group_id, schedule_service_type_id");

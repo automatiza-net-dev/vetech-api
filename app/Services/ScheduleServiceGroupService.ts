@@ -115,7 +115,7 @@ export default class ScheduleServiceGroupService {
 					])
 					.whereRaw("treatments.client_id = ?", [data.patient ?? v4()])
 					.whereRaw(
-						"business_unit_configs.show_treatment_executions_schedule = true",
+						"(business_unit_configs.config #>> '{schedules, show_treatment_executions_schedule}')::boolean is true",
 					);
 			})
 			.groupByRaw("schedule_service_types.id")

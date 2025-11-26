@@ -4,6 +4,9 @@ import { ValidationException } from "@ioc:Adonis/Core/Validator";
 import WhatsAppWebhookValidator from "App/Validators/WhatsAppWebhookValidator";
 import WhatsAppMessagesConfigService from "App/Services/WhatsAppMessagesConfigService";
 import SharedService from "App/Services/SharedService";
+import { v4 } from "uuid";
+import { DateTime } from "luxon";
+import WhatsappMessage from "App/Models/WhatsAppMessage";
 
 @inject()
 export default class WhatsAppWebhookController {
@@ -18,10 +21,27 @@ export default class WhatsAppWebhookController {
 		});
 	}
 	public async receiveTintim({ request, response }: HttpContextContract) {
+		const body = request.body();
+		const cfg = await this.whatsappService.findConfigForTintim(
+			body?.account?.code ?? v4(),
+		);
+		await WhatsappMessage.create({
+			whatsapp_messages_config_id: cfg?.id,
+
+			platformIntegration: "tintim",
+			phone: body?.phone,
+			payload: body ?? null,
+			processedMessage: body?.visit?.name ?? "Sem informação",
+			processed: true,
+			eventCreated: DateTime.fromISO(body?.created_isoformat),
+			lastEventInteraction: DateTime.fromISO(body?.last_interaction_at),
+			message: "",
+		});
+
 		try {
 			const payload = await request.validate(WhatsAppWebhookValidator);
 
-			await this.whatsappService.processTintimWebhook(payload, request.body());
+			await this.whatsappService.processTintimWebhook(payload);
 
 			return response.status(200).json({
 				success: true,

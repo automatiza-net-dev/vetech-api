@@ -332,8 +332,8 @@ export default class TreatmentsController {
 		const result = await this.service.searchSyncheableTreatmentExecutions(
 			authCtx,
 			{
+				...request.qs(),
 				patientId: request.param("patientId"),
-				scheduled: request.qs().scheduled,
 			},
 		);
 

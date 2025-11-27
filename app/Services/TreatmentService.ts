@@ -1481,6 +1481,7 @@ export default class TreatmentService {
 		authCtx: AuthContext,
 		data: {
 			patientId: string;
+			tutorId?: string;
 			scheduled?: string;
 		},
 	) {
@@ -1523,7 +1524,10 @@ export default class TreatmentService {
 			.where("treatments.economic_group_id", authCtx.group.id)
 			.where("treatments.business_unit_id", authCtx.unit.id)
 			.whereIn("treatments.status", ["Confirmado", "Aberto"])
-			.where("treatments.client_id", data.patientId)
+			.whereIn(
+				"treatments.client_id",
+				[data.patientId, data.tutorId].filter(Boolean),
+			)
 			.orderByRaw(`treatment_executions.treatment_id, treatment_executions.treatment_item_id, treatment_executions.id,
          treatment_executions.productivity_item_id`);
 

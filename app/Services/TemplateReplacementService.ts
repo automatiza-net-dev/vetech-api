@@ -442,9 +442,7 @@ export default class TemplateReplacementService {
 			return this.parseTextTemplate(updated, data, tail);
 		}
 
-		const value$ = value ? (this.$toString(value) ?? head.attribute) : "";
-		// console.log("value string-like", value$);
-		if (head.replacer === "[ASSINATURA]") {
+		if (head.replacer === "[ASSINATURA]" && !!data.ASSINATURA) {
 			const updated = raw.replaceAll(
 				head.replacer,
 				`<img style="width:400px;height:150px;" src="${data.ASSINATURA}"/>`,
@@ -452,6 +450,9 @@ export default class TemplateReplacementService {
 
 			return this.parseTextTemplate(updated, data, tail);
 		}
+
+		const value$ = value ? (this.$toString(value) ?? head.attribute) : "";
+		// console.log("value string-like", value$);
 
 		const updated = raw.replaceAll(head.replacer, value$);
 		// console.log("updated", updated);

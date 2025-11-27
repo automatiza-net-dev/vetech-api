@@ -1943,14 +1943,23 @@ export default class ScheduleService {
        '[]'::json as contacts,
        '[]'::json as status_changes,
        coalesce((select sum(total_value) as total
-from "finances"
-where type = 'CREDITO'
-  and deleted_at is null
-  and business_unit_id = schedules.business_unit_id
-  and client_id = coalesce(schedules.holder_id, schedules.patient_id)
-  and payment_date is null
-  and expiration_date < now()
-group by client_id),0) as finances_expired`),
+                 from "finances"
+                          join payment_methods pm
+                               on finances.payment_method_id = pm.id
+                                   and coalesce(open_installments_affects_block, false) = true
+                 where finances.type = 'CREDITO'
+                   and finances.deleted_at is null
+                   and business_unit_id = schedules.business_unit_id
+                   and client_id = coalesce(schedules.holder_id, schedules.patient_id)
+                   and payment_date is null
+                   and expiration_date < now()
+                 group by client_id), 0)
+           +
+       coalesce((select sum(b.total_value - b.paid_value)
+                 from bills b
+                 where b.deleted_at isnull
+                   and business_unit_id = schedules.business_unit_id
+                   and client_id = coalesce(schedules.holder_id, schedules.patient_id)), 0) as finances_expired`),
 			)
 			.joinRaw(
 				"join schedule_service_types sst on schedules.schedule_service_type_id = sst.id",

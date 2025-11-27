@@ -1101,7 +1101,8 @@ export default class TreatmentService {
 	public async searchSomething(
 		authCtx: AuthContext,
 		data: {
-			client: string;
+			client?: string;
+			holder?: string;
 		},
 	) {
 		if (!data.client) {
@@ -1111,7 +1112,10 @@ export default class TreatmentService {
 		const treatments = await Treatment.query()
 			.where("economic_group_id", authCtx.group.id)
 			.where("business_unit_id", authCtx.unit.id)
-			.where("client_id", data.client)
+			.whereIn(
+				"client_id",
+				[data.client, data.holder].filter(Boolean) as string[],
+			)
 			.whereHas("items", (query) => {
 				query.whereRaw("quantity > scheduled_quantity");
 			})

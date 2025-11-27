@@ -219,9 +219,7 @@ export default class TreatmentsController {
 		const authCtx = await this.sharedService.getAuthContext(auth);
 
 		const qs = request.qs();
-		const result = await this.service.searchSomething(authCtx, {
-			client: qs.client,
-		});
+		const result = await this.service.searchSomething(authCtx, qs);
 
 		return response.ok(result);
 	}

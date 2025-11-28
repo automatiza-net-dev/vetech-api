@@ -219,9 +219,7 @@ export default class TreatmentsController {
 		const authCtx = await this.sharedService.getAuthContext(auth);
 
 		const qs = request.qs();
-		const result = await this.service.searchSomething(authCtx, {
-			client: qs.client,
-		});
+		const result = await this.service.searchSomething(authCtx, qs);
 
 		return response.ok(result);
 	}
@@ -332,8 +330,8 @@ export default class TreatmentsController {
 		const result = await this.service.searchSyncheableTreatmentExecutions(
 			authCtx,
 			{
+				...request.qs(),
 				patientId: request.param("patientId"),
-				scheduled: request.qs().scheduled,
 			},
 		);
 

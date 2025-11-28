@@ -1101,7 +1101,8 @@ export default class TreatmentService {
 	public async searchSomething(
 		authCtx: AuthContext,
 		data: {
-			client: string;
+			client?: string;
+			holder?: string;
 		},
 	) {
 		if (!data.client) {
@@ -1111,7 +1112,10 @@ export default class TreatmentService {
 		const treatments = await Treatment.query()
 			.where("economic_group_id", authCtx.group.id)
 			.where("business_unit_id", authCtx.unit.id)
-			.where("client_id", data.client)
+			.whereIn(
+				"client_id",
+				[data.client, data.holder].filter(Boolean) as string[],
+			)
 			.whereHas("items", (query) => {
 				query.whereRaw("quantity > scheduled_quantity");
 			})
@@ -1481,6 +1485,7 @@ export default class TreatmentService {
 		authCtx: AuthContext,
 		data: {
 			patientId: string;
+			tutorId?: string;
 			scheduled?: string;
 		},
 	) {
@@ -1523,7 +1528,10 @@ export default class TreatmentService {
 			.where("treatments.economic_group_id", authCtx.group.id)
 			.where("treatments.business_unit_id", authCtx.unit.id)
 			.whereIn("treatments.status", ["Confirmado", "Aberto"])
-			.where("treatments.client_id", data.patientId)
+			.whereIn(
+				"treatments.client_id",
+				[data.patientId, data.tutorId].filter(Boolean),
+			)
 			.orderByRaw(`treatment_executions.treatment_id, treatment_executions.treatment_item_id, treatment_executions.id,
          treatment_executions.productivity_item_id`);
 

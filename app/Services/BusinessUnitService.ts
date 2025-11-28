@@ -623,8 +623,7 @@ export default class BusinessUnitService {
 			const fileBuffer = await readFile(data.signature.tmpPath);
 			const resizedBuffer = await sharp(fileBuffer)
 				.resize({
-					width: 600,
-					height: 150,
+					width: 150,
 					fit: "contain",
 					background: { r: 255, g: 255, b: 255, alpha: 0 },
 				})

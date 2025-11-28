@@ -360,6 +360,7 @@ export default class TemplateReplacementService {
 				if (templ.replacer === "[ASSINATURA]") {
 					return map;
 				}
+
 				const elem = data[templ.origin];
 				if (!elem) {
 					return map;
@@ -438,6 +439,15 @@ export default class TemplateReplacementService {
 		if (Array.isArray(value)) {
 			// console.log("value is array", value);
 			const updated = this.parseHtmlTemplate(raw, head, value);
+			return this.parseTextTemplate(updated, data, tail);
+		}
+
+		if (head.replacer === "[ASSINATURA]" && !!data.ASSINATURA) {
+			const updated = raw.replaceAll(
+				head.replacer,
+				`<img style="width:150px;" src="${data.ASSINATURA}"/>`,
+			);
+
 			return this.parseTextTemplate(updated, data, tail);
 		}
 
@@ -776,7 +786,9 @@ export default class TemplateReplacementService {
 			return "";
 		}
 
-		return await Drive.use("s3-cdn").getSignedUrl(model.signatureImagePath);
+		return await Drive.use("s3-cdn").getSignedUrl(model.signatureImagePath, {
+			contentDisposition: "inline",
+		});
 	}
 
 	private snakeToCamelCase(value: string) {

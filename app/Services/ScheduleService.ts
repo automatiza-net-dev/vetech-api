@@ -1943,14 +1943,23 @@ export default class ScheduleService {
        '[]'::json as contacts,
        '[]'::json as status_changes,
        coalesce((select sum(total_value) as total
-from "finances"
-where type = 'CREDITO'
-  and deleted_at is null
-  and business_unit_id = schedules.business_unit_id
-  and client_id = coalesce(schedules.holder_id, schedules.patient_id)
-  and payment_date is null
-  and expiration_date < now()
-group by client_id),0) as finances_expired`),
+                 from "finances"
+                          join payment_methods pm
+                               on finances.payment_method_id = pm.id
+                                   and coalesce(open_installments_affects_block, false) = true
+                 where finances.type = 'CREDITO'
+                   and finances.deleted_at is null
+                   and business_unit_id = schedules.business_unit_id
+                   and client_id = coalesce(schedules.holder_id, schedules.patient_id)
+                   and payment_date is null
+                   and expiration_date < now()
+                 group by client_id), 0)
+           +
+       coalesce((select sum(b.total_value - b.paid_value)
+                 from bills b
+                 where b.deleted_at isnull
+                   and business_unit_id = schedules.business_unit_id
+                   and client_id = coalesce(schedules.holder_id, schedules.patient_id)), 0) as finances_expired`),
 			)
 			.joinRaw(
 				"join schedule_service_types sst on schedules.schedule_service_type_id = sst.id",
@@ -2678,20 +2687,39 @@ group by client_id),0) as finances_expired`),
 				authCtx.unit.unitConfig.config.schedules?.block_finance_pending &&
 				["AC", "REC"].includes(toStatus.type)
 			) {
-				const pendingPayments: { total: number } | null = await Database.from(
-					"finances",
-				)
-					.select(Database.raw("coalesce(sum(total_value)::int, 0) as total"))
-					.whereRaw("type = 'CREDITO'")
-					.whereRaw("deleted_at is null")
-					.whereRaw("business_unit_id = ?", [authCtx.unit.id])
-					.whereRaw("client_id = ?", [
-						authCtx.system.type === "Vet"
-							? (schedule.holder_id ?? v4())
-							: (schedule.patient_id ?? v4()),
-					])
-					.whereRaw("payment_date is null")
-					.whereRaw("expiration_date < now()")
+				const pendingPayments = await Database.from("patients as p")
+					.where("p.id", schedule.holder_id ?? v4())
+					.select(
+						Database.raw(
+							`
+      coalesce((
+        select sum(f.total_value)
+        from finances f
+        join payment_methods pm
+          on f.payment_method_id = pm.id
+         and coalesce(pm.open_installments_affects_block, false) = true
+        where f.type = 'CREDITO'
+          and f.deleted_at is null
+          and f.economic_group_id = ?
+          and f.business_unit_id = ?
+          and f.client_id = p.id
+          and f.payment_date is null
+          and f.expiration_date < now()
+        group by f.client_id
+      ), 0)
+      +
+      coalesce((
+        select sum(b.total_value - b.paid_value)
+        from bills b
+        where b.deleted_at is null
+          and b.business_unit_id = ?
+          and b.client_id = p.id
+      ), 0)
+      as total
+    `,
+							[authCtx.group.id, authCtx.unit.id, authCtx.unit.id],
+						),
+					)
 					.first();
 
 				if (pendingPayments?.total !== 0) {
@@ -2837,7 +2865,12 @@ group by client_id),0) as finances_expired`),
 				.useTransaction(trx)
 				.save();
 
-			return schedule.refresh();
+			return await Schedule.query()
+				.useTransaction(trx)
+				.where("id", data.scheduleId)
+				.where("business_unit_id", authCtx.unit.id)
+				.preload("serviceStatus")
+				.firstOrFail();
 		});
 	}
 
@@ -3120,12 +3153,14 @@ group by client_id),0) as finances_expired`),
 				},
 			);
 
-			return schedule
-				.merge({
-					schedule_status_id: data.statusId,
-				})
-				.useTransaction(trx)
-				.save();
+			return schedule.useTransaction(trx).refresh();
+
+			// return schedule
+			// 	.merge({
+			// 		schedule_status_id: data.statusId,
+			// 	})
+			// 	.useTransaction(trx)
+			// 	.save();
 		});
 	}
 
@@ -3228,25 +3263,43 @@ when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores 
 			)
 			.orderByRaw("tipoVencimento");
 
-		const lateFees: { total: string }[] = await Database.from("finances")
-			.select(Database.raw("sum(total_value) as total"))
-			.whereRaw("type = 'CREDITO'")
-			.whereNull("deleted_at")
-			.where("economic_group_id", authCtx.group.id)
-			.where("business_unit_id", authCtx.unit.id)
-			.where("client_id", clientID)
-			.whereNull("payment_date")
-			.whereRaw("expiration_date < now()")
-			.groupBy("client_id");
+		const lateFees: { total: string }[] = await Database.from("patients as p")
+			.where("p.id", clientID)
+			.select(
+				Database.raw(
+					`
+      coalesce((
+        select sum(f.total_value)
+        from finances f
+        join payment_methods pm
+          on f.payment_method_id = pm.id
+         and coalesce(pm.open_installments_affects_block, false) = true
+        where f.type = 'CREDITO'
+          and f.deleted_at is null
+          and f.economic_group_id = ?
+          and f.business_unit_id = ?
+          and f.client_id = p.id
+          and f.payment_date is null
+          and f.expiration_date < now()
+        group by f.client_id
+      ), 0)
+      +
+      coalesce((
+        select sum(b.total_value - b.paid_value)
+        from bills b
+        where b.deleted_at is null
+          and b.business_unit_id = ?
+          and b.client_id = p.id
+      ), 0)
+      as total
+    `,
+					[authCtx.group.id, authCtx.unit.id, authCtx.unit.id],
+				),
+			);
 
-		const starter: Record<string, number> =
-			lateFees.length === 0
-				? {
-						"Valores em Atraso": new Decimal(
-							lateFees[0]?.total ?? 0,
-						).toNumber(),
-					}
-				: {};
+		const starter: Record<string, number> = {
+			"Valores em Atraso": new Decimal(lateFees[0]?.total ?? 0).toNumber(),
+		};
 
 		return result.reduce((acc, row) => {
 			acc[row.tipovencimento] = new Decimal(row.total).toNumber();

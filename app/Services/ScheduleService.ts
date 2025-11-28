@@ -2846,7 +2846,12 @@ export default class ScheduleService {
 				.useTransaction(trx)
 				.save();
 
-			return schedule.refresh();
+			return await Schedule.query()
+				.useTransaction(trx)
+				.where("id", data.scheduleId)
+				.where("business_unit_id", authCtx.unit.id)
+				.preload("serviceStatus")
+				.firstOrFail();
 		});
 	}
 
@@ -3129,12 +3134,14 @@ export default class ScheduleService {
 				},
 			);
 
-			return schedule
-				.merge({
-					schedule_status_id: data.statusId,
-				})
-				.useTransaction(trx)
-				.save();
+			return schedule.useTransaction(trx).refresh();
+
+			// return schedule
+			// 	.merge({
+			// 		schedule_status_id: data.statusId,
+			// 	})
+			// 	.useTransaction(trx)
+			// 	.save();
 		});
 	}
 

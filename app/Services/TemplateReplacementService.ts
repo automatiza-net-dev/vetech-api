@@ -445,7 +445,7 @@ export default class TemplateReplacementService {
 		if (head.replacer === "[ASSINATURA]" && !!data.ASSINATURA) {
 			const updated = raw.replaceAll(
 				head.replacer,
-				`<img style="width:400px;height:150px;" src="${data.ASSINATURA}"/>`,
+				`<img style="width:150px;" src="${data.ASSINATURA}"/>`,
 			);
 
 			return this.parseTextTemplate(updated, data, tail);

@@ -786,9 +786,7 @@ export default class TemplateReplacementService {
 			return "";
 		}
 
-		return await Drive.use("s3-cdn").getSignedUrl(model.signatureImagePath, {
-			contentDisposition: "inline",
-		});
+		return await Drive.use("s3-cdn").getUrl(model.signatureImagePath);
 	}
 
 	private snakeToCamelCase(value: string) {

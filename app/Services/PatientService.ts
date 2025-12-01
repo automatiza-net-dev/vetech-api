@@ -1608,7 +1608,7 @@ export default class PatientService {
 			if (data.document) {
 				if (!this.sharedService.validDocument(data.document)) {
 					throw new BadRequestException(
-						"Documento inválido",
+						"CPF/CNPJ inválido",
 						400,
 						"E_INVALID_DOCUMENT",
 					);
@@ -1800,7 +1800,7 @@ export default class PatientService {
 			if (data.document) {
 				// if (!this.sharedService.validDocument(data.document)) {
 				// 	throw new BadRequestException(
-				// 		"Documento inválido",
+				// 		"CPF/CNPJ inválido",
 				// 		400,
 				// 		"E_INVALID_DOCUMENT",
 				// 	);
@@ -2225,7 +2225,7 @@ export default class PatientService {
 			if (data.document && data.document !== tutor.tutor.document) {
 				if (!this.sharedService.validDocument(data.document)) {
 					throw new BadRequestException(
-						"Documento inválido",
+						"CPF/CNPJ inválido",
 						400,
 						"E_INVALID_DOCUMENT",
 					);
@@ -2384,7 +2384,7 @@ export default class PatientService {
 			if (data.document && data.document !== supplier.tutor.document) {
 				// if (!this.sharedService.validDocument(data.document)) {
 				// 	throw new BadRequestException(
-				// 		"Documento inválido",
+				// 		"CPF/CNPJ inválido",
 				// 		400,
 				// 		"E_INVALID_DOCUMENT",
 				// 	);

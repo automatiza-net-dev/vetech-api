@@ -3302,6 +3302,10 @@ when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores 
 		};
 
 		return result.reduce((acc, row) => {
+			if (row.tipovencimento === "Valores em Atraso") {
+				return acc;
+			}
+
 			acc[row.tipovencimento] = new Decimal(row.total).toNumber();
 
 			return acc;

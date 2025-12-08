@@ -702,7 +702,7 @@ export default class ReceiptService {
 					});
 				});
 
-				query.select("id", "quantity", "product_variation_id");
+				query.select("id", "quantity", "fraction_value", "product_variation_id");
 
 				query.preload("productVariation", (query) => {
 					query.preload("product", (query) => {

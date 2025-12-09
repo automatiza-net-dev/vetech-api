@@ -702,7 +702,12 @@ export default class ReceiptService {
 					});
 				});
 
-				query.select("id", "quantity", "fraction_value", "product_variation_id");
+				query.select(
+					"id",
+					"quantity",
+					"fraction_value",
+					"product_variation_id",
+				);
 
 				query.preload("productVariation", (query) => {
 					query.preload("product", (query) => {
@@ -821,6 +826,7 @@ export default class ReceiptService {
 				// 	"PendenteXml",
 				// ] as TReceiptItemStatus[]);
 				// }
+				query.whereNull("disabledDate");
 
 				query.orderBy("description_xml", "asc");
 

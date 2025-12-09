@@ -725,20 +725,39 @@ export default class ScheduleService {
 			let pendingApprover: string | null = null;
 
 			if (authCtx.unit.unitConfig.config.schedules?.block_finance_pending) {
-				const pendingPayments: { total: number } | null = await Database.from(
-					"finances",
-				)
-					.select(Database.raw("coalesce(sum(total_value)::int, 0) as total"))
-					.whereRaw("type = 'CREDITO'")
-					.whereRaw("deleted_at is null")
-					.whereRaw("business_unit_id = ?", [authCtx.unit.id])
-					.whereRaw("client_id = ?", [
-						authCtx.system.type === "Vet"
-							? (data.holderId ?? v4())
-							: (data.patientId ?? v4()),
-					])
-					.whereRaw("payment_date is null")
-					.whereRaw("expiration_date < now()")
+				const pendingPayments = await Database.from("patients as p")
+					.where("p.id", data.holderId ?? v4())
+					.select(
+						Database.raw(
+							`
+      coalesce((
+        select sum(f.total_value)
+        from finances f
+        join payment_methods pm
+          on f.payment_method_id = pm.id
+         and coalesce(pm.open_installments_affects_block, false) = true
+        where f.type = 'CREDITO'
+          and f.deleted_at is null
+          and f.economic_group_id = ?
+          and f.business_unit_id = ?
+          and f.client_id = p.id
+          and f.payment_date is null
+          and f.expiration_date < now()
+        group by f.client_id
+      ), 0)
+      +
+      coalesce((
+        select sum(b.total_value - b.paid_value)
+        from bills b
+        where b.deleted_at is null
+          and b.business_unit_id = ?
+          and b.client_id = p.id
+      ), 0)
+      as total
+    `,
+							[authCtx.group.id, authCtx.unit.id, authCtx.unit.id],
+						),
+					)
 					.first();
 
 				if (pendingPayments?.total !== 0) {

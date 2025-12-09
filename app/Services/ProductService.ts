@@ -315,6 +315,9 @@ export default class ProductService {
 				query.select("id", "barcode", "active");
 
 				query.preload("businessUnitProducts", (query) => {
+					query.whereHas("businessUnit", (query) => {
+						query.whereNull("deleted_at");
+					});
 					query.preload("businessUnit", (query) => {
 						query.select("id", "fantasyName", "companyName", "identification");
 					});

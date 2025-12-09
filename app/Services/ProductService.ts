@@ -21,6 +21,7 @@ import IProductData, {
 import IUpdateProduct from "Contracts/interfaces/IUpdateProduct";
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
+import { TReceiptStatus } from "App/Models/Receipt";
 
 interface ISearch {
 	description?: string;
@@ -256,7 +257,7 @@ export default class ProductService {
 			active: product.active,
 			courtesy: product.courtesy,
 			created_at: product.createdAt,
-      businessUnitId: authCtx.unit.id,
+			businessUnitId: authCtx.unit.id,
 			stock: product.variations
 				.reduce((acc, curr) => {
 					return depositRows
@@ -314,6 +315,9 @@ export default class ProductService {
 				query.select("id", "barcode", "active");
 
 				query.preload("businessUnitProducts", (query) => {
+					query.whereHas("businessUnit", (query) => {
+						query.whereNull("deleted_at");
+					});
 					query.preload("businessUnit", (query) => {
 						query.select("id", "fantasyName", "companyName", "identification");
 					});
@@ -355,8 +359,24 @@ export default class ProductService {
 				product.variations.map((pv) => pv.id),
 			);
 
+		const receiptRows: {
+			id: string;
+			tag: string;
+		}[] = await Database.from("receipts")
+			.select(Database.raw("receipts.id, receipts.tag"))
+			.joinRaw("join receipt_items on receipts.id = receipt_items.receipt_id")
+			.whereRaw("receipts.business_unit_id = ?", [authCtx.unit.id])
+			.whereIn(
+				"receipt_items.product_variation_id",
+				product.variations.map((pv) => pv.id),
+			)
+			.orderByRaw("receipts.created_at desc")
+			.limit(1);
+
 		return {
 			...product.toJSON(),
+			_invalidConfig: !!(!product.subgroup || !product.purpose),
+			receipt: receiptRows.at(0) ?? null,
 			variations: product.variations.map((vr) => ({
 				...vr.toJSON(),
 				businessUnitProducts: vr.businessUnitProducts.map((bup) => ({

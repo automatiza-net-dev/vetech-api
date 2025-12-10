@@ -1672,8 +1672,12 @@ export default class ScheduleService {
 	): boolean {
 		const fmt = (d: Date | string) =>
 			typeof d === "string"
-				? DateTime.fromISO(d).plus({ hours: 3 }).toFormat("HH:mm:ss")
-				: DateTime.fromJSDate(d).plus({ hours: 3 }).toFormat("HH:mm:ss");
+				? DateTime.fromISO(d)
+						.plus({ hours: this.timeOffset })
+						.toFormat("HH:mm:ss")
+				: DateTime.fromJSDate(d)
+						.plus({ hours: this.timeOffset })
+						.toFormat("HH:mm:ss");
 
 		const scheduleStart = fmt(startTime);
 		const scheduleEnd = fmt(endTime);

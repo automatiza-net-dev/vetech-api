@@ -370,6 +370,7 @@ export default class ProductService {
 				"receipt_items.product_variation_id",
 				product.variations.map((pv) => pv.id),
 			)
+			.whereRaw("receipts.deleted_at is null")
 			.orderByRaw("receipts.created_at desc")
 			.limit(1);
 

@@ -2070,7 +2070,7 @@ export default class ScheduleService {
 			holder: elem.holder,
 			race: elem.race,
 			specie: elem.specie,
-			financesExpired: 0,
+			financesExpired: elem.finances_expired,
 			reschedules: elem.reschedules.filter((f) => Boolean(f.id)),
 			contacts: elem.contacts.filter((f) => Boolean(f.id)),
 			statusChanges: elem.status_changes.filter((f) => Boolean(f.id)),

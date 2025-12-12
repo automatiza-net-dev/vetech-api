@@ -905,9 +905,9 @@ ON bills.patient_id = Dep."id"`,
 		data: {
 			fromDate?: string;
 			toDate?: string;
-			status?: string[];
-			client?: string[];
-			patient?: string[];
+			status?: string;
+			client?: string;
+			patient?: string;
 			businessUnits?: string[];
 			economicGroups?: string[];
 			businessStates?: string[];
@@ -1008,15 +1008,11 @@ ON bills.patient_id = Dep."id"`,
 			qb.whereIn("status", data.status);
 		}
 
-		if (data.client && Array.isArray(data.client) && data.client.length > 0) {
-			qb.whereIn("client_id", data.client);
+		if (data.client) {
+			qb.where("client_id", data.client);
 		}
-		if (
-			data.patient &&
-			Array.isArray(data.patient) &&
-			data.patient.length > 0
-		) {
-			qb.whereIn("patient_id", data.patient);
+		if (data.patient) {
+			qb.where("patient_id", data.patient);
 		}
 
 		const result = await qb;
@@ -1031,7 +1027,7 @@ ON bills.patient_id = Dep."id"`,
 				discountValue: elem.discountValue,
 				totalValue: elem.totalValue,
 				paidValue: elem.paidValue,
-				missingPaymentValue: elem.totalValue - elem.paidValue,
+				missingPaymentValue: elem.totalValue.minus(elem.paidValue).toNumber(),
 				status: elem.status,
 
 				group: {

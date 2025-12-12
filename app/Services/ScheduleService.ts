@@ -1672,8 +1672,12 @@ export default class ScheduleService {
 	): boolean {
 		const fmt = (d: Date | string) =>
 			typeof d === "string"
-				? DateTime.fromISO(d).plus({ hours: 3 }).toFormat("HH:mm:ss")
-				: DateTime.fromJSDate(d).plus({ hours: 3 }).toFormat("HH:mm:ss");
+				? DateTime.fromISO(d)
+						.plus({ hours: this.timeOffset })
+						.toFormat("HH:mm:ss")
+				: DateTime.fromJSDate(d)
+						.plus({ hours: this.timeOffset })
+						.toFormat("HH:mm:ss");
 
 		const scheduleStart = fmt(startTime);
 		const scheduleEnd = fmt(endTime);
@@ -2066,7 +2070,7 @@ export default class ScheduleService {
 			holder: elem.holder,
 			race: elem.race,
 			specie: elem.specie,
-			financesExpired: 0,
+			financesExpired: elem.finances_expired,
 			reschedules: elem.reschedules.filter((f) => Boolean(f.id)),
 			contacts: elem.contacts.filter((f) => Boolean(f.id)),
 			statusChanges: elem.status_changes.filter((f) => Boolean(f.id)),

@@ -39,6 +39,7 @@ import PatientExam from "App/Models/PatientExam";
 import PatientExamAttachment from "App/Models/PatientExamAttachment";
 import PatientVaccine from "App/Models/PatientVaccine";
 import VaccineCalendar from "App/Models/VaccineCalendar";
+import Decimal from "decimal.js";
 
 interface ISearch {
 	id?: string;
@@ -963,6 +964,14 @@ export default class PatientService {
 			patient.photo ? [patient.photo] : [],
 		);
 
+		const mainTutor = patient.tutors.find((t) => t.$extras.pivot_is_main);
+		const [patientTotal, tutorTotal] = await Promise.all([
+			SharedService.PendingPayments(authCtx, patient.id),
+			SharedService.PendingPayments(authCtx, mainTutor?.id ?? patient.id),
+		]);
+
+		console.log({ patientTotal, tutorTotal });
+
 		const displayData = {
 			id: patient.id,
 			name: patient.name,
@@ -998,12 +1007,22 @@ export default class PatientService {
 			firstSale: patient.firstSale,
 			vaccineOrigin: patient.vaccineOrigin,
 			isHospitalized: openHospitalizations.length > 0,
-			missingBills: this.sharedService.formatter.format(
-				sales.reduce(
-					(acc, curr) => acc + (curr.totalValue - curr.paidValue),
-					0,
-				),
-			),
+			missingBills:
+				authCtx.system.type === "Vet"
+					? [
+							`Pet - ${this.sharedService.formatter.format(patientTotal)}`,
+							mainTutor &&
+								`Tutor - ${this.sharedService.formatter.format(tutorTotal)}`,
+						]
+							.filter(Boolean)
+							.join(" / ")
+					: this.sharedService.formatter.format(
+							sales
+								.reduce((acc, curr) => {
+									return acc.plus(curr.totalValue);
+								}, new Decimal(0))
+								.toNumber(),
+						),
 			openAttendances: attendances.length > 0,
 			createdAt: patient.createdAt,
 
@@ -1028,7 +1047,6 @@ export default class PatientService {
 		}
 
 		if (patient.tutors) {
-			const mainTutor = patient.tutors.find((t) => t.$extras.pivot_is_main);
 			if (mainTutor) {
 				const obj = mainTutor;
 				const tutorObj = obj.tutor;

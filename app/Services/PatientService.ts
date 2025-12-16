@@ -1007,22 +1007,15 @@ export default class PatientService {
 			firstSale: patient.firstSale,
 			vaccineOrigin: patient.vaccineOrigin,
 			isHospitalized: openHospitalizations.length > 0,
-			missingBills:
-				authCtx.system.type === "Vet"
-					? [
-							`Pet - ${this.sharedService.formatter.format(patientTotal)}`,
-							mainTutor &&
-								`Tutor - ${this.sharedService.formatter.format(tutorTotal)}`,
-						]
-							.filter(Boolean)
-							.join(" / ")
-					: this.sharedService.formatter.format(
-							sales
-								.reduce((acc, curr) => {
-									return acc.plus(curr.totalValue);
-								}, new Decimal(0))
-								.toNumber(),
-						),
+			missingBills: this.sharedService.formatter.format(
+				sales
+					.reduce((acc, curr) => {
+						return acc.plus(curr.totalValue);
+					}, new Decimal(0))
+					.toNumber(),
+			),
+			vetMissingBills: this.sharedService.formatter.format(patientTotal),
+			vetMissingTutorBills: this.sharedService.formatter.format(tutorTotal),
 			openAttendances: attendances.length > 0,
 			createdAt: patient.createdAt,
 

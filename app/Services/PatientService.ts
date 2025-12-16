@@ -1010,6 +1010,9 @@ export default class PatientService {
 			missingBills: this.sharedService.formatter.format(
 				sales
 					.reduce((acc, curr) => {
+            if(!curr.totalValue){
+              return acc
+            }
 						return acc.plus(curr.totalValue);
 					}, new Decimal(0))
 					.toNumber(),

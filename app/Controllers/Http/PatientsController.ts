@@ -100,10 +100,11 @@ export default class PatientsController {
 		return response.ok(data);
 	}
 
-	public async salesMetadata({ auth, params, response }: HttpContextContract) {
+	public async salesMetadata({ auth, params, request, response }: HttpContextContract) {
 		const data = await this.service.salesMetadata(
 			await this.sharedService.getAuthContext(auth),
 			params.id,
+			request.qs(),
 		);
 
 		return response.ok(data);

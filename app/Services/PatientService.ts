@@ -1010,9 +1010,9 @@ export default class PatientService {
 			missingBills: this.sharedService.formatter.format(
 				sales
 					.reduce((acc, curr) => {
-            if(!curr.totalValue){
-              return acc
-            }
+						if (!curr.totalValue) {
+							return acc;
+						}
 						return acc.plus(curr.totalValue);
 					}, new Decimal(0))
 					.toNumber(),
@@ -1247,7 +1247,13 @@ export default class PatientService {
 		};
 	}
 
-	public async salesMetadata(authCtx: AuthContext, patientId: string) {
+	public async salesMetadata(
+		authCtx: AuthContext,
+		patientId: string,
+		data: {
+			tutorID?: string;
+		},
+	) {
 		const key = authCtx.system.type !== "Vet" ? "client_id" : "patient_id";
 
 		const patient = await authCtx.group
@@ -1264,12 +1270,28 @@ export default class PatientService {
 			);
 		}
 
-		const sales = await Bill.query()
-			.where(key, patient.id)
+		const salesQb = Bill.query()
 			.preload("payments")
 			.preload("seller")
-			.preload(key === "patient_id" ? "client" : "user")
 			.orderByRaw("bill_date desc, tag desc");
+
+		if (authCtx.system.type === "Vet") {
+			salesQb.preload("client");
+			if (data.tutorID) {
+				salesQb
+					.whereRaw("(client_id = ? or client_id = ?)", [
+						patient.id,
+						data.tutorID,
+					])
+					.preload("client");
+			} else {
+				salesQb.where("client_id", patient.id).preload("client");
+			}
+		} else {
+			salesQb.where("patient_id", patient.id).preload("patient");
+		}
+
+		const sales = await salesQb;
 
 		const budgets = await Budget.query()
 			.where(key, patient.id)
@@ -1327,6 +1349,18 @@ export default class PatientService {
 
 		const result: Array<unknown> = [];
 
+		sales.sort((a, b) => {
+			if (a.patient) {
+				return a.patient.name.localeCompare(b.patient.name);
+			}
+
+			if (a.client) {
+				return a.client.name.localeCompare(b.client.name);
+			}
+
+			return 0;
+		});
+
 		for (const sale of sales) {
 			const getStrStatus = (s: Bill) => {
 				if (s.status === BillStatus.A) {
@@ -1350,12 +1384,15 @@ export default class PatientService {
 				tag: sale.tag,
 				date: sale.billDate,
 				seller: sale.seller.name,
+				clientID: authCtx.system.type === "Vet" ? sale.client_id : null,
 				client: key === "patient_id" ? sale.client?.name : sale.user?.name,
 				total_value: sale.totalValue,
 				pending: sale.pending,
-				missing_value:
-					sale.totalValue -
-					sale.payments.reduce((acc, curr) => acc + curr.totalValue, 0),
+				missing_value: sale.totalValue.minus(
+					new Decimal(
+						sale.payments.reduce((acc, curr) => acc + curr.totalValue, 0),
+					),
+				),
 				status:
 					billStatuses.find((s) => s.id === sale.id)?.status ??
 					getStrStatus(sale),
@@ -1369,6 +1406,7 @@ export default class PatientService {
 				tag: budget.tag,
 				date: budget.budgetDate,
 				seller: budget.seller ? budget.seller.name : authCtx.user.name,
+				clientID: authCtx.system.type === "Vet" ? budget.client_id : null,
 				client: key === "patient_id" ? budget.client?.name : budget.user?.name,
 				total_value: budget.totalValue,
 				pending: budget.pending,

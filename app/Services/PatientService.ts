@@ -1364,11 +1364,11 @@ export default class PatientService {
 		const result: Array<unknown> = [];
 
 		sales.sort((a, b) => {
-			if (a.patient) {
+			if (a.patient && b.patient) {
 				return a.patient.name.localeCompare(b.patient.name);
 			}
 
-			if (a.client) {
+			if (a.client && b.client) {
 				return a.client.name.localeCompare(b.client.name);
 			}
 

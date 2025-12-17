@@ -1251,7 +1251,7 @@ export default class PatientService {
 		authCtx: AuthContext,
 		patientId: string,
 		data: {
-			tutorID?: string;
+			tutor?: string;
 		},
 	) {
 		const key = authCtx.system.type !== "Vet" ? "client_id" : "patient_id";
@@ -1277,15 +1277,15 @@ export default class PatientService {
 
 		if (authCtx.system.type === "Vet") {
 			salesQb.preload("client");
-			if (data.tutorID) {
-				salesQb
-					.whereRaw("(client_id = ? or client_id = ?)", [
-						patient.id,
-						data.tutorID,
-					])
-					.preload("client");
+
+			if (data.tutor) {
+				salesQb.whereRaw("(client_id = ? or client_id = ? or patient_id = ?)", [
+					patient.id,
+					data.tutor,
+					patient.id,
+				]);
 			} else {
-				salesQb.where("client_id", patient.id).preload("client");
+				salesQb.where("client_id", patient.id);
 			}
 		} else {
 			salesQb.where("patient_id", patient.id).preload("patient");

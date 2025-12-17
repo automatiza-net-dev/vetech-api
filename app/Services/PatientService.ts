@@ -1031,7 +1031,7 @@ export default class PatientService {
 						if (!curr.totalValue) {
 							return acc;
 						}
-						return acc.plus(curr.totalValue);
+						return acc.plus(curr.totalValue).minus(curr.paidValue);
 					}, new Decimal(0))
 					.toNumber(),
 			),

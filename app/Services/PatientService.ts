@@ -26,7 +26,7 @@ import IPatientSupplierData from "Contracts/interfaces/IPatientSupplierData";
 import IPatientTutorData from "Contracts/interfaces/IPatientTutorData";
 import ISearchPatient from "Contracts/interfaces/ISearchPatient";
 import { DateTime } from "luxon";
-import { v4 } from "uuid";
+import { v4, validate } from "uuid";
 
 import { HospitalizationStatus } from "../Models/Hospitalization";
 import Attendance from "App/Models/Attendance";
@@ -970,8 +970,6 @@ export default class PatientService {
 			SharedService.PendingPayments(authCtx, mainTutor?.id ?? patient.id),
 		]);
 
-		console.log({ patientTotal, tutorTotal });
-
 		const displayData = {
 			id: patient.id,
 			name: patient.name,
@@ -1273,22 +1271,18 @@ export default class PatientService {
 		const salesQb = Bill.query()
 			.preload("payments")
 			.preload("seller")
-			.orderByRaw("bill_date desc, tag desc");
+			.orderByRaw("bill_date desc, tag desc")
+			.preload("client")
+			.preload("patient");
 
-		if (authCtx.system.type === "Vet") {
-			salesQb.preload("client");
-
-			if (data.tutor) {
-				salesQb.whereRaw("(client_id = ? or client_id = ? or patient_id = ?)", [
-					patient.id,
-					data.tutor,
-					patient.id,
-				]);
-			} else {
-				salesQb.where("client_id", patient.id);
-			}
+		if (authCtx.system.type === "Vet" && data.tutor && validate(data.tutor)) {
+			salesQb.whereRaw("(client_id = ? or client_id = ? or patient_id = ?)", [
+				patient.id,
+				data.tutor,
+				patient.id,
+			]);
 		} else {
-			salesQb.where("patient_id", patient.id).preload("patient");
+			salesQb.where("patient_id", patient.id);
 		}
 
 		const sales = await salesQb;
@@ -1386,6 +1380,8 @@ export default class PatientService {
 				seller: sale.seller.name,
 				clientID: authCtx.system.type === "Vet" ? sale.client_id : null,
 				client: key === "patient_id" ? sale.client?.name : sale.user?.name,
+				patientID: sale.patient_id,
+				patient: sale.patient?.name,
 				total_value: sale.totalValue,
 				pending: sale.pending,
 				missing_value: sale.totalValue.minus(
@@ -1408,6 +1404,8 @@ export default class PatientService {
 				seller: budget.seller ? budget.seller.name : authCtx.user.name,
 				clientID: authCtx.system.type === "Vet" ? budget.client_id : null,
 				client: key === "patient_id" ? budget.client?.name : budget.user?.name,
+				patientID: budget.patient_id,
+				patient: budget.patient?.name,
 				total_value: budget.totalValue,
 				pending: budget.pending,
 				missing_value: null,
@@ -1420,9 +1418,13 @@ export default class PatientService {
 
 		return result.sort(
 			(
-				a: { date: DateTime; tag: string },
-				b: { date: DateTime; tag: string },
+				a: { date: DateTime; tag: string; patient: string },
+				b: { date: DateTime; tag: string; patient: string },
 			) => {
+				if (patient.name !== a.patient || patient.name !== b.patient) {
+					return -1;
+				}
+
 				if (a.date.diff(b.date).milliseconds > 0) {
 					return -1;
 				}

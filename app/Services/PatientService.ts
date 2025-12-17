@@ -1,22 +1,24 @@
-import { inject } from "@adonisjs/fold";
-import { MultipartFileContract } from "@ioc:Adonis/Core/BodyParser";
-import Drive from "@ioc:Adonis/Core/Drive";
-import Env from "@ioc:Adonis/Core/Env";
-import Database, {
-	TransactionClientContract,
-} from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
+import UnauthorizedException from "App/Exceptions/UnauthorizedException";
+import Attendance from "App/Models/Attendance";
 import Bill, { BillStatus } from "App/Models/Bill";
 import Budget, { BudgetStatus } from "App/Models/Budget";
+import HolderDependentLog from "App/Models/HolderDependentLog";
 import Hospitalization, {
 	HospitalizationType,
 } from "App/Models/Hospitalization";
-import Patient, { PatientType } from "App/Models/Patient";
-import TimelineType from "App/Models/TimelineType";
-import User from "App/Models/User";
 import AnimalTimeline from "App/Models/mongoose/AnimalTimeline";
 import HospitalizationTimeline from "App/Models/mongoose/HospitalizationTimeline";
+import Patient, { PatientType } from "App/Models/Patient";
+import { PatientContactType } from "App/Models/PatientContact";
+import PatientExam from "App/Models/PatientExam";
+import PatientExamAttachment from "App/Models/PatientExamAttachment";
+import PatientTutor from "App/Models/PatientTutor";
+import PatientVaccine from "App/Models/PatientVaccine";
+import TimelineType from "App/Models/TimelineType";
+import User from "App/Models/User";
+import VaccineCalendar from "App/Models/VaccineCalendar";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import IAssignPatientTutor from "Contracts/interfaces/IAssignPatientTutor";
 import IPatientData, {
@@ -25,21 +27,16 @@ import IPatientData, {
 import IPatientSupplierData from "Contracts/interfaces/IPatientSupplierData";
 import IPatientTutorData from "Contracts/interfaces/IPatientTutorData";
 import ISearchPatient from "Contracts/interfaces/ISearchPatient";
+import { inject } from "@adonisjs/fold";
+import { MultipartFileContract } from "@ioc:Adonis/Core/BodyParser";
+import Database, {
+	TransactionClientContract,
+} from "@ioc:Adonis/Lucid/Database";
+import { intervalToDuration } from "date-fns";
+import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 import { v4, validate } from "uuid";
-
 import { HospitalizationStatus } from "../Models/Hospitalization";
-import Attendance from "App/Models/Attendance";
-import { intervalToDuration } from "date-fns";
-import { PatientContactType } from "App/Models/PatientContact";
-import PatientTutor from "App/Models/PatientTutor";
-import UnauthorizedException from "App/Exceptions/UnauthorizedException";
-import HolderDependentLog from "App/Models/HolderDependentLog";
-import PatientExam from "App/Models/PatientExam";
-import PatientExamAttachment from "App/Models/PatientExamAttachment";
-import PatientVaccine from "App/Models/PatientVaccine";
-import VaccineCalendar from "App/Models/VaccineCalendar";
-import Decimal from "decimal.js";
 
 interface ISearch {
 	id?: string;
@@ -919,12 +916,21 @@ export default class PatientService {
 		const openHospitalizations = await Hospitalization.query()
 			.where("patient_id", patientId)
 			.where("status", HospitalizationStatus.ACTIVE);
-		const sales = await Bill.query()
+
+		const patientSales = await Bill.query()
 			.where(
 				authCtx.system.type !== "Vet" ? "client_id" : "patient_id",
 				patient.id,
 			)
 			.where("status", BillStatus.A);
+
+		const mainTutor = patient.tutors.find((t) => t.$extras.pivot_is_main);
+		const tutorSales = mainTutor
+			? await Bill.query()
+					.where("client_id", mainTutor.id)
+					.where("status", BillStatus.A)
+			: [];
+
 		const attendances = await Attendance.query()
 			.where("business_unit_id", authCtx.unit.id)
 			.where("patient_id", patient.id)
@@ -964,12 +970,6 @@ export default class PatientService {
 			patient.photo ? [patient.photo] : [],
 		);
 
-		const mainTutor = patient.tutors.find((t) => t.$extras.pivot_is_main);
-		const [patientTotal, tutorTotal] = await Promise.all([
-			SharedService.PendingPayments(authCtx, patient.id),
-			SharedService.PendingPayments(authCtx, mainTutor?.id ?? patient.id),
-		]);
-
 		const displayData = {
 			id: patient.id,
 			name: patient.name,
@@ -1006,7 +1006,7 @@ export default class PatientService {
 			vaccineOrigin: patient.vaccineOrigin,
 			isHospitalized: openHospitalizations.length > 0,
 			missingBills: this.sharedService.formatter.format(
-				sales
+				patientSales
 					.reduce((acc, curr) => {
 						if (!curr.totalValue) {
 							return acc;
@@ -1015,8 +1015,26 @@ export default class PatientService {
 					}, new Decimal(0))
 					.toNumber(),
 			),
-			vetMissingBills: this.sharedService.formatter.format(patientTotal),
-			vetMissingTutorBills: this.sharedService.formatter.format(tutorTotal),
+			vetMissingBills: this.sharedService.formatter.format(
+				patientSales
+					.reduce((acc, curr) => {
+						if (!curr.totalValue) {
+							return acc;
+						}
+						return acc.plus(curr.totalValue);
+					}, new Decimal(0))
+					.toNumber(),
+			),
+			vetMissingTutorBills: this.sharedService.formatter.format(
+				tutorSales
+					.reduce((acc, curr) => {
+						if (!curr.totalValue) {
+							return acc;
+						}
+						return acc.plus(curr.totalValue);
+					}, new Decimal(0))
+					.toNumber(),
+			),
 			openAttendances: attendances.length > 0,
 			createdAt: patient.createdAt,
 
@@ -1236,9 +1254,11 @@ export default class PatientService {
 			.where(key, patient.id)
 			.where("status", BillStatus.A);
 
-		const missing = sales.reduce((acc, curr) => {
-			return acc + (curr.totalValue - curr.paidValue);
-		}, 0);
+		const missing = sales
+			.reduce((acc, curr) => {
+				return acc.plus(curr.totalValue).minus(new Decimal(curr.paidValue));
+			}, new Decimal(0))
+			.toNumber();
 
 		return {
 			missingFromBills: missing,

@@ -1302,8 +1302,9 @@ export default class PatientService {
 					data.tutor,
 					patient.id,
 				]);
+			} else {
+				salesQb.where("patient_id", patient.id);
 			}
-			salesQb.where("patient_id", patient.id);
 		} else {
 			salesQb.where("client_id", patient.id);
 		}

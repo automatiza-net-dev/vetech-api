@@ -1295,14 +1295,17 @@ export default class PatientService {
 			.preload("client")
 			.preload("patient");
 
-		if (authCtx.system.type === "Vet" && data.tutor && validate(data.tutor)) {
-			salesQb.whereRaw("(client_id = ? or client_id = ? or patient_id = ?)", [
-				patient.id,
-				data.tutor,
-				patient.id,
-			]);
-		} else {
+		if (authCtx.system.type === "Vet") {
+			if (data.tutor && validate(data.tutor)) {
+				salesQb.whereRaw("(client_id = ? or client_id = ? or patient_id = ?)", [
+					patient.id,
+					data.tutor,
+					patient.id,
+				]);
+			}
 			salesQb.where("patient_id", patient.id);
+		} else {
+			salesQb.where("client_id", patient.id);
 		}
 
 		const sales = await salesQb;

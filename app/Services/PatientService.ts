@@ -1,22 +1,24 @@
-import { inject } from "@adonisjs/fold";
-import { MultipartFileContract } from "@ioc:Adonis/Core/BodyParser";
-import Drive from "@ioc:Adonis/Core/Drive";
-import Env from "@ioc:Adonis/Core/Env";
-import Database, {
-	TransactionClientContract,
-} from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
+import UnauthorizedException from "App/Exceptions/UnauthorizedException";
+import Attendance from "App/Models/Attendance";
 import Bill, { BillStatus } from "App/Models/Bill";
 import Budget, { BudgetStatus } from "App/Models/Budget";
+import HolderDependentLog from "App/Models/HolderDependentLog";
 import Hospitalization, {
 	HospitalizationType,
 } from "App/Models/Hospitalization";
-import Patient, { PatientType } from "App/Models/Patient";
-import TimelineType from "App/Models/TimelineType";
-import User from "App/Models/User";
 import AnimalTimeline from "App/Models/mongoose/AnimalTimeline";
 import HospitalizationTimeline from "App/Models/mongoose/HospitalizationTimeline";
+import Patient, { PatientType } from "App/Models/Patient";
+import { PatientContactType } from "App/Models/PatientContact";
+import PatientExam from "App/Models/PatientExam";
+import PatientExamAttachment from "App/Models/PatientExamAttachment";
+import PatientTutor from "App/Models/PatientTutor";
+import PatientVaccine from "App/Models/PatientVaccine";
+import TimelineType from "App/Models/TimelineType";
+import User from "App/Models/User";
+import VaccineCalendar from "App/Models/VaccineCalendar";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import IAssignPatientTutor from "Contracts/interfaces/IAssignPatientTutor";
 import IPatientData, {
@@ -25,20 +27,16 @@ import IPatientData, {
 import IPatientSupplierData from "Contracts/interfaces/IPatientSupplierData";
 import IPatientTutorData from "Contracts/interfaces/IPatientTutorData";
 import ISearchPatient from "Contracts/interfaces/ISearchPatient";
-import { DateTime } from "luxon";
-import { v4 } from "uuid";
-
-import { HospitalizationStatus } from "../Models/Hospitalization";
-import Attendance from "App/Models/Attendance";
+import { inject } from "@adonisjs/fold";
+import { MultipartFileContract } from "@ioc:Adonis/Core/BodyParser";
+import Database, {
+	TransactionClientContract,
+} from "@ioc:Adonis/Lucid/Database";
 import { intervalToDuration } from "date-fns";
-import { PatientContactType } from "App/Models/PatientContact";
-import PatientTutor from "App/Models/PatientTutor";
-import UnauthorizedException from "App/Exceptions/UnauthorizedException";
-import HolderDependentLog from "App/Models/HolderDependentLog";
-import PatientExam from "App/Models/PatientExam";
-import PatientExamAttachment from "App/Models/PatientExamAttachment";
-import PatientVaccine from "App/Models/PatientVaccine";
-import VaccineCalendar from "App/Models/VaccineCalendar";
+import Decimal from "decimal.js";
+import { DateTime } from "luxon";
+import { v4, validate } from "uuid";
+import { HospitalizationStatus } from "../Models/Hospitalization";
 
 interface ISearch {
 	id?: string;
@@ -918,12 +916,21 @@ export default class PatientService {
 		const openHospitalizations = await Hospitalization.query()
 			.where("patient_id", patientId)
 			.where("status", HospitalizationStatus.ACTIVE);
-		const sales = await Bill.query()
+
+		const patientSales = await Bill.query()
 			.where(
 				authCtx.system.type !== "Vet" ? "client_id" : "patient_id",
 				patient.id,
 			)
 			.where("status", BillStatus.A);
+
+		const mainTutor = patient.tutors.find((t) => t.$extras.pivot_is_main);
+		const tutorSales = mainTutor
+			? await Bill.query()
+					.where("client_id", mainTutor.id)
+					.where("status", BillStatus.A)
+			: [];
+
 		const attendances = await Attendance.query()
 			.where("business_unit_id", authCtx.unit.id)
 			.where("patient_id", patient.id)
@@ -999,10 +1006,34 @@ export default class PatientService {
 			vaccineOrigin: patient.vaccineOrigin,
 			isHospitalized: openHospitalizations.length > 0,
 			missingBills: this.sharedService.formatter.format(
-				sales.reduce(
-					(acc, curr) => acc + (curr.totalValue - curr.paidValue),
-					0,
-				),
+				patientSales
+					.reduce((acc, curr) => {
+						if (!curr.totalValue) {
+							return acc;
+						}
+						return acc.plus(curr.totalValue).minus(curr.paidValue);
+					}, new Decimal(0))
+					.toNumber(),
+			),
+			vetMissingBills: this.sharedService.formatter.format(
+				patientSales
+					.reduce((acc, curr) => {
+						if (!curr.totalValue) {
+							return acc;
+						}
+						return acc.plus(curr.totalValue).minus(curr.paidValue);
+					}, new Decimal(0))
+					.toNumber(),
+			),
+			vetMissingTutorBills: this.sharedService.formatter.format(
+				tutorSales
+					.reduce((acc, curr) => {
+						if (!curr.totalValue) {
+							return acc;
+						}
+						return acc.plus(curr.totalValue).minus(curr.paidValue);
+					}, new Decimal(0))
+					.toNumber(),
 			),
 			openAttendances: attendances.length > 0,
 			createdAt: patient.createdAt,
@@ -1028,7 +1059,6 @@ export default class PatientService {
 		}
 
 		if (patient.tutors) {
-			const mainTutor = patient.tutors.find((t) => t.$extras.pivot_is_main);
 			if (mainTutor) {
 				const obj = mainTutor;
 				const tutorObj = obj.tutor;
@@ -1224,16 +1254,24 @@ export default class PatientService {
 			.where(key, patient.id)
 			.where("status", BillStatus.A);
 
-		const missing = sales.reduce((acc, curr) => {
-			return acc + (curr.totalValue - curr.paidValue);
-		}, 0);
+		const missing = sales
+			.reduce((acc, curr) => {
+				return acc.plus(curr.totalValue).minus(new Decimal(curr.paidValue));
+			}, new Decimal(0))
+			.toNumber();
 
 		return {
 			missingFromBills: missing,
 		};
 	}
 
-	public async salesMetadata(authCtx: AuthContext, patientId: string) {
+	public async salesMetadata(
+		authCtx: AuthContext,
+		patientId: string,
+		data: {
+			tutor?: string;
+		},
+	) {
 		const key = authCtx.system.type !== "Vet" ? "client_id" : "patient_id";
 
 		const patient = await authCtx.group
@@ -1250,12 +1288,24 @@ export default class PatientService {
 			);
 		}
 
-		const sales = await Bill.query()
-			.where(key, patient.id)
+		const salesQb = Bill.query()
 			.preload("payments")
 			.preload("seller")
-			.preload(key === "patient_id" ? "client" : "user")
-			.orderByRaw("bill_date desc, tag desc");
+			.orderByRaw("bill_date desc, tag desc")
+			.preload("client")
+			.preload("patient");
+
+		if (authCtx.system.type === "Vet" && data.tutor && validate(data.tutor)) {
+			salesQb.whereRaw("(client_id = ? or client_id = ? or patient_id = ?)", [
+				patient.id,
+				data.tutor,
+				patient.id,
+			]);
+		} else {
+			salesQb.where("patient_id", patient.id);
+		}
+
+		const sales = await salesQb;
 
 		const budgets = await Budget.query()
 			.where(key, patient.id)
@@ -1313,6 +1363,18 @@ export default class PatientService {
 
 		const result: Array<unknown> = [];
 
+		sales.sort((a, b) => {
+			if (a.patient && b.patient) {
+				return a.patient.name.localeCompare(b.patient.name);
+			}
+
+			if (a.client && b.client) {
+				return a.client.name.localeCompare(b.client.name);
+			}
+
+			return 0;
+		});
+
 		for (const sale of sales) {
 			const getStrStatus = (s: Bill) => {
 				if (s.status === BillStatus.A) {
@@ -1336,12 +1398,17 @@ export default class PatientService {
 				tag: sale.tag,
 				date: sale.billDate,
 				seller: sale.seller.name,
+				clientID: authCtx.system.type === "Vet" ? sale.client_id : null,
 				client: key === "patient_id" ? sale.client?.name : sale.user?.name,
+				patientID: sale.patient_id,
+				patient: sale.patient?.name,
 				total_value: sale.totalValue,
 				pending: sale.pending,
-				missing_value:
-					sale.totalValue -
-					sale.payments.reduce((acc, curr) => acc + curr.totalValue, 0),
+				missing_value: sale.totalValue.minus(
+					new Decimal(
+						sale.payments.reduce((acc, curr) => acc + curr.totalValue, 0),
+					),
+				),
 				status:
 					billStatuses.find((s) => s.id === sale.id)?.status ??
 					getStrStatus(sale),
@@ -1355,7 +1422,10 @@ export default class PatientService {
 				tag: budget.tag,
 				date: budget.budgetDate,
 				seller: budget.seller ? budget.seller.name : authCtx.user.name,
+				clientID: authCtx.system.type === "Vet" ? budget.client_id : null,
 				client: key === "patient_id" ? budget.client?.name : budget.user?.name,
+				patientID: budget.patient_id,
+				patient: budget.patient?.name,
 				total_value: budget.totalValue,
 				pending: budget.pending,
 				missing_value: null,
@@ -1368,9 +1438,13 @@ export default class PatientService {
 
 		return result.sort(
 			(
-				a: { date: DateTime; tag: string },
-				b: { date: DateTime; tag: string },
+				a: { date: DateTime; tag: string; patient: string },
+				b: { date: DateTime; tag: string; patient: string },
 			) => {
+				if (patient.name !== a.patient || patient.name !== b.patient) {
+					return -1;
+				}
+
 				if (a.date.diff(b.date).milliseconds > 0) {
 					return -1;
 				}

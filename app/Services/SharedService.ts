@@ -373,8 +373,10 @@ export default class SharedService {
 	}
 
 	public checkOverlapping(ASet: DateSet, BSet: DateSet): boolean {
-		const firstMatch = ASet.start.toJSDate().getTime() < BSet.end.toJSDate().getTime();
-		const secondMatch = BSet.start.toJSDate().getTime() < ASet.end.toJSDate().getTime();
+		const firstMatch =
+			ASet.start.toJSDate().getTime() < BSet.end.toJSDate().getTime();
+		const secondMatch =
+			BSet.start.toJSDate().getTime() < ASet.end.toJSDate().getTime();
 
 		return firstMatch && secondMatch;
 	}
@@ -781,5 +783,53 @@ export default class SharedService {
 			.whereIn("permissions.type", ["controller", "both", "all", "user"]);
 
 		return rows.some((r) => r.control_id === permissionControlID);
+	}
+
+	static async PendingPayments(
+		authCtx: AuthContext,
+		sourceID: string,
+		tx?: TransactionClientContract,
+	) {
+		const qb = Database.from("patients as p")
+			.where("p.id", sourceID)
+			.select(
+				Database.raw(
+					`
+      coalesce((
+        select sum(f.total_value)
+        from finances f
+        join payment_methods pm
+          on f.payment_method_id = pm.id
+         and coalesce(pm.open_installments_affects_block, false) = true
+        where f.type = 'CREDITO'
+          and f.deleted_at is null
+          and f.economic_group_id = ?
+          and f.business_unit_id = ?
+          and f.client_id = p.id
+          and f.payment_date is null
+          and f.expiration_date < now()
+        group by f.client_id
+      ), 0)
+      +
+      coalesce((
+        select sum(b.total_value - b.paid_value)
+        from bills b
+        where b.deleted_at is null
+          and b.business_unit_id = ?
+          and b.client_id = p.id
+      ), 0)
+      as total
+    `,
+					[authCtx.group.id, authCtx.unit.id, authCtx.unit.id],
+				),
+			);
+
+		if (tx) {
+			qb.useTransaction(tx);
+		}
+
+		const result = await qb.first();
+
+		return result.total;
 	}
 }

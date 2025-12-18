@@ -130,6 +130,10 @@ export default class ServiceService {
 				query.select("id", "barcode", "active");
 
 				query.preload("businessUnitProducts", (query) => {
+					query.whereHas("businessUnit", (query) => {
+						query.whereNull("deleted_at");
+					});
+
 					query.preload("businessUnit", (query) => {
 						query.select("id", "fantasyName", "companyName", "identification");
 					});
@@ -156,6 +160,7 @@ export default class ServiceService {
 			const businessUnits = await BusinessUnit.query()
 				.useTransaction(trx)
 				.where("economic_group_id", authCtx.group.id)
+				.whereNull("deleted_at")
 				.preload("unitConfig", (query) => {
 					query.preload("serviceVariationGroup");
 				});

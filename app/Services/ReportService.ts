@@ -4,7 +4,6 @@ import BadRequestException from "App/Exceptions/BadRequestException";
 import Bill, { BillStatus } from "App/Models/Bill";
 import Budget from "App/Models/Budget";
 import BusinessUnit from "App/Models/BusinessUnit";
-import CheckingAccount from "App/Models/CheckingAccount";
 import Finance, { FinanceStatus, FinanceType } from "App/Models/Finance";
 import Receipt from "App/Models/Receipt";
 import SharedService from "App/Services/SharedService";
@@ -15,7 +14,6 @@ import AnimalTimeline from "App/Models/mongoose/AnimalTimeline";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import { string } from "@ioc:Adonis/Core/Helpers";
 import Decimal from "decimal.js";
-import Deposit from "App/Models/Deposit";
 
 @inject()
 export default class ReportService {
@@ -1027,7 +1025,9 @@ ON bills.patient_id = Dep."id"`,
 				discountValue: elem.discountValue,
 				totalValue: elem.totalValue,
 				paidValue: elem.paidValue,
-				missingPaymentValue: elem.totalValue.minus(elem.paidValue).toNumber(),
+				missingPaymentValue: elem.totalValue
+					? elem.totalValue.minus(elem.paidValue).toNumber()
+					: 0,
 				status: elem.status,
 
 				group: {

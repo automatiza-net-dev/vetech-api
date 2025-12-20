@@ -1408,11 +1408,13 @@ export default class PatientService {
 				patient: sale.patient?.name,
 				total_value: sale.totalValue,
 				pending: sale.pending,
-				missing_value: sale.totalValue.minus(
-					new Decimal(
-						sale.payments.reduce((acc, curr) => acc + curr.totalValue, 0),
-					),
-				),
+				missing_value: sale.totalValue
+					? sale.totalValue.minus(
+							new Decimal(
+								sale.payments.reduce((acc, curr) => acc + curr.totalValue, 0),
+							),
+						)
+					: new Decimal(0),
 				status:
 					billStatuses.find((s) => s.id === sale.id)?.status ??
 					getStrStatus(sale),

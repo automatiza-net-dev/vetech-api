@@ -14,7 +14,7 @@ export default class extends BaseSchema {
         .inTable("users")
         .nullable();
       table
-        .uuid("client_payment_id")
+        .integer("client_payment_id")
         .references("id")
         .inTable("client_payments")
         .notNullable();

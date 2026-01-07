@@ -285,13 +285,8 @@ export default class BillService {
     ]);
     const total = count1.concat(count2);
 
-    const items = await BillItem.query()
-      .whereIn('bill_id', result.map((b) => b.id))
-      .preload('productVariation', q => q.preload('product'))
-
     return result.map((b) => ({
       hasDocuments: total.findIndex((r) => r.bill_id === b.id) !== -1,
-      items: items.filter((i) => i.bill_id === b.id),
       ...b,
     }));
   }

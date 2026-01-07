@@ -91,7 +91,7 @@ export default class BusinessUnitService {
 
 				if (!validCNPJ(data.document)) {
 					throw new BadRequestException(
-						"Documento inválido",
+						"CPF/CNPJ inválido",
 						400,
 						"E_INVALID_DOCUMENT",
 					);
@@ -413,7 +413,7 @@ export default class BusinessUnitService {
 			if (data.document && data.document !== unit.document) {
 				if (!validCNPJ(data.document)) {
 					throw new BadRequestException(
-						"Documento inválido",
+						"CPF/CNPJ inválido",
 						400,
 						"E_INVALID_DOCUMENT",
 					);

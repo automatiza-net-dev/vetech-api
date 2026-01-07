@@ -260,17 +260,17 @@ const detSchema = z.object({
 					PISAliq: z.optional(
 						z.object({
 							CST: z.string(),
-							vBC: z.coerce.number(),
-							pPIS: z.coerce.number(),
-							vPIS: z.coerce.number(),
+							vBC: z.coerce.number().optional(),
+							pPIS: z.coerce.number().optional(),
+							vPIS: z.coerce.number().optional(),
 						}),
 					),
 					PISQtde: z.optional(
 						z.object({
 							CST: z.string(),
-							vBC: z.coerce.number(),
-							pPIS: z.coerce.number(),
-							vPIS: z.coerce.number(),
+							vBC: z.coerce.number().optional(),
+							pPIS: z.coerce.number().optional(),
+							vPIS: z.coerce.number().optional(),
 						}),
 					),
 					PISNT: z.optional(

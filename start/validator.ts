@@ -112,7 +112,7 @@ validator.rule("documento", (value, _, options) => {
 		options.errorReporter.report(
 			options.pointer,
 			"documento",
-			"Documento inválido",
+			"CPF/CNPJ inválido",
 			options.arrayExpressionPointer,
 		);
 	}

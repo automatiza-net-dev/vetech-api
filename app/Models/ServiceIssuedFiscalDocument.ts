@@ -16,153 +16,156 @@ import { v4 } from "uuid";
 import ServiceIssuedFiscalDocumentItem from "./ServiceIssuedFiscalDocumentItem";
 
 export default class ServiceIssuedFiscalDocument extends BaseModel {
-	@column({ isPrimary: true })
-	public id: string = v4();
+  @column({ isPrimary: true })
+  public id: string = v4();
 
-	@column()
-	model: string;
+  @column()
+  model: string;
 
-	@column()
-	sequence: number;
+  @column()
+  sequence: number;
 
-	@column({
-		columnName: "rps_number",
-	})
-	rpsNumber: number;
+  @column({
+    columnName: "rps_number",
+  })
+  rpsNumber: number;
 
-	@column({
-		columnName: "rps_series",
-	})
-	rpsSeries: string;
+  @column({
+    columnName: "rps_series",
+  })
+  rpsSeries: string;
 
-	@column({
-		columnName: "rps_type",
-	})
-	rpsType: string;
+  @column({
+    columnName: "rps_type",
+  })
+  rpsType: string;
 
-	@column({
-		columnName: "verification_code",
-	})
-	verificationCode: string;
+  @column({
+    columnName: "verification_code",
+  })
+  verificationCode: string;
 
-	@column({})
-	errors: Array<unknown>;
+  @column({})
+  errors: Array<unknown>;
 
-	@column({
-		columnName: "total_value",
-		serializeAs: "totalValue",
-		consume: (value) => (value ? new Decimal(value) : null),
-		prepare: (value) => value?.toNumber(),
-		serialize: (value: Decimal) => (value ? value.toNumber() : 0),
-	})
-	public totalValue: Decimal;
+  @column({ serializeAs: null })
+  payload: unknown;
 
-	// authorization
-	@column.dateTime({
-		columnName: "authorization_date",
-	})
-	public authorizationDate: DateTime;
+  @column({
+    columnName: "total_value",
+    serializeAs: "totalValue",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => value?.toNumber(),
+    serialize: (value: Decimal) => (value ? value.toNumber() : 0),
+  })
+  public totalValue: Decimal;
 
-	@column({
-		columnName: "authorization_receipt",
-	})
-	authorizationReceipt: string;
+  // authorization
+  @column.dateTime({
+    columnName: "authorization_date",
+  })
+  public authorizationDate: DateTime;
 
-	// cancellation
-	@column.dateTime({
-		columnName: "cancellation_date",
-	})
-	public cancellationDate: DateTime;
+  @column({
+    columnName: "authorization_receipt",
+  })
+  authorizationReceipt: string;
 
-	@column.dateTime({
-		columnName: "cancellation_receipt_date",
-	})
-	public cancellationReceiptDate: DateTime;
+  // cancellation
+  @column.dateTime({
+    columnName: "cancellation_date",
+  })
+  public cancellationDate: DateTime;
 
-	@column({
-		columnName: "cancellation_reason",
-	})
-	cancellationReason: string;
+  @column.dateTime({
+    columnName: "cancellation_receipt_date",
+  })
+  public cancellationReceiptDate: DateTime;
 
-	@column({
-		columnName: "mirror_path",
-	})
-	mirrorPath: string;
+  @column({
+    columnName: "cancellation_reason",
+  })
+  cancellationReason: string;
 
-	@column({
-		columnName: "authorization_xml_path",
-	})
-	authorizationXmlPath: string;
+  @column({
+    columnName: "mirror_path",
+  })
+  mirrorPath: string;
 
-	@column({
-		columnName: "authorization_pdf_path",
-	})
-	authorizationPdfPath: string;
+  @column({
+    columnName: "authorization_xml_path",
+  })
+  authorizationXmlPath: string;
 
-	@column()
-	status: string;
+  @column({
+    columnName: "authorization_pdf_path",
+  })
+  authorizationPdfPath: string;
 
-	@column.dateTime({ autoCreate: true })
-	public createdAt: DateTime;
+  @column()
+  status: string;
 
-	@column.dateTime({ autoCreate: true, autoUpdate: true })
-	public updatedAt: DateTime;
+  @column.dateTime({ autoCreate: true })
+  public createdAt: DateTime;
 
-	@column.dateTime({ serializeAs: null })
-	public deletedAt: DateTime;
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  public updatedAt: DateTime;
 
-	@beforeFind()
-	public static softDeletesFind = softDeleteQuery;
+  @column.dateTime({ serializeAs: null })
+  public deletedAt: DateTime;
 
-	@beforeFetch()
-	public static softDeletesFetch = softDeleteQuery;
+  @beforeFind()
+  public static softDeletesFind = softDeleteQuery;
 
-	public async softDelete(column?: string) {
-		await softDelete(this, column);
-	}
+  @beforeFetch()
+  public static softDeletesFetch = softDeleteQuery;
 
-	@column({
-		serializeAs: null,
-	})
-	public economic_group_id: string;
+  public async softDelete(column?: string) {
+    await softDelete(this, column);
+  }
 
-	@column({
-		serializeAs: null,
-	})
-	public business_unit_id: string;
+  @column({
+    serializeAs: null,
+  })
+  public economic_group_id: string;
 
-	@column({
-		serializeAs: null,
-	})
-	public bill_id: string;
+  @column({
+    serializeAs: null,
+  })
+  public business_unit_id: string;
 
-	@column({
-		serializeAs: null,
-	})
-	public bill_item_id: string;
+  @column({
+    serializeAs: null,
+  })
+  public bill_id: string;
 
-	@belongsTo(() => BillItem, {
-		foreignKey: "bill_item_id",
-	})
-	public billItem: BelongsTo<typeof BillItem>;
+  @column({
+    serializeAs: null,
+  })
+  public bill_item_id: string;
 
-	@column({
-		serializeAs: null,
-	})
-	public user_who_authorized_id: string;
+  @belongsTo(() => BillItem, {
+    foreignKey: "bill_item_id",
+  })
+  public billItem: BelongsTo<typeof BillItem>;
 
-	@column({
-		serializeAs: null,
-	})
-	public user_who_cancelled_id: string;
+  @column({
+    serializeAs: null,
+  })
+  public user_who_authorized_id: string;
 
-	@column({
-		serializeAs: null,
-	})
-	public fiscal_document_id: string;
+  @column({
+    serializeAs: null,
+  })
+  public user_who_cancelled_id: string;
 
-	@hasMany(() => ServiceIssuedFiscalDocumentItem, {
-		foreignKey: "service_issued_fiscal_document_id",
-	})
-	public items: HasMany<typeof ServiceIssuedFiscalDocumentItem>;
+  @column({
+    serializeAs: null,
+  })
+  public fiscal_document_id: string;
+
+  @hasMany(() => ServiceIssuedFiscalDocumentItem, {
+    foreignKey: "service_issued_fiscal_document_id",
+  })
+  public items: HasMany<typeof ServiceIssuedFiscalDocumentItem>;
 }

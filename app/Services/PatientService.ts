@@ -1,3 +1,8 @@
+import { inject } from "@adonisjs/fold";
+import { MultipartFileContract } from "@ioc:Adonis/Core/BodyParser";
+import Database, {
+	TransactionClientContract,
+} from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
@@ -27,11 +32,6 @@ import IPatientData, {
 import IPatientSupplierData from "Contracts/interfaces/IPatientSupplierData";
 import IPatientTutorData from "Contracts/interfaces/IPatientTutorData";
 import ISearchPatient from "Contracts/interfaces/ISearchPatient";
-import { inject } from "@adonisjs/fold";
-import { MultipartFileContract } from "@ioc:Adonis/Core/BodyParser";
-import Database, {
-	TransactionClientContract,
-} from "@ioc:Adonis/Lucid/Database";
 import { intervalToDuration } from "date-fns";
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
@@ -1293,7 +1293,12 @@ export default class PatientService {
 			.preload("seller")
 			.orderByRaw("bill_date desc, tag desc")
 			.preload("client")
-			.preload("patient");
+			.preload("patient")
+			.preload("items", (q) => {
+				q.preload("productVariation", (q) => {
+					q.preload("product");
+				});
+			});
 
 		if (authCtx.system.type === "Vet") {
 			if (data.tutor && validate(data.tutor)) {
@@ -1408,14 +1413,17 @@ export default class PatientService {
 				patient: sale.patient?.name,
 				total_value: sale.totalValue,
 				pending: sale.pending,
-				missing_value: sale.totalValue.minus(
-					new Decimal(
-						sale.payments.reduce((acc, curr) => acc + curr.totalValue, 0),
-					),
-				),
+				missing_value: sale.totalValue
+					? sale.totalValue.minus(
+							new Decimal(
+								sale.payments.reduce((acc, curr) => acc + curr.totalValue, 0),
+							),
+						)
+					: new Decimal(0),
 				status:
 					billStatuses.find((s) => s.id === sale.id)?.status ??
 					getStrStatus(sale),
+				items: sale.items,
 			});
 		}
 
@@ -1437,6 +1445,7 @@ export default class PatientService {
 				status:
 					budgetStatuses.find((s) => s.id === budget.id)?.status ??
 					"Orçamento em aberto",
+				items: [],
 			});
 		}
 
@@ -1878,7 +1887,7 @@ export default class PatientService {
 			if (data.document) {
 				// if (!this.sharedService.validDocument(data.document)) {
 				// 	throw new BadRequestException(
-				// 		"CPF/CNPJ inválido",
+				// 		"Documento inválido",
 				// 		400,
 				// 		"E_INVALID_DOCUMENT",
 				// 	);
@@ -2303,7 +2312,7 @@ export default class PatientService {
 			if (data.document && data.document !== tutor.tutor.document) {
 				if (!this.sharedService.validDocument(data.document)) {
 					throw new BadRequestException(
-						"CPF/CNPJ inválido",
+						"Documento inválido",
 						400,
 						"E_INVALID_DOCUMENT",
 					);
@@ -2462,7 +2471,7 @@ export default class PatientService {
 			if (data.document && data.document !== supplier.tutor.document) {
 				// if (!this.sharedService.validDocument(data.document)) {
 				// 	throw new BadRequestException(
-				// 		"CPF/CNPJ inválido",
+				// 		"Documento inválido",
 				// 		400,
 				// 		"E_INVALID_DOCUMENT",
 				// 	);

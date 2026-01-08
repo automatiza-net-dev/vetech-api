@@ -156,13 +156,13 @@ export interface ISendNfse {
     email: string;
     phone: string;
     address: {
-      street: string; // rua, av, etc
-      number: string;
-      district: string;
-      city_code: string;
-      uf: string;
-      postal_code: string;
-      complement: string | null;
+      street: string | undefined; // rua, av, etc
+      number: string | undefined;
+      district: string | undefined;
+      city_code: string | undefined;
+      uf: string | undefined;
+      postal_code: string | undefined;
+      complement: string | undefined;
     };
   };
   service: {

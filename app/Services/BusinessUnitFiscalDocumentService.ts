@@ -1011,15 +1011,14 @@ export default class BusinessUnitFiscalDocumentService {
               [responsible.tutor.cellphone, responsible.tutor.telephone].find(
                 Boolean,
               ) ?? "",
-
             address: {
-              street: responsible.tutor.street ?? "",
-              number: responsible.tutor.number ?? "",
-              district: responsible.tutor.district ?? "",
-              city_code: responsible.tutor.cityCode ?? "",
-              uf: responsible.tutor.state ?? "",
-              postal_code: responsible.tutor.postalCode ?? "",
-              complement: responsible.tutor.complement ?? null,
+              street: responsible.tutor.street ?? undefined,
+              number: responsible.tutor.number ?? undefined,
+              district: responsible.tutor.district ?? undefined,
+              city_code: responsible.tutor.cityCode ?? undefined,
+              uf: responsible.tutor.state ?? undefined,
+              postal_code: responsible.tutor.postalCode ?? undefined,
+              complement: responsible.tutor.complement ?? undefined,
             },
           },
           service: {

@@ -1050,6 +1050,7 @@ export default class BusinessUnitFiscalDocumentService {
             authCtx.unit.unitConfig.config.fiscalDocuments
               ?.nfse_hide_codigo_tributario_municipio,
         },
+        trx
       );
 
       await BillItem.query()

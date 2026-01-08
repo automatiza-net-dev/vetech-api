@@ -6,6 +6,7 @@ import IssuedFiscalDocument from "App/Models/IssuedFiscalDocument";
 import axios, { AxiosError } from "axios";
 import { z } from "zod";
 import ServiceIssuedFiscalDocument from "App/Models/ServiceIssuedFiscalDocument";
+import { TransactionClientContract } from "@ioc:Adonis/Lucid/Database";
 
 // U = error payload
 type TypedAxiosError<U = unknown, T = unknown> = AxiosError<U, T>;
@@ -745,6 +746,7 @@ export default class FocusNfeService {
       hideCnae?: boolean;
       hideCityCode?: boolean;
     },
+    tx: TransactionClientContract
   ) {
     const payload = {
       data_emissao: data.issuedAt,
@@ -811,8 +813,8 @@ export default class FocusNfeService {
     await ServiceIssuedFiscalDocument.query()
       .where('id', ref)
       .update({
-        payload,
-      })
+        payload: this.sanitize(payload),
+      }).useTransaction(tx)
 
     try {
       const { data } = await this.ax.post(

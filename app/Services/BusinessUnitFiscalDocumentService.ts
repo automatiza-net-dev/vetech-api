@@ -741,9 +741,9 @@ export default class BusinessUnitFiscalDocumentService {
         query.preload("product");
       });
 
-    if (items.length === 0) {
-      throw new BadRequestException("Não existe documento para ser emitido");
-    }
+    // if (items.length === 0) {
+    //   throw new BadRequestException("Não existe documento para ser emitido");
+    // }
 
     const productsWithoutServiceCode = items.filter((i) => !i.productVariation.product.serviceCode);
     if (productsWithoutServiceCode.length > 0) {

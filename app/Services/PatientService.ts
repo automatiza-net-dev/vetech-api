@@ -1305,14 +1305,14 @@ export default class PatientService {
 
     if (data.onlyOpen) {
       // salesQb.whereRaw("(total_value - paid_value) > 0");
-      salesQb.where("status", BillStatus.A).whereRaw("(total_value - paid_value) > 0")
+      salesQb.where("status", BillStatus.A).whereRaw("(total_value - paid_value) > 0");
     }
 
     if (authCtx.system.type === "Vet") {
-      if ((data.tutor && validate(data.tutor)) || (data.tutorID && validate(data.tutorID))) {
+      if (data.tutor && validate(data.tutor)) {
         salesQb.whereRaw("(client_id = ? or client_id = ? or patient_id = ?)", [
           patient.id,
-          data.tutor ?? data.tutorID ?? v4(),
+          data.tutor,
           patient.id,
         ]);
       } else {
@@ -1324,12 +1324,12 @@ export default class PatientService {
 
     const sales = await salesQb;
 
-    const budgets = data.onlyOpen ? [] : await Budget.query()
+    const budgets = await Budget.query()
       .where(key, patient.id)
       .where("status", BudgetStatus.A)
       .preload("seller")
       .preload(key === "patient_id" ? "client" : "user")
-      .orderByRaw("budget_date desc, tag desc")
+      .orderByRaw("budget_date desc, tag desc");
 
     const budgetStatuses: { id: string; status: string }[] =
       await Database.from("budgets")
@@ -3036,7 +3036,7 @@ export default class PatientService {
       return []
     }
 
-    return ClientCredit.query().where('client_id', tutorID).where('reversed', false).whereRaw('(original_value - used_value) > 0')
+    return ClientCredit.query().where('client_id', tutorID).where('reversed', false)
   }
 
   private async uploadPhoto(file: MultipartFileContract): Promise<string> {

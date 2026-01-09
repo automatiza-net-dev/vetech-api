@@ -53,4 +53,7 @@ export default class ClientCredit extends BaseModel {
 
   @column({ serializeAs: null })
   public reversed_by_user_id: string;
+
+  @column({ serializeAs: null })
+  public client_id: string;
 }

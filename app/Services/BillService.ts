@@ -1483,14 +1483,6 @@ where deposit_id = ?
   }
 
   async createBillPayment(authCtx: AuthContext, data: ICreateBillPaymentData) {
-    if (!data.billId && !data.clientCreditId) {
-      throw new BadRequestException(
-        "Você precisa informar uma venda ou um credito",
-        400,
-        "E_NOT_OPEN",
-      );
-    }
-
     if (!data.billId) {
       // 	installmentsValue vai ter TODO o valor
       return this.createBillPaymentForChunks(authCtx, data)

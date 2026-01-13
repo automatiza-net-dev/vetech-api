@@ -960,6 +960,7 @@ export default class BusinessUnitFiscalDocumentService {
                   descricao_servico:
                     authCtx.unit.unitConfig.defaultNfseDescription ??
                     item.productVariation.product.description,
+                  codigo_nbs: item.productVariation.product.codigoNbs ?? 0,
                   valor_servico: item.totalValue,
                   codigo_tributacao_nacional_iss:
                     item.productVariation.product.serviceCode ?? "",
@@ -1089,6 +1090,9 @@ export default class BusinessUnitFiscalDocumentService {
               codigo_municipio_prestacao: Number.parseInt(
                 authCtx.unit.cityCode ?? "0",
               ),
+              codigo_nbs:
+                mapItems.find((mi) => mi.productVariation.product.codigoNbs)
+                  ?.productVariation.product.codigoNbs ?? 0,
               descricao_servico:
                 authCtx.unit.unitConfig.defaultNfseDescription ?? "",
               valor_servico: this.sharedService.sum(

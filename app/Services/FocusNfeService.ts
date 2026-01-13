@@ -887,6 +887,7 @@ export default class FocusNfeService {
       valor_servico: number;
       tributacao_iss: number; // 1 | 2 | 3 | 4;
       tipo_retencao_iss: 1 | 2 | 3;
+      codigo_nbs: number;
     },
     token: string,
     tx: TransactionClientContract,

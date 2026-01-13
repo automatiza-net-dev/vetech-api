@@ -37,6 +37,7 @@ import IBusinessUnitFiscalDocumentData, {
   ICorrectFiscalDocument,
   IDisableFiscalDocument,
 } from "Contracts/interfaces/IBusinessUnitFiscalDocumentData";
+import format from "date-fns/format";
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 import { validate } from "uuid";
@@ -62,7 +63,7 @@ export default class BusinessUnitFiscalDocumentService {
     private sharedService: SharedService,
     private focusNfe: FocusNfeService,
     private receiptService: ReceiptService,
-  ) { }
+  ) {}
 
   async nfeIndex(unitId: string, data: ISearch) {
     const qb = IssuedFiscalDocument.query().where(
@@ -535,7 +536,7 @@ export default class BusinessUnitFiscalDocumentService {
             item.paymentMethod.tef === PaymentMethodTef.N
               ? null
               : unit.acquirers.find((a) => a.id === item.tef_acquirer_id)
-                ?.document,
+                  ?.document,
           flag: item?.flag?.nfe_code,
           nsu:
             item.paymentMethod.tef === PaymentMethodTef.N
@@ -881,13 +882,13 @@ export default class BusinessUnitFiscalDocumentService {
                   Boolean,
                 ) ?? "",
               address: {
-                street: responsible.tutor.street ?? "",
-                number: responsible.tutor.number ?? "s/n",
-                district: responsible.tutor.district ?? "",
-                city_code: responsible.tutor.cityCode ?? "",
-                uf: responsible.tutor.state ?? "",
-                postal_code: responsible.tutor.postalCode ?? "",
-                complement: responsible.tutor.complement ?? null,
+                street: responsible.tutor.street ?? undefined,
+                number: responsible.tutor.number ?? undefined,
+                district: responsible.tutor.district ?? undefined,
+                city_code: responsible.tutor.cityCode ?? undefined,
+                uf: responsible.tutor.state ?? undefined,
+                postal_code: responsible.tutor.postalCode ?? undefined,
+                complement: responsible.tutor.complement ?? undefined,
               },
             },
             service: {
@@ -915,18 +916,69 @@ export default class BusinessUnitFiscalDocumentService {
             );
           }
 
-          const result = await this.focusNfe.sendNfse(
-            serviceDocument.id,
-            payload,
-            token,
-            {
-              hideCnae:
-                authCtx.unit.unitConfig.config.fiscalDocuments?.nfse_hide_cnae,
-              hideCityCode:
-                authCtx.unit.unitConfig.config.fiscalDocuments
-                  ?.nfse_hide_codigo_tributario_municipio,
-            },
-          );
+          const result = authCtx.unit.unitConfig.config.fiscalDocuments
+            ?.nfse_nacional
+            ? await this.focusNfe.sendNationalNfse(
+                serviceDocument.id,
+                {
+                  data_emissao: new Date().toISOString(),
+                  data_competencia: format(new Date(), "YYYY-MM-D"),
+                  codigo_municipio_emissora: Number.parseInt(
+                    authCtx.unit.cityCode ?? "0",
+                  ),
+
+                  cnpj_prestador: authCtx.unit.document ?? "",
+                  inscricao_municipal_prestador:
+                    authCtx.unit.cityRegistration ?? "",
+                  codigo_opcao_simples_nacional: 2,
+                  regime_especial_tributacao: 0,
+
+                  cpf_tomador: clearDoc.length === 11 ? clearDoc : undefined,
+                  cnpj_tomador: clearDoc.length === 14 ? clearDoc : undefined,
+                  razao_social_tomador: responsible.name,
+                  codigo_municipio_tomador: Number.parseInt(
+                    responsible.tutor.cityCode ?? "0",
+                  ),
+                  cep_tomador: responsible.tutor.postalCode,
+                  logradouro_tomador: responsible.tutor.street,
+                  numero_tomador: responsible.tutor.street,
+                  complemento_tomador: responsible.tutor.complement,
+                  bairro_tomador: responsible.tutor.district,
+                  telefone_tomador: [
+                    responsible.tutor.cellphone,
+                    responsible.tutor.telephone,
+                  ].find(Boolean),
+                  email_tomador: responsible.tutor.email,
+
+                  codigo_municipio_prestacao: Number.parseInt(
+                    authCtx.unit.cityCode ?? "0",
+                  ),
+                  descricao_servico:
+                    authCtx.unit.unitConfig.defaultNfseDescription ??
+                    item.productVariation.product.description,
+                  valor_servico: item.totalValue,
+                  codigo_tributacao_nacional_iss:
+                    item.productVariation.product.serviceCode ?? "",
+                  tributacao_iss: 1,
+                  tipo_retencao_iss: 1,
+                },
+                token,
+                trx,
+              )
+            : await this.focusNfe.sendNfse(
+                serviceDocument.id,
+                payload,
+                token,
+                {
+                  hideCnae:
+                    authCtx.unit.unitConfig.config.fiscalDocuments
+                      ?.nfse_hide_cnae,
+                  hideCityCode:
+                    authCtx.unit.unitConfig.config.fiscalDocuments
+                      ?.nfse_hide_codigo_tributario_municipio,
+                },
+                trx,
+              );
 
           await serviceDocument
             .merge({
@@ -992,65 +1044,122 @@ export default class BusinessUnitFiscalDocumentService {
 
       const clearDoc = responsible.tutor.document?.replaceAll(/\D/g, "") ?? "";
 
-      const result = await this.focusNfe.sendNfse(
-        serviceDocument.id,
-        {
-          issuedAt: new Date().toISOString(),
-          simple: authCtx.unit.simple,
-          seller: {
-            document: authCtx.unit.document ?? "",
-            city_ie: authCtx.unit.cityRegistration ?? "",
-            city_code: authCtx.unit.cityCode ?? "",
-          },
-          buyer: {
-            cpf_document: clearDoc.length === 11 ? clearDoc : null,
-            cnpj_document: clearDoc.length === 14 ? clearDoc : null,
-            name: responsible.name,
-            email: responsible.tutor.email,
-            phone:
-              [responsible.tutor.cellphone, responsible.tutor.telephone].find(
-                Boolean,
-              ) ?? "",
-            address: {
-              street: responsible.tutor.street ?? undefined,
-              number: responsible.tutor.number ?? undefined,
-              district: responsible.tutor.district ?? undefined,
-              city_code: responsible.tutor.cityCode ?? undefined,
-              uf: responsible.tutor.state ?? undefined,
-              postal_code: responsible.tutor.postalCode ?? undefined,
-              complement: responsible.tutor.complement ?? undefined,
+      const result = authCtx.unit.unitConfig.config.fiscalDocuments
+        ?.nfse_nacional
+        ? await this.focusNfe.sendNationalNfse(
+            serviceDocument.id,
+            {
+              data_emissao: new Date().toISOString(),
+              data_competencia: format(new Date(), "YYYY-MM-D"),
+              codigo_municipio_emissora: Number.parseInt(
+                authCtx.unit.cityCode ?? "0",
+              ),
+
+              cnpj_prestador: authCtx.unit.document ?? "",
+              inscricao_municipal_prestador:
+                authCtx.unit.cityRegistration ?? "",
+              codigo_opcao_simples_nacional: 2,
+              regime_especial_tributacao: 0,
+
+              cpf_tomador: clearDoc.length === 11 ? clearDoc : undefined,
+              cnpj_tomador: clearDoc.length === 14 ? clearDoc : undefined,
+              razao_social_tomador: responsible.name,
+              codigo_municipio_tomador: Number.parseInt(
+                responsible.tutor.cityCode ?? "0",
+              ),
+              cep_tomador: responsible.tutor.postalCode,
+              logradouro_tomador: responsible.tutor.street,
+              numero_tomador: responsible.tutor.street,
+              complemento_tomador: responsible.tutor.complement,
+              bairro_tomador: responsible.tutor.district,
+              telefone_tomador: [
+                responsible.tutor.cellphone,
+                responsible.tutor.telephone,
+              ].find(Boolean),
+              email_tomador: responsible.tutor.email,
+
+              codigo_municipio_prestacao: Number.parseInt(
+                authCtx.unit.cityCode ?? "0",
+              ),
+              descricao_servico:
+                authCtx.unit.unitConfig.defaultNfseDescription ?? "",
+              valor_servico: this.sharedService.sum(
+                mapItems.map((i) => i.totalValue),
+              ),
+              codigo_tributacao_nacional_iss: serviceCode,
+              tributacao_iss: 1,
+              tipo_retencao_iss: 1,
             },
-          },
-          service: {
-            total_value: this.sharedService.sum(
-              mapItems.map((i) => i.totalValue),
-            ),
-            pis_value: this.sharedService.sum(mapItems.map((i) => i.pisValue)),
-            cofins_value: this.sharedService.sum(
-              mapItems.map((i) => i.cofinsValue),
-            ),
-            iss_value: this.sharedService.sum(mapItems.map((i) => i.issValue)),
-            base_value: this.sharedService.sum(mapItems.map((i) => i.issBase)),
-            percentage_value: issPercentage,
-            discount_value: this.sharedService.sum(
-              mapItems.map((i) => i.discountValue),
-            ),
-            service_code: serviceCode,
-            cnae: authCtx.unit.cnae ?? "",
-            description: authCtx.unit.unitConfig.defaultNfseDescription ?? "-",
-            city_code: authCtx.unit.tributationCode ?? "",
-          },
-        },
-        token,
-        {
-          hideCnae:
-            authCtx.unit.unitConfig.config.fiscalDocuments?.nfse_hide_cnae,
-          hideCityCode:
-            authCtx.unit.unitConfig.config.fiscalDocuments
-              ?.nfse_hide_codigo_tributario_municipio,
-        },
-        trx
-      );
+            token,
+            trx,
+          )
+        : await this.focusNfe.sendNfse(
+            serviceDocument.id,
+            {
+              issuedAt: new Date().toISOString(),
+              simple: authCtx.unit.simple,
+              seller: {
+                document: authCtx.unit.document ?? "",
+                city_ie: authCtx.unit.cityRegistration ?? "",
+                city_code: authCtx.unit.cityCode ?? "",
+              },
+              buyer: {
+                cpf_document: clearDoc.length === 11 ? clearDoc : null,
+                cnpj_document: clearDoc.length === 14 ? clearDoc : null,
+                name: responsible.name,
+                email: responsible.tutor.email,
+                phone:
+                  [
+                    responsible.tutor.cellphone,
+                    responsible.tutor.telephone,
+                  ].find(Boolean) ?? "",
+                address: {
+                  street: responsible.tutor.street ?? undefined,
+                  number: responsible.tutor.number ?? undefined,
+                  district: responsible.tutor.district ?? undefined,
+                  city_code: responsible.tutor.cityCode ?? undefined,
+                  uf: responsible.tutor.state ?? undefined,
+                  postal_code: responsible.tutor.postalCode ?? undefined,
+                  complement: responsible.tutor.complement ?? undefined,
+                },
+              },
+              service: {
+                total_value: this.sharedService.sum(
+                  mapItems.map((i) => i.totalValue),
+                ),
+                pis_value: this.sharedService.sum(
+                  mapItems.map((i) => i.pisValue),
+                ),
+                cofins_value: this.sharedService.sum(
+                  mapItems.map((i) => i.cofinsValue),
+                ),
+                iss_value: this.sharedService.sum(
+                  mapItems.map((i) => i.issValue),
+                ),
+                base_value: this.sharedService.sum(
+                  mapItems.map((i) => i.issBase),
+                ),
+                percentage_value: issPercentage,
+                discount_value: this.sharedService.sum(
+                  mapItems.map((i) => i.discountValue),
+                ),
+                service_code: serviceCode,
+                cnae: authCtx.unit.cnae ?? "",
+                description:
+                  authCtx.unit.unitConfig.defaultNfseDescription ?? "-",
+                city_code: authCtx.unit.tributationCode ?? "",
+              },
+            },
+            token,
+            {
+              hideCnae:
+                authCtx.unit.unitConfig.config.fiscalDocuments?.nfse_hide_cnae,
+              hideCityCode:
+                authCtx.unit.unitConfig.config.fiscalDocuments
+                  ?.nfse_hide_codigo_tributario_municipio,
+            },
+            trx,
+          );
 
       await BillItem.query()
         .useTransaction(trx)
@@ -1151,9 +1260,9 @@ export default class BusinessUnitFiscalDocumentService {
             sefaz_status_code: result.data.status_sefaz,
             sefaz_message: result.data.protocolo_cancelamento
               ? [
-                result.data.protocolo_cancelamento.descricao_evento,
-                result.data.protocolo_cancelamento.motivo,
-              ].join(" - ")
+                  result.data.protocolo_cancelamento.descricao_evento,
+                  result.data.protocolo_cancelamento.motivo,
+                ].join(" - ")
               : result.data.mensagem_sefaz,
             access_key: result.data.chave_nfe,
             authorization_xml_path: [
@@ -1173,8 +1282,8 @@ export default class BusinessUnitFiscalDocumentService {
             authorization_receipt_date: result.data.protocolo_nota_fiscal
               ?.data_recebimento
               ? DateTime.fromISO(
-                result.data.protocolo_nota_fiscal?.data_recebimento,
-              )
+                  result.data.protocolo_nota_fiscal?.data_recebimento,
+                )
               : undefined,
 
             cancellation_receipt:
@@ -1182,8 +1291,8 @@ export default class BusinessUnitFiscalDocumentService {
             cancellation_receipt_date: result.data.protocolo_cancelamento
               ?.data_evento
               ? DateTime.fromISO(
-                result.data.protocolo_cancelamento?.data_evento,
-              )
+                  result.data.protocolo_cancelamento?.data_evento,
+                )
               : undefined,
           });
         if (row.disabling_receipt && row.bill_id) {
@@ -1205,9 +1314,9 @@ export default class BusinessUnitFiscalDocumentService {
               sefaz_status_code: result.data.status_sefaz,
               sefaz_message: result.data.protocolo_cancelamento
                 ? [
-                  result.data.protocolo_cancelamento.descricao_evento,
-                  result.data.protocolo_cancelamento.motivo,
-                ].join(" - ")
+                    result.data.protocolo_cancelamento.descricao_evento,
+                    result.data.protocolo_cancelamento.motivo,
+                  ].join(" - ")
                 : result.data.mensagem_sefaz,
               access_key: result.data.chave_nfe,
               authorization_xml_path: [
@@ -1228,8 +1337,8 @@ export default class BusinessUnitFiscalDocumentService {
               authorization_receipt_date: result.data.protocolo_nota_fiscal
                 ?.data_recebimento
                 ? DateTime.fromISO(
-                  result.data.protocolo_nota_fiscal?.data_recebimento,
-                )
+                    result.data.protocolo_nota_fiscal?.data_recebimento,
+                  )
                 : "NÃO FOI SETADO",
 
               cancellation_receipt:
@@ -1237,8 +1346,8 @@ export default class BusinessUnitFiscalDocumentService {
               cancellation_receipt_date: result.data.protocolo_cancelamento
                 ?.data_evento
                 ? DateTime.fromISO(
-                  result.data.protocolo_cancelamento?.data_evento,
-                )
+                    result.data.protocolo_cancelamento?.data_evento,
+                  )
                 : "NÃO FOI SETADO",
             },
           },
@@ -1268,8 +1377,10 @@ export default class BusinessUnitFiscalDocumentService {
         "join business_unit_configs on business_unit_configs.business_unit_id = service_issued_fiscal_documents.business_unit_id",
       )
       .whereRaw("service_issued_fiscal_documents.authorization_receipt is null")
-      .whereRaw(`(service_issued_fiscal_documents.cancellation_date is not null and
-       service_issued_fiscal_documents.cancellation_receipt_date is null)`)
+      .whereRaw(
+        `(service_issued_fiscal_documents.cancellation_date is not null and
+       service_issued_fiscal_documents.cancellation_receipt_date is null)`,
+      )
       .whereRaw("service_issued_fiscal_documents.deleted_at is null")
       .whereRaw(
         "(business_unit_configs.focus_homologation_token is not null or business_unit_configs.focus_homologation_token is not null)",
@@ -1916,9 +2027,9 @@ export default class BusinessUnitFiscalDocumentService {
       sefazStatusCode: data.status_sefaz,
       sefazMessage: data.protocolo_cancelamento
         ? [
-          data.protocolo_cancelamento.descricao_evento,
-          data.protocolo_cancelamento.motivo,
-        ].join(" - ")
+            data.protocolo_cancelamento.descricao_evento,
+            data.protocolo_cancelamento.motivo,
+          ].join(" - ")
         : data.mensagem_sefaz,
       accessKey: data.chave_nfe,
       authorizationXmlPath: [urlPrefix, data.caminho_xml_nota_fiscal].join(""),

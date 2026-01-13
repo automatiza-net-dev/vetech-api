@@ -238,6 +238,12 @@ export default class TaxationGroupRule extends BaseModel {
 	})
 	public icmsPercDiferimento: number;
 
+	@column({
+		columnName: "tributacao_iss",
+    serializeAs: null
+	})
+	public tributacaoIss: string | null;
+
 	@column()
 	public active: boolean;
 

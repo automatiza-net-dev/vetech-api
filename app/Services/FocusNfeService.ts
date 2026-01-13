@@ -7,6 +7,7 @@ import axios, { AxiosError } from "axios";
 import { z } from "zod";
 import ServiceIssuedFiscalDocument from "App/Models/ServiceIssuedFiscalDocument";
 import { TransactionClientContract } from "@ioc:Adonis/Lucid/Database";
+import format from "date-fns/format";
 
 // U = error payload
 type TypedAxiosError<U = unknown, T = unknown> = AxiosError<U, T>;
@@ -490,14 +491,14 @@ export default class FocusNfeService {
       formas_pagamento:
         rawPayload.finality === 1
           ? rawPayload.payments.map((payment) => ({
-            forma_pagamento: payment.nfe_code,
-            descricao_pagamento: payment.description,
-            valor_pagamento: payment.installment,
-            tipo_integracao: payment.integration_type,
-            cnpj_credenciadora: payment.acquirer,
-            bandeira_operadora: payment.flag,
-            numero_autorizacao: payment.nsu,
-          }))
+              forma_pagamento: payment.nfe_code,
+              descricao_pagamento: payment.description,
+              valor_pagamento: payment.installment,
+              tipo_integracao: payment.integration_type,
+              cnpj_credenciadora: payment.acquirer,
+              bandeira_operadora: payment.flag,
+              numero_autorizacao: payment.nsu,
+            }))
           : [{ forma_pagamento: "90" }],
 
       // icms_base_calculo: data.totalizers.icms_base,
@@ -746,7 +747,7 @@ export default class FocusNfeService {
       hideCnae?: boolean;
       hideCityCode?: boolean;
     },
-    tx: TransactionClientContract
+    tx: TransactionClientContract,
   ) {
     const payload = {
       data_emissao: data.issuedAt,
@@ -811,14 +812,95 @@ export default class FocusNfeService {
     }
 
     await ServiceIssuedFiscalDocument.query()
-      .where('id', ref)
+      .where("id", ref)
       .update({
         payload: this.sanitize(payload),
-      }).useTransaction(tx)
+      })
+      .useTransaction(tx);
 
     try {
       const { data } = await this.ax.post(
         `/v2/nfse?ref=${ref}`,
+        this.sanitize(payload),
+        {
+          auth: {
+            username: token,
+            password: "",
+          },
+        },
+      );
+
+      // Logger.info(JSON.stringify(data, undefined, 2));
+
+      const parsedResponse = createNfseResponseSchema.safeParse(data);
+      if (!parsedResponse.success) {
+        // Logger.error("invalid schema");
+        // Logger.error(JSON.stringify(parsedResponse.error.issues, undefined, 2));
+        return {
+          success: true,
+          data: null,
+        };
+      }
+
+      return {
+        success: true as const,
+        data: parsedResponse.data,
+      };
+    } catch (error) {
+      // Logger.error(error.response);
+
+      type T = TypedAxiosError<{ mensagem: string }, unknown>;
+      return {
+        success: false as const,
+        message: (error as T).response?.data?.mensagem ?? "",
+      };
+    }
+  }
+
+  public async sendNationalNfse(
+    ref: string,
+    payload: {
+      data_emissao: string;
+      data_competencia: string;
+      codigo_municipio_emissora: number;
+
+      cnpj_prestador: string;
+      inscricao_municipal_prestador: string;
+      codigo_opcao_simples_nacional: 0 | 1 | 2;
+      regime_especial_tributacao: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
+      cpf_tomador?: string;
+      cnpj_tomador?: string;
+      razao_social_tomador: string;
+      codigo_municipio_tomador: number;
+      cep_tomador?: string;
+      logradouro_tomador?: string;
+      numero_tomador?: string;
+      complemento_tomador?: string;
+      bairro_tomador?: string;
+      telefone_tomador?: string;
+      email_tomador?: string;
+
+      codigo_municipio_prestacao: number;
+      codigo_tributacao_nacional_iss: string;
+      descricao_servico: string;
+      valor_servico: number;
+      tributacao_iss: 1 | 2 | 3 | 4;
+      tipo_retencao_iss: 1 | 2 | 3;
+    },
+    token: string,
+    tx: TransactionClientContract,
+  ) {
+    await ServiceIssuedFiscalDocument.query()
+      .where("id", ref)
+      .update({
+        payload: this.sanitize(payload),
+      })
+      .useTransaction(tx);
+
+    try {
+      const { data } = await this.ax.post(
+        `/v2/nfsen?ref=${ref}`,
         this.sanitize(payload),
         {
           auth: {

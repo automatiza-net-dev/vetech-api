@@ -814,6 +814,10 @@ export default class BusinessUnitFiscalDocumentService {
       .whereHas("productVariation", (query) => {
         query.whereHas("product", (query) => {
           query.where("type", ProductType.SERVICE);
+
+          query.preload("taxationGroup", (q) => {
+            q.preload("rules");
+          });
         });
       })
       .preload("productVariation", (query) => {
@@ -959,7 +963,11 @@ export default class BusinessUnitFiscalDocumentService {
                   valor_servico: item.totalValue,
                   codigo_tributacao_nacional_iss:
                     item.productVariation.product.serviceCode ?? "",
-                  tributacao_iss: 1,
+                  tributacao_iss: Number.parseInt(
+                    item.productVariation.product.taxationGroup.rules.find(
+                      (r) => r.tributacaoIss,
+                    )?.tributacaoIss ?? "0",
+                  ),
                   tipo_retencao_iss: 1,
                 },
                 token,

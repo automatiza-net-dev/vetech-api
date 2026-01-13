@@ -885,7 +885,7 @@ export default class FocusNfeService {
       codigo_tributacao_nacional_iss: string;
       descricao_servico: string;
       valor_servico: number;
-      tributacao_iss: 1 | 2 | 3 | 4;
+      tributacao_iss: number; // 1 | 2 | 3 | 4;
       tipo_retencao_iss: 1 | 2 | 3;
     },
     token: string,

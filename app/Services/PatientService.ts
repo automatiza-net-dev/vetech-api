@@ -1271,6 +1271,7 @@ export default class PatientService {
     patientId: string,
     data: {
       tutor?: string;
+      onlyOpen?: string;
     },
   ) {
     const key = authCtx.system.type !== "Vet" ? "client_id" : "patient_id";
@@ -1301,6 +1302,11 @@ export default class PatientService {
         });
       });
 
+    if(data.onlyOpen){
+      // salesQb.whereRaw("(total_value - paid_value) > 0");
+      salesQb.where("status", BillStatus.A);
+    }
+
     if (authCtx.system.type === "Vet") {
       if (data.tutor && validate(data.tutor)) {
         salesQb.whereRaw("(client_id = ? or client_id = ? or patient_id = ?)", [
@@ -1317,12 +1323,12 @@ export default class PatientService {
 
     const sales = await salesQb;
 
-    const budgets = await Budget.query()
+    const budgets = data.onlyOpen ? [] : await Budget.query()
       .where(key, patient.id)
       .where("status", BudgetStatus.A)
       .preload("seller")
       .preload(key === "patient_id" ? "client" : "user")
-      .orderByRaw("budget_date desc, tag desc");
+      .orderByRaw("budget_date desc, tag desc")
 
     const budgetStatuses: { id: string; status: string }[] =
       await Database.from("budgets")
@@ -3029,7 +3035,7 @@ export default class PatientService {
       return []
     }
 
-    return ClientCredit.query().where('client_id', tutorID).where('reversed', false)
+    return ClientCredit.query().where('client_id', tutorID).where('reversed', false).whereRaw('(original_value - used_value) > 0')
   }
 
   private async uploadPhoto(file: MultipartFileContract): Promise<string> {

@@ -1262,13 +1262,13 @@ where deposit_id = ?
 
   async createBillPaymentForChunks(authCtx: AuthContext, data: ICreateBillPaymentData) {
     return Database.transaction(async (trx) => {
-      if (!data.clientCreditId || !data.chunkOfBills) {
-        throw new BadRequestException(
-          "Você precisa informar um credito ou um grupo de vendas",
-          400,
-          "E_NOT_OPEN",
-        );
-      }
+      // if (!data.clientCreditId || !data.chunkOfBills) {
+      //   throw new BadRequestException(
+      //     "Você precisa informar um credito ou um grupo de vendas",
+      //     400,
+      //     "E_NOT_OPEN",
+      //   );
+      // }
 
       const bills = await Bill.query().whereIn('id', data.chunkOfBills)
         .preload('client')
@@ -1303,11 +1303,11 @@ where deposit_id = ?
         }, { client: trx })
       }
 
-      const clientCredit = await ClientCredit
+      const clientCredit = data.clientCreditId ? await ClientCredit
         .query()
         .where('id', data.clientCreditId)
         .useTransaction(trx)
-        .first()
+        .first() : null
 
       await clientCredit?.merge({
         usedValue: clientCredit.usedValue.plus(totalToPay)

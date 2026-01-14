@@ -48,7 +48,7 @@ export interface ICreateBillPaymentData {
   billId?: string;
   flagId?: string;
   acquirerId?: string;
-  paymentMethodId: string;
+  paymentMethodId?: string;
   paymentMethodFlagId?: string;
   paymentMethodFlagInstallmentId?: number;
   budgetPaymentId?: number;

@@ -1270,7 +1270,7 @@ where deposit_id = ?
       //   );
       // }
 
-      const bills = await Bill.query().whereIn('id', data.chunkOfBills)
+      const bills = await Bill.query().whereIn('id', data.chunkOfBills ?? [])
         .preload('client')
         .useTransaction(trx)
 
@@ -1310,13 +1310,15 @@ where deposit_id = ?
         .first() : null
 
       await clientCredit?.merge({
-        usedValue: clientCredit.usedValue.plus(totalToPay)
+        usedValue: clientCredit.usedValue.plus(data.installmentsValue).greaterThan(clientCredit.originalValue)
+          ? clientCredit.originalValue
+          : clientCredit.usedValue.plus(data.installmentsValue)
       }).useTransaction(trx).save()
 
-      const paymentMethod = await PaymentMethod.query()
+      const paymentMethod = data.paymentMethodId ? await PaymentMethod.query()
         .useTransaction(trx)
         .where("id", data.paymentMethodId)
-        .firstOrFail();
+        .firstOrFail() : null
 
       const flagsQb = PaymentMethodFlag.query()
         .useTransaction(trx)
@@ -1325,7 +1327,11 @@ where deposit_id = ?
             query.where("id", data.paymentMethodFlagInstallmentId);
           }
         })
-        .where("payment_method_id", paymentMethod.id);
+
+      if (paymentMethod) {
+        flagsQb.where("payment_method_id", paymentMethod.id);
+      }
+
       if (data.paymentMethodFlagId) {
         flagsQb.where("id", data.paymentMethodFlagId);
       }
@@ -1370,16 +1376,21 @@ where deposit_id = ?
         return acc
       }, {} as Record<string, number>)
 
-      const $checkingAccountMeta =
-        await BusinessUnitCheckingAccountPaymentMethod.query()
+      const $checkingAccountMetaQb =
+        BusinessUnitCheckingAccountPaymentMethod.query()
           .useTransaction(trx)
           .where("business_unit_id", authCtx.unit.id)
-          .where("payment_method_id", data.paymentMethodId)
-          .first();
+      if (data.paymentMethodId) {
+        $checkingAccountMetaQb.where("payment_method_id", data.paymentMethodId)
+      }
+
+      const $checkingAccountMeta = await $checkingAccountMetaQb.first()
 
 
       await Promise.all(bills.map(async (bill) => {
-        const installmentValue = totalToPayPerBill[bill.id].times(percentagePerBill[bill.id])
+        // valor total por venda * <percetual> por venda
+        // percentual ->  (total venda - pago) / total todas vendas
+        const installmentValue = new Decimal(data.installmentsValue).times(percentagePerBill[bill.id])
 
         const billPayment = await BillPayment.create(
           {
@@ -1394,13 +1405,13 @@ where deposit_id = ?
 
             pending: false,
             block: maxBlockPerBill[bill.id] ? maxBlockPerBill[bill.id] + 1 : 1,
-            expirationDate: SharedService.CalculateDateOffset(
+            expirationDate: paymentMethod ? SharedService.CalculateDateOffset(
               0,
               data.expirationDate,
               paymentMethod,
-            ),
+            ) : DateTime.now(),
             feeType:
-              paymentMethod.fee > 0
+              (paymentMethod?.fee ?? 0) > 0
                 ? BillPaymentFeeType.S
                 : BillPaymentFeeType.N,
             feeValue: 0,
@@ -1409,16 +1420,16 @@ where deposit_id = ?
             installmentValue: installmentValue.toNumber(),
             totalValue: installmentValue.toNumber(),
             nsuDocument: data.nsuDocument,
-            paymentMethodDiscountPercentage: paymentMethod.fee,
+            paymentMethodDiscountPercentage: paymentMethod?.fee,
             paymentMethodDiscountValue:
-              installmentValue.times(new Decimal(paymentMethod.fee)).div(100).toNumber(),
+              paymentMethod ? installmentValue.times(new Decimal(paymentMethod.fee)).div(100).toNumber() : 0,
             qtyInstallments: 1,
           }
           , { client: trx })
 
-        const shouldUseFlag = paymentMethod.tef !== PaymentMethodTef.N;
+        const shouldUseFlag = paymentMethod?.tef !== PaymentMethodTef.N;
 
-        const feeCtx = shouldUseFlag
+        const feeCtx = paymentMethod ? shouldUseFlag
           ? flags.reduce((acc, cur) => {
             const ctx = cur.installments.find(
               (f) => f.installment === 1
@@ -1429,7 +1440,8 @@ where deposit_id = ?
 
             return acc;
           }, paymentMethod.fee)
-          : paymentMethod.fee;
+          : paymentMethod.fee
+          : 0
 
         await Finance.create({
           user_id: authCtx.user.id,
@@ -1438,12 +1450,12 @@ where deposit_id = ?
           daily_movement_id: bill.daily_movement_id,
           daily_cashier_id: bill.daily_cashier_id,
           client_id: bill.financial_responsible_id ?? bill.client_id,
-          payment_method_id: paymentMethod.id,
+          payment_method_id: paymentMethod?.id,
           origin_id: billPayment.id,
           account_plan_id: authCtx.unit.unitConfig.sale_exit_account_plan_id,
           checking_account_id:
             $checkingAccountMeta?.checking_account_id ??
-            paymentMethod.checkingAccountId,
+            paymentMethod?.checkingAccountId,
 
           internalCode: bill.internalCode,
           type: FinanceType.C,
@@ -1488,6 +1500,10 @@ where deposit_id = ?
       return this.createBillPaymentForChunks(authCtx, data)
     }
 
+    if (!data.paymentMethodFlagId) {
+      throw new BadRequestException("Para pagamentos normals é necessário informat o método de pagamento", 400)
+    }
+
     return Database.transaction(async (trx) => {
       const bill = await Bill.findOrFail(data.billId, {
         client: trx,
@@ -1503,7 +1519,7 @@ where deposit_id = ?
 
       const paymentMethod = await PaymentMethod.query()
         .useTransaction(trx)
-        .where("id", data.paymentMethodId)
+        .where("id", data.paymentMethodId!)
         .firstOrFail();
 
       const solidInstallments = data.installments ?? 1;
@@ -1693,7 +1709,7 @@ where deposit_id = ?
         await BusinessUnitCheckingAccountPaymentMethod.query()
           .useTransaction(trx)
           .where("business_unit_id", authCtx.unit.id)
-          .where("payment_method_id", data.paymentMethodId)
+          .where("payment_method_id", data.paymentMethodId!)
           .first();
 
       const flagsQb = PaymentMethodFlag.query()

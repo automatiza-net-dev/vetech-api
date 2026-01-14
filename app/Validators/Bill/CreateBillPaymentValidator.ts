@@ -9,7 +9,7 @@ export default class CreateBillPaymentValidator {
       rules.uuid(),
       rules.exists({ table: "bills", column: "id" }),
     ]),
-    paymentMethodId: schema.string({ trim: true }, [
+    paymentMethodId: schema.string.optional({ trim: true }, [
       rules.uuid(),
       rules.exists({ table: "payment_methods", column: "id" }),
     ]),

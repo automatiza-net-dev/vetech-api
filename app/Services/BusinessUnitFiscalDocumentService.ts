@@ -1,8 +1,3 @@
-import { inject } from "@adonisjs/fold";
-import Logger from "@ioc:Adonis/Core/Logger";
-import Database, {
-  TransactionClientContract,
-} from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import Bill, { BillStatus } from "App/Models/Bill";
@@ -23,9 +18,10 @@ import ServiceIssuedFiscalDocument from "App/Models/ServiceIssuedFiscalDocument"
 import { MovementCategory } from "App/Models/TaxationGroupRule";
 import User from "App/Models/User";
 import FocusNfeService, {
+  disableWebhookResponseSchema,
+  ISendNationalNfse,
   ISendNfe,
   ISendNfse,
-  disableWebhookResponseSchema,
   nfeResponseSchema,
   nfseResponseSchema,
 } from "App/Services/FocusNfeService";
@@ -37,6 +33,11 @@ import IBusinessUnitFiscalDocumentData, {
   ICorrectFiscalDocument,
   IDisableFiscalDocument,
 } from "Contracts/interfaces/IBusinessUnitFiscalDocumentData";
+import { inject } from "@adonisjs/fold";
+import Logger from "@ioc:Adonis/Core/Logger";
+import Database, {
+  TransactionClientContract,
+} from "@ioc:Adonis/Lucid/Database";
 import format from "date-fns/format";
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
@@ -63,7 +64,7 @@ export default class BusinessUnitFiscalDocumentService {
     private sharedService: SharedService,
     private focusNfe: FocusNfeService,
     private receiptService: ReceiptService,
-  ) {}
+  ) { }
 
   async nfeIndex(unitId: string, data: ISearch) {
     const qb = IssuedFiscalDocument.query().where(
@@ -536,7 +537,7 @@ export default class BusinessUnitFiscalDocumentService {
             item.paymentMethod.tef === PaymentMethodTef.N
               ? null
               : unit.acquirers.find((a) => a.id === item.tef_acquirer_id)
-                  ?.document,
+                ?.document,
           flag: item?.flag?.nfe_code,
           nsu:
             item.paymentMethod.tef === PaymentMethodTef.N
@@ -920,74 +921,34 @@ export default class BusinessUnitFiscalDocumentService {
             );
           }
 
+          const nationalPayload = this.buildNationalNfsePayload(
+            authCtx,
+            item,
+            responsible,
+            clearDoc,
+          );
           const result = authCtx.unit.unitConfig.config.fiscalDocuments
             ?.nfse_nacional
             ? await this.focusNfe.sendNationalNfse(
-                serviceDocument.id,
-                {
-                  data_emissao: new Date().toISOString(),
-                  data_competencia: format(new Date(), "YYYY-MM-D"),
-                  codigo_municipio_emissora: Number.parseInt(
-                    authCtx.unit.cityCode ?? "0",
-                  ),
-
-                  cnpj_prestador: authCtx.unit.document ?? "",
-                  inscricao_municipal_prestador:
-                    authCtx.unit.cityRegistration ?? "",
-                  codigo_opcao_simples_nacional: 2,
-                  regime_especial_tributacao: 0,
-
-                  cpf_tomador: clearDoc.length === 11 ? clearDoc : undefined,
-                  cnpj_tomador: clearDoc.length === 14 ? clearDoc : undefined,
-                  razao_social_tomador: responsible.name,
-                  codigo_municipio_tomador: Number.parseInt(
-                    responsible.tutor.cityCode ?? "0",
-                  ),
-                  cep_tomador: responsible.tutor.postalCode,
-                  logradouro_tomador: responsible.tutor.street,
-                  numero_tomador: responsible.tutor.street,
-                  complemento_tomador: responsible.tutor.complement,
-                  bairro_tomador: responsible.tutor.district,
-                  telefone_tomador: [
-                    responsible.tutor.cellphone,
-                    responsible.tutor.telephone,
-                  ].find(Boolean),
-                  email_tomador: responsible.tutor.email,
-
-                  codigo_municipio_prestacao: Number.parseInt(
-                    authCtx.unit.cityCode ?? "0",
-                  ),
-                  descricao_servico:
-                    authCtx.unit.unitConfig.defaultNfseDescription ??
-                    item.productVariation.product.description,
-                  codigo_nbs: item.productVariation.product.codigoNbs ?? 0,
-                  valor_servico: item.totalValue,
-                  codigo_tributacao_nacional_iss:
-                    item.productVariation.product.serviceCode ?? "",
-                  tributacao_iss: Number.parseInt(
-                    item.productVariation.product.taxationGroup.rules.find(
-                      (r) => r.tributacaoIss,
-                    )?.tributacaoIss ?? "0",
-                  ),
-                  tipo_retencao_iss: 1,
-                },
-                token,
-                trx,
-              )
+              serviceDocument.id,
+              nationalPayload,
+              token,
+              trx,
+            )
             : await this.focusNfe.sendNfse(
-                serviceDocument.id,
-                payload,
-                token,
-                {
-                  hideCnae:
-                    authCtx.unit.unitConfig.config.fiscalDocuments
-                      ?.nfse_hide_cnae,
-                  hideCityCode:
-                    authCtx.unit.unitConfig.config.fiscalDocuments
-                      ?.nfse_hide_codigo_tributario_municipio,
-                },
-                trx,
-              );
+              serviceDocument.id,
+              payload,
+              token,
+              {
+                hideCnae:
+                  authCtx.unit.unitConfig.config.fiscalDocuments
+                    ?.nfse_hide_cnae,
+                hideCityCode:
+                  authCtx.unit.unitConfig.config.fiscalDocuments
+                    ?.nfse_hide_codigo_tributario_municipio,
+              },
+              trx,
+            );
 
           await serviceDocument
             .merge({
@@ -1053,125 +1014,88 @@ export default class BusinessUnitFiscalDocumentService {
 
       const clearDoc = responsible.tutor.document?.replaceAll(/\D/g, "") ?? "";
 
+      const groupedPayload = this.buildGroupedNationalNfsePayload(
+        authCtx,
+        mapItems,
+        responsible,
+        clearDoc,
+        serviceCode,
+      );
       const result = authCtx.unit.unitConfig.config.fiscalDocuments
         ?.nfse_nacional
         ? await this.focusNfe.sendNationalNfse(
-            serviceDocument.id,
-            {
-              data_emissao: new Date().toISOString(),
-              data_competencia: format(new Date(), "YYYY-MM-D"),
-              codigo_municipio_emissora: Number.parseInt(
-                authCtx.unit.cityCode ?? "0",
-              ),
-
-              cnpj_prestador: authCtx.unit.document ?? "",
-              inscricao_municipal_prestador:
-                authCtx.unit.cityRegistration ?? "",
-              codigo_opcao_simples_nacional: 2,
-              regime_especial_tributacao: 0,
-
-              cpf_tomador: clearDoc.length === 11 ? clearDoc : undefined,
-              cnpj_tomador: clearDoc.length === 14 ? clearDoc : undefined,
-              razao_social_tomador: responsible.name,
-              codigo_municipio_tomador: Number.parseInt(
-                responsible.tutor.cityCode ?? "0",
-              ),
-              cep_tomador: responsible.tutor.postalCode,
-              logradouro_tomador: responsible.tutor.street,
-              numero_tomador: responsible.tutor.street,
-              complemento_tomador: responsible.tutor.complement,
-              bairro_tomador: responsible.tutor.district,
-              telefone_tomador: [
-                responsible.tutor.cellphone,
-                responsible.tutor.telephone,
-              ].find(Boolean),
-              email_tomador: responsible.tutor.email,
-
-              codigo_municipio_prestacao: Number.parseInt(
-                authCtx.unit.cityCode ?? "0",
-              ),
-              codigo_nbs:
-                mapItems.find((mi) => mi.productVariation.product.codigoNbs)
-                  ?.productVariation.product.codigoNbs ?? 0,
-              descricao_servico:
-                authCtx.unit.unitConfig.defaultNfseDescription ?? "",
-              valor_servico: this.sharedService.sum(
+          serviceDocument.id,
+          groupedPayload,
+          token,
+          trx,
+        )
+        : await this.focusNfe.sendNfse(
+          serviceDocument.id,
+          {
+            issuedAt: new Date().toISOString(),
+            simple: authCtx.unit.simple,
+            seller: {
+              document: authCtx.unit.document ?? "",
+              city_ie: authCtx.unit.cityRegistration ?? "",
+              city_code: authCtx.unit.cityCode ?? "",
+            },
+            buyer: {
+              cpf_document: clearDoc.length === 11 ? clearDoc : null,
+              cnpj_document: clearDoc.length === 14 ? clearDoc : null,
+              name: responsible.name,
+              email: responsible.tutor.email,
+              phone:
+                [
+                  responsible.tutor.cellphone,
+                  responsible.tutor.telephone,
+                ].find(Boolean) ?? "",
+              address: {
+                street: responsible.tutor.street ?? undefined,
+                number: responsible.tutor.number ?? undefined,
+                district: responsible.tutor.district ?? undefined,
+                city_code: responsible.tutor.cityCode ?? undefined,
+                uf: responsible.tutor.state ?? undefined,
+                postal_code: responsible.tutor.postalCode ?? undefined,
+                complement: responsible.tutor.complement ?? undefined,
+              },
+            },
+            service: {
+              total_value: this.sharedService.sum(
                 mapItems.map((i) => i.totalValue),
               ),
-              codigo_tributacao_nacional_iss: serviceCode,
-              tributacao_iss: 1,
-              tipo_retencao_iss: 1,
+              pis_value: this.sharedService.sum(
+                mapItems.map((i) => i.pisValue),
+              ),
+              cofins_value: this.sharedService.sum(
+                mapItems.map((i) => i.cofinsValue),
+              ),
+              iss_value: this.sharedService.sum(
+                mapItems.map((i) => i.issValue),
+              ),
+              base_value: this.sharedService.sum(
+                mapItems.map((i) => i.issBase),
+              ),
+              percentage_value: issPercentage,
+              discount_value: this.sharedService.sum(
+                mapItems.map((i) => i.discountValue),
+              ),
+              service_code: serviceCode,
+              cnae: authCtx.unit.cnae ?? "",
+              description:
+                authCtx.unit.unitConfig.defaultNfseDescription ?? "-",
+              city_code: authCtx.unit.tributationCode ?? "",
             },
-            token,
-            trx,
-          )
-        : await this.focusNfe.sendNfse(
-            serviceDocument.id,
-            {
-              issuedAt: new Date().toISOString(),
-              simple: authCtx.unit.simple,
-              seller: {
-                document: authCtx.unit.document ?? "",
-                city_ie: authCtx.unit.cityRegistration ?? "",
-                city_code: authCtx.unit.cityCode ?? "",
-              },
-              buyer: {
-                cpf_document: clearDoc.length === 11 ? clearDoc : null,
-                cnpj_document: clearDoc.length === 14 ? clearDoc : null,
-                name: responsible.name,
-                email: responsible.tutor.email,
-                phone:
-                  [
-                    responsible.tutor.cellphone,
-                    responsible.tutor.telephone,
-                  ].find(Boolean) ?? "",
-                address: {
-                  street: responsible.tutor.street ?? undefined,
-                  number: responsible.tutor.number ?? undefined,
-                  district: responsible.tutor.district ?? undefined,
-                  city_code: responsible.tutor.cityCode ?? undefined,
-                  uf: responsible.tutor.state ?? undefined,
-                  postal_code: responsible.tutor.postalCode ?? undefined,
-                  complement: responsible.tutor.complement ?? undefined,
-                },
-              },
-              service: {
-                total_value: this.sharedService.sum(
-                  mapItems.map((i) => i.totalValue),
-                ),
-                pis_value: this.sharedService.sum(
-                  mapItems.map((i) => i.pisValue),
-                ),
-                cofins_value: this.sharedService.sum(
-                  mapItems.map((i) => i.cofinsValue),
-                ),
-                iss_value: this.sharedService.sum(
-                  mapItems.map((i) => i.issValue),
-                ),
-                base_value: this.sharedService.sum(
-                  mapItems.map((i) => i.issBase),
-                ),
-                percentage_value: issPercentage,
-                discount_value: this.sharedService.sum(
-                  mapItems.map((i) => i.discountValue),
-                ),
-                service_code: serviceCode,
-                cnae: authCtx.unit.cnae ?? "",
-                description:
-                  authCtx.unit.unitConfig.defaultNfseDescription ?? "-",
-                city_code: authCtx.unit.tributationCode ?? "",
-              },
-            },
-            token,
-            {
-              hideCnae:
-                authCtx.unit.unitConfig.config.fiscalDocuments?.nfse_hide_cnae,
-              hideCityCode:
-                authCtx.unit.unitConfig.config.fiscalDocuments
-                  ?.nfse_hide_codigo_tributario_municipio,
-            },
-            trx,
-          );
+          },
+          token,
+          {
+            hideCnae:
+              authCtx.unit.unitConfig.config.fiscalDocuments?.nfse_hide_cnae,
+            hideCityCode:
+              authCtx.unit.unitConfig.config.fiscalDocuments
+                ?.nfse_hide_codigo_tributario_municipio,
+          },
+          trx,
+        );
 
       await BillItem.query()
         .useTransaction(trx)
@@ -1205,6 +1129,111 @@ export default class BusinessUnitFiscalDocumentService {
 
     const results = await Promise.all(tasks);
     return results.filter((r) => !r.success);
+  }
+
+  private buildNationalNfsePayload(
+    authCtx: AuthContext,
+    item: BillItem,
+    responsible: any,
+    clearDoc: string,
+  ): ISendNationalNfse {
+    return {
+      issuedAt: new Date().toISOString(),
+      competenceDate: format(new Date(), "yyy-MM-dd"),
+      seller: {
+        document: authCtx.unit.document ?? "",
+        municipalRegistration: authCtx.unit.cityRegistration ?? "",
+        cityCode: Number.parseInt(authCtx.unit.cityCode ?? "0"),
+        cityRegistration: authCtx.unit.cityRegistration ?? "",
+        simpleOptionCode: authCtx.unit.simple ? 1 : 3,
+        specialTaxRegime: 0,
+      },
+      buyer: {
+        cpfDocument: clearDoc.length === 11 ? clearDoc : undefined,
+        cnpjDocument: clearDoc.length === 14 ? clearDoc : undefined,
+        name: responsible.name,
+        email: responsible.tutor.email,
+        phone:
+          [responsible.tutor.cellphone, responsible.tutor.telephone].find(
+            Boolean,
+          ) ?? "",
+        address: {
+          street: responsible.tutor.street,
+          number: responsible.tutor.number,
+          complement: responsible.tutor.complement,
+          district: responsible.tutor.district,
+          cityCode: Number.parseInt(responsible.tutor.cityCode ?? "0"),
+          postalCode: responsible.tutor.postalCode,
+        },
+      },
+      service: {
+        description:
+          authCtx.unit.unitConfig.defaultNfseDescription ??
+          item.productVariation.product.description,
+        value: item.totalValue,
+        nationalServiceCode:
+          item.productVariation.product.codigoNbs?.toString() ?? "0",
+        nationalTaxationCode: item.productVariation.product.serviceCode ?? "",
+        issTaxationType: Number.parseInt(
+          item.productVariation.product.taxationGroup.rules.find(
+            (r) => r.tributacaoIss,
+          )?.tributacaoIss ?? "0",
+        ),
+        issRetentionType: 1,
+        cityCode: Number.parseInt(authCtx.unit.cityCode ?? "0"),
+      },
+    };
+  }
+
+  private buildGroupedNationalNfsePayload(
+    authCtx: AuthContext,
+    mapItems: BillItem[],
+    responsible: any,
+    clearDoc: string,
+    serviceCode: string,
+  ): ISendNationalNfse {
+    return {
+      issuedAt: new Date().toISOString(),
+      competenceDate: format(new Date(), "YYYY-MM-D"),
+      seller: {
+        document: authCtx.unit.document ?? "",
+        municipalRegistration: authCtx.unit.cityRegistration ?? "",
+        cityCode: Number.parseInt(authCtx.unit.cityCode ?? "0"),
+        cityRegistration: authCtx.unit.cityRegistration ?? "",
+        simpleOptionCode: 2,
+        specialTaxRegime: 0,
+      },
+      buyer: {
+        cpfDocument: clearDoc.length === 11 ? clearDoc : undefined,
+        cnpjDocument: clearDoc.length === 14 ? clearDoc : undefined,
+        name: responsible.name,
+        email: responsible.tutor.email,
+        phone:
+          [responsible.tutor.cellphone, responsible.tutor.telephone].find(
+            Boolean,
+          ) ?? "",
+        address: {
+          street: responsible.tutor.street,
+          number: responsible.tutor.number,
+          complement: responsible.tutor.complement,
+          district: responsible.tutor.district,
+          cityCode: Number.parseInt(responsible.tutor.cityCode ?? "0"),
+          postalCode: responsible.tutor.postalCode,
+        },
+      },
+      service: {
+        description: authCtx.unit.unitConfig.defaultNfseDescription ?? "",
+        value: this.sharedService.sum(mapItems.map((i) => i.totalValue)),
+        nationalServiceCode:
+          mapItems
+            .find((mi) => mi.productVariation.product.codigoNbs)
+            ?.productVariation.product.codigoNbs?.toString() ?? "0",
+        nationalTaxationCode: serviceCode,
+        issTaxationType: 1,
+        issRetentionType: 1,
+        cityCode: Number.parseInt(authCtx.unit.cityCode ?? "0"),
+      },
+    };
   }
 
   public static async UpdateOldNfeRecords() {
@@ -1272,9 +1301,9 @@ export default class BusinessUnitFiscalDocumentService {
             sefaz_status_code: result.data.status_sefaz,
             sefaz_message: result.data.protocolo_cancelamento
               ? [
-                  result.data.protocolo_cancelamento.descricao_evento,
-                  result.data.protocolo_cancelamento.motivo,
-                ].join(" - ")
+                result.data.protocolo_cancelamento.descricao_evento,
+                result.data.protocolo_cancelamento.motivo,
+              ].join(" - ")
               : result.data.mensagem_sefaz,
             access_key: result.data.chave_nfe,
             authorization_xml_path: [
@@ -1294,8 +1323,8 @@ export default class BusinessUnitFiscalDocumentService {
             authorization_receipt_date: result.data.protocolo_nota_fiscal
               ?.data_recebimento
               ? DateTime.fromISO(
-                  result.data.protocolo_nota_fiscal?.data_recebimento,
-                )
+                result.data.protocolo_nota_fiscal?.data_recebimento,
+              )
               : undefined,
 
             cancellation_receipt:
@@ -1303,8 +1332,8 @@ export default class BusinessUnitFiscalDocumentService {
             cancellation_receipt_date: result.data.protocolo_cancelamento
               ?.data_evento
               ? DateTime.fromISO(
-                  result.data.protocolo_cancelamento?.data_evento,
-                )
+                result.data.protocolo_cancelamento?.data_evento,
+              )
               : undefined,
           });
         if (row.disabling_receipt && row.bill_id) {
@@ -1326,9 +1355,9 @@ export default class BusinessUnitFiscalDocumentService {
               sefaz_status_code: result.data.status_sefaz,
               sefaz_message: result.data.protocolo_cancelamento
                 ? [
-                    result.data.protocolo_cancelamento.descricao_evento,
-                    result.data.protocolo_cancelamento.motivo,
-                  ].join(" - ")
+                  result.data.protocolo_cancelamento.descricao_evento,
+                  result.data.protocolo_cancelamento.motivo,
+                ].join(" - ")
                 : result.data.mensagem_sefaz,
               access_key: result.data.chave_nfe,
               authorization_xml_path: [
@@ -1349,8 +1378,8 @@ export default class BusinessUnitFiscalDocumentService {
               authorization_receipt_date: result.data.protocolo_nota_fiscal
                 ?.data_recebimento
                 ? DateTime.fromISO(
-                    result.data.protocolo_nota_fiscal?.data_recebimento,
-                  )
+                  result.data.protocolo_nota_fiscal?.data_recebimento,
+                )
                 : "NÃO FOI SETADO",
 
               cancellation_receipt:
@@ -1358,8 +1387,8 @@ export default class BusinessUnitFiscalDocumentService {
               cancellation_receipt_date: result.data.protocolo_cancelamento
                 ?.data_evento
                 ? DateTime.fromISO(
-                    result.data.protocolo_cancelamento?.data_evento,
-                  )
+                  result.data.protocolo_cancelamento?.data_evento,
+                )
                 : "NÃO FOI SETADO",
             },
           },
@@ -2039,9 +2068,9 @@ export default class BusinessUnitFiscalDocumentService {
       sefazStatusCode: data.status_sefaz,
       sefazMessage: data.protocolo_cancelamento
         ? [
-            data.protocolo_cancelamento.descricao_evento,
-            data.protocolo_cancelamento.motivo,
-          ].join(" - ")
+          data.protocolo_cancelamento.descricao_evento,
+          data.protocolo_cancelamento.motivo,
+        ].join(" - ")
         : data.mensagem_sefaz,
       accessKey: data.chave_nfe,
       authorizationXmlPath: [urlPrefix, data.caminho_xml_nota_fiscal].join(""),

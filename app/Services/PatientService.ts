@@ -1302,9 +1302,9 @@ export default class PatientService {
         });
       });
 
-    if(data.onlyOpen){
+    if (data.onlyOpen) {
       // salesQb.whereRaw("(total_value - paid_value) > 0");
-      salesQb.where("status", BillStatus.A);
+      salesQb.where("status", BillStatus.A).whereRaw("(total_value - paid_value) > 0")
     }
 
     if (authCtx.system.type === "Vet") {

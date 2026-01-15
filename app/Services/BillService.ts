@@ -21,7 +21,10 @@ import Finance, {
 import IssuedFiscalDocument from "App/Models/IssuedFiscalDocument";
 import Kit from "App/Models/Kit";
 import Patient, { PatientType } from "App/Models/Patient";
-import PaymentMethod, { PaymentMethodTef } from "App/Models/PaymentMethod";
+import PaymentMethod, {
+  PaymentMethodTef,
+  PaymentMethodType,
+} from "App/Models/PaymentMethod";
 import PaymentMethodFlagInstallment from "App/Models/PaymentMethodFlagInstallment";
 import Product, { ProductPurpose, ProductType } from "App/Models/Product";
 import ProductVariation from "App/Models/ProductVariation";
@@ -63,6 +66,8 @@ import Receipt from "App/Models/Receipt";
 import ReceiptItem from "App/Models/ReceiptItem";
 import ReceiptPayment from "App/Models/ReceiptPayment";
 import ClientCredit from "App/Models/ClientCredit";
+import ClientUsedCredit from "App/Models/ClientUsedCredit";
+import ClientPayment from "App/Models/ClientPayment";
 
 interface ISearch {
   fromBill?: string;
@@ -1260,7 +1265,10 @@ where deposit_id = ?
     });
   }
 
-  async createBillPaymentForChunks(authCtx: AuthContext, data: ICreateBillPaymentData) {
+  async createBillPaymentForChunks(
+    authCtx: AuthContext,
+    data: ICreateBillPaymentData,
+  ) {
     return Database.transaction(async (trx) => {
       // if (!data.clientCreditId || !data.chunkOfBills) {
       //   throw new BadRequestException(
@@ -1270,9 +1278,10 @@ where deposit_id = ?
       //   );
       // }
 
-      const bills = await Bill.query().whereIn('id', data.chunkOfBills ?? [])
-        .preload('client')
-        .useTransaction(trx)
+      const bills = await Bill.query()
+        .whereIn("id", data.chunkOfBills ?? [])
+        .preload("client")
+        .useTransaction(trx);
 
       if (bills.some((b) => b.status !== BillStatus.A)) {
         throw new BadRequestException(
@@ -1281,61 +1290,6 @@ where deposit_id = ?
           "E_NOT_OPEN",
         );
       }
-
-      const totalToPay = bills.reduce((acc, curr) => {
-        return acc.plus(curr.totalValue).minus(curr.paidValue)
-      }, new Decimal(0))
-
-      const totalToPayPerBill = bills.reduce((acc, curr) => {
-        acc[curr.id] = curr.totalValue.minus(curr.paidValue)
-        return acc
-      }, {} as Record<string, Decimal>)
-
-      const percentagePerBill = bills.reduce((acc, curr) => {
-        acc[curr.id] = curr.totalValue.minus(curr.paidValue).div(totalToPay)
-        return acc
-      }, {} as Record<string, Decimal>)
-
-      if (data.creditOverflow && totalToPay.lessThan(new Decimal(data.installmentsValue))) {
-        await ClientCredit.create({
-          client_id: bills.at(0)?.client_id,
-          originalValue: totalToPay.minus(new Decimal(data.installmentsValue))
-        }, { client: trx })
-      }
-
-      const clientCredit = data.clientCreditId ? await ClientCredit
-        .query()
-        .where('id', data.clientCreditId)
-        .useTransaction(trx)
-        .first() : null
-
-      await clientCredit?.merge({
-        usedValue: clientCredit.usedValue.plus(data.installmentsValue).greaterThan(clientCredit.originalValue)
-          ? clientCredit.originalValue
-          : clientCredit.usedValue.plus(data.installmentsValue)
-      }).useTransaction(trx).save()
-
-      const paymentMethod = data.paymentMethodId ? await PaymentMethod.query()
-        .useTransaction(trx)
-        .where("id", data.paymentMethodId)
-        .firstOrFail() : null
-
-      const flagsQb = PaymentMethodFlag.query()
-        .useTransaction(trx)
-        .preload("installments", (query) => {
-          if (data.paymentMethodFlagInstallmentId) {
-            query.where("id", data.paymentMethodFlagInstallmentId);
-          }
-        })
-
-      if (paymentMethod) {
-        flagsQb.where("payment_method_id", paymentMethod.id);
-      }
-
-      if (data.paymentMethodFlagId) {
-        flagsQb.where("id", data.paymentMethodFlagId);
-      }
-      const flags = await flagsQb;
 
       const dailyCashier =
         authCtx.unit.unitConfig.dailyCashierType === "usuario"
@@ -1363,145 +1317,364 @@ where deposit_id = ?
         );
       }
 
+      const totalToPay = bills.reduce((acc, curr) => {
+        return acc.plus(curr.totalValue).minus(curr.paidValue);
+      }, new Decimal(0));
+
+      const totalToPayPerBill = bills.reduce(
+        (acc, curr) => {
+          acc[curr.id] = curr.totalValue.minus(curr.paidValue);
+          return acc;
+        },
+        {} as Record<string, Decimal>,
+      );
+
+      const percentagePerBill = bills.reduce(
+        (acc, curr) => {
+          acc[curr.id] = curr.totalValue.minus(curr.paidValue).div(totalToPay);
+          return acc;
+        },
+        {} as Record<string, Decimal>,
+      );
+
+      if (
+        data.creditOverflow &&
+        totalToPay.lessThan(new Decimal(data.installmentsValue))
+      ) {
+        await ClientCredit.create(
+          {
+            user_id: authCtx.user.id,
+            client_id: bills.at(0)?.client_id,
+            originalValue: new Decimal(data.installmentsValue).minus(
+              totalToPay,
+            ),
+          },
+          { client: trx },
+        );
+      }
+
+      const clientCredit = data.clientCreditId
+        ? await ClientCredit.query()
+          .where("id", data.clientCreditId)
+          .useTransaction(trx)
+          .first()
+        : null;
+
+      const usedValue = clientCredit ? clientCredit.usedValue
+        .plus(data.installmentsValue)
+        .greaterThan(clientCredit.originalValue)
+        ? clientCredit.originalValue
+        : clientCredit.usedValue.plus(data.installmentsValue) : new Decimal(0)
+
+      const usedCredit = await clientCredit
+        ?.merge({
+          usedValue: clientCredit.usedValue
+            .plus(data.installmentsValue)
+            .greaterThan(clientCredit.originalValue)
+            ? clientCredit.originalValue
+            : clientCredit.usedValue.plus(data.installmentsValue),
+        })
+        .useTransaction(trx)
+        .save();
+
+      if (usedCredit && clientCredit) {
+        const usedValue = clientCredit.usedValue
+          .plus(data.installmentsValue)
+          .greaterThan(clientCredit.originalValue)
+          ? clientCredit.originalValue
+          : clientCredit.usedValue.plus(data.installmentsValue);
+
+        const clientPayment = await ClientPayment.create(
+          {
+            client_id: bills.at(0)?.client_id,
+            cashier_id: dailyCashier.id,
+            movement_id: dailyCashier.daily_movement_id,
+            user_id: authCtx.user.id,
+
+            value: usedValue,
+            paymentDate: DateTime.now(),
+          },
+          { client: trx },
+        );
+
+        await ClientUsedCredit.create(
+          {
+            user_id: authCtx.user.id,
+            client_id: clientPayment.client_id,
+            client_payment_id: clientPayment.id,
+            valueBefore: clientCredit.usedValue,
+            usedValue: usedValue,
+          },
+          { client: trx },
+        );
+      }
+
+      const paymentMethod = data.paymentMethodId
+        ? await PaymentMethod.query()
+          .useTransaction(trx)
+          .where("id", data.paymentMethodId)
+          .firstOrFail()
+        : null;
+
+      const flagsQb = PaymentMethodFlag.query()
+        .useTransaction(trx)
+        .preload("installments", (query) => {
+          if (data.paymentMethodFlagInstallmentId) {
+            query.where("id", data.paymentMethodFlagInstallmentId);
+          }
+        });
+
+      if (paymentMethod) {
+        flagsQb.where("payment_method_id", paymentMethod.id);
+      }
+
+      if (data.paymentMethodFlagId) {
+        flagsQb.where("id", data.paymentMethodFlagId);
+      }
+      const flags = await flagsQb;
+
       const existingPayments = await BillPayment.query().whereIn(
         "bill_id",
         bills.map((b) => b.id),
       );
 
-      const maxBlockPerBill = existingPayments.reduce((acc, curr) => {
-        if (!acc[curr.bill_id]) { acc[curr.bill_id] = 0; }
+      const maxBlockPerBill = existingPayments.reduce(
+        (acc, curr) => {
+          if (!acc[curr.bill_id]) {
+            acc[curr.bill_id] = 0;
+          }
 
-        acc[curr.bill_id] = Math.max(acc[curr.bill_id], curr.block);
+          acc[curr.bill_id] = Math.max(acc[curr.bill_id], curr.block);
 
-        return acc
-      }, {} as Record<string, number>)
+          return acc;
+        },
+        {} as Record<string, number>,
+      );
 
       const $checkingAccountMetaQb =
         BusinessUnitCheckingAccountPaymentMethod.query()
           .useTransaction(trx)
-          .where("business_unit_id", authCtx.unit.id)
+          .where("business_unit_id", authCtx.unit.id);
       if (data.paymentMethodId) {
-        $checkingAccountMetaQb.where("payment_method_id", data.paymentMethodId)
+        $checkingAccountMetaQb.where("payment_method_id", data.paymentMethodId);
       }
 
-      const $checkingAccountMeta = await $checkingAccountMetaQb.first()
+      const $checkingAccountMeta = await $checkingAccountMetaQb.first();
 
+      await Promise.all(
+        bills.map(async (bill) => {
+          let currentBlock = maxBlockPerBill[bill.id] ?? 0
 
-      await Promise.all(bills.map(async (bill) => {
-        // valor total por venda * <percetual> por venda
-        // percentual ->  (total venda - pago) / total todas vendas
-        const installmentValue = new Decimal(data.installmentsValue).times(percentagePerBill[bill.id])
+          const installmentValue = new Decimal(data.installmentsValue).times(
+            percentagePerBill[bill.id],
+          );
+          const relativeValueToPay = data.creditOverflow
+            ? bill.totalValue.minus(bill.paidValue) // usa apenas o resto da venda
+            : installmentValue; // usa o relativo da venda
 
-        const billPayment = await BillPayment.create(
-          {
-            economic_group_id: authCtx.group.id,
-            business_unit_id: authCtx.unit.id,
-            bill_id: bill.id,
-            payment_method_id: data.paymentMethodId,
-            tef_acquirer_id: data.acquirerId,
-            tef_flag_id: data.flagId,
-            daily_cashier_id: dailyCashier.id,
-            budget_payment_id: data.budgetPaymentId,
-
-            pending: false,
-            block: maxBlockPerBill[bill.id] ? maxBlockPerBill[bill.id] + 1 : 1,
-            expirationDate: paymentMethod ? SharedService.CalculateDateOffset(
-              0,
-              data.expirationDate,
-              paymentMethod,
-            ) : DateTime.now(),
-            feeType:
-              (paymentMethod?.fee ?? 0) > 0
-                ? BillPaymentFeeType.S
-                : BillPaymentFeeType.N,
-            feeValue: 0,
-            feePercentage: 0,
-            installments: 1,
-            installmentValue: installmentValue.toNumber(),
-            totalValue: installmentValue.toNumber(),
-            nsuDocument: data.nsuDocument,
-            paymentMethodDiscountPercentage: paymentMethod?.fee,
-            paymentMethodDiscountValue:
-              paymentMethod ? installmentValue.times(new Decimal(paymentMethod.fee)).div(100).toNumber() : 0,
-            qtyInstallments: 1,
-          }
-          , { client: trx })
-
-        const shouldUseFlag = paymentMethod?.tef !== PaymentMethodTef.N;
-
-        const feeCtx = paymentMethod ? shouldUseFlag
-          ? flags.reduce((acc, cur) => {
-            const ctx = cur.installments.find(
-              (f) => f.installment === 1
-            );
-            if (ctx) {
-              return ctx.fee;
+          if (usedValue.gt(new Decimal(0))) {
+            const overflowPaymentMethod = await PaymentMethod.query()
+              .useTransaction(trx)
+              .whereNull("economic_group_id")
+              .where("type", PaymentMethodType.CC)
+              .first();
+            if (data.creditOverflow && !overflowPaymentMethod) {
+              throw new BadRequestException(
+                "Método de pagamento para crédito de cliente não encontrado",
+                400,
+                "E_ERR",
+              );
             }
 
-            return acc;
-          }, paymentMethod.fee)
-          : paymentMethod.fee
-          : 0
+            const inverseValueToPay = data.creditOverflow
+              ? bill.totalValue.minus(bill.paidValue)
+              : installmentValue;
 
-        await Finance.create({
-          user_id: authCtx.user.id,
-          economic_group_id: authCtx.group.id,
-          business_unit_id: authCtx.unit.id,
-          daily_movement_id: bill.daily_movement_id,
-          daily_cashier_id: bill.daily_cashier_id,
-          client_id: bill.financial_responsible_id ?? bill.client_id,
-          payment_method_id: paymentMethod?.id,
-          origin_id: billPayment.id,
-          account_plan_id: authCtx.unit.unitConfig.sale_exit_account_plan_id,
-          checking_account_id:
-            $checkingAccountMeta?.checking_account_id ??
-            paymentMethod?.checkingAccountId,
 
-          internalCode: bill.internalCode,
-          type: FinanceType.C,
-          installment: 1,
-          block: billPayment.block,
-          originFlag: FinanceOriginFlag.S,
-          document: `CLI-${bill.client.tag}`,
-          historic: `CLI-${bill.client.tag}`,
-          issueDate: DateTime.now(),
-          discountValue: new Decimal(0),
-          discountPercentage: 0,
-          expirationDate: billPayment.expirationDate,
-          originalValue: installmentValue,
-          value: installmentValue.minus(installmentValue.times(feeCtx).div(100)),
-          totalValue: installmentValue.minus(installmentValue.times(feeCtx).div(100)),
-          feeDiscountValue:
-            (billPayment.installmentValue ?? 0) -
-            installmentValue.minus(installmentValue.times(feeCtx).div(100)).toNumber(),
-          feeValue: new Decimal(0),
-          // feeDiscountPercentage: paymentMethod.fee,
-          // feeDiscountPercentage:
-          // 	payments.at(v)?.paymentMethodDiscountPercentage,
-          feeDiscountPercentage: feeCtx,
-          accept: FinanceAccept.N,
-          reconciled: authCtx.unit.unitConfig.balanceControl === "previsto",
-          competenceDate: DateTime.now().toFormat("MM/yyyy"),
-          nsuDocument: billPayment.nsuDocument,
-          tef_flag_id: billPayment.tef_flag_id,
-          acquirer_id: billPayment.tef_acquirer_id,
-          status: FinanceStatus.A,
-          qtyInstallments: data.installments,
-        }, {
-          client: trx
-        })
-      }))
+            await BillPayment.create(
+              {
+                economic_group_id: authCtx.group.id,
+                business_unit_id: authCtx.unit.id,
+                bill_id: bill.id,
+                payment_method_id: overflowPaymentMethod?.id,
+                tef_acquirer_id: data.acquirerId,
+                tef_flag_id: data.flagId,
+                daily_cashier_id: dailyCashier.id,
+                budget_payment_id: data.budgetPaymentId,
+
+                pending: false,
+                block: ++currentBlock,
+                expirationDate: overflowPaymentMethod
+                  ? SharedService.CalculateDateOffset(
+                    0,
+                    data.expirationDate,
+                    overflowPaymentMethod,
+                  )
+                  : DateTime.now(),
+                feeType:
+                  (overflowPaymentMethod?.fee ?? 0) > 0
+                    ? BillPaymentFeeType.S
+                    : BillPaymentFeeType.N,
+                feeValue: 0,
+                feePercentage: 0,
+                installments: 1,
+                installmentValue: inverseValueToPay.toNumber(),
+                totalValue: inverseValueToPay.toNumber(),
+                nsuDocument: data.nsuDocument,
+                paymentMethodDiscountPercentage: overflowPaymentMethod?.fee,
+                paymentMethodDiscountValue: overflowPaymentMethod
+                  ? inverseValueToPay
+                    .times(new Decimal(overflowPaymentMethod.fee))
+                    .div(100)
+                    .toNumber()
+                  : 0,
+                qtyInstallments: 1,
+              },
+              { client: trx },
+            );
+          }
+
+          if (!data.creditOverflow) {
+            const billPayment = await BillPayment.create(
+              {
+                economic_group_id: authCtx.group.id,
+                business_unit_id: authCtx.unit.id,
+                bill_id: bill.id,
+                payment_method_id: data.paymentMethodId,
+                tef_acquirer_id: data.acquirerId,
+                tef_flag_id: data.flagId,
+                daily_cashier_id: dailyCashier.id,
+                budget_payment_id: data.budgetPaymentId,
+
+                pending: false,
+                block: ++currentBlock,
+                expirationDate: paymentMethod
+                  ? SharedService.CalculateDateOffset(
+                    0,
+                    data.expirationDate,
+                    paymentMethod,
+                  )
+                  : DateTime.now(),
+                feeType:
+                  (paymentMethod?.fee ?? 0) > 0
+                    ? BillPaymentFeeType.S
+                    : BillPaymentFeeType.N,
+                feeValue: 0,
+                feePercentage: 0,
+                installments: 1,
+                installmentValue: relativeValueToPay.toNumber(),
+                totalValue: relativeValueToPay.toNumber(),
+                nsuDocument: data.nsuDocument,
+                paymentMethodDiscountPercentage: paymentMethod?.fee,
+                paymentMethodDiscountValue: paymentMethod
+                  ? relativeValueToPay
+                    .times(new Decimal(paymentMethod.fee))
+                    .div(100)
+                    .toNumber()
+                  : 0,
+                qtyInstallments: 1,
+              },
+              { client: trx },
+            );
+
+            const shouldUseFlag = paymentMethod?.tef !== PaymentMethodTef.N;
+
+            const feeCtx = paymentMethod
+              ? shouldUseFlag
+                ? flags.reduce((acc, cur) => {
+                  const ctx = cur.installments.find((f) => f.installment === 1);
+                  if (ctx) {
+                    return ctx.fee;
+                  }
+
+                  return acc;
+                }, paymentMethod.fee)
+                : paymentMethod.fee
+              : 0;
+
+            await Finance.create(
+              {
+                user_id: authCtx.user.id,
+                economic_group_id: authCtx.group.id,
+                business_unit_id: authCtx.unit.id,
+                daily_movement_id: bill.daily_movement_id,
+                daily_cashier_id: bill.daily_cashier_id,
+                client_id: bill.financial_responsible_id ?? bill.client_id,
+                payment_method_id: paymentMethod?.id,
+                origin_id: billPayment.id,
+                account_plan_id:
+                  authCtx.unit.unitConfig.sale_exit_account_plan_id,
+                checking_account_id:
+                  $checkingAccountMeta?.checking_account_id ??
+                  paymentMethod?.checkingAccountId,
+
+                internalCode: bill.internalCode,
+                type: FinanceType.C,
+                installment: 1,
+                block: billPayment.block,
+                originFlag: FinanceOriginFlag.S,
+                document: `CLI-${bill.client.tag}`,
+                historic: `CLI-${bill.client.tag}`,
+                issueDate: DateTime.now(),
+                discountValue: new Decimal(0),
+                discountPercentage: 0,
+                expirationDate: billPayment.expirationDate,
+                originalValue: relativeValueToPay,
+                value: relativeValueToPay.minus(
+                  relativeValueToPay.times(feeCtx).div(100),
+                ),
+                totalValue: relativeValueToPay.minus(
+                  relativeValueToPay.times(feeCtx).div(100),
+                ),
+                feeDiscountValue:
+                  (billPayment.installmentValue ?? 0) -
+                  relativeValueToPay
+                    .minus(relativeValueToPay.times(feeCtx).div(100))
+                    .toNumber(),
+                feeValue: new Decimal(0),
+                // feeDiscountPercentage: paymentMethod.fee,
+                // feeDiscountPercentage:
+                // 	payments.at(v)?.paymentMethodDiscountPercentage,
+                feeDiscountPercentage: feeCtx,
+                accept: FinanceAccept.N,
+                reconciled: authCtx.unit.unitConfig.balanceControl === "previsto",
+                competenceDate: DateTime.now().toFormat("MM/yyyy"),
+                nsuDocument: billPayment.nsuDocument,
+                tef_flag_id: billPayment.tef_flag_id,
+                acquirer_id: billPayment.tef_acquirer_id,
+                status: FinanceStatus.A,
+                qtyInstallments: data.installments,
+              },
+              {
+                client: trx,
+              },
+            );
+          }
+
+          await bill
+            .merge({
+              paidValue: data.creditOverflow
+                ? bill.totalValue.toNumber()
+                : new Decimal(bill.paidValue).plus(installmentValue).toNumber(),
+            })
+            .useTransaction(trx)
+            .save();
+        }),
+      );
     });
   }
 
   async createBillPayment(authCtx: AuthContext, data: ICreateBillPaymentData) {
     if (!data.billId) {
       // 	installmentsValue vai ter TODO o valor
-      return this.createBillPaymentForChunks(authCtx, data)
+      return this.createBillPaymentForChunks(authCtx, data);
     }
 
     if (!data.paymentMethodFlagId) {
-      throw new BadRequestException("Para pagamentos normals é necessário informat o método de pagamento", 400)
+      throw new BadRequestException(
+        "Para pagamentos normals é necessário informat o método de pagamento",
+        400,
+      );
     }
 
     return Database.transaction(async (trx) => {
@@ -1604,14 +1777,17 @@ where deposit_id = ?
 
       if (data.clientCreditId) {
         const billCredit = await ClientCredit.query()
-          .where('id', data.clientCreditId)
-          .where('client_id', bill.client_id)
+          .where("id", data.clientCreditId)
+          .where("client_id", bill.client_id)
           .first();
         if (!billCredit) {
-          throw new BadRequestException('Crédito e cliente não batem', 400, 'E_ERR')
+          throw new BadRequestException(
+            "Crédito e cliente não batem",
+            400,
+            "E_ERR",
+          );
         }
       }
-
 
       const installment = data.paymentMethodFlagInstallmentId
         ? await PaymentMethodFlagInstallment.query()
@@ -1771,8 +1947,12 @@ where deposit_id = ?
             discountPercentage: 0,
             expirationDate: payments.at(v)?.expirationDate,
             originalValue: new Decimal(installmentValue),
-            value: new Decimal(installmentValue - (installmentValue * feeCtx) / 100),
-            totalValue: new Decimal(installmentValue - (installmentValue * feeCtx) / 100),
+            value: new Decimal(
+              installmentValue - (installmentValue * feeCtx) / 100,
+            ),
+            totalValue: new Decimal(
+              installmentValue - (installmentValue * feeCtx) / 100,
+            ),
             feeDiscountValue:
               (payments.at(v)?.installmentValue ?? 0) -
               (installmentValue - (installmentValue * feeCtx) / 100),

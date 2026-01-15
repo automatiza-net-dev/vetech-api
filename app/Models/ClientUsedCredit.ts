@@ -13,8 +13,8 @@ export default class ClientUsedCredit extends BaseModel {
   public id: number;
 
   @column({
-    serializeAs: 'valueBefore',
-    columnName: 'value_before',
+    serializeAs: "valueBefore",
+    columnName: "value_before",
     consume: (value) => (value ? new Decimal(value) : null),
     prepare: (value) => value.toString(),
     serialize: (value: Decimal) => (value ? value.toNumber() : 0),
@@ -22,8 +22,8 @@ export default class ClientUsedCredit extends BaseModel {
   public valueBefore: Decimal;
 
   @column({
-    serializeAs: 'usedValue',
-    columnName: 'used_value',
+    serializeAs: "usedValue",
+    columnName: "used_value",
     consume: (value) => (value ? new Decimal(value) : null),
     prepare: (value) => value.toString(),
     serialize: (value: Decimal) => (value ? value.toNumber() : 0),
@@ -52,7 +52,10 @@ export default class ClientUsedCredit extends BaseModel {
   public user_id: string;
 
   @column({ serializeAs: null })
-  public client_payment_id: string;
+  public client_id: string;
+
+  @column({ serializeAs: null })
+  public client_payment_id: number;
 
   @column({ serializeAs: null })
   public reversed_by_user_id: string;

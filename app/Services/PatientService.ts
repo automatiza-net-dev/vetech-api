@@ -1271,6 +1271,7 @@ export default class PatientService {
     patientId: string,
     data: {
       tutor?: string;
+      tutorID?: string;
       onlyOpen?: string;
     },
   ) {
@@ -1308,10 +1309,10 @@ export default class PatientService {
     }
 
     if (authCtx.system.type === "Vet") {
-      if (data.tutor && validate(data.tutor)) {
+      if ((data.tutor && validate(data.tutor)) || (data.tutorID && validate(data.tutorID))) {
         salesQb.whereRaw("(client_id = ? or client_id = ? or patient_id = ?)", [
           patient.id,
-          data.tutor,
+          data.tutor ?? data.tutorID ?? v4(),
           patient.id,
         ]);
       } else {

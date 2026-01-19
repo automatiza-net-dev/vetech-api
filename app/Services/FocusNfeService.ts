@@ -199,6 +199,8 @@ export interface ISendNationalNfse {
 		cityRegistration: string;
 		simpleOptionCode: number;
 		specialTaxRegime: number;
+		regimeTributarySimplesNacional?: number;
+		totalTaxPercentageSimplesNacional?: number;
 	};
 
 	buyer: {
@@ -631,7 +633,11 @@ export default class FocusNfeService {
 			cnpj_prestador: data.seller.document,
 			inscricao_municipal_prestador: data.seller.cityRegistration,
 			codigo_opcao_simples_nacional: data.seller.simpleOptionCode,
+			percentual_total_tributos_simples_nacional:
+				data.seller.totalTaxPercentageSimplesNacional,
 			regime_especial_tributacao: data.seller.specialTaxRegime,
+			regime_tributario_simples_nacional:
+				data.seller.regimeTributarySimplesNacional,
 			cpf_tomador: data.buyer.cpfDocument,
 			cnpj_tomador: data.buyer.cnpjDocument,
 			razao_social_tomador: data.buyer.name,

@@ -644,8 +644,8 @@ export default class FocusNfeService {
 			razao_social_tomador: data.buyer.name,
 			codigo_municipio_tomador:
 				data.buyer.address.cityCode === 0
-					? data.buyer.address.cityCode
-					: undefined,
+					? undefined
+					: data.buyer.address.cityCode,
 			cep_tomador: data.buyer.address.postalCode ?? undefined,
 			logradouro_tomador: data.buyer.address.street ?? undefined,
 			numero_tomador: data.buyer.address.number ?? undefined,

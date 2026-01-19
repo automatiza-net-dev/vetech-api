@@ -825,9 +825,9 @@ export default class BusinessUnitFiscalDocumentService {
 				query.preload("product");
 			});
 
-		// if (items.length === 0) {
-		//   throw new BadRequestException("Não existe documento para ser emitido");
-		// }
+		if (items.length === 0) {
+			throw new BadRequestException("Não existe documento para ser emitido");
+		}
 
 		const productsWithoutServiceCode = items.filter(
 			(i) => !i.productVariation.product.serviceCode,
@@ -857,6 +857,8 @@ export default class BusinessUnitFiscalDocumentService {
 							fiscal_document_id: document.id,
 							user_who_authorized_id: authCtx.user.id,
 
+							national:
+								!!authCtx.unit.unitConfig.config.fiscalDocuments?.nfse_nacional,
 							authorizationDate: DateTime.now(),
 							model: document.model,
 							totalValue: items.reduce(
@@ -950,15 +952,17 @@ export default class BusinessUnitFiscalDocumentService {
 								trx,
 							);
 
-					await serviceDocument
-						.merge({
-							rpsNumber: result.data?.numero_rps,
-							rpsSeries: result.data?.serie_rps.toString(),
-							status: result.data?.status,
-							errors: result.data?.erros,
-						})
-						.useTransaction(trx)
-						.save();
+					if (!authCtx.unit.unitConfig.config.fiscalDocuments?.nfse_nacional) {
+						await serviceDocument
+							.merge({
+								rpsNumber: result.data?.numero_rps,
+								rpsSeries: result.data?.serie_rps.toString(),
+								status: result.data?.status,
+								errors: result.data?.erros,
+							})
+							.useTransaction(trx)
+							.save();
+					}
 
 					await item
 						.merge({
@@ -1000,6 +1004,8 @@ export default class BusinessUnitFiscalDocumentService {
 					user_who_authorized_id: authCtx.user.id,
 					bill_id: bill.id,
 
+					national:
+						!!authCtx.unit.unitConfig.config.fiscalDocuments?.nfse_nacional,
 					authorizationDate: DateTime.now(),
 					model: document.model,
 					totalValue: mapItems.reduce(

@@ -1535,16 +1535,7 @@ where deposit_id = ?
 					}
 
 					if (!data.creditOverflow) {
-						const singleValue =
-							Math.floor(
-								(relativeValueToPay.toNumber() / installmentFee.installment) *
-									100,
-							) / 100;
-						const withOffset =
-							relativeValueToPay.toNumber() -
-							singleValue * (installmentFee.installment - 1);
-
-						const billPayment = await BillPayment.create(
+						await BillPayment.create(
 							{
 								economic_group_id: authCtx.group.id,
 								business_unit_id: authCtx.unit.id,
@@ -1585,82 +1576,6 @@ where deposit_id = ?
 							},
 							{ client: trx },
 						);
-
-						const shouldUseFlag = paymentMethod?.tef !== PaymentMethodTef.N;
-
-						await Finance.createMany(
-							Array.from({ length: installmentFee.installment }, (_, v) => {
-								const installmentValue =
-									v === installmentFee.installment - 1
-										? withOffset
-										: singleValue;
-
-								const feeCtx = paymentMethod
-									? shouldUseFlag
-										? flags.reduce((acc, cur) => {
-												const ctx = cur.installments.find(
-													(f) => f.installment === installmentFee.installment,
-												);
-												if (ctx) {
-													return ctx.fee;
-												}
-
-												return acc;
-											}, paymentMethod.fee)
-										: paymentMethod.fee
-									: 0;
-
-								return {
-									user_id: authCtx.user.id,
-									economic_group_id: authCtx.group.id,
-									business_unit_id: authCtx.unit.id,
-									daily_movement_id: bill.daily_movement_id,
-									daily_cashier_id: bill.daily_cashier_id,
-									client_id: bill.financial_responsible_id ?? bill.client_id,
-									payment_method_id: paymentMethod?.id,
-									origin_id: billPayment.id,
-									account_plan_id:
-										authCtx.unit.unitConfig.sale_exit_account_plan_id,
-									checking_account_id:
-										$checkingAccountMeta?.checking_account_id ??
-										paymentMethod?.checkingAccountId,
-
-									internalCode: bill.internalCode,
-									type: FinanceType.C,
-									installment: v + 1,
-									block: billPayment.block,
-									originFlag: FinanceOriginFlag.S,
-									document: `CLI-${bill.client.tag}`,
-									historic: `CLI-${bill.client.tag}`,
-									issueDate: DateTime.now(),
-									discountValue: new Decimal(0),
-									discountPercentage: 0,
-									expirationDate: billPayment.expirationDate,
-									originalValue: new Decimal(installmentValue),
-									value: new Decimal(
-										installmentValue - (installmentValue * feeCtx) / 100,
-									),
-									totalValue: new Decimal(
-										installmentValue - (installmentValue * feeCtx) / 100,
-									),
-									feeDiscountValue:
-										(billPayment.installmentValue ?? 0) -
-										(installmentValue - (installmentValue * feeCtx) / 100),
-									feeValue: new Decimal(0),
-									feeDiscountPercentage: feeCtx,
-									accept: FinanceAccept.N,
-									reconciled:
-										authCtx.unit.unitConfig.balanceControl === "previsto",
-									competenceDate: DateTime.now().toFormat("MM/yyyy"),
-									nsuDocument: billPayment.nsuDocument,
-									tef_flag_id: billPayment.tef_flag_id,
-									acquirer_id: billPayment.tef_acquirer_id,
-									status: FinanceStatus.A,
-									qtyInstallments: data.installments,
-								};
-							}),
-							{ client: trx },
-						);
 					}
 
 					await bill
@@ -1673,6 +1588,102 @@ where deposit_id = ?
 						.save();
 				}),
 			);
+
+			if (!data.creditOverflow) {
+				const relativeValueToPay = usedCredit
+					? new Decimal(data.installmentsValue).minus(usedCredit.usedValue)
+					: new Decimal(data.installmentsValue);
+
+				const singleValue = relativeValueToPay.div(
+					new Decimal(installmentFee.installment),
+				);
+				const withOffset = relativeValueToPay.minus(
+					singleValue.times(installmentFee.installment - 1),
+				);
+				const shouldUseFlag = paymentMethod?.tef !== PaymentMethodTef.N;
+
+				await Finance.createMany(
+					Array.from({ length: installmentFee.installment }, (_, v) => {
+						const installmentValue =
+							v === installmentFee.installment - 1 ? withOffset : singleValue;
+
+						const feeCtx = paymentMethod
+							? shouldUseFlag
+								? flags.reduce((acc, cur) => {
+										const ctx = cur.installments.find(
+											(f) => f.installment === installmentFee.installment,
+										);
+										if (ctx) {
+											return ctx.fee;
+										}
+
+										return acc;
+									}, paymentMethod.fee)
+								: paymentMethod.fee
+							: 0;
+
+						const firstPossibleClient = bills.find((b) => !!b.client);
+
+						return {
+							user_id: authCtx.user.id,
+							economic_group_id: authCtx.group.id,
+							business_unit_id: authCtx.unit.id,
+							daily_movement_id: dailyCashier?.daily_movement_id,
+							daily_cashier_id: dailyCashier?.id,
+							client_id:
+								bills.find((b) => b.financial_responsible_id)
+									?.financial_responsible_id ??
+								bills.find((b) => b.client_id)?.client_id,
+							payment_method_id: paymentMethod?.id,
+							account_plan_id:
+								authCtx.unit.unitConfig.sale_exit_account_plan_id,
+							checking_account_id:
+								$checkingAccountMeta?.checking_account_id ??
+								paymentMethod?.checkingAccountId,
+
+							// internalCode: bill.internalCode,
+							type: FinanceType.C,
+							installment: v + 1,
+							block: v + 1,
+							originFlag: FinanceOriginFlag.S,
+							document: `CLI-${firstPossibleClient?.tag ?? "???"}`,
+							historic: `CLI-${firstPossibleClient?.tag ?? "???"}`,
+							issueDate: DateTime.now(),
+							discountValue: new Decimal(0),
+							discountPercentage: 0,
+							expirationDate: paymentMethod
+								? SharedService.CalculateDateOffset(
+										v,
+										data.expirationDate,
+										paymentMethod,
+									)
+								: DateTime.now(),
+							originalValue: new Decimal(installmentValue),
+							value: installmentValue
+								.minus(installmentValue.times(feeCtx))
+								.div(100),
+							totalValue: installmentValue
+								.minus(installmentValue.times(feeCtx))
+								.div(100),
+							feeDiscountValue: installmentValue
+								.minus(installmentValue.times(feeCtx))
+								.div(100)
+								.toNumber(),
+							feeValue: new Decimal(0),
+							feeDiscountPercentage: feeCtx,
+							accept: FinanceAccept.N,
+							reconciled: authCtx.unit.unitConfig.balanceControl === "previsto",
+							competenceDate: DateTime.now().toFormat("MM/yyyy"),
+							nsuDocument: data.nsuDocument,
+							tef_flag_id: data.flagId,
+							acquirer_id: data.acquirerId,
+							status: FinanceStatus.A,
+							qtyInstallments: data.installments,
+						};
+					}),
+					{ client: trx },
+				);
+			}
 		});
 	}
 

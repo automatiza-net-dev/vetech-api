@@ -631,8 +631,9 @@ export default class FocusNfeService {
 			data_competencia: data.competenceDate,
 			codigo_municipio_emissora: data.seller.cityCode,
 			cnpj_prestador: data.seller.document,
-			inscricao_municipal_prestador: data.seller.cityRegistration,
+			// inscricao_municipal_prestador: data.seller.cityRegistration,
 			codigo_opcao_simples_nacional: data.seller.simpleOptionCode,
+			codigo_municipio_prestacao: data.service.cityCode,
 			percentual_total_tributos_simples_nacional:
 				data.seller.totalTaxPercentageSimplesNacional,
 			regime_especial_tributacao: data.seller.specialTaxRegime,
@@ -641,21 +642,23 @@ export default class FocusNfeService {
 			cpf_tomador: data.buyer.cpfDocument,
 			cnpj_tomador: data.buyer.cnpjDocument,
 			razao_social_tomador: data.buyer.name,
-			codigo_municipio_tomador: data.buyer.address.cityCode,
-			cep_tomador: data.buyer.address.postalCode,
-			logradouro_tomador: data.buyer.address.street,
-			numero_tomador: data.buyer.address.number,
-			complemento_tomador: data.buyer.address.complement,
-			bairro_tomador: data.buyer.address.district,
+			codigo_municipio_tomador:
+				data.buyer.address.cityCode === 0
+					? data.buyer.address.cityCode
+					: undefined,
+			cep_tomador: data.buyer.address.postalCode ?? undefined,
+			logradouro_tomador: data.buyer.address.street ?? undefined,
+			numero_tomador: data.buyer.address.number ?? undefined,
+			complemento_tomador: data.buyer.address.complement ?? undefined,
+			bairro_tomador: data.buyer.address.district ?? undefined,
 			telefone_tomador: data.buyer.phone,
 			email_tomador: data.buyer.email,
-			codigo_municipio_prestacao: data.service.cityCode,
 			descricao_servico: data.service.description,
-			codigo_nbs: Number(data.service.nationalServiceCode),
 			valor_servico: data.service.value,
-			codigo_tributacao_nacional_iss: data.service.nationalTaxationCode,
 			tributacao_iss: data.service.issTaxationType,
 			tipo_retencao_iss: data.service.issRetentionType,
+			codigo_tributacao_nacional_iss: data.service.nationalTaxationCode,
+			codigo_nbs: Number(data.service.nationalServiceCode),
 		};
 	}
 

@@ -1138,14 +1138,14 @@ export default class BusinessUnitFiscalDocumentService {
 		clearDoc: string,
 	): ISendNationalNfse {
 		return {
-			issuedAt: new Date().toISOString(),
-			competenceDate: format(new Date(), "yyy-MM-dd"),
+			issuedAt: DateTime.now().minus({ hours: 3, minutes: 2 }).toISO(),
+			competenceDate: format(new Date(), "yyyy-MM-dd"),
 			seller: {
 				document: authCtx.unit.document ?? "",
 				municipalRegistration: authCtx.unit.cityRegistration ?? "",
 				cityCode: Number.parseInt(authCtx.unit.cityCode ?? "0"),
 				cityRegistration: authCtx.unit.cityRegistration ?? "",
-				simpleOptionCode: 0,
+				simpleOptionCode: authCtx.unit.simple ? 3 : 1,
 				specialTaxRegime:
 					authCtx.unit.unitConfig.config.fiscalDocuments
 						?.regime_especial_tributacao ?? 0,
@@ -1154,7 +1154,7 @@ export default class BusinessUnitFiscalDocumentService {
 						?.regime_tributario_simples_nacional ?? 0,
 				totalTaxPercentageSimplesNacional:
 					authCtx.unit.unitConfig.config.fiscalDocuments
-						?.percentual_total_tributos_simples_nacional ?? 6,,
+						?.percentual_total_tributos_simples_nacional ?? 6,
 			},
 			buyer: {
 				cpfDocument: clearDoc.length === 11 ? clearDoc : undefined,
@@ -1166,12 +1166,15 @@ export default class BusinessUnitFiscalDocumentService {
 						Boolean,
 					) ?? "",
 				address: {
-					street: responsible.tutor.street,
-					number: responsible.tutor.number,
-					complement: responsible.tutor.complement,
-					district: responsible.tutor.district,
-					cityCode: Number.parseInt(responsible.tutor.cityCode ?? "0"),
-					postalCode: responsible.tutor.postalCode,
+					street: responsible.tutor.street ?? undefined,
+					number: responsible.tutor.number ?? undefined,
+					complement: responsible.tutor.complement ?? undefined,
+					district: responsible.tutor.district ?? undefined,
+					cityCode:
+						Number.parseInt(responsible.tutor.cityCode ?? "0") === 0
+							? Number.parseInt(responsible.tutor.cityCode ?? "0")
+							: undefined,
+					postalCode: responsible.tutor.postalCode ?? undefined,
 				},
 			},
 			service: {
@@ -1201,14 +1204,14 @@ export default class BusinessUnitFiscalDocumentService {
 		serviceCode: string,
 	): ISendNationalNfse {
 		return {
-			issuedAt: new Date().toISOString(),
-			competenceDate: format(new Date(), "YYYY-MM-D"),
+			issuedAt: DateTime.now().minus({ minutes: 2 }).toISO(),
+			competenceDate: format(new Date(), "yyyy-MM-dd"),
 			seller: {
 				document: authCtx.unit.document ?? "",
 				municipalRegistration: authCtx.unit.cityRegistration ?? "",
 				cityCode: Number.parseInt(authCtx.unit.cityCode ?? "0"),
 				cityRegistration: authCtx.unit.cityRegistration ?? "",
-				simpleOptionCode: 0,
+				simpleOptionCode: authCtx.unit.simple ? 3 : 1,
 				specialTaxRegime:
 					authCtx.unit.unitConfig.config.fiscalDocuments
 						?.regime_especial_tributacao ?? 0,
@@ -1229,12 +1232,15 @@ export default class BusinessUnitFiscalDocumentService {
 						Boolean,
 					) ?? "",
 				address: {
-					street: responsible.tutor.street,
-					number: responsible.tutor.number,
-					complement: responsible.tutor.complement,
-					district: responsible.tutor.district,
-					cityCode: Number.parseInt(responsible.tutor.cityCode ?? "0"),
-					postalCode: responsible.tutor.postalCode,
+					street: responsible.tutor.street ?? undefined,
+					number: responsible.tutor.number ?? undefined,
+					complement: responsible.tutor.complement ?? undefined,
+					district: responsible.tutor.district ?? undefined,
+					cityCode:
+						Number.parseInt(responsible.tutor.cityCode ?? "0") === 0
+							? Number.parseInt(responsible.tutor.cityCode ?? "0")
+							: undefined,
+					postalCode: responsible.tutor.postalCode ?? undefined,
 				},
 			},
 			service: {

@@ -999,8 +999,6 @@ export default class FocusNfeService {
 		}
 	}
 
-	// hora do evento?
-	// https://atendimento.tecnospeed.com.br/hc/pt-br/articles/360015591514-Rejei%C3%A7%C3%A3o-578-A-data-do-evento-n%C3%A3o-pode-ser-maior-que-a-data-do-processamento
 	public async cancelNfse(ref: string, reason: string, token: string) {
 		try {
 			const { data } = await this.ax.delete(`/v2/nfse/${ref}`, {
@@ -1039,6 +1037,43 @@ export default class FocusNfeService {
 				unknown
 			>;
 			// Logger.error((error as T).response?.data.status ?? "");
+
+			return {
+				success: false as const,
+				status: (error as T).response?.data.status,
+				errors: (error as T).response?.data.erros,
+			};
+		}
+	}
+
+	public async cancelNationalNfse(ref: string, reason: string, token: string) {
+		try {
+			const { data } = await this.ax.delete(`/v2/nfsen/${ref}`, {
+				data: {
+					justificativa: reason,
+				},
+				auth: {
+					username: token,
+					password: "",
+				},
+			});
+
+			return {
+				success: true as const,
+				status: data.status as "cancelado",
+			};
+		} catch (error) {
+			type T = TypedAxiosError<
+				{
+					status: "erro_cancelamento";
+					erros: Array<{
+						codigo: string;
+						mensagem: string;
+						correcao: string | null;
+					}>;
+				},
+				unknown
+			>;
 
 			return {
 				success: false as const,

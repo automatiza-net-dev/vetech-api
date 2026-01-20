@@ -1859,11 +1859,13 @@ export default class BusinessUnitFiscalDocumentService {
 
 			const token = this.getToken(unit);
 
-			const cancelResult = await this.focusNfe.cancelNfse(
-				document.id,
-				data.reason,
-				token,
-			);
+			const cancelResult = document.national
+				? await this.focusNfe.cancelNationalNfse(
+						document.id,
+						data.reason,
+						token,
+					)
+				: await this.focusNfe.cancelNfse(document.id, data.reason, token);
 			if (!cancelResult) {
 				throw new BadRequestException(
 					"Erro ao cancelar nota fiscal",

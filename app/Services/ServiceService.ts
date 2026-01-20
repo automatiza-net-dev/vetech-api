@@ -14,370 +14,374 @@ import ProductVariation from "App/Models/ProductVariation";
 import ReceiptItem from "App/Models/ReceiptItem";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import IServiceData, {
-	IUpdateService,
+  IUpdateService,
 } from "Contracts/interfaces/IServiceData";
 import { DateTime } from "luxon";
 
 interface ISearch {
-	description?: string;
-	subgroup?: string;
-	taxation?: string;
-	active?: string;
+  description?: string;
+  subgroup?: string;
+  taxation?: string;
+  active?: string;
 }
 
 @inject()
 export default class ServiceService {
-	constructor(private readonly sharedService: SharedService) {}
+  constructor(private readonly sharedService: SharedService) { }
 
-	public async index(authCtx: AuthContext, data: ISearch) {
-		const qb = authCtx.group
-			.related("products")
-			.query()
-			.where("type", ProductType.SERVICE)
-			.preload("unit")
-			.preload("group", (query) => {
-				query.select("id", "name", "active");
-			})
-			.preload("subgroup", (query) => {
-				query.select("id", "description");
-			})
-			.preload("variations", (query) => {
-				query.orderBy("created_at", "desc");
-				query.select("id", "barcode", "active");
+  public async index(authCtx: AuthContext, data: ISearch) {
+    const qb = authCtx.group
+      .related("products")
+      .query()
+      .where("type", ProductType.SERVICE)
+      .preload("unit")
+      .preload("group", (query) => {
+        query.select("id", "name", "active");
+      })
+      .preload("subgroup", (query) => {
+        query.select("id", "description");
+      })
+      .preload("variations", (query) => {
+        query.orderBy("created_at", "desc");
+        query.select("id", "barcode", "active");
 
-				query.preload("businessUnitProducts", (query) => {
-					query.where("businness_unit_id", authCtx.unit.id);
+        query.preload("businessUnitProducts", (query) => {
+          query.where("businness_unit_id", authCtx.unit.id);
 
-					query.preload("businessUnit", (query) => {
-						query.select("id", "fantasyName", "companyName", "identification");
-					});
-				});
+          query.preload("businessUnit", (query) => {
+            query.select("id", "fantasyName", "companyName", "identification");
+          });
+        });
 
-				query.preload("variationOptions", (subquery) => {
-					subquery.select("id", "description", "active");
-				});
-			})
-			.preload("variationGroup", (query) => {
-				query.select("id", "description", "active");
-			})
-			.preload("taxationGroup");
+        query.preload("variationOptions", (subquery) => {
+          subquery.select("id", "description", "active");
+        });
+      })
+      .preload("variationGroup", (query) => {
+        query.select("id", "description", "active");
+      })
+      .preload("taxationGroup");
 
-		if (data.description) {
-			qb.whereRaw("unaccent(description) ilike unaccent(?)", [
-				`%${data.description}%`,
-			]);
-		}
+    if (data.description) {
+      qb.whereRaw("unaccent(description) ilike unaccent(?)", [
+        `%${data.description}%`,
+      ]);
+    }
 
-		if (data.subgroup) {
-			qb.where("subgroup_id", data.subgroup);
-		}
+    if (data.subgroup) {
+      qb.where("subgroup_id", data.subgroup);
+    }
 
-		if (data.taxation) {
-			qb.where("taxation_group_id", data.taxation);
-		}
+    if (data.taxation) {
+      qb.where("taxation_group_id", data.taxation);
+    }
 
-		if (data.active) {
-			qb.where("active", data.active === "true");
-		}
+    if (data.active) {
+      qb.where("active", data.active === "true");
+    }
 
-		const result = await qb;
+    const result = await qb;
 
-		return result.map((service) => ({
-			id: service.id,
-			type: service.type,
-			description: service.description,
-			referenceCode: service.referenceCode,
-			serviceCode: service.serviceCode,
-			active: service.active,
-			created_at: service.createdAt,
-			courtesy: service.courtesy,
-			productivityItem: service.productivityItem,
-			subgroup: {
-				id: service.subgroup?.id ?? null,
-				description: service.subgroup?.description ?? null,
-			},
-			taxationGroup: {
-				id: service.taxationGroup?.id ?? null,
-				name: service.taxationGroup?.name ?? null,
-			},
-			price: {
-				id: service.variations[0]?.id ?? null,
-				value:
-					Number.parseFloat(
-						service.variations[0]?.businessUnitProducts[0]
-							?.price as unknown as string,
-					) ?? null,
-			},
-		}));
-	}
+    return result.map((service) => ({
+      id: service.id,
+      type: service.type,
+      description: service.description,
+      referenceCode: service.referenceCode,
+      serviceCode: service.serviceCode,
+      active: service.active,
+      created_at: service.createdAt,
+      courtesy: service.courtesy,
+      productivityItem: service.productivityItem,
+      subgroup: {
+        id: service.subgroup?.id ?? null,
+        description: service.subgroup?.description ?? null,
+      },
+      taxationGroup: {
+        id: service.taxationGroup?.id ?? null,
+        name: service.taxationGroup?.name ?? null,
+      },
+      price: {
+        id: service.variations[0]?.id ?? null,
+        value:
+          Number.parseFloat(
+            service.variations[0]?.businessUnitProducts[0]
+              ?.price as unknown as string,
+          ) ?? null,
+      },
+    }));
+  }
 
-	public async show(authCtx: AuthContext, id: string): Promise<Product> {
-		const product = await authCtx.group
-			.related("products")
-			.query()
-			.where("id", id)
-			.where("type", ProductType.SERVICE)
-			.preload("unit")
-			.preload("taxationGroup")
-			.preload("group", (query) => {
-				query.select("id", "name", "active");
-			})
-			.preload("subgroup", (query) => {
-				query.select("id", "description");
-			})
-			.preload("variations", (query) => {
-				query.orderBy("created_at", "desc");
-				query.select("id", "barcode", "active");
+  public async show(authCtx: AuthContext, id: string): Promise<Product> {
+    const product = await authCtx.group
+      .related("products")
+      .query()
+      .where("id", id)
+      .where("type", ProductType.SERVICE)
+      .preload("unit")
+      .preload("taxationGroup")
+      .preload("group", (query) => {
+        query.select("id", "name", "active");
+      })
+      .preload("subgroup", (query) => {
+        query.select("id", "description");
+      })
+      .preload("variations", (query) => {
+        query.orderBy("created_at", "desc");
+        query.select("id", "barcode", "active");
 
-				query.preload("businessUnitProducts", (query) => {
-					query.whereHas("businessUnit", (query) => {
-						query.whereNull("deleted_at");
-					});
+        query.preload("businessUnitProducts", (query) => {
+          query.whereHas("businessUnit", (query) => {
+            query.whereNull("deleted_at");
+          });
 
-					query.preload("businessUnit", (query) => {
-						query.select("id", "fantasyName", "companyName", "identification");
-					});
-				});
+          query.preload("businessUnit", (query) => {
+            query.select("id", "fantasyName", "companyName", "identification");
+          });
+        });
 
-				query.preload("variationOptions", (subquery) => {
-					subquery.select("id", "description", "active");
-				});
-			})
-			.preload("variationGroup", (query) => {
-				query.select("id", "description", "active");
-			})
-			.first();
+        query.preload("variationOptions", (subquery) => {
+          subquery.select("id", "description", "active");
+        });
+      })
+      .preload("variationGroup", (query) => {
+        query.select("id", "description", "active");
+      })
+      .first();
 
-		if (!product) {
-			throw this.sharedService.ResourceNotFound();
-		}
+    if (!product) {
+      throw this.sharedService.ResourceNotFound();
+    }
 
-		return product;
-	}
+    return product;
+  }
 
-	public async store(authCtx: AuthContext, data: IServiceData) {
-		await Database.transaction(async (trx) => {
-			const businessUnits = await BusinessUnit.query()
-				.useTransaction(trx)
-				.where("economic_group_id", authCtx.group.id)
-				.whereNull("deleted_at")
-				.preload("unitConfig", (query) => {
-					query.preload("serviceVariationGroup");
-				});
+  public async store(authCtx: AuthContext, data: IServiceData) {
+    console.log('data', data);
+    await Database.transaction(async (trx) => {
+      const businessUnits = await BusinessUnit.query()
+        .useTransaction(trx)
+        .where("economic_group_id", authCtx.group.id)
+        .whereNull("deleted_at")
+        .preload("unitConfig", (query) => {
+          query.preload("serviceVariationGroup");
+        });
 
-			const someUnitConfig = businessUnits.find(
-				(bu) => bu.unitConfig,
-			)?.unitConfig;
+      const someUnitConfig = businessUnits.find(
+        (bu) => bu.unitConfig,
+      )?.unitConfig;
 
-			const service = await Product.create(
-				{
-					variation_group_id: someUnitConfig?.service_variation_group_id,
-					economic_group_id: authCtx.group.id,
-					taxation_group_id: data.taxationGroupId,
-					unit_id: data.unitId,
-					subgroup_id: data.subgroupId,
+      const service = await Product.create(
+        {
+          variation_group_id: someUnitConfig?.service_variation_group_id,
+          economic_group_id: authCtx.group.id,
+          taxation_group_id: data.taxationGroupId,
+          unit_id: data.unitId,
+          subgroup_id: data.subgroupId,
 
-					purpose: ProductPurpose.BOTH,
-					description: data.description,
-					type: ProductType.SERVICE,
-					referenceCode: data.referenceCode,
-					features: data.features,
-					icmsOrigin: "0",
-					ncm: "00",
-					serviceCode: data.serviceCode,
-					serviceType: data.serviceType,
-					courtesy: data.courtesy,
-					productivityItem: data.productivityItem ?? false,
-				},
-				{
-					client: trx,
-				},
-			);
+          codigoNbs: data.codigoNbs,
+          purpose: ProductPurpose.BOTH,
+          description: data.description,
+          type: ProductType.SERVICE,
+          referenceCode: data.referenceCode,
+          features: data.features,
+          icmsOrigin: "0",
+          ncm: "00",
+          serviceCode: data.serviceCode,
+          serviceType: data.serviceType,
+          courtesy: data.courtesy,
+          productivityItem: data.productivityItem ?? false,
+        },
+        {
+          client: trx,
+        },
+      );
 
-			if (data.serviceType === "exam") {
-				await Exam.create(
-					{
-						product_id: service.id,
-						description: data.description,
-						economic_group_id: authCtx.group.id,
-						ownLaboratory: false,
-						type: undefined,
-						system_id: authCtx.system.id,
-					},
-					{
-						client: trx,
-					},
-				);
-			}
+      if (data.serviceType === "exam") {
+        await Exam.create(
+          {
+            product_id: service.id,
+            description: data.description,
+            economic_group_id: authCtx.group.id,
+            ownLaboratory: false,
+            type: undefined,
+            system_id: authCtx.system.id,
+          },
+          {
+            client: trx,
+          },
+        );
+      }
 
-			const servVariation = await service.related("variations").create(
-				{
-					barcode: undefined,
-				},
-				{
-					client: trx,
-				},
-			);
+      const servVariation = await service.related("variations").create(
+        {
+          barcode: undefined,
+        },
+        {
+          client: trx,
+        },
+      );
 
-			await servVariation.related("businessUnitProducts").createMany(
-				businessUnits.map((unit) => ({
-					businness_unit_id: unit.id,
-					stock: 0,
-					price: data.price.price,
-					costPrice: data.price.costPrice,
-					maximumStock: 0,
-					minimumStock: 0,
-					maximumDiscountPercentage: data.price.maximumDiscountPercentage,
-					maximumDiscountValue: data.price.maximumDiscountValue,
-					profitMargin: data.price.profitMargin,
-					commission: data.price.commission,
-					commissionMeta: data.price.commissionMeta,
-					meta: data.price.meta,
-					metaType: data.price.metaType,
-				})),
-				{
-					client: trx,
-				},
-			);
-		});
-	}
+      await servVariation.related("businessUnitProducts").createMany(
+        businessUnits.map((unit) => ({
+          businness_unit_id: unit.id,
+          stock: 0,
+          price: data.price.price,
+          costPrice: data.price.costPrice,
+          maximumStock: 0,
+          minimumStock: 0,
+          maximumDiscountPercentage: data.price.maximumDiscountPercentage,
+          maximumDiscountValue: data.price.maximumDiscountValue,
+          profitMargin: data.price.profitMargin,
+          commission: data.price.commission,
+          commissionMeta: data.price.commissionMeta,
+          meta: data.price.meta,
+          metaType: data.price.metaType,
+        })),
+        {
+          client: trx,
+        },
+      );
+    });
+  }
 
-	public async update(
-		authCtx: AuthContext,
-		id: string,
-		data: IUpdateService,
-	): Promise<Product> {
-		return Database.transaction(async (trx) => {
-			const service = await this.show(authCtx, id);
+  public async update(
+    authCtx: AuthContext,
+    id: string,
+    data: IUpdateService,
+  ): Promise<Product> {
+    console.log('data', data);
+    return Database.transaction(async (trx) => {
+      const service = await this.show(authCtx, id);
 
-			if (data.serviceType === "exam") {
-				const exam = await Exam.firstOrCreate(
-					{
-						product_id: service.id,
-					},
-					{
-						description: data.description,
-						economic_group_id: service.economic_group_id,
-						product_id: service.id,
-						ownLaboratory: false,
-						type: data.serviceType,
-						system_id: authCtx.system.id,
-					},
-					{
-						client: trx,
-					},
-				);
+      if (data.serviceType === "exam") {
+        const exam = await Exam.firstOrCreate(
+          {
+            product_id: service.id,
+          },
+          {
+            description: data.description,
+            economic_group_id: service.economic_group_id,
+            product_id: service.id,
+            ownLaboratory: false,
+            type: data.serviceType,
+            system_id: authCtx.system.id,
+          },
+          {
+            client: trx,
+          },
+        );
 
-				if (exam.description !== data.description) {
-					await exam
-						.merge({ description: data.description })
-						.useTransaction(trx)
-						.save();
-				}
-			}
+        if (exam.description !== data.description) {
+          await exam
+            .merge({ description: data.description })
+            .useTransaction(trx)
+            .save();
+        }
+      }
 
-			return service
-				.merge({
-					subgroup_id: data.subgroupId,
-					taxation_group_id: data.taxationGroupId,
-					unit_id: data.unitId,
+      return service
+        .merge({
+          subgroup_id: data.subgroupId,
+          taxation_group_id: data.taxationGroupId,
+          unit_id: data.unitId,
 
-					description: data.description,
-					referenceCode: data.referenceCode,
-					features: data.features,
-					active: data.active,
-					serviceCode: data.serviceCode,
-					serviceType: data.serviceType,
-					courtesy: data.courtesy,
-					productivityItem: data.productivityItem,
-				})
-				.useTransaction(trx)
-				.save();
-		});
-	}
+          codigoNbs: data.codigoNbs,
+          description: data.description,
+          referenceCode: data.referenceCode,
+          features: data.features,
+          active: data.active,
+          serviceCode: data.serviceCode,
+          serviceType: data.serviceType,
+          courtesy: data.courtesy,
+          productivityItem: data.productivityItem,
+        })
+        .useTransaction(trx)
+        .save();
+    });
+  }
 
-	public async destroy(authCtx: AuthContext, id: string): Promise<void> {
-		await Database.transaction(async (trx) => {
-			const product = await Product.query()
-				.useTransaction(trx)
-				.where("id", id)
-				.preload("variations")
-				.first();
+  public async destroy(authCtx: AuthContext, id: string): Promise<void> {
+    await Database.transaction(async (trx) => {
+      const product = await Product.query()
+        .useTransaction(trx)
+        .where("id", id)
+        .preload("variations")
+        .first();
 
-			if (!product) {
-				throw new ResourceNotFoundException(
-					"Recurso não encontrado",
-					404,
-					"E_NOT_FOUND",
-				);
-			}
+      if (!product) {
+        throw new ResourceNotFoundException(
+          "Recurso não encontrado",
+          404,
+          "E_NOT_FOUND",
+        );
+      }
 
-			const biQb = BillItem.query()
-				.useTransaction(trx)
-				.whereIn(
-					"product_variation_id",
-					product.variations.map((pv) => pv.id),
-				)
-				.first();
-			const buQb = BudgetItem.query()
-				.useTransaction(trx)
-				.whereIn(
-					"product_variation_id",
-					product.variations.map((pv) => pv.id),
-				)
-				.first();
-			const riQb = ReceiptItem.query()
-				.useTransaction(trx)
-				.whereIn(
-					"product_variation_id",
-					product.variations.map((pv) => pv.id),
-				)
-				.first();
-			const diQb = DepositItem.query()
-				.useTransaction(trx)
-				.whereIn(
-					"product_variation_id",
-					product.variations.map((pv) => pv.id),
-				)
-				.first();
-			const dmiQb = DepositMovementItem.query()
-				.useTransaction(trx)
-				.whereIn(
-					"product_variation_id",
-					product.variations.map((pv) => pv.id),
-				)
-				.first();
-			const kiQb = KitItem.query()
-				.useTransaction(trx)
-				.whereIn(
-					"product_variation_id",
-					product.variations.map((pv) => pv.id),
-				)
-				.first();
+      const biQb = BillItem.query()
+        .useTransaction(trx)
+        .whereIn(
+          "product_variation_id",
+          product.variations.map((pv) => pv.id),
+        )
+        .first();
+      const buQb = BudgetItem.query()
+        .useTransaction(trx)
+        .whereIn(
+          "product_variation_id",
+          product.variations.map((pv) => pv.id),
+        )
+        .first();
+      const riQb = ReceiptItem.query()
+        .useTransaction(trx)
+        .whereIn(
+          "product_variation_id",
+          product.variations.map((pv) => pv.id),
+        )
+        .first();
+      const diQb = DepositItem.query()
+        .useTransaction(trx)
+        .whereIn(
+          "product_variation_id",
+          product.variations.map((pv) => pv.id),
+        )
+        .first();
+      const dmiQb = DepositMovementItem.query()
+        .useTransaction(trx)
+        .whereIn(
+          "product_variation_id",
+          product.variations.map((pv) => pv.id),
+        )
+        .first();
+      const kiQb = KitItem.query()
+        .useTransaction(trx)
+        .whereIn(
+          "product_variation_id",
+          product.variations.map((pv) => pv.id),
+        )
+        .first();
 
-			const items = await Promise.all([biQb, buQb, riQb, diQb, dmiQb, kiQb]);
-			if (items.some(Boolean)) {
-				throw new BadRequestException(
-					"Serviço já lançado em movimentações, impossível excluir. Marque o produto como Inativo",
-					400,
-					"E_ERR",
-				);
-			}
+      const items = await Promise.all([biQb, buQb, riQb, diQb, dmiQb, kiQb]);
+      if (items.some(Boolean)) {
+        throw new BadRequestException(
+          "Serviço já lançado em movimentações, impossível excluir. Marque o produto como Inativo",
+          400,
+          "E_ERR",
+        );
+      }
 
-			await ProductVariation.query()
-				.useTransaction(trx)
-				.where("product_id", product.id)
-				.update({
-					deleted_at: DateTime.now(),
-				});
+      await ProductVariation.query()
+        .useTransaction(trx)
+        .where("product_id", product.id)
+        .update({
+          deleted_at: DateTime.now(),
+        });
 
-			await product
-				.merge({
-					exclusion_user_id: authCtx.user.id,
-					deletedAt: DateTime.now(),
-				})
-				.useTransaction(trx)
-				.save();
-		});
-	}
+      await product
+        .merge({
+          exclusion_user_id: authCtx.user.id,
+          deletedAt: DateTime.now(),
+        })
+        .useTransaction(trx)
+        .save();
+    });
+  }
 }

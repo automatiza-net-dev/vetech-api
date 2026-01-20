@@ -1,16 +1,17 @@
-import Hash from "@ioc:Adonis/Core/Hash";
-import Database, {
-  type TransactionClientContract,
-} from "@ioc:Adonis/Lucid/Database";
-import { inject } from "@adonisjs/fold";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import InternalErrorException from "App/Exceptions/InternalErrorException";
+import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import Bill, { BillStatus } from "App/Models/Bill";
+import BillAuthorization from "App/Models/BillAuthorization";
+import BillCancelation from "App/Models/BillCancelation";
 import BillItem, { BillItemStatus } from "App/Models/BillItem";
+import BillItemDepartment from "App/Models/BillItemDepartment";
 import BillPayment, { BillPaymentFeeType } from "App/Models/BillPayment";
-import BudgetPayment from "App/Models/BudgetPayment";
 import BusinessUnit from "App/Models/BusinessUnit";
 import BusinessUnitCheckingAccountPaymentMethod from "App/Models/BusinessUnitCheckingAccountPaymentMethod";
+import ClientCredit from "App/Models/ClientCredit";
+import ClientPayment from "App/Models/ClientPayment";
+import ClientUsedCredit from "App/Models/ClientUsedCredit";
 import DailyCashier, { DailyCashierStatus } from "App/Models/DailyCashier";
 import DepositItem from "App/Models/DepositItem";
 import Finance, {
@@ -22,11 +23,18 @@ import Finance, {
 import IssuedFiscalDocument from "App/Models/IssuedFiscalDocument";
 import Kit from "App/Models/Kit";
 import Patient, { PatientType } from "App/Models/Patient";
-import PaymentMethod, { PaymentMethodTef } from "App/Models/PaymentMethod";
+import PaymentMethod, {
+  PaymentMethodTef,
+  PaymentMethodType,
+} from "App/Models/PaymentMethod";
+import PaymentMethodFlag from "App/Models/PaymentMethodFlag";
 import PaymentMethodFlagInstallment from "App/Models/PaymentMethodFlagInstallment";
 import Product, { ProductPurpose, ProductType } from "App/Models/Product";
-import ProductVariation from "App/Models/ProductVariation";
 import ProductivityItem from "App/Models/ProductivityItem";
+import ProductVariation from "App/Models/ProductVariation";
+import Receipt from "App/Models/Receipt";
+import ReceiptItem from "App/Models/ReceiptItem";
+import ReceiptPayment from "App/Models/ReceiptPayment";
 import ServiceIssuedFiscalDocument from "App/Models/ServiceIssuedFiscalDocument";
 import TaxationGroup from "App/Models/TaxationGroup";
 import TaxationGroupRule, {
@@ -39,8 +47,8 @@ import TreatmentExecution from "App/Models/TreatmentExecution";
 import TreatmentItem, { TreatmentItemStatus } from "App/Models/TreatmentItem";
 import UfIcms from "App/Models/UfIcms";
 import User from "App/Models/User";
-import SharedService from "App/Services/SharedService";
 import type { AuthContext } from "App/Services/SharedService";
+import SharedService from "App/Services/SharedService";
 import { GenerateTag } from "App/Utils/GenerateTag";
 import type {
   ICreateBillData,
@@ -49,20 +57,17 @@ import type {
   IUpdateBillData,
   IUpdateBillItemData,
 } from "Contracts/interfaces/IBillData";
+import { inject } from "@adonisjs/fold";
+import Hash from "@ioc:Adonis/Core/Hash";
+import Database, {
+  type TransactionClientContract,
+} from "@ioc:Adonis/Lucid/Database";
+import { addHours, format } from "date-fns";
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 import { v4, validate } from "uuid";
 import DepositService from "./DepositService";
-import UnauthorizedException from "App/Exceptions/UnauthorizedException";
-import PaymentMethodFlag from "App/Models/PaymentMethodFlag";
 import ScheduleMovementsService from "./ScheduleMovementsService";
-import BillItemDepartment from "App/Models/BillItemDepartment";
-import BillAuthorization from "App/Models/BillAuthorization";
-import BillCancelation from "App/Models/BillCancelation";
-import { addHours, format } from "date-fns";
-import Receipt from "App/Models/Receipt";
-import ReceiptItem from "App/Models/ReceiptItem";
-import ReceiptPayment from "App/Models/ReceiptPayment";
 
 interface ISearch {
   fromBill?: string;
@@ -102,7 +107,7 @@ export default class BillService {
     private sharedService: SharedService,
     private depositService: DepositService,
     private scheduleMovementService: ScheduleMovementsService,
-  ) { }
+  ) {}
 
   isValidNumber(data: number | undefined) {
     if (!data) {
@@ -650,112 +655,112 @@ export default class BillService {
 
       const tasks = data.items
         ? data.items.map(async (elem) => {
-          const productVariation = await ProductVariation.query()
-            .useTransaction(trx)
-            .where("id", elem.productVariationId)
-            .whereHas("businessUnitProducts", (query) => {
-              query.where("businness_unit_id", authCtx.unit.id);
-            })
-            .preload("product")
-            .preload("businessUnitProducts", (query) => {
-              query.where("businness_unit_id", authCtx.unit.id);
-            })
-            .first();
-
-          if (!productVariation) {
-            throw new BadRequestException(
-              "Não foi possível encontrar um preço para esse produto",
-              400,
-              "E_NO_VARIATION",
-            );
-          }
-
-          if (elem.courtesy && !productVariation.product.courtesy) {
-            throw new BadRequestException(
-              `Produto '${productVariation.product.description}' não pode ser usado com cortesia`,
-              400,
-              "E_ERR",
-            );
-          }
-
-          elem.billItemId
-            ? await BillItem.query()
+            const productVariation = await ProductVariation.query()
               .useTransaction(trx)
-              .where("bill_id", bill.id)
-              .where("id", elem.billItemId)
-              .update({
-                courtesy_issued_user_id: elem.courtesy
-                  ? authCtx.user.id
-                  : undefined, // mantém valor anterior
+              .where("id", elem.productVariationId)
+              .whereHas("businessUnitProducts", (query) => {
+                query.where("businness_unit_id", authCtx.unit.id);
+              })
+              .preload("product")
+              .preload("businessUnitProducts", (query) => {
+                query.where("businness_unit_id", authCtx.unit.id);
+              })
+              .first();
 
-                courtesy: elem.courtesy,
-                max_discount: elem.maxDiscount,
-                // saleValue: new Decimal(elem.saleValue ?? 0).toNumber(),
-                unitaryValue: elem.courtesy ? 0 : elem.unitaryValue,
-                discountValue: elem.courtesy ? 0 : elem.discountValue,
-                quantity: new Decimal(elem.quantity).toNumber(),
-                totalValue: elem.courtesy
-                  ? 0
-                  : elem.quantity * elem.unitaryValue - elem.discountValue,
-              } as Partial<
-                Omit<BillItem, "quantity"> & { quantity: number }
-              >)
-            : await BillItem.create(
-              {
-                economic_group_id: authCtx.group.id,
-                business_unit_id: authCtx.unit.id,
-                product_variation_id: elem.productVariationId,
-                courtesy_issued_user_id: elem.courtesy
-                  ? authCtx.user.id
-                  : null,
-                bill_id: bill.id,
+            if (!productVariation) {
+              throw new BadRequestException(
+                "Não foi possível encontrar um preço para esse produto",
+                400,
+                "E_NO_VARIATION",
+              );
+            }
 
-                courtesy: elem.courtesy,
-                maxDiscount: elem.maxDiscount,
-                unitaryValue: elem.courtesy ? 0 : elem.unitaryValue,
-                discountValue: elem.courtesy ? 0 : elem.discountValue,
-                // saleValue: new Decimal(elem.saleValue ?? 0).toNumber(),
-                quantity: new Decimal(elem.quantity),
-                totalValue: elem.courtesy
-                  ? 0
-                  : elem.quantity * elem.unitaryValue - elem.discountValue,
-                status: BillItemStatus.A,
-              },
-              { client: trx },
-            );
+            if (elem.courtesy && !productVariation.product.courtesy) {
+              throw new BadRequestException(
+                `Produto '${productVariation.product.description}' não pode ser usado com cortesia`,
+                400,
+                "E_ERR",
+              );
+            }
 
-          if (
-            elem.departmentId &&
-            elem.departmentItemId &&
-            elem.billItemDepartmentId
-          ) {
-            await BillItemDepartment.query()
-              .useTransaction(trx)
-              .where("id", elem.billItemDepartmentId)
-              .where("bill_id", data.billId)
-              .where("bill_item_id", elem.billItemId ? elem.billItemId : v4())
-              .where("department_id", elem.departmentId)
-              .where("department_item_id", elem.departmentItemId)
-              .update({
-                observations: elem.observation,
-                updated_user_id: authCtx.user.id,
-              });
-            // } else {
-            // 	await BillItemDepartment.create(
-            // 		{
-            // 			bill_id: data.billId,
-            // 			bill_item_id: Array.isArray(bi)
-            // 				? (elem.billItemId ?? v4())
-            // 				: bi.id,
-            // 			department_id: elem.departmentItemId,
-            // 			department_item_id: elem.departmentItemId,
-            // 			creation_user_id: authCtx.user.id,
-            // 			observation: elem.observation,
-            // 		},
-            // 		{ client: trx },
-            // 	);
-          }
-        })
+            elem.billItemId
+              ? await BillItem.query()
+                  .useTransaction(trx)
+                  .where("bill_id", bill.id)
+                  .where("id", elem.billItemId)
+                  .update({
+                    courtesy_issued_user_id: elem.courtesy
+                      ? authCtx.user.id
+                      : undefined, // mantém valor anterior
+
+                    courtesy: elem.courtesy,
+                    max_discount: elem.maxDiscount,
+                    // saleValue: new Decimal(elem.saleValue ?? 0).toNumber(),
+                    unitaryValue: elem.courtesy ? 0 : elem.unitaryValue,
+                    discountValue: elem.courtesy ? 0 : elem.discountValue,
+                    quantity: new Decimal(elem.quantity).toNumber(),
+                    totalValue: elem.courtesy
+                      ? 0
+                      : elem.quantity * elem.unitaryValue - elem.discountValue,
+                  } as Partial<
+                    Omit<BillItem, "quantity"> & { quantity: number }
+                  >)
+              : await BillItem.create(
+                  {
+                    economic_group_id: authCtx.group.id,
+                    business_unit_id: authCtx.unit.id,
+                    product_variation_id: elem.productVariationId,
+                    courtesy_issued_user_id: elem.courtesy
+                      ? authCtx.user.id
+                      : null,
+                    bill_id: bill.id,
+
+                    courtesy: elem.courtesy,
+                    maxDiscount: elem.maxDiscount,
+                    unitaryValue: elem.courtesy ? 0 : elem.unitaryValue,
+                    discountValue: elem.courtesy ? 0 : elem.discountValue,
+                    // saleValue: new Decimal(elem.saleValue ?? 0).toNumber(),
+                    quantity: new Decimal(elem.quantity),
+                    totalValue: elem.courtesy
+                      ? 0
+                      : elem.quantity * elem.unitaryValue - elem.discountValue,
+                    status: BillItemStatus.A,
+                  },
+                  { client: trx },
+                );
+
+            if (
+              elem.departmentId &&
+              elem.departmentItemId &&
+              elem.billItemDepartmentId
+            ) {
+              await BillItemDepartment.query()
+                .useTransaction(trx)
+                .where("id", elem.billItemDepartmentId)
+                .where("bill_id", data.billId)
+                .where("bill_item_id", elem.billItemId ? elem.billItemId : v4())
+                .where("department_id", elem.departmentId)
+                .where("department_item_id", elem.departmentItemId)
+                .update({
+                  observations: elem.observation,
+                  updated_user_id: authCtx.user.id,
+                });
+              // } else {
+              // 	await BillItemDepartment.create(
+              // 		{
+              // 			bill_id: data.billId,
+              // 			bill_item_id: Array.isArray(bi)
+              // 				? (elem.billItemId ?? v4())
+              // 				: bi.id,
+              // 			department_id: elem.departmentItemId,
+              // 			department_item_id: elem.departmentItemId,
+              // 			creation_user_id: authCtx.user.id,
+              // 			observation: elem.observation,
+              // 		},
+              // 		{ client: trx },
+              // 	);
+            }
+          })
         : [];
       await Promise.all(tasks);
 
@@ -1260,7 +1265,444 @@ where deposit_id = ?
     });
   }
 
+  async createBillPaymentForChunks(
+    authCtx: AuthContext,
+    data: ICreateBillPaymentData,
+  ) {
+    return Database.transaction(async (trx) => {
+      // if (!data.clientCreditId || !data.chunkOfBills) {
+      //   throw new BadRequestException(
+      //     "Você precisa informar um credito ou um grupo de vendas",
+      //     400,
+      //     "E_NOT_OPEN",
+      //   );
+      // }
+
+      const bills = await Bill.query()
+        .whereIn("id", data.chunkOfBills ?? [])
+        .preload("client")
+        .useTransaction(trx);
+
+      if (bills.some((b) => b.status !== BillStatus.A)) {
+        throw new BadRequestException(
+          "Alguma nota não está aberta",
+          400,
+          "E_NOT_OPEN",
+        );
+      }
+
+      const dailyCashier =
+        authCtx.unit.unitConfig.dailyCashierType === "usuario"
+          ? await DailyCashier.query()
+              .useTransaction(trx)
+              .where("business_unit_id", authCtx.unit.id)
+              .where("user_who_opened_id", authCtx.user.id)
+              .where("status", DailyCashierStatus.A)
+              .whereRaw("opening_date::date = now()::date")
+              .first()
+          : await DailyCashier.query()
+              .useTransaction(trx)
+              .where("business_unit_id", authCtx.unit.id)
+              .where("status", DailyCashierStatus.A)
+              .whereRaw("opening_date::date = now()::date")
+              .first();
+
+      if (!dailyCashier) {
+        throw new BadRequestException(
+          authCtx.unit.unitConfig.dailyCashierType === "usuario"
+            ? "Não existe caixa aberto para o seu login na data de hoje"
+            : "Não existe caixa aberto na data de hoje",
+          400,
+          "E_NOT_OPEN",
+        );
+      }
+
+      const totalToPay = bills.reduce((acc, curr) => {
+        return acc.plus(curr.totalValue).minus(curr.paidValue);
+      }, new Decimal(0));
+
+      const percentagePerBill = bills.reduce(
+        (acc, curr) => {
+          acc[curr.id] = curr.totalValue.minus(curr.paidValue).div(totalToPay);
+          return acc;
+        },
+        {} as Record<string, Decimal>,
+      );
+
+      const originalValue = new Decimal(data.installmentsValue).minus(
+        totalToPay,
+      );
+      if (
+        data.creditOverflow &&
+        totalToPay.lessThan(new Decimal(data.installmentsValue))
+      ) {
+        await ClientCredit.create(
+          {
+            user_id: authCtx.user.id,
+            client_id: bills.at(0)?.client_id,
+            originalValue,
+          },
+          { client: trx },
+        );
+      }
+
+      const clientCredit = data.clientCreditId
+        ? await ClientCredit.query()
+            .where("id", data.clientCreditId)
+            .useTransaction(trx)
+            .first()
+        : null;
+
+      const usedValue = clientCredit
+        ? clientCredit.usedValue
+            .plus(data.installmentsValue)
+            .greaterThan(clientCredit.originalValue)
+          ? clientCredit.originalValue
+          : clientCredit.usedValue.plus(data.installmentsValue)
+        : new Decimal(0);
+
+      const usedCredit = await clientCredit
+        ?.merge({
+          usedValue: clientCredit.usedValue
+            .plus(data.installmentsValue)
+            .greaterThan(clientCredit.originalValue)
+            ? clientCredit.originalValue
+            : clientCredit.usedValue.plus(data.installmentsValue),
+        })
+        .useTransaction(trx)
+        .save();
+
+      // TODO: não deixar clicar crédito quando se está gerando crédito
+
+      if (usedCredit && clientCredit) {
+        const usedValue = clientCredit.usedValue
+          .plus(data.installmentsValue)
+          .greaterThan(clientCredit.originalValue)
+          ? clientCredit.originalValue
+          : clientCredit.usedValue.plus(data.installmentsValue);
+
+        const clientPayment = await ClientPayment.create(
+          {
+            client_id: bills.at(0)?.client_id,
+            cashier_id: dailyCashier.id,
+            movement_id: dailyCashier.daily_movement_id,
+            user_id: authCtx.user.id,
+
+            value: usedValue,
+            paymentDate: DateTime.now(),
+          },
+          { client: trx },
+        );
+
+        await ClientUsedCredit.create(
+          {
+            user_id: authCtx.user.id,
+            client_id: clientPayment.client_id,
+            client_payment_id: clientPayment.id,
+            valueBefore: clientCredit.usedValue,
+            usedValue: usedValue,
+          },
+          { client: trx },
+        );
+      }
+
+      const paymentMethod = data.paymentMethodId
+        ? await PaymentMethod.query()
+            .useTransaction(trx)
+            .where("id", data.paymentMethodId)
+            .firstOrFail()
+        : null;
+
+      const flagsQb = PaymentMethodFlag.query()
+        .useTransaction(trx)
+        .preload("installments", (query) => {
+          if (data.paymentMethodFlagInstallmentId) {
+            query.where("id", data.paymentMethodFlagInstallmentId);
+          }
+        });
+
+      if (paymentMethod) {
+        flagsQb.where("payment_method_id", paymentMethod.id);
+      }
+
+      if (data.paymentMethodFlagId) {
+        flagsQb.where("id", data.paymentMethodFlagId);
+      }
+      const flags = await flagsQb;
+
+      const existingPayments = await BillPayment.query().whereIn(
+        "bill_id",
+        bills.map((b) => b.id),
+      );
+
+      const maxBlockPerBill = existingPayments.reduce(
+        (acc, curr) => {
+          if (!acc[curr.bill_id]) {
+            acc[curr.bill_id] = 0;
+          }
+
+          acc[curr.bill_id] = Math.max(acc[curr.bill_id], curr.block);
+
+          return acc;
+        },
+        {} as Record<string, number>,
+      );
+
+      const $checkingAccountMetaQb =
+        BusinessUnitCheckingAccountPaymentMethod.query()
+          .useTransaction(trx)
+          .where("business_unit_id", authCtx.unit.id);
+      if (data.paymentMethodId) {
+        $checkingAccountMetaQb.where("payment_method_id", data.paymentMethodId);
+      }
+
+      const $checkingAccountMeta = await $checkingAccountMetaQb.first();
+
+      const installmentFee = data.paymentMethodFlagInstallmentId
+        ? await PaymentMethodFlagInstallment.query()
+            .useTransaction(trx)
+            .where("id", data.paymentMethodFlagInstallmentId)
+            .firstOrFail()
+        : { fee: paymentMethod?.fee ?? 0, installment: data.installments ?? 1 };
+
+      const valorDescontarVendas = totalToPay.minus(originalValue);
+
+      await Promise.all(
+        bills.map(async (bill) => {
+          let currentBlock = maxBlockPerBill[bill.id] ?? 0;
+
+          const valorAPAgarPorVenda = data.creditOverflow
+            ? new Decimal(bill.totalValue).minus(bill.paidValue)
+            : new Decimal(valorDescontarVendas).times(
+                percentagePerBill[bill.id],
+              );
+
+          if (usedValue.gt(new Decimal(0))) {
+            const overflowPaymentMethod = await PaymentMethod.query()
+              .useTransaction(trx)
+              .whereNull("economic_group_id")
+              .where("type", PaymentMethodType.CC)
+              .first();
+            if (data.creditOverflow && !overflowPaymentMethod) {
+              throw new BadRequestException(
+                "Método de pagamento para crédito de cliente não encontrado",
+                400,
+                "E_ERR",
+              );
+            }
+
+            const inverseValueToPay = data.creditOverflow
+              ? bill.totalValue.minus(bill.paidValue)
+              : valorDescontarVendas;
+
+            await BillPayment.create(
+              {
+                economic_group_id: authCtx.group.id,
+                business_unit_id: authCtx.unit.id,
+                bill_id: bill.id,
+                payment_method_id: overflowPaymentMethod?.id,
+                tef_acquirer_id: data.acquirerId,
+                tef_flag_id: data.flagId,
+                daily_cashier_id: dailyCashier.id,
+                budget_payment_id: data.budgetPaymentId,
+
+                pending: false,
+                block: ++currentBlock,
+                expirationDate: overflowPaymentMethod
+                  ? SharedService.CalculateDateOffset(
+                      0,
+                      data.expirationDate,
+                      overflowPaymentMethod,
+                    )
+                  : DateTime.now(),
+                feeType:
+                  (overflowPaymentMethod?.fee ?? 0) > 0
+                    ? BillPaymentFeeType.S
+                    : BillPaymentFeeType.N,
+                feeValue: 0,
+                feePercentage: 0,
+                installments: installmentFee.installment,
+                installmentValue: inverseValueToPay.toNumber(),
+                totalValue: inverseValueToPay.toNumber(),
+                nsuDocument: data.nsuDocument,
+                paymentMethodDiscountPercentage: overflowPaymentMethod?.fee,
+                paymentMethodDiscountValue: overflowPaymentMethod
+                  ? inverseValueToPay
+                      .times(new Decimal(overflowPaymentMethod.fee))
+                      .div(100)
+                      .toNumber()
+                  : 0,
+                qtyInstallments: installmentFee.installment,
+              },
+              { client: trx },
+            );
+          }
+
+          await BillPayment.create(
+            {
+              economic_group_id: authCtx.group.id,
+              business_unit_id: authCtx.unit.id,
+              bill_id: bill.id,
+              payment_method_id: data.paymentMethodId,
+              tef_acquirer_id: data.acquirerId,
+              tef_flag_id: data.flagId,
+              daily_cashier_id: dailyCashier.id,
+              budget_payment_id: data.budgetPaymentId,
+
+              pending: false,
+              block: ++currentBlock,
+              expirationDate: paymentMethod
+                ? SharedService.CalculateDateOffset(
+                    0,
+                    data.expirationDate,
+                    paymentMethod,
+                  )
+                : DateTime.now(),
+              feeType:
+                (paymentMethod?.fee ?? 0) > 0
+                  ? BillPaymentFeeType.S
+                  : BillPaymentFeeType.N,
+              feeValue: 0,
+              feePercentage: 0,
+              installments: installmentFee.installment,
+              installmentValue: valorAPAgarPorVenda.toNumber(),
+              totalValue: valorAPAgarPorVenda.toNumber(),
+              nsuDocument: data.nsuDocument,
+              paymentMethodDiscountPercentage: paymentMethod?.fee,
+              paymentMethodDiscountValue: paymentMethod
+                ? valorAPAgarPorVenda
+                    .times(new Decimal(paymentMethod.fee))
+                    .div(100)
+                    .toNumber()
+                : 0,
+              qtyInstallments: installmentFee.installment,
+            },
+            { client: trx },
+          );
+
+          await bill
+            .merge({
+              paidValue: data.creditOverflow
+                ? bill.totalValue.toNumber()
+                : new Decimal(bill.paidValue)
+                    .plus(valorDescontarVendas)
+                    .toNumber(),
+            })
+            .useTransaction(trx)
+            .save();
+        }),
+      );
+
+      if (valorDescontarVendas.gt(new Decimal(0))) {
+        const valorComDesconto = usedCredit
+          ? new Decimal(data.installmentsValue).minus(usedCredit.usedValue)
+          : new Decimal(data.installmentsValue);
+
+        const valorUnico = valorComDesconto.div(
+          new Decimal(installmentFee.installment),
+        );
+        const withOffset = valorComDesconto.minus(
+          valorUnico.times(installmentFee.installment - 1),
+        );
+        const shouldUseFlag = paymentMethod?.tef !== PaymentMethodTef.N;
+
+        await Finance.createMany(
+          Array.from({ length: installmentFee.installment }, (_, v) => {
+            const installmentValue =
+              v === installmentFee.installment - 1 ? withOffset : valorUnico;
+
+            const feeCtx = paymentMethod
+              ? shouldUseFlag
+                ? flags.reduce((acc, cur) => {
+                    const ctx = cur.installments.find(
+                      (f) => f.installment === installmentFee.installment,
+                    );
+                    if (ctx) {
+                      return ctx.fee;
+                    }
+
+                    return acc;
+                  }, paymentMethod.fee)
+                : paymentMethod.fee
+              : 0;
+
+            const firstPossibleClient = bills.find((b) => !!b.client);
+
+            return {
+              user_id: authCtx.user.id,
+              economic_group_id: authCtx.group.id,
+              business_unit_id: authCtx.unit.id,
+              daily_movement_id: dailyCashier?.daily_movement_id,
+              daily_cashier_id: dailyCashier?.id,
+              client_id:
+                bills.find((b) => b.financial_responsible_id)
+                  ?.financial_responsible_id ??
+                bills.find((b) => b.client_id)?.client_id,
+              payment_method_id: paymentMethod?.id,
+              account_plan_id:
+                authCtx.unit.unitConfig.sale_exit_account_plan_id,
+              checking_account_id:
+                $checkingAccountMeta?.checking_account_id ??
+                paymentMethod?.checkingAccountId,
+
+              // internalCode: bill.internalCode,
+              type: FinanceType.C,
+              installment: v + 1,
+              block: v + 1,
+              originFlag: FinanceOriginFlag.S,
+              document: `CLI-${firstPossibleClient?.tag ?? "???"}`,
+              historic: `CLI-${firstPossibleClient?.tag ?? "???"}`,
+              issueDate: DateTime.now(),
+              discountValue: new Decimal(0),
+              discountPercentage: 0,
+              expirationDate: paymentMethod
+                ? SharedService.CalculateDateOffset(
+                    v,
+                    data.expirationDate,
+                    paymentMethod,
+                  )
+                : DateTime.now(),
+              originalValue: new Decimal(installmentValue),
+              value: installmentValue
+                .minus(installmentValue.times(feeCtx))
+                .div(100),
+              totalValue: installmentValue
+                .minus(installmentValue.times(feeCtx))
+                .div(100),
+              feeDiscountValue: installmentValue
+                .minus(installmentValue.times(feeCtx))
+                .div(100)
+                .toNumber(),
+              feeValue: new Decimal(0),
+              feeDiscountPercentage: feeCtx,
+              accept: FinanceAccept.N,
+              reconciled: authCtx.unit.unitConfig.balanceControl === "previsto",
+              competenceDate: DateTime.now().toFormat("MM/yyyy"),
+              nsuDocument: data.nsuDocument,
+              tef_flag_id: data.flagId,
+              acquirer_id: data.acquirerId,
+              status: FinanceStatus.A,
+              qtyInstallments: data.installments,
+            };
+          }),
+          { client: trx },
+        );
+      }
+    });
+  }
+
   async createBillPayment(authCtx: AuthContext, data: ICreateBillPaymentData) {
+    if (!data.billId) {
+      return this.createBillPaymentForChunks(authCtx, data);
+    }
+
+    if (!data.paymentMethodFlagId) {
+      throw new BadRequestException(
+        "Para pagamentos normais é necessário informar o método de pagamento",
+        400,
+      );
+    }
+
     return Database.transaction(async (trx) => {
       const bill = await Bill.findOrFail(data.billId, {
         client: trx,
@@ -1276,7 +1718,7 @@ where deposit_id = ?
 
       const paymentMethod = await PaymentMethod.query()
         .useTransaction(trx)
-        .where("id", data.paymentMethodId)
+        .where("id", data.paymentMethodId!)
         .firstOrFail();
 
       const solidInstallments = data.installments ?? 1;
@@ -1336,18 +1778,18 @@ where deposit_id = ?
       const dailyCashier =
         authCtx.unit.unitConfig.dailyCashierType === "usuario"
           ? await DailyCashier.query()
-            .useTransaction(trx)
-            .where("business_unit_id", authCtx.unit.id)
-            .where("user_who_opened_id", authCtx.user.id)
-            .where("status", DailyCashierStatus.A)
-            .whereRaw("opening_date::date = now()::date")
-            .first()
+              .useTransaction(trx)
+              .where("business_unit_id", authCtx.unit.id)
+              .where("user_who_opened_id", authCtx.user.id)
+              .where("status", DailyCashierStatus.A)
+              .whereRaw("opening_date::date = now()::date")
+              .first()
           : await DailyCashier.query()
-            .useTransaction(trx)
-            .where("business_unit_id", authCtx.unit.id)
-            .where("status", DailyCashierStatus.A)
-            .whereRaw("opening_date::date = now()::date")
-            .first();
+              .useTransaction(trx)
+              .where("business_unit_id", authCtx.unit.id)
+              .where("status", DailyCashierStatus.A)
+              .whereRaw("opening_date::date = now()::date")
+              .first();
 
       if (!dailyCashier) {
         throw new BadRequestException(
@@ -1359,11 +1801,25 @@ where deposit_id = ?
         );
       }
 
+      if (data.clientCreditId) {
+        const billCredit = await ClientCredit.query()
+          .where("id", data.clientCreditId)
+          .where("client_id", bill.client_id)
+          .first();
+        if (!billCredit) {
+          throw new BadRequestException(
+            "Crédito e cliente não batem",
+            400,
+            "E_ERR",
+          );
+        }
+      }
+
       const installment = data.paymentMethodFlagInstallmentId
         ? await PaymentMethodFlagInstallment.query()
-          .useTransaction(trx)
-          .where("id", data.paymentMethodFlagInstallmentId)
-          .firstOrFail()
+            .useTransaction(trx)
+            .where("id", data.paymentMethodFlagInstallmentId)
+            .firstOrFail()
         : { fee: paymentMethod.fee, installment: data.installments ?? 1 };
 
       const existingPayments = await BillPayment.query().where(
@@ -1436,26 +1892,26 @@ where deposit_id = ?
         .useTransaction(trx)
         .save();
 
-      if (data.budgetPaymentId) {
-        await BudgetPayment.query()
-          .useTransaction(trx)
-          .where("id", data.budgetPaymentId)
-          .whereHas("budget", (query) => {
-            query.where("bill_id", data.billId);
-          })
-          .update({
-            conclusion_user_id: authCtx.user.id,
-            confirmationDate: DateTime.now(),
-            block_ref: max + 1,
-            status: "Baixado",
-          } as Partial<BudgetPayment>);
-      }
+      // if (data.budgetPaymentId) {
+      //   await BudgetPayment.query()
+      //     .useTransaction(trx)
+      //     .where("id", data.budgetPaymentId)
+      //     .whereHas("budget", (query) => {
+      //       query.where("bill_id", data.billId);
+      //     })
+      //     .update({
+      //       conclusion_user_id: authCtx.user.id,
+      //       confirmationDate: DateTime.now(),
+      //       block_ref: max + 1,
+      //       status: "Baixado",
+      //     } as Partial<BudgetPayment>);
+      // }
 
       const $checkingAccountMeta =
         await BusinessUnitCheckingAccountPaymentMethod.query()
           .useTransaction(trx)
           .where("business_unit_id", authCtx.unit.id)
-          .where("payment_method_id", data.paymentMethodId)
+          .where("payment_method_id", data.paymentMethodId!)
           .first();
 
       const flagsQb = PaymentMethodFlag.query()
@@ -1480,15 +1936,15 @@ where deposit_id = ?
 
           const feeCtx = shouldUseFlag
             ? flags.reduce((acc, cur) => {
-              const ctx = cur.installments.find(
-                (f) => f.installment === installment.installment,
-              );
-              if (ctx) {
-                return ctx.fee;
-              }
+                const ctx = cur.installments.find(
+                  (f) => f.installment === installment.installment,
+                );
+                if (ctx) {
+                  return ctx.fee;
+                }
 
-              return acc;
-            }, paymentMethod.fee)
+                return acc;
+              }, paymentMethod.fee)
             : paymentMethod.fee;
 
           return {
@@ -1513,16 +1969,20 @@ where deposit_id = ?
             document: `NFS-${bill.tag}`,
             historic: `NFS-${bill.tag}`,
             issueDate: DateTime.now(),
-            discountValue: 0,
+            discountValue: new Decimal(0),
             discountPercentage: 0,
             expirationDate: payments.at(v)?.expirationDate,
-            originalValue: installmentValue,
-            value: installmentValue - (installmentValue * feeCtx) / 100,
-            totalValue: installmentValue - (installmentValue * feeCtx) / 100,
+            originalValue: new Decimal(installmentValue),
+            value: new Decimal(
+              installmentValue - (installmentValue * feeCtx) / 100,
+            ),
+            totalValue: new Decimal(
+              installmentValue - (installmentValue * feeCtx) / 100,
+            ),
             feeDiscountValue:
               (payments.at(v)?.installmentValue ?? 0) -
               (installmentValue - (installmentValue * feeCtx) / 100),
-            feeValue: 0,
+            feeValue: new Decimal(0),
             // feeDiscountPercentage: paymentMethod.fee,
             // feeDiscountPercentage:
             // 	payments.at(v)?.paymentMethodDiscountPercentage,
@@ -1906,7 +2366,7 @@ where deposit_id = ?
       );
     }
 
-    if (bill.paidValue < bill.totalValue) {
+    if (bill.totalValue.lessThan(bill.paidValue)) {
       throw new BadRequestException(
         "Valor de pagamentos é menor que o valor da nota",
         400,
@@ -2192,7 +2652,7 @@ where deposit_id = ?
           productValue: totalProductValue,
           serviceValue: totalServiceValue,
           discountValue: totalDiscountValue,
-          totalValue: totalProductValue + totalServiceValue,
+          totalValue: new Decimal(totalProductValue).plus(totalServiceValue),
           icmsBase: validItems.reduce((acc, item) => acc + item.icmsBase, 0),
           icmsValue: validItems.reduce((acc, item) => acc + item.icmsValue, 0),
           icmsStBase: validItems
@@ -2341,7 +2801,7 @@ where deposit_id = ?
               : undefined;
             const icmsStBase_2 = rule.ivaIcmsSt
               ? icmsStBase_1 -
-              (icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
+                (icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
               : 0;
             const icmsValue = (icmsBase * (rule?.icmsPerc ?? 0)) / 100;
 
@@ -2363,7 +2823,7 @@ where deposit_id = ?
                 icmsStIva: rule.ivaIcmsSt,
                 icmsStValue: rule.ivaIcmsSt
                   ? icmsStBase_2 * ((ufIcmsRule?.icmsPercentage ?? 100) / 100) -
-                  icmsValue
+                    icmsValue
                   : undefined,
                 issBase: rule.icmsPerc,
                 issValue: (icmsBase * (rule.icmsPerc ?? 0)) / 100,
@@ -2589,7 +3049,7 @@ where deposit_id = ?
         productValue: 0,
         serviceValue: 0,
         discountValue: 0,
-        totalValue: 0,
+        totalValue: new Decimal(0),
         deliveryValue: 0,
         additionalInformation: data.additionalInformation,
         status: data.billType === "T" ? BillStatus.B : BillStatus.A,
@@ -2730,7 +3190,7 @@ where deposit_id = ?
             : undefined,
           icmsStValue: this.isValidNumber(rule?.ivaIcmsSt)
             ? icmsStBase_2 * ((ufIcmsRule?.icmsPercentage ?? 100) / 100) -
-            icmsValue
+              icmsValue
             : undefined,
           issCst:
             variation.product.type === ProductType.SERVICE
@@ -4213,10 +4673,10 @@ where deposit_id = ?
             (acc, curr) =>
               curr.productVariation.product.type === ProductType.PRODUCT
                 ? acc.plus(
-                  new Decimal(curr.totalValue)
-                    .div(curr.quantity)
-                    .times(new Decimal(curr.cancelledQuantity ?? 1)),
-                )
+                    new Decimal(curr.totalValue)
+                      .div(curr.quantity)
+                      .times(new Decimal(curr.cancelledQuantity ?? 1)),
+                  )
                 : acc,
             new Decimal(0),
           ),
@@ -4224,10 +4684,10 @@ where deposit_id = ?
             (acc, curr) =>
               curr.productVariation.product.type === ProductType.SERVICE
                 ? acc.plus(
-                  new Decimal(curr.totalValue)
-                    .div(curr.quantity)
-                    .times(new Decimal(curr.cancelledQuantity ?? 1)),
-                )
+                    new Decimal(curr.totalValue)
+                      .div(curr.quantity)
+                      .times(new Decimal(curr.cancelledQuantity ?? 1)),
+                  )
                 : acc,
             new Decimal(0),
           ),
@@ -4346,11 +4806,11 @@ where deposit_id = ?
                 : "N",
               reviewCancelNotes: note
                 ? [
-                  elem.reviewCancelNotes,
-                  `${format(addHours(new Date(), -3), "dd/MM/yyyy HH:mm:ss")} - ${authCtx.user.name}\n${note}`,
-                ]
-                  .filter(Boolean)
-                  .join("\n")
+                    elem.reviewCancelNotes,
+                    `${format(addHours(new Date(), -3), "dd/MM/yyyy HH:mm:ss")} - ${authCtx.user.name}\n${note}`,
+                  ]
+                    .filter(Boolean)
+                    .join("\n")
                 : elem.reviewCancelNotes,
             })
             .save();
@@ -4421,11 +4881,11 @@ where deposit_id = ?
                 : "N",
               reviewCancelNotes: note
                 ? [
-                  elem.reviewCancelNotes,
-                  `${format(addHours(new Date(), -3), "dd/MM/yyyy HH:mm:ss")} - ${authCtx.user.name}\n${note}`,
-                ]
-                  .filter(Boolean)
-                  .join("\n")
+                    elem.reviewCancelNotes,
+                    `${format(addHours(new Date(), -3), "dd/MM/yyyy HH:mm:ss")} - ${authCtx.user.name}\n${note}`,
+                  ]
+                    .filter(Boolean)
+                    .join("\n")
                 : elem.reviewCancelNotes,
             })
             .save();
@@ -4957,8 +5417,8 @@ where id = ?`,
           : undefined;
         const icmsStBase_2 = this.isValidNumber(rule?.ivaIcmsSt)
           ? icmsStBase_1.minus(
-            icmsStBase_1.times(icmsStPercentageRedBase ?? 0).div(100),
-          )
+              icmsStBase_1.times(icmsStPercentageRedBase ?? 0).div(100),
+            )
           : new Decimal(0);
 
         return item
@@ -4996,10 +5456,10 @@ where id = ?`,
               : undefined,
             icmsStValue: this.isValidNumber(rule?.ivaIcmsSt)
               ? icmsStBase_2
-                .times(ufIcmsRule?.icmsPercentage ?? 100)
-                .div(100)
-                .minus(icmsValue)
-                .toNumber()
+                  .times(ufIcmsRule?.icmsPercentage ?? 100)
+                  .div(100)
+                  .minus(icmsValue)
+                  .toNumber()
               : undefined,
 
             issCst:
@@ -5017,9 +5477,9 @@ where id = ?`,
             issValue:
               item.productVariation.product.type === ProductType.SERVICE
                 ? icmsBase
-                  .times(rule.icmsPerc ?? 0)
-                  .div(100)
-                  .toNumber()
+                    .times(rule.icmsPerc ?? 0)
+                    .div(100)
+                    .toNumber()
                 : undefined,
 
             pisCst: rule.pisCst,

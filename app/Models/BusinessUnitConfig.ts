@@ -1,5 +1,5 @@
-import { BaseModel, BelongsTo, belongsTo, column } from "@ioc:Adonis/Lucid/Orm";
 import VariationGroup from "App/Models/VariationGroup";
+import { BaseModel, BelongsTo, belongsTo, column } from "@ioc:Adonis/Lucid/Orm";
 import { DateTime } from "luxon";
 import * as z from "zod";
 import BusinessUnit from "./BusinessUnit";
@@ -36,6 +36,10 @@ export const ConfigFiscalDocumentSchema = z.object({
 	default_nfse_description: z.string().optional().nullable(),
 	nfse_hide_cnae: z.boolean().optional(),
 	nfse_hide_codigo_tributario_municipio: z.boolean().optional(),
+	nfse_nacional: z.boolean().optional(),
+	regime_tributario_simples_nacional: z.number().optional(),
+	regime_especial_tributacao: z.number().optional(),
+	percentual_total_tributos_simples_nacional: z.number().optional(),
 });
 
 export const ConfigSchedulesSchema = z.object({

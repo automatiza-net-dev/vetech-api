@@ -25,6 +25,9 @@ export default class ServiceIssuedFiscalDocument extends BaseModel {
   @column()
   sequence: number;
 
+  @column()
+  national: boolean;
+
   @column({
     columnName: "rps_number",
   })

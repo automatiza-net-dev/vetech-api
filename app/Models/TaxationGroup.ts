@@ -24,6 +24,9 @@ export default class TaxationGroup extends BaseModel {
   @column()
   public active: boolean;
 
+  @column()
+  public type: 'product' | 'service' | null;
+
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
 

@@ -275,6 +275,7 @@ Route.group(() => {
 	.middleware("auth");
 
 Route.group(() => {
+	Route.get("/credits/:id", "PatientTutorsController.listCredits");
 	Route.get("/nr/:id", "PatientTutorsController.notRelated");
 	Route.get("/reduced", "PatientTutorsController.reducedIndex");
 	Route.get("/all", "PatientTutorsController.allIndex");

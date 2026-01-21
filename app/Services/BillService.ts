@@ -1587,7 +1587,7 @@ where deposit_id = ?
               paidValue: data.creditOverflow
                 ? bill.totalValue.toNumber()
                 : new Decimal(bill.paidValue)
-                    .plus(valorAPAgarPorVenda)
+                    .plus(10)
                     .toNumber(),
             })
             .useTransaction(trx)

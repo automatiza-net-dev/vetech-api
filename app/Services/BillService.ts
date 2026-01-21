@@ -1696,7 +1696,7 @@ where deposit_id = ?
       return this.createBillPaymentForChunks(authCtx, data);
     }
 
-    if (!data.paymentMethodFlagId) {
+    if (!data.paymentMethodId) {
       throw new BadRequestException(
         "Para pagamentos normais é necessário informar o método de pagamento",
         400,

@@ -214,7 +214,7 @@ export interface ISendNationalNfse {
 			number: string;
 			complement?: string;
 			district: string;
-			cityCode: number;
+			cityCode?: number;
 			postalCode: string;
 		};
 	};

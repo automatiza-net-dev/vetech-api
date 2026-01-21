@@ -1178,8 +1178,8 @@ export default class BusinessUnitFiscalDocumentService {
 					district: responsible.tutor.district ?? undefined,
 					cityCode:
 						Number.parseInt(responsible.tutor.cityCode ?? "0") === 0
-							? Number.parseInt(responsible.tutor.cityCode ?? "0")
-							: undefined,
+							? undefined
+							: Number.parseInt(responsible.tutor.cityCode ?? "0"),
 					postalCode: responsible.tutor.postalCode ?? undefined,
 				},
 			},
@@ -1244,8 +1244,8 @@ export default class BusinessUnitFiscalDocumentService {
 					district: responsible.tutor.district ?? undefined,
 					cityCode:
 						Number.parseInt(responsible.tutor.cityCode ?? "0") === 0
-							? Number.parseInt(responsible.tutor.cityCode ?? "0")
-							: undefined,
+							? undefined
+							: Number.parseInt(responsible.tutor.cityCode ?? "0"),
 					postalCode: responsible.tutor.postalCode ?? undefined,
 				},
 			},

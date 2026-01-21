@@ -1581,12 +1581,13 @@ where deposit_id = ?
             { client: trx },
           );
 
+          //.plus(valorDescontarVendas)
           await bill
             .merge({
               paidValue: data.creditOverflow
                 ? bill.totalValue.toNumber()
                 : new Decimal(bill.paidValue)
-                    .plus(valorDescontarVendas)
+                    .plus(valorAPAgarPorVenda)
                     .toNumber(),
             })
             .useTransaction(trx)

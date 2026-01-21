@@ -409,7 +409,7 @@ export default class DepositService {
 				);
 			}
 
-			if (data.items.length > 0) {
+			if (fromRow.type !== "Ajuste" && data.items.length > 0) {
 				const result1 = await this.$checkDepositItems(
 					trx,
 					fromRow,

@@ -13,7 +13,7 @@ import BusinessUnit from "./BusinessUnit";
 export const DepositStatus = ["Ativo", "Inativo"] as const;
 export type TDepositStatus = (typeof DepositStatus)[number];
 
-export const DepositType = ["Venda", "Consumo"] as const;
+export const DepositType = ["Venda", "Consumo", "Ajuste"] as const;
 export type TDepositType = (typeof DepositType)[number];
 
 export default class Deposit extends BaseModel {

@@ -1465,7 +1465,8 @@ where deposit_id = ?
             .firstOrFail()
         : { fee: paymentMethod?.fee ?? 0, installment: data.installments ?? 1 };
 
-      const valorDescontarVendas = totalToPay.minus(originalValue);
+      const valorDescontarVendas = new Decimal(data.installmentsValue).minus(originalValue);
+      //const valorDescontarVendas = totalToPay.minus(originalValue);
 
       await Promise.all(
         bills.map(async (bill) => {

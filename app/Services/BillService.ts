@@ -1582,11 +1582,21 @@ where deposit_id = ?
           );
 
           //.plus(valorDescontarVendas)
-          await bill
+          //valorAPAgarPorVenda = data.creditOverflow
+          /*await bill
             .merge({
               paidValue: data.creditOverflow
-                ? 5
-                : 7
+                ? bill.totalValue.toNumber()
+                : new Decimal(bill.paidValue)
+                    .plus(valorAPAgarPorVenda)
+                    .toNumber(),
+            })
+            */
+            await bill
+            .merge({
+              paidValue: data.creditOverflow
+                ? bill.totalValue.toNumber()
+                : percentagePerBill[bill.id]
             })
             .useTransaction(trx)
             .save();

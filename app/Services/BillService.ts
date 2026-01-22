@@ -1581,12 +1581,12 @@ where deposit_id = ?
               feeValue: 0,
               feePercentage: 0,
               installments: installmentFee.installment,
-              installmentValue: valorAPAgarPorVenda.toNumber(),
-              totalValue: valorAPAgarPorVenda.toNumber(),
+              installmentValue: valorAPagarPorVenda.toNumber(),
+              totalValue: valorAPagarPorVenda.toNumber(),
               nsuDocument: data.nsuDocument,
               paymentMethodDiscountPercentage: paymentMethod?.fee,
               paymentMethodDiscountValue: paymentMethod
-                ? valorAPAgarPorVenda
+                ? valorAPagarPorVenda
                     .times(new Decimal(paymentMethod.fee))
                     .div(100)
                     .toNumber()
@@ -1597,7 +1597,7 @@ where deposit_id = ?
           );
 
           //.plus(valorDescontarVendas)
-          //valorAPAgarPorVenda = data.creditOverflow
+          //valorAPagarPorVenda = data.creditOverflow
           await bill
             .merge({
               paidValue: data.creditOverflow

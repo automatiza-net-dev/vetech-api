@@ -842,6 +842,70 @@ export default class BusinessUnitFiscalDocumentService {
 
 		const responsible = bill.financialResponsible ?? bill.client;
 
+		if (authCtx.unit.unitConfig.config.fiscalDocuments?.nfse_nacional) {
+			const clearDoc = responsible.tutor.document?.replaceAll(/\D/g, "") ?? "";
+
+			const groupedPayload = this.buildGroupedNationalNfsePayload(
+				authCtx,
+				items,
+				responsible,
+				clearDoc,
+				items.find((i) => i.productVariation.product.serviceCode)
+					?.productVariation.product.serviceCode ?? "",
+			);
+
+			const serviceDocument = await ServiceIssuedFiscalDocument.create(
+				{
+					economic_group_id: authCtx.group.id,
+					business_unit_id: authCtx.unit.id,
+					fiscal_document_id: document.id,
+					user_who_authorized_id: authCtx.user.id,
+					bill_id: bill.id,
+					national: true,
+					authorizationDate: DateTime.now(),
+					model: document.model,
+					totalValue: items.reduce(
+						(acc, curr) => acc.plus(curr.totalValue),
+						new Decimal(0),
+					),
+				},
+				{
+					client: trx,
+				},
+			);
+
+			const result = await this.focusNfe.sendNationalNfse(
+				serviceDocument.id,
+				groupedPayload,
+				token,
+				trx,
+			);
+
+			if (result.success && typeof result.data !== "string") {
+				await serviceDocument
+					.merge({
+						rpsNumber: Number.parseInt(result.data?.numero_rps),
+						rpsSeries: result.data?.serie_rps.toString(),
+						status: result.data?.status,
+						// errors: result.data?.erros,
+					})
+					.useTransaction(trx)
+					.save();
+			}
+
+			await BillItem.query()
+				.useTransaction(trx)
+				.whereIn(
+					"id",
+					items.map((i) => i.id),
+				)
+				.update({
+					nfe_issued: result.success,
+				});
+
+			return result;
+		}
+
 		if (!authCtx.unit.unitConfig.groupNfseDocuments) {
 			const results = await Promise.all(
 				items.map(async (item) => {
@@ -856,9 +920,7 @@ export default class BusinessUnitFiscalDocumentService {
 							bill_item_id: item.id,
 							fiscal_document_id: document.id,
 							user_who_authorized_id: authCtx.user.id,
-
-							national:
-								!!authCtx.unit.unitConfig.config.fiscalDocuments?.nfse_nacional,
+							national: false,
 							authorizationDate: DateTime.now(),
 							model: document.model,
 							totalValue: items.reduce(
@@ -923,46 +985,29 @@ export default class BusinessUnitFiscalDocumentService {
 						);
 					}
 
-					const nationalPayload = this.buildNationalNfsePayload(
-						authCtx,
-						item,
-						responsible,
-						clearDoc,
+					const result = await this.focusNfe.sendNfse(
+						serviceDocument.id,
+						payload,
+						token,
+						{
+							hideCnae:
+								authCtx.unit.unitConfig.config.fiscalDocuments?.nfse_hide_cnae,
+							hideCityCode:
+								authCtx.unit.unitConfig.config.fiscalDocuments
+									?.nfse_hide_codigo_tributario_municipio,
+						},
+						trx,
 					);
-					const result = authCtx.unit.unitConfig.config.fiscalDocuments
-						?.nfse_nacional
-						? await this.focusNfe.sendNationalNfse(
-								serviceDocument.id,
-								nationalPayload,
-								token,
-								trx,
-							)
-						: await this.focusNfe.sendNfse(
-								serviceDocument.id,
-								payload,
-								token,
-								{
-									hideCnae:
-										authCtx.unit.unitConfig.config.fiscalDocuments
-											?.nfse_hide_cnae,
-									hideCityCode:
-										authCtx.unit.unitConfig.config.fiscalDocuments
-											?.nfse_hide_codigo_tributario_municipio,
-								},
-								trx,
-							);
 
-					if (!authCtx.unit.unitConfig.config.fiscalDocuments?.nfse_nacional) {
-						await serviceDocument
-							.merge({
-								rpsNumber: result.data?.numero_rps,
-								rpsSeries: result.data?.serie_rps.toString(),
-								status: result.data?.status,
-								errors: result.data?.erros,
-							})
-							.useTransaction(trx)
-							.save();
-					}
+					await serviceDocument
+						.merge({
+							rpsNumber: result.data?.numero_rps,
+							rpsSeries: result.data?.serie_rps.toString(),
+							status: result.data?.status,
+							errors: result.data?.erros,
+						})
+						.useTransaction(trx)
+						.save();
 
 					await item
 						.merge({
@@ -1003,9 +1048,7 @@ export default class BusinessUnitFiscalDocumentService {
 					fiscal_document_id: document.id,
 					user_who_authorized_id: authCtx.user.id,
 					bill_id: bill.id,
-
-					national:
-						!!authCtx.unit.unitConfig.config.fiscalDocuments?.nfse_nacional,
+					national: false,
 					authorizationDate: DateTime.now(),
 					model: document.model,
 					totalValue: mapItems.reduce(
@@ -1020,88 +1063,65 @@ export default class BusinessUnitFiscalDocumentService {
 
 			const clearDoc = responsible.tutor.document?.replaceAll(/\D/g, "") ?? "";
 
-			const groupedPayload = this.buildGroupedNationalNfsePayload(
-				authCtx,
-				mapItems,
-				responsible,
-				clearDoc,
-				serviceCode,
+			const result = await this.focusNfe.sendNfse(
+				serviceDocument.id,
+				{
+					issuedAt: new Date().toISOString(),
+					simple: authCtx.unit.simple,
+					seller: {
+						document: authCtx.unit.document ?? "",
+						city_ie: authCtx.unit.cityRegistration ?? "",
+						city_code: authCtx.unit.cityCode ?? "",
+					},
+					buyer: {
+						cpf_document: clearDoc.length === 11 ? clearDoc : null,
+						cnpj_document: clearDoc.length === 14 ? clearDoc : null,
+						name: responsible.name,
+						email: responsible.tutor.email,
+						phone:
+							[responsible.tutor.cellphone, responsible.tutor.telephone].find(
+								Boolean,
+							) ?? "",
+						address: {
+							street: responsible.tutor.street ?? undefined,
+							number: responsible.tutor.number ?? undefined,
+							district: responsible.tutor.district ?? undefined,
+							city_code: responsible.tutor.cityCode ?? undefined,
+							uf: responsible.tutor.state ?? undefined,
+							postal_code: responsible.tutor.postalCode ?? undefined,
+							complement: responsible.tutor.complement ?? undefined,
+						},
+					},
+					service: {
+						total_value: this.sharedService.sum(
+							mapItems.map((i) => i.totalValue),
+						),
+						pis_value: this.sharedService.sum(mapItems.map((i) => i.pisValue)),
+						cofins_value: this.sharedService.sum(
+							mapItems.map((i) => i.cofinsValue),
+						),
+						iss_value: this.sharedService.sum(mapItems.map((i) => i.issValue)),
+						base_value: this.sharedService.sum(mapItems.map((i) => i.issBase)),
+						percentage_value: issPercentage,
+						discount_value: this.sharedService.sum(
+							mapItems.map((i) => i.discountValue),
+						),
+						service_code: serviceCode,
+						cnae: authCtx.unit.cnae ?? "",
+						description: authCtx.unit.unitConfig.defaultNfseDescription ?? "-",
+						city_code: authCtx.unit.tributationCode ?? "",
+					},
+				},
+				token,
+				{
+					hideCnae:
+						authCtx.unit.unitConfig.config.fiscalDocuments?.nfse_hide_cnae,
+					hideCityCode:
+						authCtx.unit.unitConfig.config.fiscalDocuments
+							?.nfse_hide_codigo_tributario_municipio,
+				},
+				trx,
 			);
-			const result = authCtx.unit.unitConfig.config.fiscalDocuments
-				?.nfse_nacional
-				? await this.focusNfe.sendNationalNfse(
-						serviceDocument.id,
-						groupedPayload,
-						token,
-						trx,
-					)
-				: await this.focusNfe.sendNfse(
-						serviceDocument.id,
-						{
-							issuedAt: new Date().toISOString(),
-							simple: authCtx.unit.simple,
-							seller: {
-								document: authCtx.unit.document ?? "",
-								city_ie: authCtx.unit.cityRegistration ?? "",
-								city_code: authCtx.unit.cityCode ?? "",
-							},
-							buyer: {
-								cpf_document: clearDoc.length === 11 ? clearDoc : null,
-								cnpj_document: clearDoc.length === 14 ? clearDoc : null,
-								name: responsible.name,
-								email: responsible.tutor.email,
-								phone:
-									[
-										responsible.tutor.cellphone,
-										responsible.tutor.telephone,
-									].find(Boolean) ?? "",
-								address: {
-									street: responsible.tutor.street ?? undefined,
-									number: responsible.tutor.number ?? undefined,
-									district: responsible.tutor.district ?? undefined,
-									city_code: responsible.tutor.cityCode ?? undefined,
-									uf: responsible.tutor.state ?? undefined,
-									postal_code: responsible.tutor.postalCode ?? undefined,
-									complement: responsible.tutor.complement ?? undefined,
-								},
-							},
-							service: {
-								total_value: this.sharedService.sum(
-									mapItems.map((i) => i.totalValue),
-								),
-								pis_value: this.sharedService.sum(
-									mapItems.map((i) => i.pisValue),
-								),
-								cofins_value: this.sharedService.sum(
-									mapItems.map((i) => i.cofinsValue),
-								),
-								iss_value: this.sharedService.sum(
-									mapItems.map((i) => i.issValue),
-								),
-								base_value: this.sharedService.sum(
-									mapItems.map((i) => i.issBase),
-								),
-								percentage_value: issPercentage,
-								discount_value: this.sharedService.sum(
-									mapItems.map((i) => i.discountValue),
-								),
-								service_code: serviceCode,
-								cnae: authCtx.unit.cnae ?? "",
-								description:
-									authCtx.unit.unitConfig.defaultNfseDescription ?? "-",
-								city_code: authCtx.unit.tributationCode ?? "",
-							},
-						},
-						token,
-						{
-							hideCnae:
-								authCtx.unit.unitConfig.config.fiscalDocuments?.nfse_hide_cnae,
-							hideCityCode:
-								authCtx.unit.unitConfig.config.fiscalDocuments
-									?.nfse_hide_codigo_tributario_municipio,
-						},
-						trx,
-					);
 
 			await BillItem.query()
 				.useTransaction(trx)
@@ -1135,71 +1155,6 @@ export default class BusinessUnitFiscalDocumentService {
 
 		const results = await Promise.all(tasks);
 		return results.filter((r) => !r.success);
-	}
-
-	private buildNationalNfsePayload(
-		authCtx: AuthContext,
-		item: BillItem,
-		responsible: any,
-		clearDoc: string,
-	): ISendNationalNfse {
-		return {
-			issuedAt: DateTime.now().minus({ hours: 3, minutes: 2 }).toISO(),
-			competenceDate: format(new Date(), "yyyy-MM-dd"),
-			seller: {
-				document: authCtx.unit.document ?? "",
-				municipalRegistration: authCtx.unit.cityRegistration ?? "",
-				cityCode: Number.parseInt(authCtx.unit.cityCode ?? "0"),
-				cityRegistration: authCtx.unit.cityRegistration ?? "",
-				simpleOptionCode: authCtx.unit.simple ? 3 : 1,
-				specialTaxRegime:
-					authCtx.unit.unitConfig.config.fiscalDocuments
-						?.regime_especial_tributacao ?? 0,
-				regimeTributarySimplesNacional:
-					authCtx.unit.unitConfig.config.fiscalDocuments
-						?.regime_tributario_simples_nacional ?? 0,
-				totalTaxPercentageSimplesNacional:
-					authCtx.unit.unitConfig.config.fiscalDocuments
-						?.percentual_total_tributos_simples_nacional ?? 6,
-			},
-			buyer: {
-				cpfDocument: clearDoc.length === 11 ? clearDoc : undefined,
-				cnpjDocument: clearDoc.length === 14 ? clearDoc : undefined,
-				name: responsible.name,
-				email: responsible.tutor.email,
-				phone:
-					[responsible.tutor.cellphone, responsible.tutor.telephone].find(
-						Boolean,
-					) ?? "",
-				address: {
-					street: responsible.tutor.street ?? undefined,
-					number: responsible.tutor.number ?? undefined,
-					complement: responsible.tutor.complement ?? undefined,
-					district: responsible.tutor.district ?? undefined,
-					cityCode:
-						Number.parseInt(responsible.tutor.cityCode ?? "0") === 0
-							? undefined
-							: Number.parseInt(responsible.tutor.cityCode ?? "0"),
-					postalCode: responsible.tutor.postalCode ?? undefined,
-				},
-			},
-			service: {
-				description:
-					authCtx.unit.unitConfig.defaultNfseDescription ??
-					item.productVariation.product.description,
-				value: item.totalValue,
-				nationalServiceCode:
-					item.productVariation.product.codigoNbs?.toString() ?? "0",
-				nationalTaxationCode: item.productVariation.product.serviceCode ?? "",
-				issTaxationType: Number.parseInt(
-					item.productVariation.product.taxationGroup.rules.find(
-						(r) => r.tributacaoIss,
-					)?.tributacaoIss ?? "1",
-				),
-				issRetentionType: 1,
-				cityCode: Number.parseInt(authCtx.unit.cityCode ?? "0"),
-			},
-		};
 	}
 
 	private buildGroupedNationalNfsePayload(
@@ -1608,7 +1563,9 @@ export default class BusinessUnitFiscalDocumentService {
 
 			const token = this.getToken(unit);
 
-			const result = await this.focusNfe.getNfse(document.id, token);
+			const result = document.national
+				? await this.focusNfe.getNfseNational(document.id, token)
+				: await this.focusNfe.getNfse(document.id, token);
 			if (!result.success) {
 				throw new BadRequestException(
 					"Erro ao atualizar nota",
@@ -1686,7 +1643,9 @@ export default class BusinessUnitFiscalDocumentService {
 
 			const token = this.getToken(unit);
 
-			const result = await this.focusNfe.getNfse(document.id, token);
+			const result = document.national
+				? await this.focusNfe.getNfseNational(document.id, token)
+				: await this.focusNfe.getNfse(document.id, token);
 			if (!result.success) {
 				throw new BadRequestException(
 					"Erro ao atualizar nova",

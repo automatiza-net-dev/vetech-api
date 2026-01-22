@@ -7,6 +7,7 @@ interface ISearch {
 	type?: string;
 	description?: string;
 	active?: string;
+	existingOriginID?: string;
 }
 
 @inject()
@@ -17,10 +18,17 @@ export default class ClientOriginService {
 		const query = ClientOrigin.query()
 			.orderBy("description", "asc")
 			.where("system_id", authCtx.system.id)
-			.whereRaw(
-				"(economic_group_id = ? or economic_group_id is null) and deleted_at is null",
-				[authCtx.group.id],
-			);
+			.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
+				authCtx.group.id,
+			]);
+
+		if (search.existingOriginID) {
+			query.whereRaw("(id = ? or deleted_at is null)", [
+				search.existingOriginID,
+			]);
+		} else {
+			query.whereRaw("deleted_at is null", []);
+		}
 
 		if (search.type) {
 			query.where("type", search.type);

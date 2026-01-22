@@ -1468,15 +1468,30 @@ where deposit_id = ?
       const valorDescontarVendas = new Decimal(data.installmentsValue).minus(originalValue);
       //const valorDescontarVendas = totalToPay.minus(originalValue);
 
+      let totalDistribuido = new Decimal(0);
+
       await Promise.all(
         bills.map(async (bill) => {
           let currentBlock = maxBlockPerBill[bill.id] ?? 0;
 
-          const valorAPAgarPorVenda = data.creditOverflow
+          let valorAPagarPorVenda = data.creditOverflow
             ? new Decimal(bill.totalValue).minus(bill.paidValue)
-            : new Decimal(valorDescontarVendas).times(
-                percentagePerBill[bill.id],
-              );
+            : new Decimal(valorDescontarVendas)
+                .times(percentagePerBill[bill.id])
+                .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+
+          if (!data.creditOverflow) {
+            totalDistribuido = totalDistribuido.plus(valorAPagarPorVenda);
+
+            const isLastBill = bill.id === bills.at(-1)?.id;
+
+            if (isLastBill) {
+              const diferenca = new Decimal(valorDescontarVendas)
+                .minus(totalDistribuido);
+
+              valorAPagarPorVenda = valorAPagarPorVenda.plus(diferenca);
+            }
+          }
 
           if (usedValue.gt(new Decimal(0))) {
             const overflowPaymentMethod = await PaymentMethod.query()
@@ -1583,20 +1598,13 @@ where deposit_id = ?
 
           //.plus(valorDescontarVendas)
           //valorAPAgarPorVenda = data.creditOverflow
-          /*await bill
+          await bill
             .merge({
               paidValue: data.creditOverflow
                 ? bill.totalValue.toNumber()
                 : new Decimal(bill.paidValue)
-                    .plus(valorAPAgarPorVenda)
+                    .plus(valorAPagarPorVenda)
                     .toNumber(),
-            })
-            */
-            await bill
-            .merge({
-              paidValue: data.creditOverflow
-                ? bill.totalValue.toNumber()
-                : percentagePerBill[bill.id]
             })
             .useTransaction(trx)
             .save();

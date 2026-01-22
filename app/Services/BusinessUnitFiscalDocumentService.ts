@@ -1563,7 +1563,9 @@ export default class BusinessUnitFiscalDocumentService {
 
 			const token = this.getToken(unit);
 
-			const result = await this.focusNfe.getNfse(document.id, token);
+			const result = document.national
+				? await this.focusNfe.getNfseNational(document.id, token)
+				: await this.focusNfe.getNfse(document.id, token);
 			if (!result.success) {
 				throw new BadRequestException(
 					"Erro ao atualizar nota",
@@ -1641,7 +1643,9 @@ export default class BusinessUnitFiscalDocumentService {
 
 			const token = this.getToken(unit);
 
-			const result = await this.focusNfe.getNfse(document.id, token);
+			const result = document.national
+				? await this.focusNfe.getNfseNational(document.id, token)
+				: await this.focusNfe.getNfse(document.id, token);
 			if (!result.success) {
 				throw new BadRequestException(
 					"Erro ao atualizar nova",

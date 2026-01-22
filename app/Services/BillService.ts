@@ -1329,9 +1329,11 @@ where deposit_id = ?
         {} as Record<string, Decimal>,
       );
 
-      const originalValue = new Decimal(data.installmentsValue).minus(
-        totalToPay,
+      const originalValue = Decimal.max(
+        new Decimal(0),
+        new Decimal(data.installmentsValue).minus(totalToPay),
       );
+
       if (
         data.creditOverflow &&
         totalToPay.lessThan(new Decimal(data.installmentsValue))
@@ -1466,7 +1468,6 @@ where deposit_id = ?
         : { fee: paymentMethod?.fee ?? 0, installment: data.installments ?? 1 };
 
       const valorDescontarVendas = new Decimal(data.installmentsValue).minus(originalValue);
-      //const valorDescontarVendas = totalToPay.minus(originalValue);
 
       let totalDistribuido = new Decimal(0);
 

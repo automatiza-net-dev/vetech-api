@@ -963,7 +963,7 @@ export default class FocusNfeService {
 				},
 			);
 
-			Logger.info(JSON.stringify(data, undefined, 2));
+			// Logger.info(JSON.stringify(data, undefined, 2));
 
 			const parsedResponse = z
 				.object({

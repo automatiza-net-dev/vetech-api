@@ -752,6 +752,38 @@ export default class FocusNfeService {
 		}
 	}
 
+	public async getNfseNational(ref: string, token: string) {
+		try {
+			const { data } = await this.ax.get(`/v2/nfsen/${ref}`, {
+				params: {},
+				auth: {
+					username: token,
+					password: "",
+				},
+			});
+
+			const zodResponse = nfseResponseSchema.safeParse(data);
+			if (!zodResponse.success) {
+				return {
+					success: false as const,
+					error: "Resposta inválida",
+					idk: zodResponse.error.format(),
+				};
+			}
+
+			return {
+				success: true as const,
+				data: zodResponse.data,
+			};
+		} catch (error) {
+			return {
+				success: false as const,
+				error: "Erro ao chamar",
+				idk: "idk",
+			};
+		}
+	}
+
 	public async cancelNfe(ref: string, reason: string, token: string) {
 		try {
 			const { data } = await this.ax.delete(`/v2/nfe/${ref}`, {
@@ -979,8 +1011,8 @@ export default class FocusNfeService {
 				// Logger.error("invalid schema");
 				// Logger.error(JSON.stringify(parsedResponse.error.issues, undefined, 2));
 				return {
-					success: true,
-					data: "NFSE criada mas resposta inválida",
+					success: false,
+					message: "NFSEN criada mas resposta inválida",
 				};
 			}
 

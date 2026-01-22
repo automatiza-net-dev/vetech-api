@@ -1585,10 +1585,8 @@ where deposit_id = ?
           await bill
             .merge({
               paidValue: data.creditOverflow
-                ? bill.totalValue.toNumber()
-                : new Decimal(bill.paidValue)
-                    .plus(valorAPAgarPorVenda)
-                    .toNumber(),
+                ? 5
+                : 7
             })
             .useTransaction(trx)
             .save();

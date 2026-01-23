@@ -2915,7 +2915,7 @@ where deposit_id = ?
       .preload("tutor")
       .preload("bills")
       .firstOrFail();
-    if (client.bills.length === 0) {
+    if (!client.firstSale) {
       await client
         .merge({
           firstSale: DateTime.now(),
@@ -2930,7 +2930,7 @@ where deposit_id = ?
         .where("id", data.patientId)
         .preload("bills")
         .firstOrFail();
-      if (patient.bills.length === 0) {
+      if (!patient.firstSale) {
         await patient
           .merge({
             firstSale: DateTime.now(),

@@ -2045,7 +2045,7 @@ export default class BudgetService {
 				.preload("tutor")
 				.preload("bills")
 				.firstOrFail();
-			if (client.bills.length === 0) {
+			if (!client.firstSale) {
 				await client
 					.merge({
 						firstSale: DateTime.now(),
@@ -2060,7 +2060,7 @@ export default class BudgetService {
 					.where("id", model.patient_id)
 					.preload("bills")
 					.firstOrFail();
-				if (patient.bills.length === 0) {
+				if (!patient.firstSale) {
 					await patient
 						.merge({
 							firstSale: DateTime.now(),

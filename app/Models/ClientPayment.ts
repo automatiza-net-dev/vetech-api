@@ -14,6 +14,8 @@ export default class ClientPayment extends BaseModel {
   })
   public value: Decimal;
 
+  @column({  })
+  public installments: number
 
   @column.dateTime({})
   public paymentDate: DateTime
@@ -33,7 +35,6 @@ export default class ClientPayment extends BaseModel {
   @beforeFetch()
   public static softDeletesFetch = softDeleteQuery;
 
-
   @column({ serializeAs: null })
   public user_id: string
 
@@ -45,5 +46,8 @@ export default class ClientPayment extends BaseModel {
 
   @column({ serializeAs: null })
   public movement_id: string
+
+  @column({ serializeAs: null })
+  public payment_method_id: string | null
 
 }

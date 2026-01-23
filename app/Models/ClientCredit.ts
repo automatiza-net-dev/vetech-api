@@ -56,4 +56,7 @@ export default class ClientCredit extends BaseModel {
 
   @column({ serializeAs: null })
   public client_id: string;
+
+  @column({ serializeAs: null })
+  public client_payment_id: number;
 }

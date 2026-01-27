@@ -1154,7 +1154,7 @@ export default class ScheduleService {
 				? await User.findOrFail(data.userId, { client: trx })
 				: authCtx.user;
 
-			if (!technician.onDuty || !data.ignoreOverlapping) {
+			if (!technician.onDuty) {
 				const result = await ScheduleService.checkDisponibility(
 					technician.id,
 					authCtx.unit.id,

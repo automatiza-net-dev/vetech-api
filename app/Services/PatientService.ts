@@ -38,6 +38,7 @@ import { DateTime } from "luxon";
 import { v4, validate } from "uuid";
 import { HospitalizationStatus } from "../Models/Hospitalization";
 import ClientCredit from "App/Models/ClientCredit";
+import ClientPayment from "App/Models/ClientPayment";
 
 interface ISearch {
 	id?: string;
@@ -1264,6 +1265,17 @@ export default class PatientService {
 		return {
 			missingFromBills: missing,
 		};
+	}
+
+	public async tutorPayments(_authCtx: AuthContext, tutorID: string) {
+		return ClientPayment.query()
+			.where("client_id", tutorID)
+			.preload("user", (query) => {
+				query.select("id", "name");
+			})
+			.preload("paymentMethod", (query) => {
+				query.select("id", "description");
+			});
 	}
 
 	public async salesMetadata(

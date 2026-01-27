@@ -256,6 +256,7 @@ Route.group(() => {
 	Route.get("/animals", "PatientsController.showAnimals");
 	Route.get("/", "PatientsController.index");
 	Route.get("/metadata/:id", "PatientsController.metadata");
+	Route.get("/tutor-payments/:id", "PatientsController.tutorPayments");
 	Route.get("/sales-metadata/:id", "PatientsController.salesMetadata");
 	Route.get("/non-pets", "PatientsController.nonPets");
 	Route.get("/display/:id", "PatientsController.display");

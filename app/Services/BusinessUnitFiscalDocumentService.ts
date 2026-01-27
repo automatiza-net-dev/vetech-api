@@ -1089,7 +1089,7 @@ export default class BusinessUnitFiscalDocumentService {
 								cnae: authCtx.unit.cnae ?? "",
 								description:
 									authCtx.unit.unitConfig.defaultNfseDescription ?? "-",
-								city_code: authCtx.unit.tributationCode ?? "",
+								city_code: authCtx.unit.cityCode ?? "",
 							},
 						},
 						token,

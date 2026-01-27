@@ -2,6 +2,7 @@ import { inject } from "@adonisjs/fold";
 import ClientOrigin from "App/Models/ClientOrigin";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import IClientOriginData from "Contracts/interfaces/IClientOriginData";
+import Database from "@ioc:Adonis/Lucid/Database";
 
 interface ISearch {
 	type?: string;
@@ -15,7 +16,7 @@ export default class ClientOriginService {
 	constructor(private readonly sharedService: SharedService) {}
 
 	public async index(authCtx: AuthContext, search: ISearch) {
-		const query = ClientOrigin.query()
+		const query = Database.from("client_origins")
 			.orderBy("description", "asc")
 			.where("system_id", authCtx.system.id)
 			.whereRaw("(economic_group_id = ? or economic_group_id is null)", [

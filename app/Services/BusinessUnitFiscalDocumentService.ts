@@ -44,6 +44,7 @@ import { DateTime } from "luxon";
 import { validate } from "uuid";
 import { z } from "zod";
 import ReceiptService from "./ReceiptService";
+import Patient from "App/Models/Patient";
 
 interface ISearch {
 	unit?: string;
@@ -952,12 +953,20 @@ export default class BusinessUnitFiscalDocumentService {
 								trx,
 							);
 
-					if (!authCtx.unit.unitConfig.config.fiscalDocuments?.nfse_nacional) {
+					if (
+						!authCtx.unit.unitConfig.config.fiscalDocuments?.nfse_nacional &&
+						result.success &&
+						typeof result.data !== "string"
+					) {
 						await serviceDocument
 							.merge({
-								rpsNumber: result.data?.numero_rps,
+								rpsNumber:
+									typeof result.data?.numero_rps === "string"
+										? Number.parseInt(result.data?.numero_rps)
+										: result.data?.numero_rps,
 								rpsSeries: result.data?.serie_rps.toString(),
 								status: result.data?.status,
+								// @ts-expect-error json asd
 								errors: result.data?.erros,
 							})
 							.useTransaction(trx)
@@ -1140,9 +1149,11 @@ export default class BusinessUnitFiscalDocumentService {
 	private buildNationalNfsePayload(
 		authCtx: AuthContext,
 		item: BillItem,
-		responsible: any,
+		responsible: Patient,
 		clearDoc: string,
 	): ISendNationalNfse {
+		const rawCityCode =
+			responsible.tutor.cityCode ?? authCtx.unit.cityCode ?? "0";
 		return {
 			issuedAt: DateTime.now().minus({ hours: 3, minutes: 2 }).toISO(),
 			competenceDate: format(new Date(), "yyyy-MM-dd"),
@@ -1177,9 +1188,7 @@ export default class BusinessUnitFiscalDocumentService {
 					complement: responsible.tutor.complement ?? undefined,
 					district: responsible.tutor.district ?? undefined,
 					cityCode:
-						Number.parseInt(responsible.tutor.cityCode ?? "0") === 0
-							? Number.parseInt(responsible.tutor.cityCode ?? "0")
-							: undefined,
+						rawCityCode === "0" ? undefined : Number.parseInt(rawCityCode),
 					postalCode: responsible.tutor.postalCode ?? undefined,
 				},
 			},
@@ -1205,10 +1214,12 @@ export default class BusinessUnitFiscalDocumentService {
 	private buildGroupedNationalNfsePayload(
 		authCtx: AuthContext,
 		mapItems: BillItem[],
-		responsible: any,
+		responsible: Patient,
 		clearDoc: string,
 		serviceCode: string,
 	): ISendNationalNfse {
+		const rawCityCode =
+			responsible.tutor.cityCode ?? authCtx.unit.cityCode ?? "0";
 		return {
 			issuedAt: DateTime.now().minus({ minutes: 2 }).toISO(),
 			competenceDate: format(new Date(), "yyyy-MM-dd"),
@@ -1243,9 +1254,7 @@ export default class BusinessUnitFiscalDocumentService {
 					complement: responsible.tutor.complement ?? undefined,
 					district: responsible.tutor.district ?? undefined,
 					cityCode:
-						Number.parseInt(responsible.tutor.cityCode ?? "0") === 0
-							? Number.parseInt(responsible.tutor.cityCode ?? "0")
-							: undefined,
+						rawCityCode === "0" ? undefined : Number.parseInt(rawCityCode),
 					postalCode: responsible.tutor.postalCode ?? undefined,
 				},
 			},

@@ -210,12 +210,12 @@ export interface ISendNationalNfse {
 		email: string;
 		phone: string;
 		address: {
-			street: string;
-			number: string;
-			complement?: string;
-			district: string;
-			cityCode: number;
-			postalCode: string;
+			street: string | undefined;
+			number: string | undefined;
+			complement: string | undefined;
+			district: string | undefined;
+			cityCode: number | undefined;
+			postalCode: string | undefined;
 		};
 	};
 
@@ -979,7 +979,7 @@ export default class FocusNfeService {
 				// Logger.error("invalid schema");
 				// Logger.error(JSON.stringify(parsedResponse.error.issues, undefined, 2));
 				return {
-					success: true,
+					success: false,
 					data: "NFSE criada mas resposta inválida",
 				};
 			}

@@ -1053,7 +1053,9 @@ export default class BusinessUnitFiscalDocumentService {
           authCtx.unit.unitConfig.defaultNfseDescription ??
           item.productVariation.product.description,
         value: item.totalValue,
-        nationalServiceCode: item.productVariation.product.codigoNbs?.toString() ?? "0",
+        nationalServiceCode: authCtx.unit.unitConfig.config.fiscalDocuments?.nfsen_hide_codigo_nbs
+          ? undefined
+          : (item.productVariation.product.codigoNbs?.toString() ?? "0"),
         nationalTaxationCode: item.productVariation.product.serviceCode ?? "",
         issTaxationType: Number.parseInt(
           item.productVariation.product.taxationGroup.rules.find((r) => r.tributacaoIss)
@@ -1108,10 +1110,11 @@ export default class BusinessUnitFiscalDocumentService {
       service: {
         description: authCtx.unit.unitConfig.defaultNfseDescription ?? "",
         value: this.sharedService.sum(mapItems.map((i) => i.totalValue)),
-        nationalServiceCode:
-          mapItems
-            .find((mi) => mi.productVariation.product.codigoNbs)
-            ?.productVariation.product.codigoNbs?.toString() ?? "0",
+        nationalServiceCode: authCtx.unit.unitConfig.config.fiscalDocuments?.nfsen_hide_codigo_nbs
+          ? undefined
+          : (mapItems
+              .find((mi) => mi.productVariation.product.codigoNbs)
+              ?.productVariation.product.codigoNbs?.toString() ?? "0"),
         nationalTaxationCode: serviceCode,
         issTaxationType: 1,
         issRetentionType: 1, // fixo

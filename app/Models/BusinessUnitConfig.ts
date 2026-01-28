@@ -36,6 +36,7 @@ export const ConfigFiscalDocumentSchema = z.object({
 	default_nfse_description: z.string().optional().nullable(),
 	nfse_hide_cnae: z.boolean().optional(),
 	nfse_hide_codigo_tributario_municipio: z.boolean().optional(),
+	nfsen_hide_codigo_nbs: z.boolean().optional(),
 	nfse_nacional: z.boolean().optional(),
 	regime_tributario_simples_nacional: z.number().optional(),
 	regime_especial_tributacao: z.number().optional(),

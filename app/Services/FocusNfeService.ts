@@ -178,6 +178,7 @@ export interface ISendNfse {
 		cnae: string;
 		description: string;
 		city_code: string;
+		nbs_code: string | undefined;
 	};
 }
 
@@ -873,6 +874,7 @@ export default class FocusNfeService {
 				codigo_tributario_municipio: meta.hideCityCode
 					? undefined
 					: data.service.city_code,
+				codigo_nbs: this.noopString(data.service.nbs_code),
 			},
 		};
 
@@ -1122,4 +1124,16 @@ export default class FocusNfeService {
 			);
 		}
 	}
+
+  private noopString(data: unknown) {
+    if(typeof data !== "string") {
+      return undefined
+    }
+
+    if(data === "") {
+      return undefined
+    }
+
+    return data
+  }
 }

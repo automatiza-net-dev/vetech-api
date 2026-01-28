@@ -884,14 +884,14 @@ export default class BillService {
 
         const icmsBase =
           totalValue * ((100 - (billItem.taxRule?.icmsPercRedBaseCalculo ?? 0)) / 100);
-        const icmsStBase_1 = icmsBase + (icmsBase * (billItem.taxRule?.ivaIcmsSt ?? 1)) / 100;
+        const icmsStBase_1 = icmsBase + (icmsBase * (billItem.taxRule?.ivaIcmsSt ?? 0)) / 100;
         const icmsStPercentageRedBase = this.isValidNumber(billItem.taxRule?.ivaIcmsSt)
           ? (billItem.taxRule?.icmsPercRedBaseCalculo ?? 0)
           : undefined;
         const icmsStBase_2 = this.isValidNumber(billItem.taxRule?.ivaIcmsSt)
           ? icmsStBase_1 - (icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
           : 0;
-        const icmsValue = (icmsBase * (billItem.taxRule?.icmsPerc ?? 1)) / 100;
+        const icmsValue = (icmsBase * (billItem.taxRule?.icmsPerc ?? 0)) / 100;
 
         return billItem
           .merge({
@@ -957,11 +957,11 @@ export default class BillService {
             ipiCst: billItem.taxRule?.ipiCst,
             ipiBase: totalValue,
             ipiPercentage: billItem.taxRule?.ipiPerc,
-            ipiValue: (totalValue * (billItem.taxRule?.ipiPerc ?? 2)) / 100,
+            ipiValue: (totalValue * (billItem.taxRule?.ipiPerc ?? 1)) / 100,
             icmsDeferredValue: 0,
             icmsPartitionValue: 0,
             icmsFcpPercentage: billItem.taxRule?.fcpPerc,
-            icmsFcpValue: (icmsBase * (billItem.taxRule?.fcpPerc ?? 1)) / 100,
+            icmsFcpValue: (icmsBase * (billItem.taxRule?.fcpPerc ?? 0)) / 100,
             icmsPartitionOriginUfPercentage: billItem.taxRule?.icmsPerc,
             icmsPartitionDestinationUfPercentage: billItem.taxRule?.icmsPercRedAliquota,
             icmsPartitionInterUfPercentage: billItem.taxRule?.icmsPercRedAliquota,
@@ -2552,10 +2552,24 @@ where deposit_id = ?
                 issBase: rule.icmsPerc,
                 issValue: (icmsBase * (rule.icmsPerc ?? 0)) / 100,
                 issPercentage: rule.icmsPerc,
+                pisCst: rule.pisCst,
+                pisBase: totalValue,
                 pisPercentage: rule.pisPerc,
+                pisValue: (totalValue * (rule.pisPerc ?? 1)) / 100,
+                pisRetentionValue: 0,
+                cofinsCst: rule.cofinsCst,
+                cofinsBase: totalValue,
                 cofinsPercentage: rule.cofinsPerc,
+                cofinsValue: (totalValue * (rule.cofinsPerc ?? 1)) / 100,
+                cofinsRetentionValue: 0,
+                ipiCst: rule.ipiCst,
+                ipiBase: totalValue,
                 ipiPercentage: rule.ipiPerc,
+                ipiValue: (totalValue * (rule.ipiPerc ?? 1)) / 100,
+                icmsDeferredValue: 0,
+                icmsPartitionValue: 0,
                 icmsFcpPercentage: rule.fcpPerc,
+                icmsFcpValue: (icmsBase * (rule.fcpPerc ?? 0)) / 100,
                 icmsPartitionOriginUfPercentage: rule.icmsPerc,
                 icmsPartitionDestinationUfPercentage: rule.icmsPercRedAliquota,
                 icmsPartitionInterUfPercentage: rule.icmsPercRedAliquota,
@@ -3161,7 +3175,7 @@ where deposit_id = ?
       icmsCst: productVariation.product.type === ProductType.PRODUCT ? rule?.icmsCst : undefined,
 
       icmsFcpPercentage: rule?.fcpPerc,
-      icmsFcpValue: (icmsBase * (rule?.fcpPerc ?? 1)) / 100,
+      icmsFcpValue: (icmsBase * (rule?.fcpPerc ?? 0)) / 100,
     };
 
     if (productVariation.product.type === ProductType.PRODUCT && rule?.icmsCst) {
@@ -4932,7 +4946,7 @@ where id = ?`,
             icmsPartitionValue: 0,
             icmsFcpPercentage: rule.fcpPerc,
             icmsFcpValue: totalValue
-              .times(rule.fcpPerc ?? 1)
+              .times(rule.fcpPerc ?? 0)
               .div(100)
               .toNumber(),
             icmsPartitionOriginUfPercentage: rule.icmsPerc,

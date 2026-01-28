@@ -25,7 +25,7 @@ export default class MongoProvider {
   constructor(protected app: ApplicationContract) {}
 
   public register() {
-    mongoose.connect(Env.get('MONGO_URI'));
+    // mongoose.connect(Env.get('MONGO_URI'));
 
     this.app.container.singleton('Mongoose', () => mongoose);
   }

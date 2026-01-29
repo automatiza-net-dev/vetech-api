@@ -885,7 +885,7 @@ export default class BudgetService {
                                                                      'maximum_discount_percentage',
                                                                      bup.maximum_discount_percentage)))) as variations`),
 			)
-			.joinRaw("join product_variations pv on products.id = pv.product_id")
+			.joinRaw("join product_variations pv on products.id = pv.product_id and pv.deleted_at is null")
 			.joinRaw(
 				`join business_unit_products bup on pv.id = bup.product_variation_id and
                                             bup.businness_unit_id = ?`,

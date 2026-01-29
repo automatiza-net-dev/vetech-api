@@ -888,7 +888,7 @@ export default class BudgetService {
 			.joinRaw("join product_variations pv on products.id = pv.product_id and pv.deleted_at is null")
 			.joinRaw(
 				`join business_unit_products bup on pv.id = bup.product_variation_id and
-                                            bup.businness_unit_id = ?`,
+                                            bup.businness_unit_id = ? and bup.deleted_at is null`,
 				[unitId],
 			)
 			.orderByRaw("description")

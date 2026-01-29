@@ -1330,6 +1330,10 @@ where deposit_id = ?
             : new Decimal(valorDescontarVendas)
                 .times(percentagePerBill[bill.id])
                 .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+          const valorRelativoCreditoUso = usedValue
+                .times(percentagePerBill[bill.id])
+                .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+
 
           if (!data.creditOverflow) {
             totalDistribuido = totalDistribuido.plus(valorAPagarPorVenda);
@@ -1357,10 +1361,6 @@ where deposit_id = ?
               );
             }
 
-            const inverseValueToPay = data.creditOverflow
-              ? bill.totalValue.minus(bill.paidValue)
-              : valorDescontarVendas;
-
             await BillPayment.create(
               {
                 economic_group_id: authCtx.group.id,
@@ -1385,15 +1385,12 @@ where deposit_id = ?
                 feeValue: 0,
                 feePercentage: 0,
                 installments: installmentFee.installment,
-                installmentValue: inverseValueToPay.toNumber(),
-                totalValue: inverseValueToPay.toNumber(),
+                installmentValue: valorRelativoCreditoUso.toNumber(),
+                totalValue: valorRelativoCreditoUso.toNumber(),
                 nsuDocument: data.nsuDocument,
                 paymentMethodDiscountPercentage: overflowPaymentMethod?.fee,
                 paymentMethodDiscountValue: overflowPaymentMethod
-                  ? inverseValueToPay
-                      .times(new Decimal(overflowPaymentMethod.fee))
-                      .div(100)
-                      .toNumber()
+                  ? valorRelativoCreditoUso.times(new Decimal(overflowPaymentMethod.fee)).div(100).toNumber()
                   : 0,
                 qtyInstallments: installmentFee.installment,
               },

@@ -15,6 +15,7 @@ import User from "./User";
 import PaymentMethod from "./PaymentMethod";
 import BillPayment from "./BillPayment";
 import ClientCredit from "./ClientCredit";
+import Patient from "./Patient";
 
 export default class ClientPayment extends BaseModel {
   @column({ isPrimary: true })
@@ -54,6 +55,7 @@ export default class ClientPayment extends BaseModel {
   @column({ serializeAs: null })
   public client_id: string;
 
+
   @column({ serializeAs: null })
   public cashier_id: string;
 
@@ -67,6 +69,12 @@ export default class ClientPayment extends BaseModel {
     foreignKey: "user_id",
   })
   public user: BelongsTo<typeof User>;
+
+  @belongsTo(() => Patient, {
+    foreignKey: "client_id",
+  })
+  public client: BelongsTo<typeof Patient>;
+
 
   @belongsTo(() => PaymentMethod, {
     foreignKey: "payment_method_id",

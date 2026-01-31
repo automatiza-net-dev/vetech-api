@@ -1832,6 +1832,7 @@ where deposit_id = ?
         .useTransaction(trx)
         .where("id", id)
         .preload("paymentMethod")
+        .preload("client")
         .preload("billPayments", q => q.preload('bill').preload('finance'))
         .preload("clientCredits", q => q.whereRaw('(used_value < original_value) and reversed is false'))
         .first();
@@ -1840,44 +1841,57 @@ where deposit_id = ?
         throw new BadRequestException('Registro não encontrado', 400, 'E_ERR')
       }
 
-      if (payment.paymentMethod.type === PaymentMethodType.CC) {
-        const deletedValue = payment.billPayments.reduce((acc, curr) => {
-          return acc.plus(new Decimal(curr.totalValue));
-        }, new Decimal(0));
+      const deletedValue = payment.billPayments.reduce((acc, curr) => {
+        return acc.plus(new Decimal(curr.totalValue));
+      }, new Decimal(0));
 
-        const deletedValuePerBill = payment.billPayments.reduce((acc, curr) => {
-          if (!acc[curr.bill_id]) {
-            acc[curr.bill_id] = new Decimal(0);
-          }
-
-          acc[curr.bill_id] = acc[curr.bill_id].plus(new Decimal(curr.totalValue));
-          return acc
-        }, {} as Record<string, Decimal>);
-
-        await payment.related('billPayments').query().delete().useTransaction(trx)
-        await Bill.query()
-          .useTransaction(trx)
-          .whereIn('id', payment.billPayments.map(bp => bp.bill_id))
-          .update({
-            status: BillStatus.A,
-          })
-
-        for (const [billId, value] of Object.entries(deletedValuePerBill)) {
-          const rowBill = await Bill.query().useTransaction(trx).where('id', billId).firstOrFail()
-
-          await rowBill
-            .merge({
-              paidValue: new Decimal(rowBill.paidValue).minus(value).toNumber()
-            })
-            .useTransaction(trx)
-            .save()
+      const deletedValuePerBill = payment.billPayments.reduce((acc, curr) => {
+        if (!acc[curr.bill_id]) {
+          acc[curr.bill_id] = new Decimal(0);
         }
 
+        acc[curr.bill_id] = acc[curr.bill_id].plus(new Decimal(curr.totalValue));
+        return acc
+      }, {} as Record<string, Decimal>);
+
+      await payment.related('billPayments').query().delete().useTransaction(trx)
+      await Bill.query()
+        .useTransaction(trx)
+        .whereIn('id', payment.billPayments.map(bp => bp.bill_id))
+        .update({
+          status: BillStatus.A,
+        })
+
+      for (const [billId, value] of Object.entries(deletedValuePerBill)) {
+        const rowBill = await Bill.query().useTransaction(trx).where('id', billId).firstOrFail()
+
+        await rowBill
+          .merge({
+            paidValue: new Decimal(rowBill.paidValue).minus(value).toNumber()
+          })
+          .useTransaction(trx)
+          .save()
+      }
+
+      if (payment.paymentMethod.type === PaymentMethodType.CC) {
         await payment.clientCredits.at(0)?.merge({
           usedValue: payment.clientCredits.at(0)?.usedValue.minus(deletedValue)
         }).useTransaction(trx).save()
+      } else {
+        if (payment.billPayments.some((bp) => bp.finance.status === FinanceStatus.B)) {
+          throw new BadRequestException('Registro financeiro marcado como baixado, não é possível excluir', 400, 'E_ERR')
+        }
 
-        return
+        await Finance.query()
+          .useTransaction(trx)
+          .where("business_unit_id", authCtx.unit.id)
+          .where("origin_flag", FinanceOriginFlag.S)
+          .whereILike("document", `%CLI-${payment.client.tag}%`)
+          .update({
+            exclusion_user_id: authCtx.user.id,
+            deleted_at: DateTime.now(),
+            status: FinanceStatus.E,
+          });
       }
     });
   }

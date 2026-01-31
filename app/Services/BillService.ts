@@ -1826,6 +1826,62 @@ where deposit_id = ?
     });
   }
 
+  async deleteClientPayment(authCtx: AuthContext, id: string) {
+    await Database.transaction(async (trx) => {
+      const payment = await ClientPayment.query()
+        .useTransaction(trx)
+        .where("id", id)
+        .preload("paymentMethod")
+        .preload("billPayments", q => q.preload('bill').preload('finance'))
+        .preload("clientCredits", q => q.whereRaw('(used_value < original_value) and reversed is false'))
+        .first();
+
+      if (!payment) {
+        throw new BadRequestException('Registro não encontrado', 400, 'E_ERR')
+      }
+
+      if (payment.paymentMethod.type === PaymentMethodType.CC) {
+        const deletedValue = payment.billPayments.reduce((acc, curr) => {
+          return acc.plus(new Decimal(curr.totalValue));
+        }, new Decimal(0));
+
+        const deletedValuePerBill = payment.billPayments.reduce((acc, curr) => {
+          if (!acc[curr.bill_id]) {
+            acc[curr.bill_id] = new Decimal(0);
+          }
+
+          acc[curr.bill_id] = acc[curr.bill_id].plus(new Decimal(curr.totalValue));
+          return acc
+        }, {} as Record<string, Decimal>);
+
+        await payment.related('billPayments').query().delete().useTransaction(trx)
+        await Bill.query()
+          .useTransaction(trx)
+          .whereIn('id', payment.billPayments.map(bp => bp.bill_id))
+          .update({
+            status: BillStatus.A,
+          })
+
+        for (const [billId, value] of Object.entries(deletedValuePerBill)) {
+          const rowBill = await Bill.query().useTransaction(trx).where('id', billId).firstOrFail()
+
+          await rowBill
+            .merge({
+              paidValue: new Decimal(rowBill.paidValue).minus(value).toNumber()
+            })
+            .useTransaction(trx)
+            .save()
+        }
+
+        await payment.clientCredits.at(0)?.merge({
+          usedValue: payment.clientCredits.at(0)?.usedValue.minus(deletedValue)
+        }).useTransaction(trx).save()
+
+        return
+      }
+    });
+  }
+
   async deleteBillPayment(authCtx: AuthContext, id: string) {
     await Database.transaction(async (trx) => {
       const payment = await BillPayment.query()

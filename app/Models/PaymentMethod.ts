@@ -24,7 +24,7 @@ export enum PaymentMethodTef {
 export enum PaymentMethodType {
 	C = "CREDITO",
 	D = "DEBITO",
-	CC = "CREDITO_CLIENTE",
+	CC = "CREDITO CLIENTE",
 }
 
 export enum PaymentMethodUsage {

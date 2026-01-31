@@ -1130,6 +1130,7 @@ Route.group(() => {
 		"BillsController.deleteItemDepartments",
 	);
 	Route.delete("/delete-payment/:id", "BillsController.deleteBillPayment");
+	Route.delete("/delete-client-payment/:id", "BillsController.deleteClientPayment");
 	Route.delete(
 		"/delete-payment-block",
 		"BillsController.deleteBillPaymentBlock",

@@ -2134,7 +2134,7 @@ where deposit_id = ?
       );
     }
 
-    if (bill.totalValue.lessThan(bill.paidValue)) {
+    if (!bill.totalValue.equals(bill.paidValue)) {
       throw new BadRequestException(
         "Valor de pagamentos é menor que o valor da nota",
         400,

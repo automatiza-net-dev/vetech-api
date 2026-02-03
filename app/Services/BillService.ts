@@ -1292,17 +1292,6 @@ where deposit_id = ?
           .useTransaction(trx)
           .save();
 
-        await ClientUsedCredit.create(
-          {
-            user_id: authCtx.user.id,
-            client_id: clientCredit.client_id,
-            client_payment_id: null, // pode setar depois se quiser linkar
-            valueBefore: clientCredit.usedValue,
-            usedValue: creditToUse,
-          },
-          { client: trx },
-        );
-
         const ccClientPayment = await ClientPayment.create(
           {
             client_id: clientCredit.client_id,
@@ -1318,6 +1307,16 @@ where deposit_id = ?
           { client: trx },
         );
 
+        await ClientUsedCredit.create(
+          {
+            user_id: authCtx.user.id,
+            client_id: ccClientPayment.client_id,
+            client_payment_id: ccClientPayment.id, // pode setar depois se quiser linkar
+            valueBefore: clientCredit.usedValue,
+            usedValue: creditToUse,
+          },
+          { client: trx },
+        );
       }        
 
       let clientPayment: ClientPayment | null = null;

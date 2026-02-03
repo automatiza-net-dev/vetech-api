@@ -1355,6 +1355,7 @@ where deposit_id = ?
         );
       }
 
+      //clientPayment = clientPayment ?? ccClientPayment;
       await Promise.all(
         bills.map(async (bill) => {
           let currentBlock = maxBlockPerBill[bill.id] ?? 0;
@@ -1393,7 +1394,7 @@ where deposit_id = ?
                 tef_flag_id: data.flagId,
                 daily_cashier_id: dailyCashier.id,
                 budget_payment_id: data.budgetPaymentId,
-                client_payment_id: clientPayment.id,
+                client_payment_id: ccClientPayment.id,
 
                 pending: false,
                 block: ++currentBlock,
@@ -1430,6 +1431,7 @@ where deposit_id = ?
               tef_flag_id: data.flagId,
               daily_cashier_id: dailyCashier.id,
               budget_payment_id: data.budgetPaymentId,
+              client_payment_id: clientPayment.id,
 
               pending: false,
               block: ++currentBlock,

@@ -1268,9 +1268,10 @@ where deposit_id = ?
         : { fee: paymentMethod?.fee ?? 0, installment: data.installments ?? 1 };
 
 
+      let overflowPaymentMethod: PaymentMethod | null = null;
       if (clientCredit && creditToUse.gt(0)) {
 
-        const overflowPaymentMethod = await PaymentMethod.query()
+        overflowPaymentMethod = await PaymentMethod.query()
           .useTransaction(trx)
           .whereNull("economic_group_id")
           .where("type", PaymentMethodType.CC)
@@ -1319,9 +1320,9 @@ where deposit_id = ?
 
       }        
 
-
+      let clientPayment: ClientPayment | null = null;
       if (cashToPay.gt(0)) {
-        const clientPayment = await ClientPayment.create(
+        clientPayment = await ClientPayment.create(
           {
             client_id: bills.at(0)?.client_id,
             cashier_id: dailyCashier.id,
@@ -1340,8 +1341,7 @@ where deposit_id = ?
       const valorDescontarVendas = new Decimal(data.installmentsValue).minus(originalValue);
 
       let totalDistribuido = new Decimal(0);
-      let creditClientPayment: ClientPayment | null = null;
-      let creditPaymentMethod: PaymentMethod | null = null;
+
 
       //removido a comparacao com a variavel do front
       if (totalToPay.lessThan(new Decimal(data.installmentsValue))) {
@@ -1349,7 +1349,7 @@ where deposit_id = ?
           {
             user_id: authCtx.user.id,
             client_id: bills.at(0)?.client_id,
-            client_payment_id: creditClientPayment.id,
+            client_payment_id: clientPayment.id,
             originalValue,
           },
           { client: trx },
@@ -1389,20 +1389,20 @@ where deposit_id = ?
                 economic_group_id: authCtx.group.id,
                 business_unit_id: authCtx.unit.id,
                 bill_id: bill.id,
-                payment_method_id: creditPaymentMethod?.id,
+                payment_method_id: overflowPaymentMethod?.id,
                 tef_acquirer_id: data.acquirerId,
                 tef_flag_id: data.flagId,
                 daily_cashier_id: dailyCashier.id,
                 budget_payment_id: data.budgetPaymentId,
-                client_payment_id: creditClientPayment.id,
+                client_payment_id: clientPayment.id,
 
                 pending: false,
                 block: ++currentBlock,
-                expirationDate: creditPaymentMethod
-                  ? SharedService.CalculateDateOffset(0, data.expirationDate, creditPaymentMethod)
+                expirationDate: overflowPaymentMethod
+                  ? SharedService.CalculateDateOffset(0, data.expirationDate, overflowPaymentMethod)
                   : DateTime.now(),
                 feeType:
-                  (creditPaymentMethod?.fee ?? 0) > 0
+                  (overflowPaymentMethod?.fee ?? 0) > 0
                     ? BillPaymentFeeType.S
                     : BillPaymentFeeType.N,
                 feeValue: 0,
@@ -1411,9 +1411,9 @@ where deposit_id = ?
                 installmentValue: valorRelativoCreditoUso.toNumber(),
                 totalValue: valorRelativoCreditoUso.toNumber(),
                 nsuDocument: data.nsuDocument,
-                paymentMethodDiscountPercentage: creditPaymentMethod?.fee,
-                paymentMethodDiscountValue: creditPaymentMethod
-                  ? valorRelativoCreditoUso.times(new Decimal(creditPaymentMethod.fee)).div(100).toNumber()
+                paymentMethodDiscountPercentage: overflowPaymentMethod?.fee,
+                paymentMethodDiscountValue: overflowPaymentMethod
+                  ? valorRelativoCreditoUso.times(new Decimal(overflowPaymentMethod.fee)).div(100).toNumber()
                   : 0,
                 qtyInstallments: installmentFee.installment,
               },

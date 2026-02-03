@@ -1285,7 +1285,7 @@ where deposit_id = ?
           );
         }
 
-        const usedCredit = await clientCredit
+        await clientCredit
           ?.merge({
             usedValue: clientCredit.usedValue
               .plus(creditToUse)
@@ -1318,7 +1318,7 @@ where deposit_id = ?
           },
           { client: trx },
         );
-      }        
+      }
 
       let clientPayment: ClientPayment | null = null;
       if (cashToPay.gt(0)) {
@@ -1349,7 +1349,7 @@ where deposit_id = ?
           {
             user_id: authCtx.user.id,
             client_id: bills.at(0)?.client_id,
-            client_payment_id: clientPayment.id,
+            client_payment_id: clientPayment?.id,
             originalValue,
           },
           { client: trx },
@@ -1363,9 +1363,9 @@ where deposit_id = ?
           let valorAPagarPorVenda = data.creditOverflow
             ? new Decimal(bill.totalValue).minus(bill.paidValue)
             : new Decimal(valorDescontarVendas)
-                .times(percentagePerBill[bill.id])
-                .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
-          
+              .times(percentagePerBill[bill.id])
+              .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+
           const valorRelativoCreditoUso = creditToUse
             .times(percentagePerBill[bill.id])
             .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
@@ -1394,7 +1394,7 @@ where deposit_id = ?
                 tef_flag_id: data.flagId,
                 daily_cashier_id: dailyCashier.id,
                 budget_payment_id: data.budgetPaymentId,
-                client_payment_id: ccClientPayment.id,
+                client_payment_id: ccClientPayment?.id,
 
                 pending: false,
                 block: ++currentBlock,
@@ -1431,7 +1431,7 @@ where deposit_id = ?
               tef_flag_id: data.flagId,
               daily_cashier_id: dailyCashier.id,
               budget_payment_id: data.budgetPaymentId,
-              client_payment_id: clientPayment.id,
+              client_payment_id: clientPayment?.id,
 
               pending: false,
               block: ++currentBlock,

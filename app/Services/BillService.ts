@@ -1194,24 +1194,20 @@ where deposit_id = ?
         ? await ClientCredit.query().where("id", data.clientCreditId).useTransaction(trx).first()
         : null;
 
-      const usedValue = clientCredit
-        ? clientCredit.usedValue
-          .plus(data.installmentsValue)
-          .greaterThan(clientCredit.originalValue)
-          ? clientCredit.originalValue
-          : clientCredit.usedValue.plus(data.installmentsValue)
+      //calculo de quanto do valor foi pago por CREDITO e quanto falta pagar com outras formas
+      const creditoDisponivel = clientCredit
+        ? clientCredit.originalValue.minus(clientCredit.usedValue)
         : new Decimal(0);
 
-      const usedCredit = await clientCredit
-        ?.merge({
-          usedValue: clientCredit.usedValue
-            .plus(data.installmentsValue)
-            .greaterThan(clientCredit.originalValue)
-            ? clientCredit.originalValue
-            : clientCredit.usedValue.plus(data.installmentsValue),
-        })
-        .useTransaction(trx)
-        .save();
+      // Quanto de crédito pode ser usado nesta operação
+      const creditToUse = Decimal.min(
+        creditoDisponivel,
+        data.installmentsValue,
+        totalToPay,
+      );
+
+      // Quanto ainda precisa pagar em outra forma
+      const cashToPay = new Decimal(data.installmentsValue).minus(creditToUse);
 
       const paymentMethod = data.paymentMethodId
         ? await PaymentMethod.query()
@@ -1271,47 +1267,71 @@ where deposit_id = ?
           .firstOrFail()
         : { fee: paymentMethod?.fee ?? 0, installment: data.installments ?? 1 };
 
-      const clientPayment = await ClientPayment.create(
-        {
-          client_id: bills.at(0)?.client_id,
-          cashier_id: dailyCashier.id,
-          movement_id: dailyCashier.daily_movement_id,
-          user_id: authCtx.user.id,
-          payment_method_id: data.paymentMethodId,
 
-          value: new Decimal(data.installmentsValue).minus(usedValue),
-          paymentDate: DateTime.now(),
-          installments: installmentFee.installment,
-        },
-        { client: trx },
-      );
+      if (clientCredit && creditToUse.gt(0)) {
 
-      if (data.creditOverflow && totalToPay.lessThan(new Decimal(data.installmentsValue))) {
-        await ClientCredit.create(
-          {
-            user_id: authCtx.user.id,
-            client_id: bills.at(0)?.client_id,
-            client_payment_id: clientPayment.id,
-            originalValue,
-          },
-          { client: trx },
-        );
-      }
+        const overflowPaymentMethod = await PaymentMethod.query()
+          .useTransaction(trx)
+          .whereNull("economic_group_id")
+          .where("type", PaymentMethodType.CC)
+          .first();
+        if (data.creditOverflow && !overflowPaymentMethod) {
+          throw new BadRequestException(
+            "Método de pagamento para crédito de cliente não encontrado",
+            400,
+            "E_ERR",
+          );
+        }
 
-      if (usedCredit && clientCredit) {
-        const clientUsedValue = clientCredit.usedValue
-          .plus(data.installmentsValue)
-          .greaterThan(clientCredit.originalValue)
-          ? clientCredit.originalValue
-          : clientCredit.usedValue.plus(data.installmentsValue);
+        const usedCredit = await clientCredit
+          ?.merge({
+            usedValue: clientCredit.usedValue
+              .plus(creditToUse)
+          })
+          .useTransaction(trx)
+          .save();
 
         await ClientUsedCredit.create(
           {
             user_id: authCtx.user.id,
-            client_id: clientPayment.client_id,
-            client_payment_id: clientPayment.id,
+            client_id: clientCredit.client_id,
+            client_payment_id: null, // pode setar depois se quiser linkar
             valueBefore: clientCredit.usedValue,
-            usedValue: clientUsedValue,
+            usedValue: creditToUse,
+          },
+          { client: trx },
+        );
+
+        const ccClientPayment = await ClientPayment.create(
+          {
+            client_id: clientCredit.client_id,
+            cashier_id: dailyCashier.id,
+            movement_id: dailyCashier.daily_movement_id,
+            user_id: authCtx.user.id,
+            payment_method_id: overflowPaymentMethod?.id,
+
+            value: creditToUse,
+            paymentDate: DateTime.now(),
+            installments: 1,
+          },
+          { client: trx },
+        );
+
+      }        
+
+
+      if (cashToPay.gt(0)) {
+        const clientPayment = await ClientPayment.create(
+          {
+            client_id: bills.at(0)?.client_id,
+            cashier_id: dailyCashier.id,
+            movement_id: dailyCashier.daily_movement_id,
+            user_id: authCtx.user.id,
+            payment_method_id: data.paymentMethodId,
+
+            value: new Decimal(data.installmentsValue).minus(creditToUse),
+            paymentDate: DateTime.now(),
+            installments: installmentFee.installment,
           },
           { client: trx },
         );
@@ -1320,6 +1340,21 @@ where deposit_id = ?
       const valorDescontarVendas = new Decimal(data.installmentsValue).minus(originalValue);
 
       let totalDistribuido = new Decimal(0);
+      let creditClientPayment: ClientPayment | null = null;
+      let creditPaymentMethod: PaymentMethod | null = null;
+
+      //removido a comparacao com a variavel do front
+      if (totalToPay.lessThan(new Decimal(data.installmentsValue))) {
+        await ClientCredit.create(
+          {
+            user_id: authCtx.user.id,
+            client_id: bills.at(0)?.client_id,
+            client_payment_id: creditClientPayment.id,
+            originalValue,
+          },
+          { client: trx },
+        );
+      }
 
       await Promise.all(
         bills.map(async (bill) => {
@@ -1328,9 +1363,10 @@ where deposit_id = ?
           let valorAPagarPorVenda = data.creditOverflow
             ? new Decimal(bill.totalValue).minus(bill.paidValue)
             : new Decimal(valorDescontarVendas)
-              .times(percentagePerBill[bill.id])
-              .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
-          const valorRelativoCreditoUso = usedValue
+                .times(percentagePerBill[bill.id])
+                .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+          
+          const valorRelativoCreditoUso = creditToUse
             .times(percentagePerBill[bill.id])
             .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
 
@@ -1347,53 +1383,26 @@ where deposit_id = ?
             }
           }
 
-          if (usedValue.gt(new Decimal(0))) {
-            const overflowPaymentMethod = await PaymentMethod.query()
-              .useTransaction(trx)
-              .whereNull("economic_group_id")
-              .where("type", PaymentMethodType.CC)
-              .first();
-            if (data.creditOverflow && !overflowPaymentMethod) {
-              throw new BadRequestException(
-                "Método de pagamento para crédito de cliente não encontrado",
-                400,
-                "E_ERR",
-              );
-            }
-            const ccClientPayment = await ClientPayment.create(
-              {
-                client_id: bills.at(0)?.client_id,
-                cashier_id: dailyCashier.id,
-                movement_id: dailyCashier.daily_movement_id,
-                user_id: authCtx.user.id,
-                payment_method_id: overflowPaymentMethod?.id,
-
-                value: usedValue,
-                paymentDate: DateTime.now(),
-                installments: 1,
-              },
-              { client: trx },
-            );
-
+          if (creditToUse.gt(new Decimal(0))) {
             await BillPayment.create(
               {
                 economic_group_id: authCtx.group.id,
                 business_unit_id: authCtx.unit.id,
                 bill_id: bill.id,
-                payment_method_id: overflowPaymentMethod?.id,
+                payment_method_id: creditPaymentMethod?.id,
                 tef_acquirer_id: data.acquirerId,
                 tef_flag_id: data.flagId,
                 daily_cashier_id: dailyCashier.id,
                 budget_payment_id: data.budgetPaymentId,
-                client_payment_id: ccClientPayment.id,
+                client_payment_id: creditClientPayment.id,
 
                 pending: false,
                 block: ++currentBlock,
-                expirationDate: overflowPaymentMethod
-                  ? SharedService.CalculateDateOffset(0, data.expirationDate, overflowPaymentMethod)
+                expirationDate: creditPaymentMethod
+                  ? SharedService.CalculateDateOffset(0, data.expirationDate, creditPaymentMethod)
                   : DateTime.now(),
                 feeType:
-                  (overflowPaymentMethod?.fee ?? 0) > 0
+                  (creditPaymentMethod?.fee ?? 0) > 0
                     ? BillPaymentFeeType.S
                     : BillPaymentFeeType.N,
                 feeValue: 0,
@@ -1402,9 +1411,9 @@ where deposit_id = ?
                 installmentValue: valorRelativoCreditoUso.toNumber(),
                 totalValue: valorRelativoCreditoUso.toNumber(),
                 nsuDocument: data.nsuDocument,
-                paymentMethodDiscountPercentage: overflowPaymentMethod?.fee,
-                paymentMethodDiscountValue: overflowPaymentMethod
-                  ? valorRelativoCreditoUso.times(new Decimal(overflowPaymentMethod.fee)).div(100).toNumber()
+                paymentMethodDiscountPercentage: creditPaymentMethod?.fee,
+                paymentMethodDiscountValue: creditPaymentMethod
+                  ? valorRelativoCreditoUso.times(new Decimal(creditPaymentMethod.fee)).div(100).toNumber()
                   : 0,
                 qtyInstallments: installmentFee.installment,
               },
@@ -1457,10 +1466,8 @@ where deposit_id = ?
         }),
       );
 
-      if (valorDescontarVendas.gt(new Decimal(0))) {
-        const valorComDesconto = usedCredit
-          ? new Decimal(data.installmentsValue).minus(usedCredit.usedValue)
-          : new Decimal(data.installmentsValue);
+      if (cashToPay.gt(new Decimal(0))) {
+        const valorComDesconto = new Decimal(cashToPay);
 
         const valorUnico = valorComDesconto.div(new Decimal(installmentFee.installment));
         const withOffset = valorComDesconto.minus(valorUnico.times(installmentFee.installment - 1));

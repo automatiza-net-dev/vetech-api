@@ -1269,7 +1269,7 @@ where deposit_id = ?
 
 
       let overflowPaymentMethod: PaymentMethod | null = null;
-      let ccClientPaymentId: string | null = null;
+      let ccClientPayment: ClientPayment | null = null;
       if (clientCredit && creditToUse.gt(0)) {
 
         overflowPaymentMethod = await PaymentMethod.query()
@@ -1293,7 +1293,7 @@ where deposit_id = ?
           .useTransaction(trx)
           .save();
 
-        const ccClientPayment = await ClientPayment.create(
+        ccClientPayment = await ClientPayment.create(
           {
             client_id: clientCredit.client_id,
             cashier_id: dailyCashier.id,
@@ -1307,7 +1307,6 @@ where deposit_id = ?
           },
           { client: trx },
         );
-        ccClientPaymentId = ccClientPayment.id
 
         await ClientUsedCredit.create(
           {
@@ -1395,7 +1394,7 @@ where deposit_id = ?
                 tef_flag_id: data.flagId,
                 daily_cashier_id: dailyCashier.id,
                 budget_payment_id: data.budgetPaymentId,
-                client_payment_id: ccClientPaymentId,
+                client_payment_id: ccClientPayment.id,
 
                 pending: false,
                 block: ++currentBlock,

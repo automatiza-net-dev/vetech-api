@@ -1206,8 +1206,10 @@ where deposit_id = ?
         totalToPay,
       );
 
-      // Quanto ainda precisa pagar em outra forma
-      const cashToPay = new Decimal(data.installmentsValue).minus(creditToUse);
+      // Quanto ainda precisa pagar em outra forma? se nao está usando credito, entao é o valor total do intallmentValue
+      const cashToPay = clientCredit 
+        ? new Decimal(data.installmentsValue).minus(creditToUse)
+        : new Decimal(data.installmentsValue);
 
       const paymentMethod = data.paymentMethodId
         ? await PaymentMethod.query()
@@ -1421,39 +1423,41 @@ where deposit_id = ?
             );
           }
 
-          await BillPayment.create(
-            {
-              economic_group_id: authCtx.group.id,
-              business_unit_id: authCtx.unit.id,
-              bill_id: bill.id,
-              payment_method_id: data.paymentMethodId,
-              tef_acquirer_id: data.acquirerId,
-              tef_flag_id: data.flagId,
-              daily_cashier_id: dailyCashier.id,
-              budget_payment_id: data.budgetPaymentId,
-              client_payment_id: clientPayment.id,
+          if (cashToPay.gt(0)) {
+            await BillPayment.create(
+              {
+                economic_group_id: authCtx.group.id,
+                business_unit_id: authCtx.unit.id,
+                bill_id: bill.id,
+                payment_method_id: data.paymentMethodId,
+                tef_acquirer_id: data.acquirerId,
+                tef_flag_id: data.flagId,
+                daily_cashier_id: dailyCashier.id,
+                budget_payment_id: data.budgetPaymentId,
+                client_payment_id: clientPayment.id,
 
-              pending: false,
-              block: ++currentBlock,
-              expirationDate: paymentMethod
-                ? SharedService.CalculateDateOffset(0, data.expirationDate, paymentMethod)
-                : DateTime.now(),
-              feeType: (paymentMethod?.fee ?? 0) > 0 ? BillPaymentFeeType.S : BillPaymentFeeType.N,
-              feeValue: 0,
-              feePercentage: 0,
-              installments: installmentFee.installment,
-              installmentValue: valorAPagarPorVenda.toNumber(),
-              totalValue: valorAPagarPorVenda.toNumber(),
-              nsuDocument: data.nsuDocument,
-              paymentMethodDiscountPercentage: paymentMethod?.fee,
-              paymentMethodDiscountValue: paymentMethod
-                ? valorAPagarPorVenda.times(new Decimal(paymentMethod.fee)).div(100).toNumber()
-                : 0,
-              qtyInstallments: installmentFee.installment,
-            },
-            { client: trx },
-          );
-
+                pending: false,
+                block: ++currentBlock,
+                expirationDate: paymentMethod
+                  ? SharedService.CalculateDateOffset(0, data.expirationDate, paymentMethod)
+                  : DateTime.now(),
+                feeType: (paymentMethod?.fee ?? 0) > 0 ? BillPaymentFeeType.S : BillPaymentFeeType.N,
+                feeValue: 0,
+                feePercentage: 0,
+                installments: installmentFee.installment,
+                installmentValue: valorAPagarPorVenda.toNumber(),
+                totalValue: valorAPagarPorVenda.toNumber(),
+                nsuDocument: data.nsuDocument,
+                paymentMethodDiscountPercentage: paymentMethod?.fee,
+                paymentMethodDiscountValue: paymentMethod
+                  ? valorAPagarPorVenda.times(new Decimal(paymentMethod.fee)).div(100).toNumber()
+                  : 0,
+                qtyInstallments: installmentFee.installment,
+              },
+              { client: trx },
+            );
+          }
+          
           //.plus(valorDescontarVendas)
           //valorAPagarPorVenda = data.creditOverflow
           await bill

@@ -1893,7 +1893,7 @@ where deposit_id = ?
           usedValue: payment.clientCredits.at(0)?.usedValue.minus(deletedValue)
         }).useTransaction(trx).save()
       } else {
-        if (payment.billPayments.some((bp) => bp.finance?.status === FinanceStatus.B)) {
+        if (payment.billPayments.some((bp) => bp?.finance?.status === FinanceStatus.B)) {
           throw new BadRequestException('Registro financeiro marcado como baixado, não é possível excluir', 400, 'E_ERR')
         }
 

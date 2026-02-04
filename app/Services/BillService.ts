@@ -1207,7 +1207,7 @@ where deposit_id = ?
       );
 
       // Quanto ainda precisa pagar em outra forma? se nao está usando credito, entao é o valor total do intallmentValue
-      const cashToPay = clientCredit 
+      const cashToPay = clientCredit
         ? new Decimal(data.installmentsValue).minus(creditToUse)
         : new Decimal(data.installmentsValue);
 
@@ -1457,7 +1457,7 @@ where deposit_id = ?
               { client: trx },
             );
           }
-          
+
           //.plus(valorDescontarVendas)
           //valorAPagarPorVenda = data.creditOverflow
           await bill
@@ -1497,7 +1497,7 @@ where deposit_id = ?
                 : paymentMethod.fee
               : 0;
 
-            const firstPossibleClient = bills.find((b) => !!b.client);
+            const firstPossibleClient = bills.find((b) => !!b.client)?.client;
 
             return {
               user_id: authCtx.user.id,
@@ -1527,8 +1527,8 @@ where deposit_id = ?
                 ? SharedService.CalculateDateOffset(v, data.expirationDate, paymentMethod)
                 : DateTime.now(),
               originalValue: new Decimal(installmentValue),
-              value: installmentValue.minus(installmentValue.times(feeCtx)).div(100),
-              totalValue: installmentValue.minus(installmentValue.times(feeCtx)).div(100),
+              value: installmentValue.minus(installmentValue.times(feeCtx).div(100)),
+              totalValue: installmentValue.minus(installmentValue.times(feeCtx).div(100)),
               feeDiscountValue: installmentValue
                 .minus(installmentValue.times(feeCtx))
                 .div(100)

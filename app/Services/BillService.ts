@@ -1358,6 +1358,8 @@ where deposit_id = ?
         );
       }
 
+      const billPaymentIdList: string[] = [];
+
       await Promise.all(
         bills.map(async (bill) => {
           let currentBlock = maxBlockPerBill[bill.id] ?? 0;
@@ -1424,7 +1426,7 @@ where deposit_id = ?
           }
 
           if (cashToPay.gt(0)) {
-            await BillPayment.create(
+            const moneyBillPayment = await BillPayment.create(
               {
                 economic_group_id: authCtx.group.id,
                 business_unit_id: authCtx.unit.id,
@@ -1456,6 +1458,7 @@ where deposit_id = ?
               },
               { client: trx },
             );
+            billPaymentIdList.push(moneyBillPayment.id);
           }
 
           //.plus(valorDescontarVendas)
@@ -1512,6 +1515,7 @@ where deposit_id = ?
               account_plan_id: authCtx.unit.unitConfig.sale_exit_account_plan_id,
               checking_account_id:
                 $checkingAccountMeta?.checking_account_id ?? paymentMethod?.checkingAccountId,
+              origin_id: billPaymentIdList.at(v % billPaymentIdList.length),
 
               // internalCode: bill.internalCode,
               type: FinanceType.C,
@@ -1889,7 +1893,7 @@ where deposit_id = ?
           usedValue: payment.clientCredits.at(0)?.usedValue.minus(deletedValue)
         }).useTransaction(trx).save()
       } else {
-        if (payment.billPayments.some((bp) => bp.finance.status === FinanceStatus.B)) {
+        if (payment.billPayments.some((bp) => bp.finance?.status === FinanceStatus.B)) {
           throw new BadRequestException('Registro financeiro marcado como baixado, não é possível excluir', 400, 'E_ERR')
         }
 
@@ -1897,7 +1901,7 @@ where deposit_id = ?
           .useTransaction(trx)
           .where("business_unit_id", authCtx.unit.id)
           .where("origin_flag", FinanceOriginFlag.S)
-          .whereILike("document", `%CLI-${payment.client.tag}%`)
+          .whereIn("origin_id", payment.billPayments.map(bp => bp.id))
           .update({
             exclusion_user_id: authCtx.user.id,
             deleted_at: DateTime.now(),

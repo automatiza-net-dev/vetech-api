@@ -1530,8 +1530,7 @@ where deposit_id = ?
               value: installmentValue.minus(installmentValue.times(feeCtx).div(100)),
               totalValue: installmentValue.minus(installmentValue.times(feeCtx).div(100)),
               feeDiscountValue: installmentValue
-                .minus(installmentValue.times(feeCtx))
-                .div(100)
+                .minus(installmentValue.times(feeCtx).div(100))
                 .toNumber(),
               feeValue: new Decimal(0),
               feeDiscountPercentage: feeCtx,

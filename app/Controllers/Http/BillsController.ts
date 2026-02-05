@@ -41,6 +41,15 @@ export default class BillsController {
     return response.ok(result);
   }
 
+  public async aggregateClientPayments({ params, auth, response }: HttpContextContract) {
+    const result = await this.service.aggregateClientPayments(
+      await this.sharedService.getAuthContext(auth),
+      params.tutorID,
+    );
+
+    return response.ok(result);
+  }
+
   public async show({ params, auth, response }: HttpContextContract) {
     const result = await this.service.show(
       await this.sharedService.getAuthContext(auth),

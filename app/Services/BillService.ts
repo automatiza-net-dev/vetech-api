@@ -1841,6 +1841,22 @@ where deposit_id = ?
     });
   }
 
+  async aggregateClientPayments(_authCtx: AuthContext, tutorID: string) {
+    const rows: { total_value: string }[] = await Database.from("client_credits")
+      .select(Database.raw("sum(original_value - used_value) as total_value"))
+      .where("client_id", tutorID)
+      .whereRaw('reversed is false')
+      .groupBy("client_id");
+
+
+    return {
+      total: rows.reduce((acc, curr) => {
+        return acc.plus(curr.total_value);
+      }, new Decimal(0)).toNumber()
+    }
+  }
+
+
   async deleteClientPayment(authCtx: AuthContext, id: string) {
     await Database.transaction(async (trx) => {
       const payment = await ClientPayment.query()

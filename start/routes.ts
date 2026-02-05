@@ -1096,6 +1096,7 @@ Route.group(() => {
 	Route.post("/approve", "BillsController.approveBillCourtesyMaxDiscounts");
 
 	Route.get("/", "BillsController.index");
+	Route.get("/aggregate-client-payments/:tutorID", "BillsController.aggregateClientPayments");
 	Route.get("/conference/:id", "BillsController.fetchConferenceCashier");
 	Route.get("/products", "BillsController.searchProducts");
 	Route.get("/taxes", "BillsController.searchTax");

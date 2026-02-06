@@ -972,7 +972,7 @@ export default class PatientService {
       patient.photo ? [patient.photo] : [],
     );
 
-    const clientCredits = await ClientCredit.query().where('client_id', patient.id).whereRaw('used_value < original_value')
+    const tutorCredits = await ClientCredit.query().where('client_id', patient.id).whereRaw('used_value < original_value')
     const missingClientTotal = patientSales
       .reduce((acc, curr) => {
         if (!curr.totalValue) {
@@ -989,8 +989,8 @@ export default class PatientService {
           return acc.plus(curr.totalValue).minus(curr.paidValue);
         }, new Decimal(0))
 
-    const creditsTotal = clientCredits.reduce((acc, curr) => {
-      return acc.plus(curr.usedValue).minus(curr.originalValue);
+    const tutorCreditsTotal = tutorCredits.reduce((acc, curr) => {
+      return acc.plus(curr.originalValue).minus(curr.usedValue);
     }, new Decimal(0))
 
     const displayData = {
@@ -1039,7 +1039,7 @@ export default class PatientService {
           .toNumber(),
       ),
       vetMissingBills: this.sharedService.formatter.format(missingClientTotal.toNumber()),
-      vetMissingTutorBills: [this.sharedService.formatter.format(missingTutorTotal.toNumber()), `(Crédito ${this.sharedService.formatter.format(creditsTotal.toNumber())})`].join(' - '),
+      vetMissingTutorBills: [this.sharedService.formatter.format(missingTutorTotal.toNumber()), `(Crédito ${this.sharedService.formatter.format(tutorCreditsTotal.toNumber())})`].join(' - '),
       openAttendances: attendances.length > 0,
       createdAt: patient.createdAt,
 

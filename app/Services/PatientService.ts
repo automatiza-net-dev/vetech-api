@@ -972,7 +972,7 @@ export default class PatientService {
       patient.photo ? [patient.photo] : [],
     );
 
-    const tutorCredits = await ClientCredit.query().where('client_id', patient.id).whereRaw('used_value < original_value')
+    const tutorCredits = await ClientCredit.query().where('client_id', mainTutor?.id ?? patient.id).whereRaw('used_value < original_value')
     const missingClientTotal = patientSales
       .reduce((acc, curr) => {
         if (!curr.totalValue) {

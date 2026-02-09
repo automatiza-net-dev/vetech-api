@@ -1040,7 +1040,7 @@ export default class PatientService {
       ),
       vetMissingBills: this.sharedService.formatter.format(missingClientTotal.toNumber()),
       vetMissingTutorBills: this.sharedService.formatter.format(missingTutorTotal.toNumber()),
-      vetMissingTutorCredits: this.sharedService.formatter.format(tutorCreditsTotal.toNumber()),
+      vetMissingTutorCredits: tutorCreditsTotal.toNumber(),
       openAttendances: attendances.length > 0,
       createdAt: patient.createdAt,
 

@@ -1923,6 +1923,10 @@ where deposit_id = ?
             status: FinanceStatus.E,
           });
       }
+
+      await payment.merge({
+        deletedAt: DateTime.now(),
+      }).useTransaction(trx).save();
     });
   }
 

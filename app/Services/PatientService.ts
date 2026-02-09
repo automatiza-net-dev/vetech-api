@@ -1039,7 +1039,8 @@ export default class PatientService {
           .toNumber(),
       ),
       vetMissingBills: this.sharedService.formatter.format(missingClientTotal.toNumber()),
-      vetMissingTutorBills: [this.sharedService.formatter.format(missingTutorTotal.toNumber()), `(Crédito ${this.sharedService.formatter.format(tutorCreditsTotal.toNumber())})`].join(' - '),
+      vetMissingTutorBills: this.sharedService.formatter.format(missingTutorTotal.toNumber()),
+      vetMissingTutorCredits: this.sharedService.formatter.format(tutorCreditsTotal.toNumber()),
       openAttendances: attendances.length > 0,
       createdAt: patient.createdAt,
 

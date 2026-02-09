@@ -1274,6 +1274,7 @@ export default class PatientService {
   public async tutorPayments(_authCtx: AuthContext, tutorID: string) {
     return ClientPayment.query()
       .where("client_id", tutorID)
+      .whereNull("deleted_at")
       .preload("user", (query) => {
         query.select("id", "name");
       })

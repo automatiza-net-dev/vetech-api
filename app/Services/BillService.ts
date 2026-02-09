@@ -1916,7 +1916,6 @@ where deposit_id = ?
         await Finance.query()
           .useTransaction(trx)
           .where("business_unit_id", authCtx.unit.id)
-          .where("origin_flag", FinanceOriginFlag.S)
           .whereIn("origin_id", payment.billPayments.map(bp => bp.id))
           .update({
             exclusion_user_id: authCtx.user.id,

@@ -1358,7 +1358,7 @@ where deposit_id = ?
         );
       }
 
-      const billPaymentIdList: string[] = [];
+      const billIdList: string[] = [];
 
       await Promise.all(
         bills.map(async (bill) => {
@@ -1458,7 +1458,7 @@ where deposit_id = ?
               },
               { client: trx },
             );
-            billPaymentIdList.push(moneyBillPayment.id);
+            billIdList.push(moneyBillPayment.bill_id);
           }
 
           //.plus(valorDescontarVendas)
@@ -1515,7 +1515,7 @@ where deposit_id = ?
               account_plan_id: authCtx.unit.unitConfig.sale_exit_account_plan_id,
               checking_account_id:
                 $checkingAccountMeta?.checking_account_id ?? paymentMethod?.checkingAccountId,
-              origin_id: billPaymentIdList.at(v % billPaymentIdList.length),
+              origin_id: billIdList.at(v % billIdList.length),
 
               // internalCode: bill.internalCode,
               type: FinanceType.C,

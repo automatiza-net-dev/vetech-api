@@ -949,94 +949,138 @@ export default class BillService {
 					: 0;
 				const icmsValue = (icmsBase * (billItem.taxRule?.icmsPerc ?? 0)) / 100;
 
-				return billItem
-					.merge({
-						courtesy_issued_user_id:
-							dataItem.courtesy || dataItem.maxDiscount
-								? billItem.courtesy_approved_user_id || authCtx.user.id
-								: null,
-						courtesy: dataItem?.courtesy ?? false,
-						maxDiscount: dataItem?.maxDiscount ?? false,
-						discountValue: dataItem?.discountValue ?? 0,
-						unitaryValue: dataItem.unitaryValue,
-						totalValue,
-						icmsOriginProduct: billItem.productVariation.product.icmsOrigin,
-						icmsCst: billItem.taxRule?.icmsCst,
-						icmsBase:
-							billItem.productVariation.product.type === ProductType.PRODUCT
-								? icmsBase
-								: undefined,
-						icmsPercentage:
-							billItem.productVariation.product.type === ProductType.PRODUCT
-								? billItem.taxRule?.icmsPerc
-								: undefined,
-						icmsValue:
-							billItem.productVariation.product.type === ProductType.PRODUCT
-								? icmsValue
-								: undefined,
-						icmsPercentageRedAliquot: billItem?.taxRule?.icmsPercRedAliquota,
-						icmsPercentageRedBase: billItem?.taxRule?.icmsPercRedBaseCalculo,
-						icmsStBase: this.isValidNumber(billItem?.taxRule?.ivaIcmsSt)
-							? icmsStBase_2
+				// Construir objeto com campos fiscais seguindo o padrão condicional baseado no CST
+				let taxData: Partial<BillItem> = {
+					courtesy_issued_user_id:
+						dataItem.courtesy || dataItem.maxDiscount
+							? billItem.courtesy_approved_user_id || authCtx.user.id
+							: null,
+					courtesy: dataItem?.courtesy ?? false,
+					maxDiscount: dataItem?.maxDiscount ?? false,
+					discountValue: dataItem?.discountValue ?? 0,
+					unitaryValue: dataItem.unitaryValue,
+					totalValue,
+					icmsOriginProduct: billItem.productVariation.product.icmsOrigin,
+					icmsCst:
+						billItem.productVariation.product.type === ProductType.PRODUCT
+							? billItem.taxRule?.icmsCst
 							: undefined,
-						icmsStPercentageRedBase: this.isValidNumber(
-							billItem.taxRule?.ivaIcmsSt,
-						)
-							? (billItem.taxRule?.icmsPercRedBaseCalculo ?? 0)
+					icmsPercentageRedAliquot: billItem?.taxRule?.icmsPercRedAliquota,
+					issCst:
+						billItem.productVariation.product.type === ProductType.SERVICE
+							? billItem?.taxRule?.icmsCst
 							: undefined,
-						icmsStIva: this.isValidNumber(billItem?.taxRule?.ivaIcmsSt),
-						icmsStPercentageUfDestination: this.isValidNumber(
-							billItem.taxRule?.ivaIcmsSt,
-						)
-							? ufIcms?.icmsPercentage
+					issBase:
+						billItem.productVariation.product.type === ProductType.SERVICE
+							? icmsBase
 							: undefined,
-						icmsStValue:
-							ufIcms && this.isValidNumber(billItem?.taxRule?.ivaIcmsSt)
-								? icmsStBase_2 * (ufIcms.icmsPercentage / 100) - icmsValue
+					issPercentage:
+						billItem.productVariation.product.type === ProductType.SERVICE
+							? billItem?.taxRule?.icmsPerc
+							: undefined,
+					issValue:
+						billItem.productVariation.product.type === ProductType.SERVICE
+							? (icmsBase * (billItem?.taxRule?.icmsPerc ?? 0)) / 100
+							: undefined,
+					pisCst: billItem.taxRule?.pisCst,
+					cofinsCst: billItem.taxRule?.cofinsCst,
+					pisBase: totalValue,
+					pisPercentage: billItem.taxRule?.pisPerc,
+					pisValue: (totalValue * (billItem.taxRule?.pisPerc ?? 1)) / 100,
+					pisRetentionValue: 0,
+					cofinsBase: totalValue,
+					cofinsPercentage: billItem.taxRule?.cofinsPerc,
+					cofinsValue: (totalValue * (billItem.taxRule?.cofinsPerc ?? 1)) / 100,
+					cofinsRetentionValue: 0,
+					ipiCst: billItem.taxRule?.ipiCst,
+					ipiBase: totalValue,
+					ipiPercentage: billItem.taxRule?.ipiPerc,
+					ipiValue: (totalValue * (billItem.taxRule?.ipiPerc ?? 1)) / 100,
+					icmsDeferredValue: 0,
+					icmsPartitionValue: 0,
+					icmsFcpPercentage: billItem.taxRule?.fcpPerc,
+					icmsFcpValue: (icmsBase * (billItem.taxRule?.fcpPerc ?? 0)) / 100,
+					icmsPartitionOriginUfPercentage: billItem.taxRule?.icmsPerc,
+					icmsPartitionDestinationUfPercentage:
+						billItem.taxRule?.icmsPercRedAliquota,
+					icmsPartitionInterUfPercentage: billItem.taxRule?.icmsPercRedAliquota,
+				};
+
+				// Aplicar lógica condicional baseada no CST (mesmo padrão do createBillWithTrx)
+				if (
+					billItem.productVariation.product.type === ProductType.PRODUCT &&
+					billItem.taxRule?.icmsCst
+				) {
+					const cst = billItem.taxRule.icmsCst;
+
+					// CSTs que devem ter icmsBase, icmsPercentage e icmsValue
+					if (["00", "10", "20", "70", "90", "900"].includes(cst)) {
+						taxData = Object.assign(taxData, {
+							icmsBase:
+								billItem.productVariation.product.type === ProductType.PRODUCT
+									? icmsBase
+									: undefined,
+							icmsPercentage:
+								billItem.productVariation.product.type === ProductType.PRODUCT
+									? billItem.taxRule?.icmsPerc
+									: undefined,
+							icmsValue:
+								billItem.productVariation.product.type === ProductType.PRODUCT
+									? icmsValue
+									: undefined,
+						});
+					}
+
+					// CSTs que devem ter campos de ICMS ST
+					if (
+						["10", "30", "70", "90", "201", "202", "203", "900"].includes(cst)
+					) {
+						taxData = Object.assign(taxData, {
+							icmsStBase: this.isValidNumber(billItem?.taxRule?.ivaIcmsSt)
+								? icmsStBase_2
 								: undefined,
-						issCst:
-							billItem.productVariation.product.type === ProductType.SERVICE
-								? billItem?.taxRule?.icmsCst
+							icmsStPercentageRedBase: this.isValidNumber(
+								billItem.taxRule?.ivaIcmsSt,
+							)
+								? (billItem.taxRule?.icmsPercRedBaseCalculo ?? 0)
 								: undefined,
-						issBase:
-							billItem.productVariation.product.type === ProductType.SERVICE
-								? icmsBase
+							icmsStIva: this.isValidNumber(billItem?.taxRule?.ivaIcmsSt),
+							icmsStPercentageUfDestination: this.isValidNumber(
+								billItem.taxRule?.ivaIcmsSt,
+							)
+								? ufIcms?.icmsPercentage
 								: undefined,
-						issPercentage:
-							billItem.productVariation.product.type === ProductType.SERVICE
-								? billItem?.taxRule?.icmsPerc
-								: undefined,
-						issValue:
-							billItem.productVariation.product.type === ProductType.SERVICE
-								? (icmsBase * (billItem?.taxRule?.icmsPerc ?? 0)) / 100
-								: undefined,
-						pisCst: billItem.taxRule?.pisCst,
-						cofinsCst: billItem.taxRule?.cofinsCst,
-						pisBase: totalValue,
-						pisPercentage: billItem.taxRule?.pisPerc,
-						pisValue: (totalValue * (billItem.taxRule?.pisPerc ?? 1)) / 100,
-						pisRetentionValue: 0,
-						cofinsBase: totalValue,
-						cofinsPercentage: billItem.taxRule?.cofinsPerc,
-						cofinsValue:
-							(totalValue * (billItem.taxRule?.cofinsPerc ?? 1)) / 100,
-						cofinsRetentionValue: 0,
-						ipiCst: billItem.taxRule?.ipiCst,
-						ipiBase: totalValue,
-						ipiPercentage: billItem.taxRule?.ipiPerc,
-						ipiValue: (totalValue * (billItem.taxRule?.ipiPerc ?? 1)) / 100,
-						icmsDeferredValue: 0,
-						icmsPartitionValue: 0,
-						icmsFcpPercentage: billItem.taxRule?.fcpPerc,
-						icmsFcpValue: (icmsBase * (billItem.taxRule?.fcpPerc ?? 0)) / 100,
-						icmsPartitionOriginUfPercentage: billItem.taxRule?.icmsPerc,
-						icmsPartitionDestinationUfPercentage:
-							billItem.taxRule?.icmsPercRedAliquota,
-						icmsPartitionInterUfPercentage:
-							billItem.taxRule?.icmsPercRedAliquota,
-					})
-					.useTransaction(trx)
-					.save();
+							icmsStValue:
+								ufIcms && this.isValidNumber(billItem?.taxRule?.ivaIcmsSt)
+									? icmsStBase_2 * (ufIcms.icmsPercentage / 100) - icmsValue
+									: undefined,
+						});
+					}
+
+					// CSTs com redução de base de cálculo
+					if (["20", "70", "90", "900"].includes(cst)) {
+						taxData = Object.assign(taxData, {
+							icmsPercentageRedBase: billItem?.taxRule?.icmsPercRedBaseCalculo,
+						});
+					}
+
+					// CST 51 - Diferimento
+					if (["51"].includes(cst)) {
+						taxData = Object.assign(taxData, {
+							icmsDeferredOperationValue: icmsValue,
+							icmsDeferredPercentage: billItem.taxRule?.icmsPercDiferimento,
+							icmsDeferredValue:
+								icmsBase * ((billItem.taxRule?.icmsPercDiferimento ?? 0) / 100),
+							icmsValue:
+								(((billItem.taxRule?.icmsPerc ?? 0) -
+									(billItem.taxRule?.icmsPercDiferimento ?? 0)) *
+									icmsBase) /
+								100,
+						});
+					}
+				}
+
+				return billItem.merge(taxData).useTransaction(trx).save();
 			});
 			const result = await Promise.all(promises);
 
@@ -2967,53 +3011,129 @@ where deposit_id = ?
 							: 0;
 						const icmsValue = (icmsBase * (rule?.icmsPerc ?? 0)) / 100;
 
-						await item
-							.merge({
-								tax_rule_id: rule.id,
-								fiscalOperationCode: rule.taxOperation.code,
-								icmsCst: rule.icmsCst,
-								icmsBase,
-								icmsPercentage: rule.icmsPerc,
-								icmsValue,
-								icmsPercentageRedAliquot: rule.icmsPercRedAliquota,
-								icmsPercentageRedBase: rule.icmsPercRedBaseCalculo,
-								icmsStPercentageUfDestination: rule?.ivaIcmsSt
-									? ufIcmsRule?.icmsPercentage
+						// Construir objeto com campos fiscais seguindo o padrão do createBillWithTrx
+						let taxData: Partial<BillItem> = {
+							tax_rule_id: rule.id,
+							fiscalOperationCode: rule.taxOperation.code,
+							icmsOriginProduct: item.productVariation.product.icmsOrigin,
+							icmsCst:
+								item.productVariation.product.type === ProductType.PRODUCT
+									? rule.icmsCst
 									: undefined,
-								icmsStBase: rule.ivaIcmsSt ? icmsStBase_2 : undefined,
-								icmsStPercentageRedBase,
-								icmsStIva: rule.ivaIcmsSt,
-								icmsStValue: rule.ivaIcmsSt
-									? icmsStBase_2 * ((ufIcmsRule?.icmsPercentage ?? 100) / 100) -
-										icmsValue
+							icmsPercentageRedAliquot: rule.icmsPercRedAliquota,
+							issCst:
+								item.productVariation.product.type === ProductType.SERVICE
+									? rule.icmsCst
 									: undefined,
-								issBase: rule.icmsPerc,
-								issValue: (icmsBase * (rule.icmsPerc ?? 0)) / 100,
-								issPercentage: rule.icmsPerc,
-								pisCst: rule.pisCst,
-								pisBase: totalValue,
-								pisPercentage: rule.pisPerc,
-								pisValue: (totalValue * (rule.pisPerc ?? 1)) / 100,
-								pisRetentionValue: 0,
-								cofinsCst: rule.cofinsCst,
-								cofinsBase: totalValue,
-								cofinsPercentage: rule.cofinsPerc,
-								cofinsValue: (totalValue * (rule.cofinsPerc ?? 1)) / 100,
-								cofinsRetentionValue: 0,
-								ipiCst: rule.ipiCst,
-								ipiBase: totalValue,
-								ipiPercentage: rule.ipiPerc,
-								ipiValue: (totalValue * (rule.ipiPerc ?? 1)) / 100,
-								icmsDeferredValue: 0,
-								icmsPartitionValue: 0,
-								icmsFcpPercentage: rule.fcpPerc,
-								icmsFcpValue: (icmsBase * (rule.fcpPerc ?? 0)) / 100,
-								icmsPartitionOriginUfPercentage: rule.icmsPerc,
-								icmsPartitionDestinationUfPercentage: rule.icmsPercRedAliquota,
-								icmsPartitionInterUfPercentage: rule.icmsPercRedAliquota,
-							})
-							.useTransaction(trx)
-							.save();
+							issBase:
+								item.productVariation.product.type === ProductType.SERVICE
+									? icmsBase
+									: undefined,
+							issPercentage:
+								item.productVariation.product.type === ProductType.SERVICE
+									? rule.icmsPerc
+									: undefined,
+							issValue:
+								item.productVariation.product.type === ProductType.SERVICE
+									? (icmsBase * (rule.icmsPerc ?? 0)) / 100
+									: undefined,
+							pisCst: rule.pisCst,
+							pisBase: totalValue,
+							pisPercentage: rule.pisPerc,
+							pisValue: (totalValue * (rule.pisPerc ?? 1)) / 100,
+							pisRetentionValue: 0,
+							cofinsCst: rule.cofinsCst,
+							cofinsBase: totalValue,
+							cofinsPercentage: rule.cofinsPerc,
+							cofinsValue: (totalValue * (rule.cofinsPerc ?? 1)) / 100,
+							cofinsRetentionValue: 0,
+							ipiCst: rule.ipiCst,
+							ipiBase: totalValue,
+							ipiPercentage: rule.ipiPerc,
+							ipiValue: (totalValue * (rule.ipiPerc ?? 1)) / 100,
+							icmsDeferredValue: 0,
+							icmsPartitionValue: 0,
+							icmsFcpPercentage: rule.fcpPerc,
+							icmsFcpValue: (icmsBase * (rule.fcpPerc ?? 0)) / 100,
+							icmsPartitionOriginUfPercentage: rule.icmsPerc,
+							icmsPartitionDestinationUfPercentage: rule.icmsPercRedAliquota,
+							icmsPartitionInterUfPercentage: rule.icmsPercRedAliquota,
+						};
+
+						// Aplicar lógica condicional baseada no CST (mesmo padrão do createBillWithTrx)
+						if (
+							item.productVariation.product.type === ProductType.PRODUCT &&
+							rule.icmsCst
+						) {
+							const cst = rule.icmsCst;
+
+							// CSTs que devem ter icmsBase, icmsPercentage e icmsValue
+							if (["00", "10", "20", "70", "90", "900"].includes(cst)) {
+								taxData = Object.assign(taxData, {
+									icmsBase:
+										item.productVariation.product.type === ProductType.PRODUCT
+											? icmsBase
+											: undefined,
+									icmsPercentage:
+										item.productVariation.product.type === ProductType.PRODUCT
+											? rule.icmsPerc
+											: undefined,
+									icmsValue:
+										item.productVariation.product.type === ProductType.PRODUCT
+											? icmsValue
+											: undefined,
+								});
+							}
+
+							// CSTs que devem ter campos de ICMS ST
+							if (
+								["10", "30", "70", "90", "201", "202", "203", "900"].includes(
+									cst,
+								)
+							) {
+								taxData = Object.assign(taxData, {
+									icmsStBase: this.isValidNumber(rule.ivaIcmsSt)
+										? icmsStBase_2
+										: undefined,
+									icmsStPercentageRedBase: this.isValidNumber(rule.ivaIcmsSt)
+										? rule.icmsPercRedBaseCalculoST
+										: undefined,
+									icmsStIva: this.isValidNumber(rule.ivaIcmsSt),
+									icmsStPercentageUfDestination: this.isValidNumber(
+										rule.ivaIcmsSt,
+									)
+										? ufIcmsRule?.icmsPercentage
+										: undefined,
+									icmsStValue:
+										this.isValidNumber(rule.ivaIcmsSt) && ufIcmsRule
+											? icmsStBase_2 * (ufIcmsRule.icmsPercentage / 100) -
+												icmsValue
+											: undefined,
+								});
+							}
+
+							// CSTs com redução de base de cálculo
+							if (["20", "70", "90", "900"].includes(cst)) {
+								taxData = Object.assign(taxData, {
+									icmsPercentageRedBase: rule.icmsPercRedBaseCalculo,
+								});
+							}
+
+							// CST 51 - Diferimento
+							if (["51"].includes(cst)) {
+								taxData = Object.assign(taxData, {
+									icmsDeferredOperationValue: icmsValue,
+									icmsDeferredPercentage: rule.icmsPercDiferimento,
+									icmsDeferredValue:
+										icmsBase * (rule.icmsPercDiferimento / 100),
+									icmsValue:
+										((rule.icmsPerc - rule.icmsPercDiferimento) * icmsBase) /
+										100,
+								});
+							}
+						}
+
+						await item.merge(taxData).useTransaction(trx).save();
 					}
 				});
 			}

@@ -12,177 +12,154 @@ import UpdateDepartmentValidator from "App/Validators/Department/UpdateDepartmen
 
 @inject()
 export default class DepartmentsController {
-	constructor(
-		private sharedService: SharedService,
-		private service: DepartmentService,
-	) {}
+  constructor(
+    private sharedService: SharedService,
+    private service: DepartmentService,
+  ) {}
 
-	public async resume({ auth, request, response }: HttpContextContract) {
-		const authCtx = await this.sharedService.getAuthContext(auth);
+  public async resume({ auth, request, response }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
 
-		const data = await this.service.resume(authCtx, request.qs());
+    const data = await this.service.resume(authCtx, request.qs());
 
-		return response.ok(data);
-	}
+    return response.ok(data);
+  }
 
-	public async index({ auth, request, response }: HttpContextContract) {
-		const authCtx = await this.sharedService.getAuthContext(auth);
+  public async index({ auth, request, response }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
 
-		const data = await this.service.index(authCtx, request.qs());
+    const data = await this.service.index(authCtx, request.qs());
 
-		return response.ok(data);
-	}
+    return response.ok(data);
+  }
 
-	public async listProducts({ auth, request, response }: HttpContextContract) {
-		const authCtx = await this.sharedService.getAuthContext(auth);
+  public async listProducts({ auth, request, response }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
 
-		const data = await this.service.listDepartmentProducts(
-			authCtx,
-			request.qs(),
-		);
+    const data = await this.service.listDepartmentProducts(authCtx, request.qs());
 
-		return response.ok(data);
-	}
+    return response.ok(data);
+  }
 
-	public async listItems({ auth, request, response }: HttpContextContract) {
-		const authCtx = await this.sharedService.getAuthContext(auth);
+  public async listItems({ auth, request, response }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
 
-		const data = await this.service.listDepartmentItems(authCtx, request.qs());
+    const data = await this.service.listDepartmentItems(authCtx, request.qs());
 
-		return response.ok(data);
-	}
+    return response.ok(data);
+  }
 
-	public async listProductsMovements({
-		auth,
-		request,
-		response,
-	}: HttpContextContract) {
-		const authCtx = await this.sharedService.getAuthContext(auth);
+  public async listProductsMovements({ auth, request, response }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
 
-		const data = await this.service.listDepartmentProductsForMovements(
-			authCtx,
-			request.qs(),
-		);
+    const data = await this.service.listDepartmentProductsForMovements(authCtx, request.qs());
 
-		return response.ok(data);
-	}
+    return response.ok(data);
+  }
 
-	public async store({ auth, request, response }: HttpContextContract) {
-		const payload = await request.validate(CreateDepartmentValidator);
+  public async store({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(CreateDepartmentValidator);
 
-		const files = request.allFiles()?.["photos"];
-		if (files) {
-			// @ts-ignore error
-			payload.items.map((item, idx) => {
-				// console.log({
-				// 	files,
-				// 	item,
-				//      idx
-				// });
-				const file = files.find((fi) => {
-					return fi.data.fieldName === `photos[${idx}]`;
-				});
+    const files = request.allFiles()?.["photos"];
+    if (files) {
+      // @ts-ignore error
+      payload.items.map((item, idx) => {
+        // console.log({
+        // 	files,
+        // 	item,
+        //      idx
+        // });
+        const file = files.find((fi) => {
+          return fi.data.fieldName === `photos[${idx}]`;
+        });
 
-				if (!file) {
-					return item;
-				}
+        if (!file) {
+          return item;
+        }
 
-				// @ts-ignore error
-				item.photo = file;
-				return item;
-			});
-		}
+        // @ts-ignore error
+        item.photo = file;
+        return item;
+      });
+    }
 
-		const authCtx = await this.sharedService.getAuthContext(auth);
-		const data = await this.service.store(authCtx, payload);
+    const authCtx = await this.sharedService.getAuthContext(auth);
+    const data = await this.service.store(authCtx, payload);
 
-		return response.created(data);
-	}
+    return response.created(data);
+  }
 
-	public async storeProducts({ auth, request, response }: HttpContextContract) {
-		const payload = await request.validate(CreateDepartmentProductValidator);
-		const authCtx = await this.sharedService.getAuthContext(auth);
+  public async storeProducts({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(CreateDepartmentProductValidator);
+    const authCtx = await this.sharedService.getAuthContext(auth);
 
-		const data = await this.service.storeDepartmentProducts(authCtx, payload);
+    const data = await this.service.storeDepartmentProducts(authCtx, payload);
 
-		return response.created(data);
-	}
+    return response.created(data);
+  }
 
-	public async storeItem({ auth, request, response }: HttpContextContract) {
-		const payload = await request.validate(CreateDepartmentItemValidator);
-		const authCtx = await this.sharedService.getAuthContext(auth);
+  public async storeItem({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(CreateDepartmentItemValidator);
+    const authCtx = await this.sharedService.getAuthContext(auth);
 
-		const data = await this.service.createDepartmentItem(authCtx, payload);
+    const data = await this.service.createDepartmentItem(authCtx, payload);
 
-		return response.ok(data);
-	}
+    return response.ok(data);
+  }
 
-	public async update({
-		auth,
-		params,
-		request,
-		response,
-	}: HttpContextContract) {
-		const payload = await request.validate(UpdateDepartmentValidator);
-		const authCtx = await this.sharedService.getAuthContext(auth);
+  public async update({ auth, params, request, response }: HttpContextContract) {
+    const payload = await request.validate(UpdateDepartmentValidator);
+    const authCtx = await this.sharedService.getAuthContext(auth);
 
-		const data = await this.service.update(authCtx, params.id, payload);
+    const data = await this.service.update(authCtx, params.id, payload);
 
-		return response.ok(data);
-	}
+    return response.ok(data);
+  }
 
-	public async updateProducts({
-		auth,
-		request,
-		response,
-	}: HttpContextContract) {
-		const payload = await request.validate(CreateDepartmentProductValidator);
-		const authCtx = await this.sharedService.getAuthContext(auth);
+  public async updateProducts({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(CreateDepartmentProductValidator);
+    const authCtx = await this.sharedService.getAuthContext(auth);
 
-		await this.service.updateDepartmentProducts(authCtx, payload);
+    await this.service.updateDepartmentProducts(authCtx, payload);
 
-		return response.noContent();
-	}
+    return response.noContent();
+  }
 
-	public async updateItem({ auth, request, response }: HttpContextContract) {
-		const payload = await request.validate(UpdateDepartmentItemValidator);
-		const authCtx = await this.sharedService.getAuthContext(auth);
+  public async updateItem({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(UpdateDepartmentItemValidator);
+    const authCtx = await this.sharedService.getAuthContext(auth);
 
-		const data = await this.service.updateDepartmentItem(
-			authCtx,
-			request.param("id", "-1"),
-			payload,
-		);
+    const data = await this.service.updateDepartmentItem(
+      authCtx,
+      request.param("id", "-1"),
+      payload,
+    );
 
-		return response.ok(data);
-	}
+    return response.ok(data);
+  }
 
-	public async destroy({ auth, params, response }: HttpContextContract) {
-		const authCtx = await this.sharedService.getAuthContext(auth);
-		await this.service.destroy(authCtx, params.id);
+  public async destroy({ auth, params, response }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
+    await this.service.destroy(authCtx, params.id);
 
-		return response.noContent();
-	}
+    return response.noContent();
+  }
 
-	public async destroyProducts({
-		auth,
-		request,
-		response,
-	}: HttpContextContract) {
-		const payload = await request.validate(CreateDepartmentProductValidator);
-		const authCtx = await this.sharedService.getAuthContext(auth);
+  public async destroyProducts({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(CreateDepartmentProductValidator);
+    const authCtx = await this.sharedService.getAuthContext(auth);
 
-		await this.service.destroyDepartmentProducts(authCtx, payload);
+    await this.service.destroyDepartmentProducts(authCtx, payload);
 
-		return response.noContent();
-	}
+    return response.noContent();
+  }
 
-	public async destroyItem({ auth, request, response }: HttpContextContract) {
-		const payload = await request.validate(DestroyDepartmentItemValidator);
-		const authCtx = await this.sharedService.getAuthContext(auth);
+  public async destroyItem({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(DestroyDepartmentItemValidator);
+    const authCtx = await this.sharedService.getAuthContext(auth);
 
-		await this.service.deleteDepartmentItem(authCtx, payload);
+    await this.service.deleteDepartmentItem(authCtx, payload);
 
-		return response.noContent();
-	}
+    return response.noContent();
+  }
 }

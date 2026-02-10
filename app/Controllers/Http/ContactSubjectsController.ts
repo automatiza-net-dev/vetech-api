@@ -1,9 +1,9 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import ContactSubjectService from 'App/Services/ContactSubjectService';
-import SharedService from 'App/Services/SharedService';
-import CreateContactSubjectValidator from 'App/Validators/ContactSubject/CreateContactSubjectValidator';
-import UpdateContactSubjectValidator from 'App/Validators/ContactSubject/UpdateContactSubjectValidator';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import ContactSubjectService from "App/Services/ContactSubjectService";
+import SharedService from "App/Services/SharedService";
+import CreateContactSubjectValidator from "App/Validators/ContactSubject/CreateContactSubjectValidator";
+import UpdateContactSubjectValidator from "App/Validators/ContactSubject/UpdateContactSubjectValidator";
 
 @inject()
 export default class ContactSubjectsController {
@@ -15,13 +15,10 @@ export default class ContactSubjectsController {
   async index({ auth, request, response }: HttpContextContract) {
     const qs = request.qs();
 
-    const result = await this.service.index(
-      await this.sharedService.getAuthContext(auth),
-      {
-        description: qs.description,
-        active: qs.active,
-      },
-    );
+    const result = await this.service.index(await this.sharedService.getAuthContext(auth), {
+      description: qs.description,
+      active: qs.active,
+    });
 
     return response.ok(result);
   }
@@ -38,10 +35,7 @@ export default class ContactSubjectsController {
   async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateContactSubjectValidator);
 
-    await this.service.store(
-      await this.sharedService.getAuthContext(auth),
-      payload,
-    );
+    await this.service.store(await this.sharedService.getAuthContext(auth), payload);
 
     return response.created();
   }
@@ -49,20 +43,13 @@ export default class ContactSubjectsController {
   async update({ auth, params, request, response }: HttpContextContract) {
     const payload = await request.validate(UpdateContactSubjectValidator);
 
-    await this.service.update(
-      await this.sharedService.getAuthContext(auth),
-      params.id,
-      payload,
-    );
+    await this.service.update(await this.sharedService.getAuthContext(auth), params.id, payload);
 
     return response.noContent();
   }
 
   async destroy({ auth, params, response }: HttpContextContract) {
-    await this.service.delete(
-      await this.sharedService.getAuthContext(auth),
-      params.id,
-    );
+    await this.service.delete(await this.sharedService.getAuthContext(auth), params.id);
 
     return response.noContent();
   }

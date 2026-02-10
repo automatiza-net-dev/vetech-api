@@ -1,11 +1,11 @@
-import BaseSchema from '@ioc:Adonis/Lucid/Schema';
+import BaseSchema from "@ioc:Adonis/Lucid/Schema";
 
 export default class extends BaseSchema {
-  protected tableName = 'patient_exams';
+  protected tableName = "patient_exams";
 
   public async up() {
-    this.schema.alterTable(this.tableName, table => {
-      table.datetime('realized_at').alter();
+    this.schema.alterTable(this.tableName, (table) => {
+      table.datetime("realized_at").alter();
     });
   }
 

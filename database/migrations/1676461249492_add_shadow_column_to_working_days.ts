@@ -1,17 +1,17 @@
-import BaseSchema from '@ioc:Adonis/Lucid/Schema';
+import BaseSchema from "@ioc:Adonis/Lucid/Schema";
 
 export default class extends BaseSchema {
-  protected tableName = 'working_days';
+  protected tableName = "working_days";
 
   public async up() {
-    this.schema.alterTable(this.tableName, table => {
-      table.integer('weekday_index').defaultTo(0);
+    this.schema.alterTable(this.tableName, (table) => {
+      table.integer("weekday_index").defaultTo(0);
     });
   }
 
   public async down() {
-    this.schema.alterTable(this.tableName, table => {
-      table.dropColumn('weekday_index');
+    this.schema.alterTable(this.tableName, (table) => {
+      table.dropColumn("weekday_index");
     });
   }
 }

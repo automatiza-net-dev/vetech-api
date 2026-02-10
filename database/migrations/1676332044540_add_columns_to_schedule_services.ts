@@ -1,17 +1,17 @@
-import BaseSchema from '@ioc:Adonis/Lucid/Schema';
+import BaseSchema from "@ioc:Adonis/Lucid/Schema";
 
 export default class extends BaseSchema {
-  protected tableName = 'schedule_service_types';
+  protected tableName = "schedule_service_types";
 
   public async up() {
-    this.schema.alterTable(this.tableName, table => {
-      table.text('resume');
+    this.schema.alterTable(this.tableName, (table) => {
+      table.text("resume");
     });
   }
 
   public async down() {
-    this.schema.alterTable(this.tableName, table => {
-      table.dropColumn('resume');
+    this.schema.alterTable(this.tableName, (table) => {
+      table.dropColumn("resume");
     });
   }
 }

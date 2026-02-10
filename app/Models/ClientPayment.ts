@@ -55,7 +55,6 @@ export default class ClientPayment extends BaseModel {
   @column({ serializeAs: null })
   public client_id: string;
 
-
   @column({ serializeAs: null })
   public cashier_id: string;
 
@@ -74,7 +73,6 @@ export default class ClientPayment extends BaseModel {
     foreignKey: "client_id",
   })
   public client: BelongsTo<typeof Patient>;
-
 
   @belongsTo(() => PaymentMethod, {
     foreignKey: "payment_method_id",

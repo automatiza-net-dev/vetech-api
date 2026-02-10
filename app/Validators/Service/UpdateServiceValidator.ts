@@ -3,7 +3,7 @@ import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
 import { PServiceType } from "App/Models/Product";
 
 export default class UpdateServiceValidator {
-  constructor(protected ctx: HttpContextContract) { }
+  constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
     description: schema.string({}, []),

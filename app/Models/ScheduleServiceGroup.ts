@@ -7,15 +7,15 @@ import {
   column,
   HasMany,
   hasMany,
-} from '@ioc:Adonis/Lucid/Orm';
-import EconomicGroup from 'App/Models/EconomicGroup';
-import ScheduleServiceType from 'App/Models/ScheduleServiceType';
-import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
-import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
+} from "@ioc:Adonis/Lucid/Orm";
+import EconomicGroup from "App/Models/EconomicGroup";
+import ScheduleServiceType from "App/Models/ScheduleServiceType";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import { DateTime } from "luxon";
+import { v4 } from "uuid";
 
 export enum ScheduleServiceGroupType {
-  'R' = 'RETORNO',
+  "R" = "RETORNO",
 }
 
 export default class ScheduleServiceGroup extends BaseModel {
@@ -62,8 +62,8 @@ export default class ScheduleServiceGroup extends BaseModel {
   public group: BelongsTo<typeof EconomicGroup>;
 
   @hasMany(() => ScheduleServiceType, {
-    localKey: 'id',
-    foreignKey: 'schedule_service_group_id',
+    localKey: "id",
+    foreignKey: "schedule_service_group_id",
   })
   public types: HasMany<typeof ScheduleServiceType>;
 }

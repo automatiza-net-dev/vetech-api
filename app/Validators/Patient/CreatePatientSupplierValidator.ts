@@ -1,6 +1,6 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
-import { TutorResidences } from 'App/Models/PatientTutor';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
+import { TutorResidences } from "App/Models/PatientTutor";
 
 export default class CreatePatientSupplierValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -14,7 +14,7 @@ export default class CreatePatientSupplierValidator {
     stateInscription: schema.string.optional({}),
     residence: schema.enum.optional(TutorResidences),
     photo: schema.file.optional({
-      extnames: ['jpg', 'gif', 'png', 'jpeg'],
+      extnames: ["jpg", "gif", "png", "jpeg"],
     }),
     tags: schema.string.optional({}, []),
     birthDate: schema.date.optional({}),
@@ -34,8 +34,8 @@ export default class CreatePatientSupplierValidator {
 
     accountPlanId: schema.string.optional({}, [
       rules.exists({
-        column: 'id',
-        table: 'account_plans',
+        column: "id",
+        table: "account_plans",
       }),
     ]),
   });

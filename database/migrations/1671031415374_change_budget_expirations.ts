@@ -1,17 +1,17 @@
-import BaseSchema from '@ioc:Adonis/Lucid/Schema';
+import BaseSchema from "@ioc:Adonis/Lucid/Schema";
 
 export default class extends BaseSchema {
-  protected tableName = 'budgets';
+  protected tableName = "budgets";
 
   public async up() {
-    this.schema.alterTable(this.tableName, table => {
-      table.date('expiration_date').alter();
+    this.schema.alterTable(this.tableName, (table) => {
+      table.date("expiration_date").alter();
     });
   }
 
   public async down() {
-    this.schema.alterTable(this.tableName, table => {
-      table.datetime('expiration_date').alter();
+    this.schema.alterTable(this.tableName, (table) => {
+      table.datetime("expiration_date").alter();
     });
   }
 }

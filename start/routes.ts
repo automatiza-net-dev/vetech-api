@@ -21,2161 +21,1715 @@
 import Route from "@ioc:Adonis/Core/Route";
 
 Route.get("/", () => {
-	return "Vetech API - Desenvolvimento: CreativeCode 2022";
+  return "Vetech API - Desenvolvimento: CreativeCode 2022";
 });
 
 Route.group(() => {
-	Route.get("me", "AuthController.whoAmI").middleware(["auth:tpApi,api"]);
-	Route.get("available-swaps", "AuthController.availableSwaps").middleware([
-		"auth:tpApi,api",
-	]);
-	Route.post("swap-unit", "AuthController.swapUnit").middleware([
-		"auth:tpApi,api",
-	]);
-	Route.post("swap-tp-unit", "AuthController.swapTpUnit").middleware([
-		"auth:apiApi,api",
-	]);
+  Route.get("me", "AuthController.whoAmI").middleware(["auth:tpApi,api"]);
+  Route.get("available-swaps", "AuthController.availableSwaps").middleware(["auth:tpApi,api"]);
+  Route.post("swap-unit", "AuthController.swapUnit").middleware(["auth:tpApi,api"]);
+  Route.post("swap-tp-unit", "AuthController.swapTpUnit").middleware(["auth:apiApi,api"]);
 
-	Route.post("admin-login", "AuthController.adminLogin");
-	Route.post("controller-login", "AuthController.controllerLogin");
-	Route.post("login", "AuthController.login");
-	Route.post("register", "AuthController.register");
-	Route.post("forgot-password", "AuthController.forgotPassword");
-	Route.post("reset-password", "AuthController.resetPassword");
+  Route.post("admin-login", "AuthController.adminLogin");
+  Route.post("controller-login", "AuthController.controllerLogin");
+  Route.post("login", "AuthController.login");
+  Route.post("register", "AuthController.register");
+  Route.post("forgot-password", "AuthController.forgotPassword");
+  Route.post("reset-password", "AuthController.resetPassword");
 
-	Route.get("logout", "AuthController.logout").middleware(["auth:tpApi,api"]);
+  Route.get("logout", "AuthController.logout").middleware(["auth:tpApi,api"]);
 }).prefix("auth");
 
 Route.group(() => {
-	Route.get(
-		"/fetch-user-controllers",
-		"UsersController.fetchUserControllers",
-	).middleware(["auth:tpApi,api"]);
-	Route.post(
-		"/upload-signature",
-		"UsersController.uploadUserSignature",
-	).middleware("auth");
-	Route.post(
-		"/create-user-controller",
-		"UsersController.createUserController",
-	).middleware(["auth:tpApi,api"]);
-	Route.post(
-		"/update-user-controller",
-		"UsersController.updateUserController",
-	).middleware(["auth:tpApi,api"]);
-	Route.post(
-		"/disable-user-controller-role",
-		"UsersController.disableUserControllerRole",
-	).middleware("auth");
-	Route.delete(
-		"/delete-user-controller/:id",
-		"UsersController.deleteUserController",
-	).middleware(["auth:tpApi,api"]);
+  Route.get("/fetch-user-controllers", "UsersController.fetchUserControllers").middleware([
+    "auth:tpApi,api",
+  ]);
+  Route.post("/upload-signature", "UsersController.uploadUserSignature").middleware("auth");
+  Route.post("/create-user-controller", "UsersController.createUserController").middleware([
+    "auth:tpApi,api",
+  ]);
+  Route.post("/update-user-controller", "UsersController.updateUserController").middleware([
+    "auth:tpApi,api",
+  ]);
+  Route.post(
+    "/disable-user-controller-role",
+    "UsersController.disableUserControllerRole",
+  ).middleware("auth");
+  Route.delete("/delete-user-controller/:id", "UsersController.deleteUserController").middleware([
+    "auth:tpApi,api",
+  ]);
 
-	Route.get("", "UsersController.index");
-	Route.get("/:id", "UsersController.show");
-	Route.get("/check-email/:email", "UsersController.checkEmail");
-	Route.get("/check-document/:document", "UsersController.checkDocument");
-	Route.get(
-		"/resend-confirmation/:email",
-		"UsersController.resendConfirmationToken",
-	);
-	Route.post("/send-confirmation", "UsersController.createConfirmationToken");
-	Route.post("/confirm-token", "UsersController.confirmConfirmationToken");
+  Route.get("", "UsersController.index");
+  Route.get("/:id", "UsersController.show");
+  Route.get("/check-email/:email", "UsersController.checkEmail");
+  Route.get("/check-document/:document", "UsersController.checkDocument");
+  Route.get("/resend-confirmation/:email", "UsersController.resendConfirmationToken");
+  Route.post("/send-confirmation", "UsersController.createConfirmationToken");
+  Route.post("/confirm-token", "UsersController.confirmConfirmationToken");
 
-	Route.post(
-		"/start-change-password",
-		"UsersController.handleChangePasswordEmail",
-	).middleware("auth");
-	Route.post(
-		"/complete-change-password",
-		"UsersController.handleChangePassword",
-	).middleware("auth");
+  Route.post("/start-change-password", "UsersController.handleChangePasswordEmail").middleware(
+    "auth",
+  );
+  Route.post("/complete-change-password", "UsersController.handleChangePassword").middleware(
+    "auth",
+  );
 
-	Route.put("/", "UsersController.update").middleware("auth");
-	Route.delete("/", "UsersController.destroy").middleware("auth");
+  Route.put("/", "UsersController.update").middleware("auth");
+  Route.delete("/", "UsersController.destroy").middleware("auth");
 }).prefix("users");
 
 Route.group(() => {
-	Route.get("", "PlansController.index");
-	Route.get("/:id", "PlansController.show");
-	Route.post("", "PlansController.store");
-	Route.put("/:id", "PlansController.update");
-	Route.delete("/:id", "PlansController.destroy");
+  Route.get("", "PlansController.index");
+  Route.get("/:id", "PlansController.show");
+  Route.post("", "PlansController.store");
+  Route.put("/:id", "PlansController.update");
+  Route.delete("/:id", "PlansController.destroy");
 })
-	.prefix("plans")
-	.middleware("auth");
+  .prefix("plans")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("", "PlanPricesController.index");
-	Route.post("", "PlanPricesController.store");
-	Route.get("/:id", "PlanPricesController.show");
-	Route.put("/:id", "PlanPricesController.update");
-	Route.delete("/:id", "PlanPricesController.destroy");
+  Route.get("", "PlanPricesController.index");
+  Route.post("", "PlanPricesController.store");
+  Route.get("/:id", "PlanPricesController.show");
+  Route.put("/:id", "PlanPricesController.update");
+  Route.delete("/:id", "PlanPricesController.destroy");
 }).prefix("plan-prices");
 
 Route.group(() => {
-	Route.get("", "EconomicGroupsController.index");
-	Route.get("/user", "EconomicGroupsController.userEconomicGroups").middleware(
-		"auth",
-	);
-	Route.get("/:id/users", "EconomicGroupsController.users");
-	Route.put("/:id", "EconomicGroupsController.update");
+  Route.get("", "EconomicGroupsController.index");
+  Route.get("/user", "EconomicGroupsController.userEconomicGroups").middleware("auth");
+  Route.get("/:id/users", "EconomicGroupsController.users");
+  Route.put("/:id", "EconomicGroupsController.update");
 }).prefix("economic-groups");
 
 Route.group(() => {
-	Route.get(
-		"/check-document/:document",
-		"BusinessUnitsController.checkDocument",
-	);
+  Route.get("/check-document/:document", "BusinessUnitsController.checkDocument");
 
-	Route.post(
-		"/test-form/:form",
-		"BusinessUnitsController.testDynamicForm",
-	).middleware("auth");
+  Route.post("/test-form/:form", "BusinessUnitsController.testDynamicForm").middleware("auth");
 
-	Route.get("/users", "BusinessUnitsController.users").middleware("auth");
-	Route.get("/user/:id", "BusinessUnitsController.searchUser").middleware(
-		"auth",
-	);
-	Route.get("/user", "BusinessUnitsController.user").middleware("auth");
-	Route.put("/user/:id", "BusinessUnitsController.updateUser").middleware(
-		"auth",
-	);
-	Route.put("/roles", "BusinessUnitsController.updateUsersRole").middleware(
-		"auth",
-	);
+  Route.get("/users", "BusinessUnitsController.users").middleware("auth");
+  Route.get("/user/:id", "BusinessUnitsController.searchUser").middleware("auth");
+  Route.get("/user", "BusinessUnitsController.user").middleware("auth");
+  Route.put("/user/:id", "BusinessUnitsController.updateUser").middleware("auth");
+  Route.put("/roles", "BusinessUnitsController.updateUsersRole").middleware("auth");
 
-	Route.get("/states", "BusinessUnitsController.states").middleware("auth");
-	Route.get("/system", "BusinessUnitsController.systemUnits").middleware(
-		"auth",
-	);
-	Route.get("", "BusinessUnitsController.index").middleware("auth");
-	Route.get(":id", "BusinessUnitsController.show");
+  Route.get("/states", "BusinessUnitsController.states").middleware("auth");
+  Route.get("/system", "BusinessUnitsController.systemUnits").middleware("auth");
+  Route.get("", "BusinessUnitsController.index").middleware("auth");
+  Route.get(":id", "BusinessUnitsController.show");
 
-	Route.post(
-		"/add-collaborator",
-		"BusinessUnitsController.addCollaborator",
-	).middleware("auth");
+  Route.post("/add-collaborator", "BusinessUnitsController.addCollaborator").middleware("auth");
 
-	Route.post(
-		"/create-collaborator",
-		"BusinessUnitsController.createCollaborator",
-	).middleware("auth");
+  Route.post("/create-collaborator", "BusinessUnitsController.createCollaborator").middleware(
+    "auth",
+  );
 
-	Route.post("/sync-config", "BusinessUnitsController.syncConfig").middleware(
-		"auth",
-	);
-	Route.post("/merge-config", "BusinessUnitsController.mergeConfig").middleware(
-		"auth",
-	);
+  Route.post("/sync-config", "BusinessUnitsController.syncConfig").middleware("auth");
+  Route.post("/merge-config", "BusinessUnitsController.mergeConfig").middleware("auth");
 
-	Route.post("", "BusinessUnitsController.store").middleware("auth");
+  Route.post("", "BusinessUnitsController.store").middleware("auth");
 
-	Route.put(
-		"/update-acquirer/:id",
-		"BusinessUnitsController.updateAcquirer",
-	).middleware("auth");
-	Route.delete(
-		"/delete-acquirer/:id",
-		"BusinessUnitsController.deleteAcquirer",
-	).middleware("auth");
+  Route.put("/update-acquirer/:id", "BusinessUnitsController.updateAcquirer").middleware("auth");
+  Route.delete("/delete-acquirer/:id", "BusinessUnitsController.deleteAcquirer").middleware("auth");
 
-	Route.put("/:id", "BusinessUnitsController.update");
-	Route.delete("/user/:id", "BusinessUnitsController.deleteUser").middleware(
-		"auth",
-	);
+  Route.put("/:id", "BusinessUnitsController.update");
+  Route.delete("/user/:id", "BusinessUnitsController.deleteUser").middleware("auth");
 }).prefix("business-units");
 
 Route.group(() => {
-	Route.get("/search", "RolesController.searchInfo");
-	Route.get("/metadata/:id", "RolesController.permissionMetadata");
-	Route.get("/schematics", "RolesController.permissionSchematics");
-	Route.post("/add-permissions", "RolesController.addPermissions");
-	Route.post("/permissions", "RolesController.managePermissions");
-	Route.post("/copy", "RolesController.copyRole");
+  Route.get("/search", "RolesController.searchInfo");
+  Route.get("/metadata/:id", "RolesController.permissionMetadata");
+  Route.get("/schematics", "RolesController.permissionSchematics");
+  Route.post("/add-permissions", "RolesController.addPermissions");
+  Route.post("/permissions", "RolesController.managePermissions");
+  Route.post("/copy", "RolesController.copyRole");
 
-	Route.get("/controller", "RolesController.controllerIndex");
-	Route.get("/controller/search", "RolesController.searchControllerInfo");
-	Route.post("/controller", "RolesController.storeController");
-	Route.put("/controller/:id", "RolesController.updateController");
-	Route.delete("/controller/:id", "RolesController.destroyController");
+  Route.get("/controller", "RolesController.controllerIndex");
+  Route.get("/controller/search", "RolesController.searchControllerInfo");
+  Route.post("/controller", "RolesController.storeController");
+  Route.put("/controller/:id", "RolesController.updateController");
+  Route.delete("/controller/:id", "RolesController.destroyController");
 
-	Route.get("/", "RolesController.index");
-	Route.post("/", "RolesController.store");
-	Route.get("/:id", "RolesController.show");
-	Route.put("/:id", "RolesController.update");
-	Route.delete("/:id", "RolesController.destroy");
+  Route.get("/", "RolesController.index");
+  Route.post("/", "RolesController.store");
+  Route.get("/:id", "RolesController.show");
+  Route.put("/:id", "RolesController.update");
+  Route.delete("/:id", "RolesController.destroy");
 })
-	.prefix("roles")
-	.middleware(["auth:tpApi,api"]);
+  .prefix("roles")
+  .middleware(["auth:tpApi,api"]);
 
 Route.group(() => {
-	Route.post("/sync", "PermissionsController.sync");
+  Route.post("/sync", "PermissionsController.sync");
 
-	Route.post("/screens", "PermissionsController.fetchScreens");
+  Route.post("/screens", "PermissionsController.fetchScreens");
 
-	Route.get("/", "PermissionsController.index");
-	Route.post("/", "PermissionsController.store");
-	Route.get("/:id", "PermissionsController.show");
-	Route.put("/:id", "PermissionsController.update");
-	Route.delete("/:id", "PermissionsController.destroy");
+  Route.get("/", "PermissionsController.index");
+  Route.post("/", "PermissionsController.store");
+  Route.get("/:id", "PermissionsController.show");
+  Route.put("/:id", "PermissionsController.update");
+  Route.delete("/:id", "PermissionsController.destroy");
 })
-	.prefix("permissions")
-	.middleware("auth");
+  .prefix("permissions")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.post("/additional", "LicencesController.additional").middleware("auth");
-	Route.post("/custom", "LicencesController.custom");
+  Route.post("/additional", "LicencesController.additional").middleware("auth");
+  Route.post("/custom", "LicencesController.custom");
 }).prefix("licences");
 
 Route.group(() => {
-	Route.get("/check/:id", "InvitesController.check");
-	Route.get("/:id", "InvitesController.show");
+  Route.get("/check/:id", "InvitesController.check");
+  Route.get("/:id", "InvitesController.show");
 
-	Route.post("/accept-invite", "InvitesController.acceptInvite");
-	Route.post(
-		"/accept-invite-new-user",
-		"InvitesController.acceptInviteNewUser",
-	);
+  Route.post("/accept-invite", "InvitesController.acceptInvite");
+  Route.post("/accept-invite-new-user", "InvitesController.acceptInviteNewUser");
 
-	Route.group(() => {
-		Route.get("/resend/:id", "InvitesController.resendInvite");
-		Route.get("/", "InvitesController.index");
-		Route.post("/", "InvitesController.store");
-		Route.put("/:id", "InvitesController.update");
-		Route.delete("/:id", "InvitesController.destroy");
-	}).middleware("auth");
+  Route.group(() => {
+    Route.get("/resend/:id", "InvitesController.resendInvite");
+    Route.get("/", "InvitesController.index");
+    Route.post("/", "InvitesController.store");
+    Route.put("/:id", "InvitesController.update");
+    Route.delete("/:id", "InvitesController.destroy");
+  }).middleware("auth");
 }).prefix("invites");
 
 Route.group(() => {
-	Route.get("/check-document/:document", "PatientsController.checkDocument");
-	Route.post("/check-phone/", "PatientsController.checkPhone");
-	Route.get("/search", "PatientsController.search");
-	Route.get("/unique-origins", "PatientsController.uniqueOrigins");
-	Route.get("/animals", "PatientsController.showAnimals");
-	Route.get("/", "PatientsController.index");
-	Route.get("/metadata/:id", "PatientsController.metadata");
-	Route.get("/tutor-payments/:id", "PatientsController.tutorPayments");
-	Route.get("/sales-metadata/:id", "PatientsController.salesMetadata");
-	Route.get("/non-pets", "PatientsController.nonPets");
-	Route.get("/display/:id", "PatientsController.display");
-	Route.get("/:id", "PatientsController.show");
+  Route.get("/check-document/:document", "PatientsController.checkDocument");
+  Route.post("/check-phone/", "PatientsController.checkPhone");
+  Route.get("/search", "PatientsController.search");
+  Route.get("/unique-origins", "PatientsController.uniqueOrigins");
+  Route.get("/animals", "PatientsController.showAnimals");
+  Route.get("/", "PatientsController.index");
+  Route.get("/metadata/:id", "PatientsController.metadata");
+  Route.get("/tutor-payments/:id", "PatientsController.tutorPayments");
+  Route.get("/sales-metadata/:id", "PatientsController.salesMetadata");
+  Route.get("/non-pets", "PatientsController.nonPets");
+  Route.get("/display/:id", "PatientsController.display");
+  Route.get("/:id", "PatientsController.show");
 
-	Route.post("/fast", "PatientsController.fastStore");
-	Route.post("/", "PatientsController.store");
+  Route.post("/fast", "PatientsController.fastStore");
+  Route.post("/", "PatientsController.store");
 
-	Route.put("/main/:patient/:tutor", "PatientsController.setMainTutor");
-	Route.put("/declare-death/:id", "PatientsController.declareDeath");
-	Route.put("/unlink", "PatientsController.unlinkHolderDependent");
-	Route.put("/:id", "PatientsController.update");
-	Route.delete("/:id", "PatientsController.destroy");
-	Route.post("/mass-remove", "PatientsController.massRemoveRecords");
+  Route.put("/main/:patient/:tutor", "PatientsController.setMainTutor");
+  Route.put("/declare-death/:id", "PatientsController.declareDeath");
+  Route.put("/unlink", "PatientsController.unlinkHolderDependent");
+  Route.put("/:id", "PatientsController.update");
+  Route.delete("/:id", "PatientsController.destroy");
+  Route.post("/mass-remove", "PatientsController.massRemoveRecords");
 })
-	.prefix("patients")
-	.middleware("auth");
+  .prefix("patients")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/credits/:id", "PatientTutorsController.listCredits");
-	Route.get("/nr/:id", "PatientTutorsController.notRelated");
-	Route.get("/reduced", "PatientTutorsController.reducedIndex");
-	Route.get("/all", "PatientTutorsController.allIndex");
-	Route.get("/", "PatientTutorsController.index");
-	Route.post("/", "PatientTutorsController.store");
-	Route.post("/assign", "PatientTutorsController.assign");
-	Route.get("/display/:id", "PatientTutorsController.display");
-	Route.get("/:id", "PatientTutorsController.show");
-	Route.put("/:id", "PatientTutorsController.update");
+  Route.get("/credits/:id", "PatientTutorsController.listCredits");
+  Route.get("/nr/:id", "PatientTutorsController.notRelated");
+  Route.get("/reduced", "PatientTutorsController.reducedIndex");
+  Route.get("/all", "PatientTutorsController.allIndex");
+  Route.get("/", "PatientTutorsController.index");
+  Route.post("/", "PatientTutorsController.store");
+  Route.post("/assign", "PatientTutorsController.assign");
+  Route.get("/display/:id", "PatientTutorsController.display");
+  Route.get("/:id", "PatientTutorsController.show");
+  Route.put("/:id", "PatientTutorsController.update");
 })
-	.prefix("patient-tutors")
-	.middleware("auth");
+  .prefix("patient-tutors")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/", "PatientSuppliersController.index");
-	Route.post("/", "PatientSuppliersController.store");
-	Route.get("/:id", "PatientSuppliersController.show");
-	Route.put("/:id", "PatientSuppliersController.update");
-	Route.delete("/:id", "PatientSuppliersController.destroy");
+  Route.get("/", "PatientSuppliersController.index");
+  Route.post("/", "PatientSuppliersController.store");
+  Route.get("/:id", "PatientSuppliersController.show");
+  Route.put("/:id", "PatientSuppliersController.update");
+  Route.delete("/:id", "PatientSuppliersController.destroy");
 })
-	.prefix("patient-suppliers")
-	.middleware("auth");
+  .prefix("patient-suppliers")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/", "SpeciesController.index");
-	Route.post("/", "SpeciesController.store");
-	Route.get("/:id", "SpeciesController.show");
-	Route.put("/:id", "SpeciesController.update");
-	Route.delete("/:id", "SpeciesController.destroy");
+  Route.get("/", "SpeciesController.index");
+  Route.post("/", "SpeciesController.store");
+  Route.get("/:id", "SpeciesController.show");
+  Route.put("/:id", "SpeciesController.update");
+  Route.delete("/:id", "SpeciesController.destroy");
 })
-	.prefix("species")
-	.middleware("auth");
+  .prefix("species")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/", "RacesController.index");
-	Route.post("/", "RacesController.store");
-	Route.get("/:id", "RacesController.show");
-	Route.put("/:id", "RacesController.update");
-	Route.delete("/:id", "RacesController.destroy");
+  Route.get("/", "RacesController.index");
+  Route.post("/", "RacesController.store");
+  Route.get("/:id", "RacesController.show");
+  Route.put("/:id", "RacesController.update");
+  Route.delete("/:id", "RacesController.destroy");
 })
-	.prefix("races")
-	.middleware("auth");
+  .prefix("races")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/", "ScheduleStatusesController.index");
-	// Route.post('/', 'ScheduleStatusesController.store');
-	// Route.get('/:id', 'ScheduleStatusesController.show');
-	// Route.put('/:id', 'ScheduleStatusesController.update');
-	// Route.delete('/:id', 'ScheduleStatusesController.destroy');
+  Route.get("/", "ScheduleStatusesController.index");
+  // Route.post('/', 'ScheduleStatusesController.store');
+  // Route.get('/:id', 'ScheduleStatusesController.show');
+  // Route.put('/:id', 'ScheduleStatusesController.update');
+  // Route.delete('/:id', 'ScheduleStatusesController.destroy');
 })
-	.prefix("schedule-statuses")
-	.middleware("auth");
+  .prefix("schedule-statuses")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/", "ScheduleServiceGroupsController.index");
-	Route.post("/", "ScheduleServiceGroupsController.store");
-	Route.get("/:id", "ScheduleServiceGroupsController.show");
-	Route.put("/:id", "ScheduleServiceGroupsController.update");
-	Route.delete("/:id", "ScheduleServiceGroupsController.destroy");
+  Route.get("/", "ScheduleServiceGroupsController.index");
+  Route.post("/", "ScheduleServiceGroupsController.store");
+  Route.get("/:id", "ScheduleServiceGroupsController.show");
+  Route.put("/:id", "ScheduleServiceGroupsController.update");
+  Route.delete("/:id", "ScheduleServiceGroupsController.destroy");
 })
-	.prefix("schedule-service-groups")
-	.middleware("auth");
+  .prefix("schedule-service-groups")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/", "ScheduleServiceTypesController.index");
-	Route.get("/_v2", "ScheduleServiceTypesController.index2");
-	Route.post("/", "ScheduleServiceTypesController.store");
-	Route.get("/:id", "ScheduleServiceTypesController.show");
-	Route.put("/:id", "ScheduleServiceTypesController.update");
-	Route.delete("/:id", "ScheduleServiceTypesController.destroy");
+  Route.get("/", "ScheduleServiceTypesController.index");
+  Route.get("/_v2", "ScheduleServiceTypesController.index2");
+  Route.post("/", "ScheduleServiceTypesController.store");
+  Route.get("/:id", "ScheduleServiceTypesController.show");
+  Route.put("/:id", "ScheduleServiceTypesController.update");
+  Route.delete("/:id", "ScheduleServiceTypesController.destroy");
 })
-	.prefix("schedule-service-types")
-	.middleware("auth");
+  .prefix("schedule-service-types")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/", "WorkingDaysController.index");
-	Route.post("/", "WorkingDaysController.store");
-	Route.get("/:id", "WorkingDaysController.show");
-	Route.put("/many", "WorkingDaysController.storeMany");
-	Route.put("/:id", "WorkingDaysController.update");
-	Route.delete("/:id", "WorkingDaysController.destroy");
+  Route.get("/", "WorkingDaysController.index");
+  Route.post("/", "WorkingDaysController.store");
+  Route.get("/:id", "WorkingDaysController.show");
+  Route.put("/many", "WorkingDaysController.storeMany");
+  Route.put("/:id", "WorkingDaysController.update");
+  Route.delete("/:id", "WorkingDaysController.destroy");
 })
-	.prefix("working-days")
-	.middleware("auth");
+  .prefix("working-days")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/", "UnavailableDaysController.index");
-	Route.post("/", "UnavailableDaysController.store");
-	Route.get("/:id", "UnavailableDaysController.show");
-	Route.put("/:id", "UnavailableDaysController.update");
-	Route.delete("/:id", "UnavailableDaysController.destroy");
+  Route.get("/", "UnavailableDaysController.index");
+  Route.post("/", "UnavailableDaysController.store");
+  Route.get("/:id", "UnavailableDaysController.show");
+  Route.put("/:id", "UnavailableDaysController.update");
+  Route.delete("/:id", "UnavailableDaysController.destroy");
 })
-	.prefix("unavailable-days")
-	.middleware("auth");
+  .prefix("unavailable-days")
+  .middleware("auth");
 
-Route.get(
-	"schedules/confirmation/:scheduleID",
-	"SchedulesController.publicConfirmationInfo",
-);
-Route.post(
-	"schedules/confirmation",
-	"SchedulesController.publicConfirmationUpdate",
-);
+Route.get("schedules/confirmation/:scheduleID", "SchedulesController.publicConfirmationInfo");
+Route.post("schedules/confirmation", "SchedulesController.publicConfirmationUpdate");
 
 Route.group(() => {
-	Route.get("/search-events", "SchedulesController.searchScheduleEvents");
-	Route.get(
-		"/search-to-movement",
-		"SchedulesController.searchSchedulesToAddToMovement",
-	);
-	Route.get("/home", "SchedulesController.homeContent");
-	Route.get("/home-2", "SchedulesController.homeContent_2");
-	Route.get("/disponibility", "SchedulesController.viewDisponibility");
-	Route.get(
-		"/status-changes/:id",
-		"SchedulesController.getScheduleStatusChanges",
-	);
-	Route.get("/simple-user", "SchedulesController.simpleUserDailySchedule");
-	Route.get("/user", "SchedulesController.userDailySchedule");
-	Route.get(
-		"/users-weekly-schedules",
-		"SchedulesController.usersWeeklySchedule",
-	);
-	Route.get("/with-schedule", "SchedulesController.withSchedule");
-	Route.get("/appointsments/:id", "SchedulesController.userAppointments");
-	Route.get("/returnables/:patient", "SchedulesController.returnableSchedules");
-	Route.get("/historic/:patient", "SchedulesController.getPatientSchedules");
-	Route.get(
-		"/schedules-attendances/:patientID",
-		"SchedulesController.schedulesAttendances",
-	);
-	Route.get("/finances/:clientID", "SchedulesController.finances");
+  Route.get("/search-events", "SchedulesController.searchScheduleEvents");
+  Route.get("/search-to-movement", "SchedulesController.searchSchedulesToAddToMovement");
+  Route.get("/home", "SchedulesController.homeContent");
+  Route.get("/home-2", "SchedulesController.homeContent_2");
+  Route.get("/disponibility", "SchedulesController.viewDisponibility");
+  Route.get("/status-changes/:id", "SchedulesController.getScheduleStatusChanges");
+  Route.get("/simple-user", "SchedulesController.simpleUserDailySchedule");
+  Route.get("/user", "SchedulesController.userDailySchedule");
+  Route.get("/users-weekly-schedules", "SchedulesController.usersWeeklySchedule");
+  Route.get("/with-schedule", "SchedulesController.withSchedule");
+  Route.get("/appointsments/:id", "SchedulesController.userAppointments");
+  Route.get("/returnables/:patient", "SchedulesController.returnableSchedules");
+  Route.get("/historic/:patient", "SchedulesController.getPatientSchedules");
+  Route.get("/schedules-attendances/:patientID", "SchedulesController.schedulesAttendances");
+  Route.get("/finances/:clientID", "SchedulesController.finances");
 
-	Route.get("/", "SchedulesController.index");
-	Route.post("/create-contact", "SchedulesController.createContact");
-	Route.post("/", "SchedulesController.store");
-	Route.get("/:id", "SchedulesController.show");
-	Route.put("/reschedule/:id", "SchedulesController.reschedule");
-	Route.put("/reopen/:id", "SchedulesController.reopenSchedule");
-	Route.put("/upsert/:id", "SchedulesController.upsertStatus");
-	Route.put("/status", "SchedulesController.updateStatus");
-	Route.put("/status-type", "SchedulesController.updateStatusType");
-	Route.put("/exclude", "SchedulesController.destroy");
-	Route.put("/:id", "SchedulesController.update");
+  Route.get("/", "SchedulesController.index");
+  Route.post("/create-contact", "SchedulesController.createContact");
+  Route.post("/", "SchedulesController.store");
+  Route.get("/:id", "SchedulesController.show");
+  Route.put("/reschedule/:id", "SchedulesController.reschedule");
+  Route.put("/reopen/:id", "SchedulesController.reopenSchedule");
+  Route.put("/upsert/:id", "SchedulesController.upsertStatus");
+  Route.put("/status", "SchedulesController.updateStatus");
+  Route.put("/status-type", "SchedulesController.updateStatusType");
+  Route.put("/exclude", "SchedulesController.destroy");
+  Route.put("/:id", "SchedulesController.update");
 
-	Route.post("/sync", "SchedulesController.syncLateSchedules");
+  Route.post("/sync", "SchedulesController.syncLateSchedules");
 })
-	.prefix("schedules")
-	.middleware("auth");
+  .prefix("schedules")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/", "GroupsController.index");
-	Route.post("/", "GroupsController.store");
-	Route.get("/:id", "GroupsController.show");
-	Route.put("/:id", "GroupsController.update");
-	Route.delete("/:id", "GroupsController.destroy");
+  Route.get("/", "GroupsController.index");
+  Route.post("/", "GroupsController.store");
+  Route.get("/:id", "GroupsController.show");
+  Route.put("/:id", "GroupsController.update");
+  Route.delete("/:id", "GroupsController.destroy");
 })
-	.prefix("groups")
-	.middleware("auth");
+  .prefix("groups")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/for-movements", "ProductsController.forMovements");
-	Route.get("/", "ProductsController.index");
-	Route.post("/stock", "ProductsController.calculateStock");
-	Route.post("/", "ProductsController.store");
-	Route.get("/:id", "ProductsController.show");
-	Route.put("/:id", "ProductsController.update");
-	Route.delete("/:id", "ProductsController.destroy");
+  Route.get("/for-movements", "ProductsController.forMovements");
+  Route.get("/", "ProductsController.index");
+  Route.post("/stock", "ProductsController.calculateStock");
+  Route.post("/", "ProductsController.store");
+  Route.get("/:id", "ProductsController.show");
+  Route.put("/:id", "ProductsController.update");
+  Route.delete("/:id", "ProductsController.destroy");
 })
-	.prefix("products")
-	.middleware("auth");
+  .prefix("products")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/", "ProductVariationsController.index");
-	Route.post("/", "ProductVariationsController.store");
-	Route.get("/:id", "ProductVariationsController.show");
-	Route.put("/:id", "ProductVariationsController.update");
-	Route.delete("/:id", "ProductVariationsController.destroy");
+  Route.get("/", "ProductVariationsController.index");
+  Route.post("/", "ProductVariationsController.store");
+  Route.get("/:id", "ProductVariationsController.show");
+  Route.put("/:id", "ProductVariationsController.update");
+  Route.delete("/:id", "ProductVariationsController.destroy");
 })
-	.prefix("product-variations")
-	.middleware("auth");
+  .prefix("product-variations")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/", "BusinessUnitProductsController.index");
-	Route.post("/", "BusinessUnitProductsController.store");
-	Route.get("/:id", "BusinessUnitProductsController.show");
-	Route.put("/:id", "BusinessUnitProductsController.update");
-	Route.delete("/:id", "BusinessUnitProductsController.destroy");
+  Route.get("/", "BusinessUnitProductsController.index");
+  Route.post("/", "BusinessUnitProductsController.store");
+  Route.get("/:id", "BusinessUnitProductsController.show");
+  Route.put("/:id", "BusinessUnitProductsController.update");
+  Route.delete("/:id", "BusinessUnitProductsController.destroy");
 })
-	.prefix("business-unit-products")
-	.middleware("auth");
+  .prefix("business-unit-products")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/", "SubgroupsController.index");
-	Route.post("/", "SubgroupsController.store");
-	Route.get("/:id", "SubgroupsController.show");
-	Route.put("/:id", "SubgroupsController.update");
-	Route.delete("/:id", "SubgroupsController.destroy");
+  Route.get("/", "SubgroupsController.index");
+  Route.post("/", "SubgroupsController.store");
+  Route.get("/:id", "SubgroupsController.show");
+  Route.put("/:id", "SubgroupsController.update");
+  Route.delete("/:id", "SubgroupsController.destroy");
 })
-	.prefix("subgroups")
-	.middleware("auth");
+  .prefix("subgroups")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/", "VariationsController.index");
-	Route.post("/", "VariationsController.store");
-	Route.get("/:id", "VariationsController.show");
-	Route.put("/:id", "VariationsController.update");
-	Route.delete("/:id", "VariationsController.destroy");
+  Route.get("/", "VariationsController.index");
+  Route.post("/", "VariationsController.store");
+  Route.get("/:id", "VariationsController.show");
+  Route.put("/:id", "VariationsController.update");
+  Route.delete("/:id", "VariationsController.destroy");
 })
-	.prefix("variations")
-	.middleware("auth");
+  .prefix("variations")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/", "VariationOptionsController.index");
-	Route.post("/", "VariationOptionsController.store");
-	Route.get("/:id", "VariationOptionsController.show");
-	Route.put("/:id", "VariationOptionsController.update");
-	Route.delete("/:id", "VariationOptionsController.destroy");
+  Route.get("/", "VariationOptionsController.index");
+  Route.post("/", "VariationOptionsController.store");
+  Route.get("/:id", "VariationOptionsController.show");
+  Route.put("/:id", "VariationOptionsController.update");
+  Route.delete("/:id", "VariationOptionsController.destroy");
 })
-	.prefix("variation-options")
-	.middleware("auth");
+  .prefix("variation-options")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/", "VariationGroupsController.index");
-	Route.post("/assign", "VariationGroupsController.assign");
-	Route.post("/", "VariationGroupsController.store");
-	Route.get("/:id", "VariationGroupsController.show");
-	Route.put("/:id", "VariationGroupsController.update");
-	Route.delete("/:group/:variation", "VariationGroupsController.detach");
-	Route.delete("/:id", "VariationGroupsController.destroy");
+  Route.get("/", "VariationGroupsController.index");
+  Route.post("/assign", "VariationGroupsController.assign");
+  Route.post("/", "VariationGroupsController.store");
+  Route.get("/:id", "VariationGroupsController.show");
+  Route.put("/:id", "VariationGroupsController.update");
+  Route.delete("/:group/:variation", "VariationGroupsController.detach");
+  Route.delete("/:id", "VariationGroupsController.destroy");
 })
-	.prefix("variation-groups")
-	.middleware("auth");
+  .prefix("variation-groups")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/", "TimelineTypesController.index");
-	Route.post("/", "TimelineTypesController.store");
-	Route.get("/:id", "TimelineTypesController.show");
-	Route.put("/:id", "TimelineTypesController.update");
-	Route.delete("/:id", "TimelineTypesController.destroy");
+  Route.get("/", "TimelineTypesController.index");
+  Route.post("/", "TimelineTypesController.store");
+  Route.get("/:id", "TimelineTypesController.show");
+  Route.put("/:id", "TimelineTypesController.update");
+  Route.delete("/:id", "TimelineTypesController.destroy");
 }).prefix("timeline");
 
 Route.group(() => {
-	Route.get("/", "AttendancesController.index");
-	Route.get("/show/:id", "AttendancesController.show");
+  Route.get("/", "AttendancesController.index");
+  Route.get("/show/:id", "AttendancesController.show");
 
-	Route.post("/open", "AttendancesController.open");
-	Route.put("/update/:id", "AttendancesController.update");
-	Route.put("/close/:id", "AttendancesController.close");
+  Route.post("/open", "AttendancesController.open");
+  Route.put("/update/:id", "AttendancesController.update");
+  Route.put("/close/:id", "AttendancesController.close");
 })
-	.prefix("attendances")
-	.middleware("auth");
-
-Route.group(() => {
-	Route.get("/", "PathologiesController.index");
-	Route.post("/", "PathologiesController.store");
-	Route.get("/:id", "PathologiesController.show");
-	Route.put("/:id", "PathologiesController.update");
-	Route.delete("/:id", "PathologiesController.destroy");
-})
-	.prefix("pathologies")
-	.middleware("auth");
+  .prefix("attendances")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/", "MedicalDocumentTemplatesController.index");
-	Route.post("/", "MedicalDocumentTemplatesController.store");
-	Route.get("/:id", "MedicalDocumentTemplatesController.show");
-	Route.put("/:id", "MedicalDocumentTemplatesController.update");
-	Route.delete("/:id", "MedicalDocumentTemplatesController.destroy");
+  Route.get("/", "PathologiesController.index");
+  Route.post("/", "PathologiesController.store");
+  Route.get("/:id", "PathologiesController.show");
+  Route.put("/:id", "PathologiesController.update");
+  Route.delete("/:id", "PathologiesController.destroy");
 })
-	.prefix("medical-document-templates")
-	.middleware("auth");
+  .prefix("pathologies")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/", "DocumentTemplatesController.index");
-	Route.post("/upload", "DocumentTemplatesController.uploadFile");
-	Route.post("/", "DocumentTemplatesController.store");
-	Route.get("/pdf/:id", "DocumentTemplatesController.getPdf");
-	Route.get("/render-pdf/:id", "DocumentTemplatesController.renderPdf");
-	Route.get("/:id", "DocumentTemplatesController.show");
-	Route.put("/:id", "DocumentTemplatesController.update");
-	Route.delete("/:id", "DocumentTemplatesController.destroy");
+  Route.get("/", "MedicalDocumentTemplatesController.index");
+  Route.post("/", "MedicalDocumentTemplatesController.store");
+  Route.get("/:id", "MedicalDocumentTemplatesController.show");
+  Route.put("/:id", "MedicalDocumentTemplatesController.update");
+  Route.delete("/:id", "MedicalDocumentTemplatesController.destroy");
 })
-	.prefix("document-templates")
-	.middleware("auth");
+  .prefix("medical-document-templates")
+  .middleware("auth");
+
+Route.group(() => {
+  Route.get("/", "DocumentTemplatesController.index");
+  Route.post("/upload", "DocumentTemplatesController.uploadFile");
+  Route.post("/", "DocumentTemplatesController.store");
+  Route.get("/pdf/:id", "DocumentTemplatesController.getPdf");
+  Route.get("/render-pdf/:id", "DocumentTemplatesController.renderPdf");
+  Route.get("/:id", "DocumentTemplatesController.show");
+  Route.put("/:id", "DocumentTemplatesController.update");
+  Route.delete("/:id", "DocumentTemplatesController.destroy");
+})
+  .prefix("document-templates")
+  .middleware("auth");
 
 Route.resource("vaccines", "VaccinesController")
-	.apiOnly()
-	.middleware({
-		"*": ["auth"],
-	});
+  .apiOnly()
+  .middleware({
+    "*": ["auth"],
+  });
 Route.group(() => {
-	Route.get("/status/:id", "VaccinesController.status");
-	Route.put("/clear-calendar/:id", "VaccinesController.clearCalendar");
+  Route.get("/status/:id", "VaccinesController.status");
+  Route.put("/clear-calendar/:id", "VaccinesController.clearCalendar");
 })
-	.prefix("vaccines")
-	.middleware("auth");
+  .prefix("vaccines")
+  .middleware("auth");
 
 Route.resource("exams", "ExamsController")
-	.apiOnly()
-	.middleware({
-		"*": ["auth"],
-	});
+  .apiOnly()
+  .middleware({
+    "*": ["auth"],
+  });
 
 Route.group(() => {
-	Route.get("/:id", "TimelinesController.index");
-	Route.delete("/:id", "TimelinesController.delete");
+  Route.get("/:id", "TimelinesController.index");
+  Route.delete("/:id", "TimelinesController.delete");
 
-	Route.group(() => {
-		Route.get("/:id", "TimelinesController.animalWeightIndex");
-		Route.post("/", "TimelinesController.storeAnimalWeight");
-		Route.put("/:id", "TimelinesController.updateAnimalWeight");
-	}).prefix("weight");
+  Route.group(() => {
+    Route.get("/:id", "TimelinesController.animalWeightIndex");
+    Route.post("/", "TimelinesController.storeAnimalWeight");
+    Route.put("/:id", "TimelinesController.updateAnimalWeight");
+  }).prefix("weight");
 
-	Route.group(() => {
-		Route.get("/:id", "TimelinesController.patientPressureIndex");
-		Route.post("/", "TimelinesController.storePatientPressure");
-	}).prefix("pressure");
+  Route.group(() => {
+    Route.get("/:id", "TimelinesController.patientPressureIndex");
+    Route.post("/", "TimelinesController.storePatientPressure");
+  }).prefix("pressure");
 
-	Route.group(() => {
-		Route.get("/:id", "TimelinesController.patientEvaluationIndex");
-		Route.post("/", "TimelinesController.storePatientEvaluation");
-		Route.put("/:id", "TimelinesController.updatePatientEvaluation");
-		Route.delete(
-			"/:id/:index",
-			"TimelinesController.deletePatientEvaluationPhoto",
-		);
-	}).prefix("evaluation");
+  Route.group(() => {
+    Route.get("/:id", "TimelinesController.patientEvaluationIndex");
+    Route.post("/", "TimelinesController.storePatientEvaluation");
+    Route.put("/:id", "TimelinesController.updatePatientEvaluation");
+    Route.delete("/:id/:index", "TimelinesController.deletePatientEvaluationPhoto");
+  }).prefix("evaluation");
 
-	Route.group(() => {
-		Route.get("/:id", "TimelinesController.patientGlycemiaIndex");
-		Route.post("/", "TimelinesController.storePatientGlycemia");
-	}).prefix("glycemia");
+  Route.group(() => {
+    Route.get("/:id", "TimelinesController.patientGlycemiaIndex");
+    Route.post("/", "TimelinesController.storePatientGlycemia");
+  }).prefix("glycemia");
 
-	Route.group(() => {
-		Route.get("/:id", "TimelinesController.animalDocumentIndex");
-		Route.post("/", "TimelinesController.storeAnimalDocument");
-		Route.put("/:id", "TimelinesController.updateAnimalDocument");
-	}).prefix("documents");
+  Route.group(() => {
+    Route.get("/:id", "TimelinesController.animalDocumentIndex");
+    Route.post("/", "TimelinesController.storeAnimalDocument");
+    Route.put("/:id", "TimelinesController.updateAnimalDocument");
+  }).prefix("documents");
 
-	Route.group(() => {
-		Route.get("/:id", "TimelinesController.animalPathologyIndex");
-		Route.post("/", "TimelinesController.storeAnimalPathology");
-		Route.put("/:id", "TimelinesController.updateAnimalPathology");
-	}).prefix("pathologies");
+  Route.group(() => {
+    Route.get("/:id", "TimelinesController.animalPathologyIndex");
+    Route.post("/", "TimelinesController.storeAnimalPathology");
+    Route.put("/:id", "TimelinesController.updateAnimalPathology");
+  }).prefix("pathologies");
 
-	Route.group(() => {
-		Route.get("/:id", "TimelinesController.animalMedicalRecipeIndex");
-		Route.post("/", "TimelinesController.storeAnimalMedicalRecipe");
-		Route.put("/:id", "TimelinesController.updateAnimalMedicalRecipe");
-	}).prefix("recipes");
+  Route.group(() => {
+    Route.get("/:id", "TimelinesController.animalMedicalRecipeIndex");
+    Route.post("/", "TimelinesController.storeAnimalMedicalRecipe");
+    Route.put("/:id", "TimelinesController.updateAnimalMedicalRecipe");
+  }).prefix("recipes");
 
-	Route.group(() => {
-		Route.get("/:id", "TimelinesController.animalPhotoIndex");
-		Route.post("/", "TimelinesController.animalPhotoStore");
-		Route.post(
-			"/attachments/:id",
-			"TimelinesController.addAnimalPhotoAttachments",
-		);
+  Route.group(() => {
+    Route.get("/:id", "TimelinesController.animalPhotoIndex");
+    Route.post("/", "TimelinesController.animalPhotoStore");
+    Route.post("/attachments/:id", "TimelinesController.addAnimalPhotoAttachments");
 
-		Route.put("/:id", "TimelinesController.updateAnimalPhoto");
+    Route.put("/:id", "TimelinesController.updateAnimalPhoto");
 
-		Route.delete(
-			"/attachments/:id/:index",
-			"TimelinesController.deleteAnimalPhotoAttachments",
-		);
-		Route.delete("/:id", "TimelinesController.deleteAnimalPhoto");
-	}).prefix("photos");
+    Route.delete("/attachments/:id/:index", "TimelinesController.deleteAnimalPhotoAttachments");
+    Route.delete("/:id", "TimelinesController.deleteAnimalPhoto");
+  }).prefix("photos");
 
-	Route.group(() => {
-		Route.get("/:id", "TimelinesController.animalVaccineIndex");
-		Route.post("/", "TimelinesController.animalVaccineStore");
-		Route.put("/:id", "TimelinesController.updateAnimalVaccine");
-		Route.delete("/:id", "TimelinesController.deleteAnimalVaccine");
-	}).prefix("vaccines");
+  Route.group(() => {
+    Route.get("/:id", "TimelinesController.animalVaccineIndex");
+    Route.post("/", "TimelinesController.animalVaccineStore");
+    Route.put("/:id", "TimelinesController.updateAnimalVaccine");
+    Route.delete("/:id", "TimelinesController.deleteAnimalVaccine");
+  }).prefix("vaccines");
 
-	Route.group(() => {
-		Route.get("/:id", "TimelinesController.animalExamIndex");
-		Route.post("/", "TimelinesController.animalExamStore");
-	}).prefix("exams");
+  Route.group(() => {
+    Route.get("/:id", "TimelinesController.animalExamIndex");
+    Route.post("/", "TimelinesController.animalExamStore");
+  }).prefix("exams");
 
-	Route.group(() => {
-		Route.get("/:id", "TimelinesController.appointmentsIndex");
-		Route.post("/", "TimelinesController.appointmentsStore");
-	}).prefix("appointments");
+  Route.group(() => {
+    Route.get("/:id", "TimelinesController.appointmentsIndex");
+    Route.post("/", "TimelinesController.appointmentsStore");
+  }).prefix("appointments");
 
-	Route.group(() => {
-		Route.get("/:id", "TimelinesController.hospitalizationIndex");
-		Route.post("/", "TimelinesController.hospitalizationStore");
-	}).prefix("hospitalizations");
+  Route.group(() => {
+    Route.get("/:id", "TimelinesController.hospitalizationIndex");
+    Route.post("/", "TimelinesController.hospitalizationStore");
+  }).prefix("hospitalizations");
 
-	Route.group(() => {
-		Route.get("/:id", "TimelinesController.observationsIndex");
-		Route.post("/", "TimelinesController.storeObservation");
-		Route.put("/:id", "TimelinesController.updateObservations");
-		Route.delete("/:id/:index", "TimelinesController.deleteObservationMedia");
-	}).prefix("observations");
+  Route.group(() => {
+    Route.get("/:id", "TimelinesController.observationsIndex");
+    Route.post("/", "TimelinesController.storeObservation");
+    Route.put("/:id", "TimelinesController.updateObservations");
+    Route.delete("/:id/:index", "TimelinesController.deleteObservationMedia");
+  }).prefix("observations");
 
-	Route.group(() => {
-		Route.post("/", "TimelinesController.storeDeath");
-	}).prefix("deaths");
+  Route.group(() => {
+    Route.post("/", "TimelinesController.storeDeath");
+  }).prefix("deaths");
 })
-	.prefix("n-timeline")
-	.middleware("auth");
+  .prefix("n-timeline")
+  .middleware("auth");
 
 Route.resource("vaccine-protocols", "VaccineProtocolsController")
-	.only(["index", "store", "update"])
-	.middleware({
-		"*": ["auth"],
-	});
+  .only(["index", "store", "update"])
+  .middleware({
+    "*": ["auth"],
+  });
 
 Route.resource("patient-vaccines", "PatientVaccinesController")
-	.apiOnly()
-	.middleware({
-		"*": ["auth"],
-	});
+  .apiOnly()
+  .middleware({
+    "*": ["auth"],
+  });
 
 Route.resource("vaccine-calendars", "VaccineCalendarsController")
-	.only(["index", "update", "destroy"])
-	.middleware({
-		"*": ["auth"],
-	});
+  .only(["index", "update", "destroy"])
+  .middleware({
+    "*": ["auth"],
+  });
 
 Route.group(() => {
-	Route.get("/", "PatientExamsController.index");
-	Route.post("/", "PatientExamsController.store");
-	Route.post("/attachment/:id", "PatientExamsController.storeAttachment");
-	Route.get("/:id", "PatientExamsController.show");
-	Route.put("/:id", "PatientExamsController.update");
-	Route.delete("/:id/:attachment", "PatientExamsController.destroyAttachment");
-	Route.delete("/:id", "PatientExamsController.destroy");
+  Route.get("/", "PatientExamsController.index");
+  Route.post("/", "PatientExamsController.store");
+  Route.post("/attachment/:id", "PatientExamsController.storeAttachment");
+  Route.get("/:id", "PatientExamsController.show");
+  Route.put("/:id", "PatientExamsController.update");
+  Route.delete("/:id/:attachment", "PatientExamsController.destroyAttachment");
+  Route.delete("/:id", "PatientExamsController.destroy");
 })
-	.prefix("patient-exams")
-	.middleware("auth");
+  .prefix("patient-exams")
+  .middleware("auth");
 
 Route.resource("units", "UnitsController")
-	.apiOnly()
-	.middleware({
-		"*": ["auth"],
-	});
+  .apiOnly()
+  .middleware({
+    "*": ["auth"],
+  });
 
 Route.resource("drug-administrations", "DrugAdministrationsController")
-	.apiOnly()
-	.middleware({
-		"*": ["auth"],
-	});
+  .apiOnly()
+  .middleware({
+    "*": ["auth"],
+  });
 
 Route.resource("beds", "BedsController")
-	.apiOnly()
-	.middleware({
-		"*": ["auth"],
-	});
+  .apiOnly()
+  .middleware({
+    "*": ["auth"],
+  });
 
 Route.resource("clinic-parameters", "ClinicParametersController")
-	.apiOnly()
-	.middleware({
-		"*": ["auth"],
-	});
+  .apiOnly()
+  .middleware({
+    "*": ["auth"],
+  });
 
 Route.resource("medical-prescriptions", "MedicalPrescriptionsController")
-	.apiOnly()
-	.middleware({
-		"*": ["auth"],
-	});
+  .apiOnly()
+  .middleware({
+    "*": ["auth"],
+  });
 
 Route.resource("occurrences", "OccurrencesController")
-	.apiOnly()
-	.middleware({
-		"*": ["auth"],
-	});
+  .apiOnly()
+  .middleware({
+    "*": ["auth"],
+  });
 
 Route.group(() => {
-	Route.get("/parsed-index", "HospitalizationsController.parsedIndex");
-	Route.get("/completed", "HospitalizationsController.completedIndex");
-	Route.get("/", "HospitalizationsController.index");
-	Route.post("/", "HospitalizationsController.store");
-	Route.get("/timeline/:id", "HospitalizationsController.showTimeline");
-	Route.get(
-		"/patient-timeline/:id",
-		"HospitalizationsController.showPatientTimeline",
-	);
-	Route.get(
-		"/info/:id",
-		"HospitalizationsController.getHospitalizationScheduling",
-	);
-	Route.get("/scheduling/:id", "HospitalizationsController.getScheduling");
-	Route.get("/:id", "HospitalizationsController.show");
-	Route.put("/complete/:id", "HospitalizationsController.complete");
-	Route.put("/:id", "HospitalizationsController.update");
-	Route.delete("/:id", "HospitalizationsController.destroy");
+  Route.get("/parsed-index", "HospitalizationsController.parsedIndex");
+  Route.get("/completed", "HospitalizationsController.completedIndex");
+  Route.get("/", "HospitalizationsController.index");
+  Route.post("/", "HospitalizationsController.store");
+  Route.get("/timeline/:id", "HospitalizationsController.showTimeline");
+  Route.get("/patient-timeline/:id", "HospitalizationsController.showPatientTimeline");
+  Route.get("/info/:id", "HospitalizationsController.getHospitalizationScheduling");
+  Route.get("/scheduling/:id", "HospitalizationsController.getScheduling");
+  Route.get("/:id", "HospitalizationsController.show");
+  Route.put("/complete/:id", "HospitalizationsController.complete");
+  Route.put("/:id", "HospitalizationsController.update");
+  Route.delete("/:id", "HospitalizationsController.destroy");
 })
-	.prefix("hospitalizations")
-	.middleware("auth");
+  .prefix("hospitalizations")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get(
-		"/scheduling",
-		"HospitalizationMedicalPrescriptionsController.schedulingIndex",
-	);
-	Route.get("/", "HospitalizationMedicalPrescriptionsController.index");
-	Route.get("/show/:id", "HospitalizationMedicalPrescriptionsController.show");
-	Route.post("/", "HospitalizationMedicalPrescriptionsController.store");
-	Route.put(
-		"/interrupt/:id",
-		"HospitalizationMedicalPrescriptionsController.interruptPrescription",
-	);
-	Route.put(
-		"/exclude/:id",
-		"HospitalizationMedicalPrescriptionsController.excludePrescription",
-	);
-	Route.put(
-		"/schedule/:id",
-		"HospitalizationMedicalPrescriptionsController.updateSchedule",
-	);
-	Route.put("/:id", "HospitalizationMedicalPrescriptionsController.update");
-	Route.delete("/:id", "HospitalizationMedicalPrescriptionsController.destroy");
+  Route.get("/scheduling", "HospitalizationMedicalPrescriptionsController.schedulingIndex");
+  Route.get("/", "HospitalizationMedicalPrescriptionsController.index");
+  Route.get("/show/:id", "HospitalizationMedicalPrescriptionsController.show");
+  Route.post("/", "HospitalizationMedicalPrescriptionsController.store");
+  Route.put(
+    "/interrupt/:id",
+    "HospitalizationMedicalPrescriptionsController.interruptPrescription",
+  );
+  Route.put("/exclude/:id", "HospitalizationMedicalPrescriptionsController.excludePrescription");
+  Route.put("/schedule/:id", "HospitalizationMedicalPrescriptionsController.updateSchedule");
+  Route.put("/:id", "HospitalizationMedicalPrescriptionsController.update");
+  Route.delete("/:id", "HospitalizationMedicalPrescriptionsController.destroy");
 })
-	.prefix("hospitalization-prescriptions")
-	.middleware("auth");
+  .prefix("hospitalization-prescriptions")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.post("/", "HospitalizationOccurrencesController.store");
-	Route.post(
-		"/attachment",
-		"HospitalizationOccurrencesController.storeAttachment",
-	);
-	Route.put("/:id", "HospitalizationOccurrencesController.update");
-	Route.delete(
-		"/:id/:attachment",
-		"HospitalizationOccurrencesController.destroyAttachment",
-	);
-	Route.delete("/:id", "HospitalizationOccurrencesController.destroy");
+  Route.post("/", "HospitalizationOccurrencesController.store");
+  Route.post("/attachment", "HospitalizationOccurrencesController.storeAttachment");
+  Route.put("/:id", "HospitalizationOccurrencesController.update");
+  Route.delete("/:id/:attachment", "HospitalizationOccurrencesController.destroyAttachment");
+  Route.delete("/:id", "HospitalizationOccurrencesController.destroy");
 })
-	.prefix("hospitalization-occurrences")
-	.middleware("auth");
+  .prefix("hospitalization-occurrences")
+  .middleware("auth");
 
-Route.resource(
-	"hospitalization-parameters",
-	"HospitalizationClinicParametersController",
-)
-	.only(["store", "update", "destroy"])
-	.middleware({
-		"*": ["auth"],
-	});
+Route.resource("hospitalization-parameters", "HospitalizationClinicParametersController")
+  .only(["store", "update", "destroy"])
+  .middleware({
+    "*": ["auth"],
+  });
 
 Route.resource("taxation-groups", "TaxationGroupsController")
-	.apiOnly()
-	.middleware({
-		"*": ["auth"],
-	});
+  .apiOnly()
+  .middleware({
+    "*": ["auth"],
+  });
 
 Route.resource("tax-operations", "TaxOperationsController")
-	.apiOnly()
-	.middleware({
-		"*": ["auth"],
-	});
+  .apiOnly()
+  .middleware({
+    "*": ["auth"],
+  });
 
 Route.resource("taxation-group-rules", "TaxationGroupRulesController")
-	.apiOnly()
-	.middleware({
-		"*": ["auth"],
-	});
+  .apiOnly()
+  .middleware({
+    "*": ["auth"],
+  });
 
 Route.group(() => {
-	Route.get("/winning", "ReasonsController.winning");
-	Route.get("/losing", "ReasonsController.losing");
-	Route.get("/", "ReasonsController.index");
-	Route.get("/:id", "ReasonsController.show");
-	Route.post("/", "ReasonsController.store");
-	Route.put("/:id", "ReasonsController.update");
-	Route.delete("/:id", "ReasonsController.destroy");
+  Route.get("/winning", "ReasonsController.winning");
+  Route.get("/losing", "ReasonsController.losing");
+  Route.get("/", "ReasonsController.index");
+  Route.get("/:id", "ReasonsController.show");
+  Route.post("/", "ReasonsController.store");
+  Route.put("/:id", "ReasonsController.update");
+  Route.delete("/:id", "ReasonsController.destroy");
 })
-	.prefix("reasons")
-	.middleware("auth");
+  .prefix("reasons")
+  .middleware("auth");
 
 Route.resource("client-origins", "ClientOriginsController")
-	.apiOnly()
-	.middleware({
-		"*": ["auth"],
-	});
+  .apiOnly()
+  .middleware({
+    "*": ["auth"],
+  });
 
 Route.group(() => {
-	Route.get("/search", "DailyMovementsController.search");
-	Route.get("/", "DailyMovementsController.index");
-	Route.post("/open", "DailyMovementsController.openDailyMovement");
-	Route.post("/close/:id", "DailyMovementsController.closeDailyMovement");
-	Route.post("/reopen/:id", "DailyMovementsController.reopenDailyMovement");
-	Route.post("/check/:id", "DailyMovementsController.checkDailyMovement");
+  Route.get("/search", "DailyMovementsController.search");
+  Route.get("/", "DailyMovementsController.index");
+  Route.post("/open", "DailyMovementsController.openDailyMovement");
+  Route.post("/close/:id", "DailyMovementsController.closeDailyMovement");
+  Route.post("/reopen/:id", "DailyMovementsController.reopenDailyMovement");
+  Route.post("/check/:id", "DailyMovementsController.checkDailyMovement");
 })
-	.prefix("daily-movements")
-	.middleware("auth");
+  .prefix("daily-movements")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/info/:id", "DailyCashiersController.check");
-	Route.get("/dump/:id", "DailyCashiersController.dump");
-	Route.get(
-		"/check-cashier-status",
-		"DailyCashiersController.checkCashierStatus",
-	);
-	Route.get("/", "DailyCashiersController.index");
-	Route.post("/open", "DailyCashiersController.openDailyCashier");
-	Route.post("/close/:id", "DailyCashiersController.closeDailyCashier");
-	Route.post("/reopen/:id", "DailyCashiersController.reopenDailyCashier");
-	Route.post("/check/:id", "DailyCashiersController.checkDailyCashier");
-	Route.post("/review/:id", "DailyCashiersController.reviewDailyCashier");
-	Route.post("/update-conference", "DailyCashiersController.updateConference");
+  Route.get("/info/:id", "DailyCashiersController.check");
+  Route.get("/dump/:id", "DailyCashiersController.dump");
+  Route.get("/check-cashier-status", "DailyCashiersController.checkCashierStatus");
+  Route.get("/", "DailyCashiersController.index");
+  Route.post("/open", "DailyCashiersController.openDailyCashier");
+  Route.post("/close/:id", "DailyCashiersController.closeDailyCashier");
+  Route.post("/reopen/:id", "DailyCashiersController.reopenDailyCashier");
+  Route.post("/check/:id", "DailyCashiersController.checkDailyCashier");
+  Route.post("/review/:id", "DailyCashiersController.reviewDailyCashier");
+  Route.post("/update-conference", "DailyCashiersController.updateConference");
 
-	Route.post("/expense/:id", "DailyCashiersController.createCashierExpense");
-	Route.post("/receipt/:id", "DailyCashiersController.createCashierReceipt");
+  Route.post("/expense/:id", "DailyCashiersController.createCashierExpense");
+  Route.post("/receipt/:id", "DailyCashiersController.createCashierReceipt");
 })
-	.prefix("daily-cashiers")
-	.middleware("auth");
+  .prefix("daily-cashiers")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/tree", "AccountPlansController.tree");
-	Route.get("/", "AccountPlansController.index");
-	Route.get("/:id", "AccountPlansController.show");
-	Route.post("/", "AccountPlansController.store");
-	Route.put("/:id", "AccountPlansController.update");
-	Route.delete("/:id", "AccountPlansController.destroy");
+  Route.get("/tree", "AccountPlansController.tree");
+  Route.get("/", "AccountPlansController.index");
+  Route.get("/:id", "AccountPlansController.show");
+  Route.post("/", "AccountPlansController.store");
+  Route.put("/:id", "AccountPlansController.update");
+  Route.delete("/:id", "AccountPlansController.destroy");
 })
-	.prefix("account-plans")
-	.middleware("auth");
+  .prefix("account-plans")
+  .middleware("auth");
 
 Route.resource("banks", "BanksController")
-	.only(["index"])
-	.middleware({
-		"*": ["auth"],
-	});
+  .only(["index"])
+  .middleware({
+    "*": ["auth"],
+  });
 
 Route.group(() => {
-	Route.get("/", "CheckingAccountsController.index");
-	Route.get("/check/:id", "CheckingAccountsController.check");
-	Route.get("/:id", "CheckingAccountsController.show");
-	Route.post("/open", "CheckingAccountsController.openAccount");
-	Route.put("/balance/:id", "CheckingAccountsController.updateAccountBalance");
-	Route.put("/:id", "CheckingAccountsController.updateAccount");
-	Route.delete("/:id", "CheckingAccountsController.deleteAccount");
+  Route.get("/", "CheckingAccountsController.index");
+  Route.get("/check/:id", "CheckingAccountsController.check");
+  Route.get("/:id", "CheckingAccountsController.show");
+  Route.post("/open", "CheckingAccountsController.openAccount");
+  Route.put("/balance/:id", "CheckingAccountsController.updateAccountBalance");
+  Route.put("/:id", "CheckingAccountsController.updateAccount");
+  Route.delete("/:id", "CheckingAccountsController.deleteAccount");
 })
-	.prefix("checking-accounts")
-	.middleware("auth");
+  .prefix("checking-accounts")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/tef-flags", "PaymentMethodsController.searchTefFlags");
-	Route.get("/tef-acquirers", "PaymentMethodsController.searchTefAcquirers");
-	Route.get("/partial", "PaymentMethodsController.searchPartialPaymentMethods");
-	Route.get(
-		"/complete",
-		"PaymentMethodsController.searchCompletePaymentMethods",
-	);
-	Route.post("/create", "PaymentMethodsController.createPaymentMethod");
-	Route.post(
-		"/create-flag",
-		"PaymentMethodsController.createPaymentMethodFlag",
-	);
+  Route.get("/tef-flags", "PaymentMethodsController.searchTefFlags");
+  Route.get("/tef-acquirers", "PaymentMethodsController.searchTefAcquirers");
+  Route.get("/partial", "PaymentMethodsController.searchPartialPaymentMethods");
+  Route.get("/complete", "PaymentMethodsController.searchCompletePaymentMethods");
+  Route.post("/create", "PaymentMethodsController.createPaymentMethod");
+  Route.post("/create-flag", "PaymentMethodsController.createPaymentMethodFlag");
 
-	Route.get(
-		"/list-checking-accounts",
-		"PaymentMethodsController.listBusinessUnitCheckingAccountPaymentMethod",
-	);
-	Route.post(
-		"/create-checking-accounts",
-		"PaymentMethodsController.createBusinessUnitCheckingAccountPaymentMethod",
-	);
-	Route.put(
-		"/update-checking-accounts",
-		"PaymentMethodsController.updateBusinessUnitCheckingAccountPaymentMethod",
-	);
+  Route.get(
+    "/list-checking-accounts",
+    "PaymentMethodsController.listBusinessUnitCheckingAccountPaymentMethod",
+  );
+  Route.post(
+    "/create-checking-accounts",
+    "PaymentMethodsController.createBusinessUnitCheckingAccountPaymentMethod",
+  );
+  Route.put(
+    "/update-checking-accounts",
+    "PaymentMethodsController.updateBusinessUnitCheckingAccountPaymentMethod",
+  );
 
-	Route.put("/update/:id", "PaymentMethodsController.updatePaymentMethod");
-	Route.put(
-		"/update-flag/:id",
-		"PaymentMethodsController.updatePaymentMethodFlag",
-	);
-	Route.post("/create-fee", "PaymentMethodsController.createPaymentMethodFee");
-	Route.put(
-		"/update-flag-installment/:id",
-		"PaymentMethodsController.updatePaymentMethodFlagInstallment",
-	);
+  Route.put("/update/:id", "PaymentMethodsController.updatePaymentMethod");
+  Route.put("/update-flag/:id", "PaymentMethodsController.updatePaymentMethodFlag");
+  Route.post("/create-fee", "PaymentMethodsController.createPaymentMethodFee");
+  Route.put(
+    "/update-flag-installment/:id",
+    "PaymentMethodsController.updatePaymentMethodFlagInstallment",
+  );
 })
-	.prefix("payment-methods")
-	.middleware("auth");
+  .prefix("payment-methods")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/balance", "FinancesController.accountBalance");
-	Route.get("/reduced", "FinancesController.reducedIndex");
-	Route.get("/grouped", "FinancesController.groupedIndex");
-	Route.get("/control-resume", "FinancesController.getControlResume");
-	Route.get("/payment-group", "FinancesController.byPaymentGroup");
-	Route.get("/", "FinancesController.index");
-	Route.post("/create", "FinancesController.storeFinance");
-	Route.post("/create-multiple", "FinancesController.storeMultipleFinances");
-	Route.post("/accept-many", "FinancesController.acceptManyFinances");
-	Route.post("/not-accept-many", "FinancesController.notAcceptManyFinances");
-	Route.put("/update/:id", "FinancesController.updateFinance");
-	Route.put("/grouped-down", "FinancesController.groupedFinanceDown");
-	Route.put("/update-down", "FinancesController.updateFinanceDown");
-	Route.put("/update-reversal/:id", "FinancesController.updateFinanceReversal");
+  Route.get("/balance", "FinancesController.accountBalance");
+  Route.get("/reduced", "FinancesController.reducedIndex");
+  Route.get("/grouped", "FinancesController.groupedIndex");
+  Route.get("/control-resume", "FinancesController.getControlResume");
+  Route.get("/payment-group", "FinancesController.byPaymentGroup");
+  Route.get("/", "FinancesController.index");
+  Route.post("/create", "FinancesController.storeFinance");
+  Route.post("/create-multiple", "FinancesController.storeMultipleFinances");
+  Route.post("/accept-many", "FinancesController.acceptManyFinances");
+  Route.post("/not-accept-many", "FinancesController.notAcceptManyFinances");
+  Route.put("/update/:id", "FinancesController.updateFinance");
+  Route.put("/grouped-down", "FinancesController.groupedFinanceDown");
+  Route.put("/update-down", "FinancesController.updateFinanceDown");
+  Route.put("/update-reversal/:id", "FinancesController.updateFinanceReversal");
 
-	Route.put("/delete-multiple", "FinancesController.deleteManyFinances");
-	Route.delete("/delete/:id", "FinancesController.deleteFinance");
+  Route.put("/delete-multiple", "FinancesController.deleteManyFinances");
+  Route.delete("/delete/:id", "FinancesController.deleteFinance");
 
-	Route.post("/calculate-fees", "FinancesController.calculateFinanceFees");
+  Route.post("/calculate-fees", "FinancesController.calculateFinanceFees");
 
-	Route.get("/open-attendances", "FinancesController.openAttendances");
-	Route.get("/expiring-expenses", "FinancesController.expiringExpenses");
-	Route.get("/expiring-payments", "FinancesController.expiringPayments");
-	Route.get(
-		"/checking-accounts-resume",
-		"FinancesController.checkingAccountsResume",
-	);
-	Route.get("/open-cashiers-resume", "FinancesController.openCashiersResume");
-	Route.get(
-		"/closed-cashiers-resume",
-		"FinancesController.closedCashiersResume",
-	);
-	Route.get(
-		"/revised-cashiers-resume",
-		"FinancesController.revisedCashiersResume",
-	);
-	Route.get("/today-cashiers-resume", "FinancesController.todayCashiersResume");
-	Route.get("/overall-resume", "FinancesController.overallResume");
+  Route.get("/open-attendances", "FinancesController.openAttendances");
+  Route.get("/expiring-expenses", "FinancesController.expiringExpenses");
+  Route.get("/expiring-payments", "FinancesController.expiringPayments");
+  Route.get("/checking-accounts-resume", "FinancesController.checkingAccountsResume");
+  Route.get("/open-cashiers-resume", "FinancesController.openCashiersResume");
+  Route.get("/closed-cashiers-resume", "FinancesController.closedCashiersResume");
+  Route.get("/revised-cashiers-resume", "FinancesController.revisedCashiersResume");
+  Route.get("/today-cashiers-resume", "FinancesController.todayCashiersResume");
+  Route.get("/overall-resume", "FinancesController.overallResume");
 })
-	.prefix("finances")
-	.middleware("auth");
+  .prefix("finances")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/show/:id", "FinancesController.showBordero");
+  Route.get("/show/:id", "FinancesController.showBordero");
 
-	Route.post("/create", "FinancesController.storeBordero");
-	Route.post("/create-items", "FinancesController.storeBorderoItems");
-	Route.post("/close", "FinancesController.closeBordero");
-	Route.post("/reopen", "FinancesController.reopenBordero");
+  Route.post("/create", "FinancesController.storeBordero");
+  Route.post("/create-items", "FinancesController.storeBorderoItems");
+  Route.post("/close", "FinancesController.closeBordero");
+  Route.post("/reopen", "FinancesController.reopenBordero");
 
-	Route.post("/update", "FinancesController.updateBordero");
-	Route.post("/exclude", "FinancesController.excludeBordero");
-	Route.post("/exclude-items", "FinancesController.excludeBorderoItems");
+  Route.post("/update", "FinancesController.updateBordero");
+  Route.post("/exclude", "FinancesController.excludeBordero");
+  Route.post("/exclude-items", "FinancesController.excludeBorderoItems");
 
-	Route.post("/down", "FinancesController.updateBorderoDown");
-	Route.post("/revert-down", "FinancesController.updateRevertBorderoDown");
+  Route.post("/down", "FinancesController.updateBorderoDown");
+  Route.post("/revert-down", "FinancesController.updateRevertBorderoDown");
 })
-	.prefix("borderos")
-	.middleware("auth");
+  .prefix("borderos")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/", "BankingsController.index");
-	Route.post("/create", "BankingsController.storeBanking");
-	Route.put("/update/:id", "BankingsController.updateBanking");
-	Route.delete("/delete/:id", "BankingsController.deleteBanking");
+  Route.get("/", "BankingsController.index");
+  Route.post("/create", "BankingsController.storeBanking");
+  Route.put("/update/:id", "BankingsController.updateBanking");
+  Route.delete("/delete/:id", "BankingsController.deleteBanking");
 })
-	.prefix("bankings")
-	.middleware("auth");
+  .prefix("bankings")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/products", "BudgetsController.searchProducts");
-	Route.get("/partial", "BudgetsController.partialIndex");
-	Route.get("/complete", "BudgetsController.completeIndex");
-	Route.get("/open/:id", "BudgetsController.openNegotiations");
-	Route.get("/from-attendance/:id", "BudgetsController.fromAttendance");
-	Route.get("/payments/:id", "BudgetsController.listBudgetPayments");
-	Route.get("/:id", "BudgetsController.show");
-	Route.post("/create", "BudgetsController.createBudget");
-	Route.post("/add-kit", "BudgetsController.addKitToBudget");
-	Route.post("/create-item", "BudgetsController.createBudgetItem");
-	Route.post("/create-items", "BudgetsController.createBudgetItems");
-	Route.post("/create-payments", "BudgetsController.createBudgetPayments");
-	Route.post("/confirm-payment", "BudgetsController.confirmBudgetPayment");
+  Route.get("/products", "BudgetsController.searchProducts");
+  Route.get("/partial", "BudgetsController.partialIndex");
+  Route.get("/complete", "BudgetsController.completeIndex");
+  Route.get("/open/:id", "BudgetsController.openNegotiations");
+  Route.get("/from-attendance/:id", "BudgetsController.fromAttendance");
+  Route.get("/payments/:id", "BudgetsController.listBudgetPayments");
+  Route.get("/:id", "BudgetsController.show");
+  Route.post("/create", "BudgetsController.createBudget");
+  Route.post("/add-kit", "BudgetsController.addKitToBudget");
+  Route.post("/create-item", "BudgetsController.createBudgetItem");
+  Route.post("/create-items", "BudgetsController.createBudgetItems");
+  Route.post("/create-payments", "BudgetsController.createBudgetPayments");
+  Route.post("/confirm-payment", "BudgetsController.confirmBudgetPayment");
 
-	Route.post("/approve", "BudgetsController.approveBudgetCourtesyMaxDiscounts");
+  Route.post("/approve", "BudgetsController.approveBudgetCourtesyMaxDiscounts");
 
-	Route.put("/update", "BudgetsController.updateBudget");
-	Route.put(
-		"/update-observation/:id",
-		"BudgetsController.updateBudgetObservation",
-	);
+  Route.put("/update", "BudgetsController.updateBudget");
+  Route.put("/update-observation/:id", "BudgetsController.updateBudgetObservation");
 
-	Route.put("/update-items", "BudgetsController.updateBudgetItems");
-	Route.delete("/delete-item/:id", "BudgetsController.deleteBudgetItem");
+  Route.put("/update-items", "BudgetsController.updateBudgetItems");
+  Route.delete("/delete-item/:id", "BudgetsController.deleteBudgetItem");
 
-	Route.put("/update-payment", "BudgetsController.updateBudgetPayment");
-	Route.put("/exclude-payment", "BudgetsController.excludeBudgetPayment");
-	Route.put("/cancel/:id", "BudgetsController.cancelBudget");
-	Route.put("/confirm/:id", "BudgetsController.confirmBudget");
-	Route.put(
-		"/delete-item-departments",
-		"BudgetsController.deleteBudgetItemDepartments",
-	);
-	Route.delete("/delete/:id", "BudgetsController.deleteBudget");
+  Route.put("/update-payment", "BudgetsController.updateBudgetPayment");
+  Route.put("/exclude-payment", "BudgetsController.excludeBudgetPayment");
+  Route.put("/cancel/:id", "BudgetsController.cancelBudget");
+  Route.put("/confirm/:id", "BudgetsController.confirmBudget");
+  Route.put("/delete-item-departments", "BudgetsController.deleteBudgetItemDepartments");
+  Route.delete("/delete/:id", "BudgetsController.deleteBudget");
 
-	// Route.delete('/delete/:id', 'BudgetsController.deleteBudget');
-	// Route.put('/update/:id', 'BankingsController.updateBanking');
+  // Route.delete('/delete/:id', 'BudgetsController.deleteBudget');
+  // Route.put('/update/:id', 'BankingsController.updateBanking');
 })
-	.prefix("budgets")
-	.middleware("auth");
+  .prefix("budgets")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.post(
-		"/check-deposit-availability",
-		"BillsController.checkDepositAvailability",
-	);
-	Route.post("/check-item-discount", "BillsController.checkItemDiscount");
-	Route.post("/discount-deposit-items", "BillsController.discountDepositItems");
-	Route.post("/calculate-taxes", "BillsController.calculateBillTaxes");
+  Route.post("/check-deposit-availability", "BillsController.checkDepositAvailability");
+  Route.post("/check-item-discount", "BillsController.checkItemDiscount");
+  Route.post("/discount-deposit-items", "BillsController.discountDepositItems");
+  Route.post("/calculate-taxes", "BillsController.calculateBillTaxes");
 
-	Route.post("/create-treatment", "BillsController.createTreatment");
+  Route.post("/create-treatment", "BillsController.createTreatment");
 
-	Route.post("/create", "BillsController.createBill");
-	Route.post("/update", "BillsController.updateBill");
-	Route.post("/create-item", "BillsController.createBillItem");
-	Route.post("/create-items", "BillsController.createBillItems");
-	Route.post("/add-kit", "BillsController.addKitToBill");
+  Route.post("/create", "BillsController.createBill");
+  Route.post("/update", "BillsController.updateBill");
+  Route.post("/create-item", "BillsController.createBillItem");
+  Route.post("/create-items", "BillsController.createBillItems");
+  Route.post("/add-kit", "BillsController.addKitToBill");
 
-	Route.put("/update-item", "BillsController.updateBillItem");
-	Route.put("/delete-item/:id", "BillsController.deleteBillItem");
-	Route.post("/create-payment", "BillsController.createBillPayment");
+  Route.put("/update-item", "BillsController.updateBillItem");
+  Route.put("/delete-item/:id", "BillsController.deleteBillItem");
+  Route.post("/create-payment", "BillsController.createBillPayment");
 
-	Route.post("/approve", "BillsController.approveBillCourtesyMaxDiscounts");
+  Route.post("/approve", "BillsController.approveBillCourtesyMaxDiscounts");
 
-	Route.get("/", "BillsController.index");
-	Route.get("/aggregate-client-payments/:tutorID", "BillsController.aggregateClientPayments");
-	Route.get("/conference/:id", "BillsController.fetchConferenceCashier");
-	Route.get("/products", "BillsController.searchProducts");
-	Route.get("/taxes", "BillsController.searchTax");
-	Route.get("/show/:id", "BillsController.show");
-	Route.get(
-		"/print-payment-receipts/:bill",
-		"BillsController.printPaymentReceipt",
-	);
+  Route.get("/", "BillsController.index");
+  Route.get("/aggregate-client-payments/:tutorID", "BillsController.aggregateClientPayments");
+  Route.get("/conference/:id", "BillsController.fetchConferenceCashier");
+  Route.get("/products", "BillsController.searchProducts");
+  Route.get("/taxes", "BillsController.searchTax");
+  Route.get("/show/:id", "BillsController.show");
+  Route.get("/print-payment-receipts/:bill", "BillsController.printPaymentReceipt");
 
-	Route.put("/update-conference", "BillsController.updateCashierConference");
-	Route.put("/recalculate/:id", "BillsController.recalculate");
-	Route.put("/disable-item/:id", "BillsController.disableBillItem");
-	Route.put(
-		"/financial-responsible",
-		"BillsController.updateBillFinancialResponsible",
-	);
-	Route.put("/seller", "BillsController.updateBillSeller");
+  Route.put("/update-conference", "BillsController.updateCashierConference");
+  Route.put("/recalculate/:id", "BillsController.recalculate");
+  Route.put("/disable-item/:id", "BillsController.disableBillItem");
+  Route.put("/financial-responsible", "BillsController.updateBillFinancialResponsible");
+  Route.put("/seller", "BillsController.updateBillSeller");
 
-	Route.post(
-		"/request-cancellation",
-		"BillsController.requestBillCancellation",
-	);
-	Route.post("/review-cancellation", "BillsController.reviewBillCancellation");
-	Route.post("/finish-cancellation", "BillsController.finishBillCancellation");
+  Route.post("/request-cancellation", "BillsController.requestBillCancellation");
+  Route.post("/review-cancellation", "BillsController.reviewBillCancellation");
+  Route.post("/finish-cancellation", "BillsController.finishBillCancellation");
 
-	Route.put("/exclude-bill/:id", "BillsController.excludeBill");
-	Route.put("/close-bill/:id", "BillsController.closeBill");
-	Route.put("/reopen-bill/:id", "BillsController.reopenBill");
-	Route.put("/update-expiration", "BillsController.updatePaymentExpiration");
-	Route.put(
-		"/delete-item-departments",
-		"BillsController.deleteItemDepartments",
-	);
-	Route.delete("/delete-payment/:id", "BillsController.deleteBillPayment");
-	Route.delete("/delete-client-payment/:id", "BillsController.deleteClientPayment");
-	Route.delete(
-		"/delete-payment-block",
-		"BillsController.deleteBillPaymentBlock",
-	);
+  Route.put("/exclude-bill/:id", "BillsController.excludeBill");
+  Route.put("/close-bill/:id", "BillsController.closeBill");
+  Route.put("/reopen-bill/:id", "BillsController.reopenBill");
+  Route.put("/update-expiration", "BillsController.updatePaymentExpiration");
+  Route.put("/delete-item-departments", "BillsController.deleteItemDepartments");
+  Route.delete("/delete-payment/:id", "BillsController.deleteBillPayment");
+  Route.delete("/delete-client-payment/:id", "BillsController.deleteClientPayment");
+  Route.delete("/delete-payment-block", "BillsController.deleteBillPaymentBlock");
 })
-	.prefix("bills")
-	.middleware("auth");
+  .prefix("bills")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/", "TemplateReplacementsController.index");
-	Route.post("/create", "TemplateReplacementsController.store");
-	Route.put("/update/:id", "TemplateReplacementsController.update");
-	Route.delete("/delete/:id", "TemplateReplacementsController.destroy");
+  Route.get("/", "TemplateReplacementsController.index");
+  Route.post("/create", "TemplateReplacementsController.store");
+  Route.put("/update/:id", "TemplateReplacementsController.update");
+  Route.delete("/delete/:id", "TemplateReplacementsController.destroy");
 
-	Route.post(
-		"/replace-text",
-		"TemplateReplacementsController.renderTemplateReplacement",
-	);
+  Route.post("/replace-text", "TemplateReplacementsController.renderTemplateReplacement");
 })
-	.prefix("template-replacements")
-	.middleware("auth");
+  .prefix("template-replacements")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/", "FiscalDocumentsController.index");
+  Route.get("/", "FiscalDocumentsController.index");
 
-	Route.get(
-		"/business-unit/issued-nfe",
-		"BusinessUnitFiscalDocumentsController.indexNfe",
-	);
-	Route.get(
-		"/business-unit/issued-nfse",
-		"BusinessUnitFiscalDocumentsController.indexNfse",
-	);
+  Route.get("/business-unit/issued-nfe", "BusinessUnitFiscalDocumentsController.indexNfe");
+  Route.get("/business-unit/issued-nfse", "BusinessUnitFiscalDocumentsController.indexNfse");
 
-	Route.get(
-		"/business-unit/search",
-		"BusinessUnitFiscalDocumentsController.search",
-	);
+  Route.get("/business-unit/search", "BusinessUnitFiscalDocumentsController.search");
 
-	Route.post("/tmp", "BusinessUnitFiscalDocumentsController.tmpSync");
+  Route.post("/tmp", "BusinessUnitFiscalDocumentsController.tmpSync");
 
-	Route.post(
-		"/business-unit/store",
-		"BusinessUnitFiscalDocumentsController.store",
-	);
-	Route.post(
-		"/business-unit/authorize",
-		"BusinessUnitFiscalDocumentsController.authorize",
-	);
-	Route.post(
-		"/business-unit/authorize-nfse",
-		"BusinessUnitFiscalDocumentsController.authorizeNfse",
-	);
-	Route.post(
-		"/business-unit/resend-nfse",
-		"BusinessUnitFiscalDocumentsController.resendNfse",
-	);
+  Route.post("/business-unit/store", "BusinessUnitFiscalDocumentsController.store");
+  Route.post("/business-unit/authorize", "BusinessUnitFiscalDocumentsController.authorize");
+  Route.post(
+    "/business-unit/authorize-nfse",
+    "BusinessUnitFiscalDocumentsController.authorizeNfse",
+  );
+  Route.post("/business-unit/resend-nfse", "BusinessUnitFiscalDocumentsController.resendNfse");
 
-	Route.post(
-		"/business-unit/cancel-nfe",
-		"BusinessUnitFiscalDocumentsController.cancelNfe",
-	);
-	Route.post(
-		"/business-unit/cancel-nfse",
-		"BusinessUnitFiscalDocumentsController.cancelNfse",
-	);
+  Route.post("/business-unit/cancel-nfe", "BusinessUnitFiscalDocumentsController.cancelNfe");
+  Route.post("/business-unit/cancel-nfse", "BusinessUnitFiscalDocumentsController.cancelNfse");
 
-	Route.post(
-		"/business-unit/disable",
-		"BusinessUnitFiscalDocumentsController.disable",
-	);
-	Route.post(
-		"/business-unit/correct",
-		"BusinessUnitFiscalDocumentsController.correct",
-	);
-	Route.post(
-		"/business-unit/update/nfe/:id",
-		"BusinessUnitFiscalDocumentsController.forceUpdateNfe",
-	);
-	Route.post(
-		"/business-unit/update/nfse/:id",
-		"BusinessUnitFiscalDocumentsController.forceUpdateNfse",
-	);
+  Route.post("/business-unit/disable", "BusinessUnitFiscalDocumentsController.disable");
+  Route.post("/business-unit/correct", "BusinessUnitFiscalDocumentsController.correct");
+  Route.post(
+    "/business-unit/update/nfe/:id",
+    "BusinessUnitFiscalDocumentsController.forceUpdateNfe",
+  );
+  Route.post(
+    "/business-unit/update/nfse/:id",
+    "BusinessUnitFiscalDocumentsController.forceUpdateNfse",
+  );
 
-	Route.get("/search", "IssuedFiscalDocumentsController.search");
-	Route.get("/issued-documents", "IssuedFiscalDocumentsController.index");
+  Route.get("/search", "IssuedFiscalDocumentsController.search");
+  Route.get("/issued-documents", "IssuedFiscalDocumentsController.index");
 })
-	.prefix("fiscal-documents")
-	.middleware("auth");
+  .prefix("fiscal-documents")
+  .middleware("auth");
 
 Route.resource("account-plan-groups", "AccountPlanGroupsController")
-	.apiOnly()
-	.middleware({
-		"*": ["auth"],
-	});
+  .apiOnly()
+  .middleware({
+    "*": ["auth"],
+  });
 
 Route.resource("brands", "BrandsController")
-	.only(["index"])
-	.middleware({
-		"*": ["auth"],
-	});
+  .only(["index"])
+  .middleware({
+    "*": ["auth"],
+  });
 
 Route.resource("patient-animal-hairs", "PatientAnimalHairsController")
-	.only(["index"])
-	.middleware({
-		"*": ["auth"],
-	});
+  .only(["index"])
+  .middleware({
+    "*": ["auth"],
+  });
 
 Route.group(() => {
-	Route.get("/", "ServicesController.index");
-	Route.post("/", "ServicesController.store");
-	Route.get("/:id", "ServicesController.show");
-	Route.put("/:id", "ServicesController.update");
-	Route.delete("/:id", "ServicesController.destroy");
+  Route.get("/", "ServicesController.index");
+  Route.post("/", "ServicesController.store");
+  Route.get("/:id", "ServicesController.show");
+  Route.put("/:id", "ServicesController.update");
+  Route.delete("/:id", "ServicesController.destroy");
 })
-	.prefix("services")
-	.middleware("auth");
+  .prefix("services")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.post("/nfe", "WebhooksController.nfe");
-	Route.post("/nfse", "WebhooksController.nfse");
-	Route.post("/disable", "WebhooksController.disable");
-	Route.get("/tintim", "WhatsAppWebhookController.healthcheckTintim");
-	Route.post("/tintim", "WhatsAppWebhookController.receiveTintim");
-	Route.get(
-		"/search-messages/:configID",
-		"WhatsAppWebhookController.searchMessages",
-	).middleware(["auth"]);
+  Route.post("/nfe", "WebhooksController.nfe");
+  Route.post("/nfse", "WebhooksController.nfse");
+  Route.post("/disable", "WebhooksController.disable");
+  Route.get("/tintim", "WhatsAppWebhookController.healthcheckTintim");
+  Route.post("/tintim", "WhatsAppWebhookController.receiveTintim");
+  Route.get("/search-messages/:configID", "WhatsAppWebhookController.searchMessages").middleware([
+    "auth",
+  ]);
 }).prefix("webhooks");
 
 Route.group(() => {
-	Route.get("/", "KitsController.index");
+  Route.get("/", "KitsController.index");
 
-	Route.post("/add-item", "KitsController.addKitItem");
-	Route.post("/", "KitsController.store");
+  Route.post("/add-item", "KitsController.addKitItem");
+  Route.post("/", "KitsController.store");
 
-	Route.get("/:id", "KitsController.show");
+  Route.get("/:id", "KitsController.show");
 
-	Route.put("/item/:id", "KitsController.updateKitItem");
-	Route.put("/:id", "KitsController.update");
+  Route.put("/item/:id", "KitsController.updateKitItem");
+  Route.put("/:id", "KitsController.update");
 
-	Route.delete("/item/:id", "KitsController.deleteKitItem");
-	Route.delete("/:id", "KitsController.destroy");
+  Route.delete("/item/:id", "KitsController.deleteKitItem");
+  Route.delete("/:id", "KitsController.destroy");
 })
-	.prefix("kits")
-	.middleware("auth");
+  .prefix("kits")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/", "ProfessionsController.index");
-	Route.get("/:id", "ProfessionsController.show");
+  Route.get("/", "ProfessionsController.index");
+  Route.get("/:id", "ProfessionsController.show");
 })
-	.prefix("professions")
-	.middleware("auth");
+  .prefix("professions")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.post("/identification", "SystemUrlsController.search");
-	Route.post("/upload-images", "SystemUrlsController.uploadImages").middleware(
-		"auth",
-	);
+  Route.post("/identification", "SystemUrlsController.search");
+  Route.post("/upload-images", "SystemUrlsController.uploadImages").middleware("auth");
 }).prefix("systems");
 
 Route.group(() => {
-	Route.get(
-		"/schedules-treatment-executions/:id",
-		"TreatmentsController.scheduleTreatmentExecution",
-	);
-	Route.get("/search", "TreatmentsController.searchTreatment");
-	Route.get(
-		"/search-schedule-services",
-		"TreatmentsController.searchScheduleServices",
-	);
-	Route.get("/search-complete", "TreatmentsController.searchCompleteTreatment");
-	Route.get("/search-items", "TreatmentsController.searchTreatmentItems");
-	Route.get(
-		"/search-executions",
-		"TreatmentsController.searchTreatmentExecutions",
-	);
-	Route.get(
-		"/search-scheduling",
-		"TreatmentsController.searchClientScheduling",
-	);
-	Route.get("/search-date", "TreatmentsController.searchDateExecutions");
-	Route.get(
-		"/search-not-executed",
-		"TreatmentsController.searchNotExecutedItems",
-	);
+  Route.get(
+    "/schedules-treatment-executions/:id",
+    "TreatmentsController.scheduleTreatmentExecution",
+  );
+  Route.get("/search", "TreatmentsController.searchTreatment");
+  Route.get("/search-schedule-services", "TreatmentsController.searchScheduleServices");
+  Route.get("/search-complete", "TreatmentsController.searchCompleteTreatment");
+  Route.get("/search-items", "TreatmentsController.searchTreatmentItems");
+  Route.get("/search-executions", "TreatmentsController.searchTreatmentExecutions");
+  Route.get("/search-scheduling", "TreatmentsController.searchClientScheduling");
+  Route.get("/search-date", "TreatmentsController.searchDateExecutions");
+  Route.get("/search-not-executed", "TreatmentsController.searchNotExecutedItems");
 
-	Route.post("/create", "TreatmentsController.create");
-	Route.post("/create-item", "TreatmentsController.createItem");
-	Route.post(
-		"/create-productivity-item",
-		"TreatmentsController.createProductivityItem",
-	);
-	Route.post("/create-execution", "TreatmentsController.createExecution");
-	Route.post(
-		"/batch-create-execution",
-		"TreatmentsController.batchCreateExecution",
-	);
-	Route.post("/execute-execution", "TreatmentsController.executeExecution");
-	Route.post(
-		"/batch-execute-execution",
-		"TreatmentsController.batchExecuteExecution",
-	);
-	Route.post(
-		"/update-treatment",
-		"TreatmentsController.updateTreatmentExecution",
-	);
-	Route.post("/cancel-treatment", "TreatmentsController.cancelTreatment");
+  Route.post("/create", "TreatmentsController.create");
+  Route.post("/create-item", "TreatmentsController.createItem");
+  Route.post("/create-productivity-item", "TreatmentsController.createProductivityItem");
+  Route.post("/create-execution", "TreatmentsController.createExecution");
+  Route.post("/batch-create-execution", "TreatmentsController.batchCreateExecution");
+  Route.post("/execute-execution", "TreatmentsController.executeExecution");
+  Route.post("/batch-execute-execution", "TreatmentsController.batchExecuteExecution");
+  Route.post("/update-treatment", "TreatmentsController.updateTreatmentExecution");
+  Route.post("/cancel-treatment", "TreatmentsController.cancelTreatment");
 
-	Route.post(
-		"/cancel-treatment-execution",
-		"TreatmentsController.cancelTreatmentExecution",
-	);
-	Route.post(
-		"/exclude-treatment-execution",
-		"TreatmentsController.excludeTreatmentExecution",
-	);
-	Route.post(
-		"/exclude-treatment-item",
-		"TreatmentsController.excludeTreatmentItem",
-	);
+  Route.post("/cancel-treatment-execution", "TreatmentsController.cancelTreatmentExecution");
+  Route.post("/exclude-treatment-execution", "TreatmentsController.excludeTreatmentExecution");
+  Route.post("/exclude-treatment-item", "TreatmentsController.excludeTreatmentItem");
 
-	Route.post(
-		"/sync-schedule-execution",
-		"TreatmentsController.syncScheduleExecution",
-	);
-	Route.get(
-		"/search-syncheable-schedule-executions/:patientId",
-		"TreatmentsController.searchSyncheableScheduleExecutions",
-	);
+  Route.post("/sync-schedule-execution", "TreatmentsController.syncScheduleExecution");
+  Route.get(
+    "/search-syncheable-schedule-executions/:patientId",
+    "TreatmentsController.searchSyncheableScheduleExecutions",
+  );
 })
-	.prefix("treatments")
-	.middleware("auth");
+  .prefix("treatments")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/", "ContactTypesController.index");
-	Route.post("/", "ContactTypesController.store");
-	Route.get("/:id", "ContactTypesController.show");
-	Route.put("/:id", "ContactTypesController.update");
-	Route.delete("/:id", "ContactTypesController.destroy");
+  Route.get("/", "ContactTypesController.index");
+  Route.post("/", "ContactTypesController.store");
+  Route.get("/:id", "ContactTypesController.show");
+  Route.put("/:id", "ContactTypesController.update");
+  Route.delete("/:id", "ContactTypesController.destroy");
 })
-	.prefix("contact-types")
-	.middleware("auth");
+  .prefix("contact-types")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/", "ContactSubjectsController.index");
-	Route.post("/", "ContactSubjectsController.store");
-	Route.get("/:id", "ContactSubjectsController.show");
-	Route.put("/:id", "ContactSubjectsController.update");
-	Route.delete("/:id", "ContactSubjectsController.destroy");
+  Route.get("/", "ContactSubjectsController.index");
+  Route.post("/", "ContactSubjectsController.store");
+  Route.get("/:id", "ContactSubjectsController.show");
+  Route.put("/:id", "ContactSubjectsController.update");
+  Route.delete("/:id", "ContactSubjectsController.destroy");
 })
-	.prefix("contact-subjects")
-	.middleware("auth");
+  .prefix("contact-subjects")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/", "ActivitiesController.index");
-	Route.post("/", "ActivitiesController.store");
-	Route.get("/:id", "ActivitiesController.show");
-	Route.put("/:id", "ActivitiesController.update");
-	Route.delete("/:id", "ActivitiesController.destroy");
+  Route.get("/", "ActivitiesController.index");
+  Route.post("/", "ActivitiesController.store");
+  Route.get("/:id", "ActivitiesController.show");
+  Route.put("/:id", "ActivitiesController.update");
+  Route.delete("/:id", "ActivitiesController.destroy");
 })
-	.prefix("activities")
-	.middleware("auth");
+  .prefix("activities")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/", "WhatsAppMessagesConfigsController.index");
-	Route.post("/", "WhatsAppMessagesConfigsController.store");
-	Route.get("/:id", "WhatsAppMessagesConfigsController.show");
-	Route.put("/:id", "WhatsAppMessagesConfigsController.update");
-	Route.delete("/:id", "WhatsAppMessagesConfigsController.destroy");
+  Route.get("/", "WhatsAppMessagesConfigsController.index");
+  Route.post("/", "WhatsAppMessagesConfigsController.store");
+  Route.get("/:id", "WhatsAppMessagesConfigsController.show");
+  Route.put("/:id", "WhatsAppMessagesConfigsController.update");
+  Route.delete("/:id", "WhatsAppMessagesConfigsController.destroy");
 })
-	.prefix("whatsapp-messages-configs")
-	.middleware("auth");
+  .prefix("whatsapp-messages-configs")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/", "CrmStatusesController.index");
-	Route.post("/", "CrmStatusesController.store");
-	Route.get("/:id", "CrmStatusesController.show");
-	Route.put("/:id", "CrmStatusesController.update");
-	Route.delete("/:id", "CrmStatusesController.destroy");
+  Route.get("/", "CrmStatusesController.index");
+  Route.post("/", "CrmStatusesController.store");
+  Route.get("/:id", "CrmStatusesController.show");
+  Route.put("/:id", "CrmStatusesController.update");
+  Route.delete("/:id", "CrmStatusesController.destroy");
 })
-	.prefix("crm-status")
-	.middleware("auth");
+  .prefix("crm-status")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/search", "OpportunitiesController.search");
-	Route.get("/search-activities", "OpportunitiesController.searchActivities");
-	Route.get("/search-kanban", "OpportunitiesController.searchKanban");
-	Route.get(
-		"/search-complete-kanban",
-		"OpportunitiesController.searchCompleteKanban",
-	);
-	Route.get(
-		"/search-kanban-activities",
-		"OpportunitiesController.searchKanbanActivities",
-	);
+  Route.get("/search", "OpportunitiesController.search");
+  Route.get("/search-activities", "OpportunitiesController.searchActivities");
+  Route.get("/search-kanban", "OpportunitiesController.searchKanban");
+  Route.get("/search-complete-kanban", "OpportunitiesController.searchCompleteKanban");
+  Route.get("/search-kanban-activities", "OpportunitiesController.searchKanbanActivities");
 
-	Route.post("/close-winning/:id", "OpportunitiesController.closeWinning");
-	Route.post("/close-losing/:id", "OpportunitiesController.closeLoosing");
-	Route.post("/reopen/:id", "OpportunitiesController.reopen");
-	Route.post("/update-status/:id", "OpportunitiesController.updateStatus");
-	Route.post("/update-user/:id", "OpportunitiesController.updateUser");
+  Route.post("/close-winning/:id", "OpportunitiesController.closeWinning");
+  Route.post("/close-losing/:id", "OpportunitiesController.closeLoosing");
+  Route.post("/reopen/:id", "OpportunitiesController.reopen");
+  Route.post("/update-status/:id", "OpportunitiesController.updateStatus");
+  Route.post("/update-user/:id", "OpportunitiesController.updateUser");
 
-	Route.get(
-		"/search-syncable-opportunities",
-		"OpportunitiesController.searchSyncableOpportunities",
-	);
-	Route.get(
-		"/search-syncable-schedules",
-		"OpportunitiesController.searchSyncableSchedules",
-	);
-	Route.post("/sync-schedule", "OpportunitiesController.syncSchedule");
+  Route.get(
+    "/search-syncable-opportunities",
+    "OpportunitiesController.searchSyncableOpportunities",
+  );
+  Route.get("/search-syncable-schedules", "OpportunitiesController.searchSyncableSchedules");
+  Route.post("/sync-schedule", "OpportunitiesController.syncSchedule");
 
-	Route.post("/from-schedule", "OpportunitiesController.storeFromSchedule");
-	Route.post("/", "OpportunitiesController.store");
-	Route.get("/show/:id", "OpportunitiesController.show");
-	Route.put("/patient", "OpportunitiesController.updateOpportunityPatient");
-	Route.put("/client/:id", "OpportunitiesController.updateClient");
-	Route.put("/:id", "OpportunitiesController.update");
-	Route.delete("/:id", "OpportunitiesController.excludeOpportunity");
+  Route.post("/from-schedule", "OpportunitiesController.storeFromSchedule");
+  Route.post("/", "OpportunitiesController.store");
+  Route.get("/show/:id", "OpportunitiesController.show");
+  Route.put("/patient", "OpportunitiesController.updateOpportunityPatient");
+  Route.put("/client/:id", "OpportunitiesController.updateClient");
+  Route.put("/:id", "OpportunitiesController.update");
+  Route.delete("/:id", "OpportunitiesController.excludeOpportunity");
 
-	Route.post("/create-activity", "OpportunitiesController.createActivity");
-	Route.post("/update-activity", "OpportunitiesController.updateActivity");
-	Route.post(
-		"/execute-activity/:id",
-		"OpportunitiesController.executeActivity",
-	);
-	Route.post("/cancel-activity/:id", "OpportunitiesController.cancelActivity");
-	Route.post(
-		"/exclude-activity/:id",
-		"OpportunitiesController.excludeActivity",
-	);
-	Route.post("/reopen-activity/:id", "OpportunitiesController.reopenActivity");
+  Route.post("/create-activity", "OpportunitiesController.createActivity");
+  Route.post("/update-activity", "OpportunitiesController.updateActivity");
+  Route.post("/execute-activity/:id", "OpportunitiesController.executeActivity");
+  Route.post("/cancel-activity/:id", "OpportunitiesController.cancelActivity");
+  Route.post("/exclude-activity/:id", "OpportunitiesController.excludeActivity");
+  Route.post("/reopen-activity/:id", "OpportunitiesController.reopenActivity");
 })
-	.prefix("opportunities")
-	.middleware("auth");
+  .prefix("opportunities")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.post(
-		"/authenticate-sancla",
-		"ThirdPartiesController.authenticateSancla",
-	);
-	Route.post(
-		"/authenticate-liftone",
-		"ThirdPartiesController.authenticateLiftOne",
-	);
-	Route.post(
-		"/authenticate-vetech",
-		"ThirdPartiesController.authenticateVetech",
-	);
+  Route.post("/authenticate-sancla", "ThirdPartiesController.authenticateSancla");
+  Route.post("/authenticate-liftone", "ThirdPartiesController.authenticateLiftOne");
+  Route.post("/authenticate-vetech", "ThirdPartiesController.authenticateVetech");
 
-	Route.post(
-		"/extended-authenticate-sancla",
-		"ThirdPartiesController.extendedAuthenticateSancla",
-	);
-	Route.post(
-		"/extended-authenticate-liftone",
-		"ThirdPartiesController.extendedAuthenticateLiftOne",
-	);
-	Route.post(
-		"/extended-authenticate-vetech",
-		"ThirdPartiesController.extendedAuthenticateVetech",
-	);
+  Route.post("/extended-authenticate-sancla", "ThirdPartiesController.extendedAuthenticateSancla");
+  Route.post(
+    "/extended-authenticate-liftone",
+    "ThirdPartiesController.extendedAuthenticateLiftOne",
+  );
+  Route.post("/extended-authenticate-vetech", "ThirdPartiesController.extendedAuthenticateVetech");
 
-	Route.post("/update-token", "ThirdPartiesController.updateToken").middleware(
-		"auth:tpApi",
-	);
+  Route.post("/update-token", "ThirdPartiesController.updateToken").middleware("auth:tpApi");
 
-	Route.get("/check-profile", "ThirdPartiesController.profile").middleware(
-		"auth:api",
-	);
+  Route.get("/check-profile", "ThirdPartiesController.profile").middleware("auth:api");
 
-	Route.get("/profile", "ThirdPartiesController.tpProfile").middleware(
-		"auth:tpApi",
-	);
+  Route.get("/profile", "ThirdPartiesController.tpProfile").middleware("auth:tpApi");
 
-	Route.get(
-		"/business/:id",
-		"ThirdPartiesController.businessUnitInfo",
-	).middleware("auth:tpApi");
+  Route.get("/business/:id", "ThirdPartiesController.businessUnitInfo").middleware("auth:tpApi");
 
-	Route.get("/user/:id", "ThirdPartiesController.userInfo").middleware(
-		"auth:tpApi",
-	);
+  Route.get("/user/:id", "ThirdPartiesController.userInfo").middleware("auth:tpApi");
 
-	Route.get(
-		"/profiles",
-		"ThirdPartiesController.searchProfileAccesses",
-	).middleware(["auth:tpApi,api"]);
+  Route.get("/profiles", "ThirdPartiesController.searchProfileAccesses").middleware([
+    "auth:tpApi,api",
+  ]);
 
-	Route.post("/sync", "ThirdPartiesController.syncProfileAccesses").middleware([
-		"auth:tpApi,api",
-	]);
+  Route.post("/sync", "ThirdPartiesController.syncProfileAccesses").middleware(["auth:tpApi,api"]);
 }).prefix("external");
 
 Route.group(() => {
-	Route.get("/:id", "AddressesController.index");
-	Route.post("/", "AddressesController.store");
-	Route.put("/:id", "AddressesController.update");
-	Route.delete("/:id", "AddressesController.destroy");
+  Route.get("/:id", "AddressesController.index");
+  Route.post("/", "AddressesController.store");
+  Route.put("/:id", "AddressesController.update");
+  Route.delete("/:id", "AddressesController.destroy");
 })
-	.prefix("addresses")
-	.middleware("auth");
+  .prefix("addresses")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/:id", "PatientContactsController.index");
-	Route.post("/batch", "PatientContactsController.batchStore");
-	Route.post("/", "PatientContactsController.store");
-	Route.put("/batch", "PatientContactsController.batchUpdate");
-	Route.put("/:id", "PatientContactsController.update");
-	Route.delete("/:id", "PatientContactsController.destroy");
+  Route.get("/:id", "PatientContactsController.index");
+  Route.post("/batch", "PatientContactsController.batchStore");
+  Route.post("/", "PatientContactsController.store");
+  Route.put("/batch", "PatientContactsController.batchUpdate");
+  Route.put("/:id", "PatientContactsController.update");
+  Route.delete("/:id", "PatientContactsController.destroy");
 })
-	.prefix("patient-contacts")
-	.middleware("auth");
+  .prefix("patient-contacts")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.post("/import-xml", "ReceiptsController.importFromXml");
-	Route.post("/update-xml-items", "ReceiptsController.updateXmlItems");
-	Route.post("/confirm-transference", "ReceiptsController.confirmTransference");
+  Route.post("/import-xml", "ReceiptsController.importFromXml");
+  Route.post("/update-xml-items", "ReceiptsController.updateXmlItems");
+  Route.post("/confirm-transference", "ReceiptsController.confirmTransference");
 
-	Route.post("/create", "ReceiptsController.createReceipt");
-	Route.post("/create-item", "ReceiptsController.createReceiptItem");
-	Route.post("/create-payment", "ReceiptsController.createReceiptPayment");
-	Route.post("/update-payment", "ReceiptsController.updateReceiptPayment");
-	Route.post("/finish-import", "ReceiptsController.finishReceiptImport");
-	Route.post("/reopen", "ReceiptsController.reopenReceipt");
-	Route.post("/update-receipt-items", "ReceiptsController.updateReceiptItems");
+  Route.post("/create", "ReceiptsController.createReceipt");
+  Route.post("/create-item", "ReceiptsController.createReceiptItem");
+  Route.post("/create-payment", "ReceiptsController.createReceiptPayment");
+  Route.post("/update-payment", "ReceiptsController.updateReceiptPayment");
+  Route.post("/finish-import", "ReceiptsController.finishReceiptImport");
+  Route.post("/reopen", "ReceiptsController.reopenReceipt");
+  Route.post("/update-receipt-items", "ReceiptsController.updateReceiptItems");
 
-	Route.post("/delete-receipt", "ReceiptsController.deleteReceipt");
-	Route.post("/delete-item", "ReceiptsController.deleteReceiptItem");
-	Route.post("/delete-payment", "ReceiptsController.deleteReceiptPayment");
+  Route.post("/delete-receipt", "ReceiptsController.deleteReceipt");
+  Route.post("/delete-item", "ReceiptsController.deleteReceiptItem");
+  Route.post("/delete-payment", "ReceiptsController.deleteReceiptPayment");
 
-	Route.get(
-		"/pending-transferences",
-		"ReceiptsController.pendingTransferences",
-	);
-	Route.get("/", "ReceiptsController.index");
-	Route.get("/with-products", "ReceiptsController.productIndex");
-	Route.get("/show", "ReceiptsController.show");
-	Route.get("/products", "ReceiptsController.searchProducts");
-	Route.get("/taxes", "ReceiptsController.searchTaxes");
-	Route.get("/payment-methods", "ReceiptsController.searchPaymentMethods");
+  Route.get("/pending-transferences", "ReceiptsController.pendingTransferences");
+  Route.get("/", "ReceiptsController.index");
+  Route.get("/with-products", "ReceiptsController.productIndex");
+  Route.get("/show", "ReceiptsController.show");
+  Route.get("/products", "ReceiptsController.searchProducts");
+  Route.get("/taxes", "ReceiptsController.searchTaxes");
+  Route.get("/payment-methods", "ReceiptsController.searchPaymentMethods");
 
-	Route.post(
-		"/create-supplier-products",
-		"ReceiptsController.createSupplierProducts",
-	);
-	Route.post(
-		"/create-receipt-products",
-		"ReceiptsController.createReceiptProducts",
-	);
+  Route.post("/create-supplier-products", "ReceiptsController.createSupplierProducts");
+  Route.post("/create-receipt-products", "ReceiptsController.createReceiptProducts");
 })
-	.prefix("receipts")
-	.middleware("auth");
+  .prefix("receipts")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/items", "ProductivityItemsController.searchItems").middleware(
-		"auth:tpApi,api",
-	);
-	Route.get(
-		"/products",
-		"ProductivityItemsController.searchItemProducts",
-	).middleware("auth");
+  Route.get("/items", "ProductivityItemsController.searchItems").middleware("auth:tpApi,api");
+  Route.get("/products", "ProductivityItemsController.searchItemProducts").middleware("auth");
 
-	Route.post(
-		"/create-item",
-		"ProductivityItemsController.storeItem",
-	).middleware("auth:tpApi,api");
-	Route.post(
-		"/update-item",
-		"ProductivityItemsController.updateItem",
-	).middleware("auth");
+  Route.post("/create-item", "ProductivityItemsController.storeItem").middleware("auth:tpApi,api");
+  Route.post("/update-item", "ProductivityItemsController.updateItem").middleware("auth");
 
-	Route.post(
-		"/create-item-product",
-		"ProductivityItemsController.storeItemProduct",
-	).middleware("auth");
+  Route.post("/create-item-product", "ProductivityItemsController.storeItemProduct").middleware(
+    "auth",
+  );
 
-	Route.post(
-		"/update-item-product",
-		"ProductivityItemsController.updateItemProduct",
-	).middleware("auth");
+  Route.post("/update-item-product", "ProductivityItemsController.updateItemProduct").middleware(
+    "auth",
+  );
 
-	Route.delete(
-		"/delete-item/:itemID",
-		"ProductivityItemsController.deleteItem",
-	).middleware("auth");
-	Route.delete(
-		"/delete-item-product/:productItemID",
-		"ProductivityItemsController.deleteItemProduct",
-	).middleware("auth");
+  Route.delete("/delete-item/:itemID", "ProductivityItemsController.deleteItem").middleware("auth");
+  Route.delete(
+    "/delete-item-product/:productItemID",
+    "ProductivityItemsController.deleteItemProduct",
+  ).middleware("auth");
 }).prefix("productivity-items");
 
 Route.group(() => {
-	Route.get("/fiscal-document", "ReportsController.fiscalDocumentReport");
-	Route.get("/product-stock", "ReportsController.productStockReport");
-	Route.get("/finances", "ReportsController.finances");
-	Route.get("/flow", "ReportsController.dailyFlow");
-	Route.get("/checking-accounts", "ReportsController.checkingAccountsBalance");
-	Route.get("/expired", "ReportsController.expiredFinancesReport");
-	Route.get("/detailed-sales", "ReportsController.detailedSalesReport");
-	Route.get("/sale-analytics", "ReportsController.saleAnalyticsReport");
-	Route.get("/sales", "ReportsController.salesReport");
-	Route.get("/entries", "ReportsController.entriesReport");
-	Route.get("/budgets", "ReportsController.budgetsReport");
-	Route.get("/scheduling", "ReportsController.schedulingReport");
-	Route.get("/product-types", "ReportsController.productTypesReport");
-	Route.get("/competence", "ReportsController.competenceReport");
-	Route.get("/plan-group", "ReportsController.planGroupReport");
-	Route.get("/buy-suggestion", "ReportsController.buySuggestionReport");
-	Route.get("/issued-nfe", "ReportsController.issuedNfeReport");
-	Route.get("/issued-nfse", "ReportsController.issuedNfseReport");
-	Route.get("/receipts", "ReportsController.receiptsReport");
-	Route.get("/receipt-analytics", "ReportsController.receiptAnalyticsReport");
-	Route.get("/crm-opportunities", "ReportsController.crmOpportunitiesReport");
-	Route.get(
-		"/crm-opportunities-2",
-		"ReportsController.crmOpportunitiesReport_2",
-	);
-	Route.get("/crm-activities", "ReportsController.crmActivities");
-	Route.get("/client-log", "ReportsController.clientLogReport");
-	Route.get("/vaccine-vermifuge", "ReportsController.vaccineVermifugeReport");
-	Route.get("/marketing-campaign", "ReportsController.marketingCampaignReport");
-	Route.get("/dre-groups", "ReportsController.dreGroupsReport");
-	Route.get("/patients", "ReportsController.patientsReport");
-	Route.get(
-		"/comission-seller-consolidated",
-		"ReportsController.comissionSellerConsolidated",
-	);
-	Route.get(
-		"/comission-seller-conference",
-		"ReportsController.comissionSellerConference",
-	);
-	Route.get(
-		"/checking-account-bankings",
-		"ReportsController.checkingAccountBankingReport",
-	);
-	Route.get("/consolidated-stock", "ReportsController.consolidatedStockReport");
-	Route.get("/detailed-stock", "ReportsController.detailedStockReport");
+  Route.get("/fiscal-document", "ReportsController.fiscalDocumentReport");
+  Route.get("/product-stock", "ReportsController.productStockReport");
+  Route.get("/finances", "ReportsController.finances");
+  Route.get("/flow", "ReportsController.dailyFlow");
+  Route.get("/checking-accounts", "ReportsController.checkingAccountsBalance");
+  Route.get("/expired", "ReportsController.expiredFinancesReport");
+  Route.get("/detailed-sales", "ReportsController.detailedSalesReport");
+  Route.get("/sale-analytics", "ReportsController.saleAnalyticsReport");
+  Route.get("/sales", "ReportsController.salesReport");
+  Route.get("/entries", "ReportsController.entriesReport");
+  Route.get("/budgets", "ReportsController.budgetsReport");
+  Route.get("/scheduling", "ReportsController.schedulingReport");
+  Route.get("/product-types", "ReportsController.productTypesReport");
+  Route.get("/competence", "ReportsController.competenceReport");
+  Route.get("/plan-group", "ReportsController.planGroupReport");
+  Route.get("/buy-suggestion", "ReportsController.buySuggestionReport");
+  Route.get("/issued-nfe", "ReportsController.issuedNfeReport");
+  Route.get("/issued-nfse", "ReportsController.issuedNfseReport");
+  Route.get("/receipts", "ReportsController.receiptsReport");
+  Route.get("/receipt-analytics", "ReportsController.receiptAnalyticsReport");
+  Route.get("/crm-opportunities", "ReportsController.crmOpportunitiesReport");
+  Route.get("/crm-opportunities-2", "ReportsController.crmOpportunitiesReport_2");
+  Route.get("/crm-activities", "ReportsController.crmActivities");
+  Route.get("/client-log", "ReportsController.clientLogReport");
+  Route.get("/vaccine-vermifuge", "ReportsController.vaccineVermifugeReport");
+  Route.get("/marketing-campaign", "ReportsController.marketingCampaignReport");
+  Route.get("/dre-groups", "ReportsController.dreGroupsReport");
+  Route.get("/patients", "ReportsController.patientsReport");
+  Route.get("/comission-seller-consolidated", "ReportsController.comissionSellerConsolidated");
+  Route.get("/comission-seller-conference", "ReportsController.comissionSellerConference");
+  Route.get("/checking-account-bankings", "ReportsController.checkingAccountBankingReport");
+  Route.get("/consolidated-stock", "ReportsController.consolidatedStockReport");
+  Route.get("/detailed-stock", "ReportsController.detailedStockReport");
 })
-	.prefix("reports")
-	.middleware("auth");
+  .prefix("reports")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/search", "IpAccessControlsController.index");
-	Route.post("/store", "IpAccessControlsController.store");
+  Route.get("/search", "IpAccessControlsController.index");
+  Route.post("/store", "IpAccessControlsController.store");
 })
-	.prefix("ip-access")
-	.middleware("auth");
+  .prefix("ip-access")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/median-ticket", "IndicatorsController.medianTicket");
-	Route.get(
-		"/median-ticket-origin",
-		"IndicatorsController.medianTicketByOrigin",
-	);
+  Route.get("/median-ticket", "IndicatorsController.medianTicket");
+  Route.get("/median-ticket-origin", "IndicatorsController.medianTicketByOrigin");
 
-	Route.get(
-		"/invoicing-product-type",
-		"IndicatorsController.invoicingByProductType",
-	);
-	Route.get(
-		"/invoicing-product-type-subgroup",
-		"IndicatorsController.invoicingByProductTypeWithSubgroup",
-	);
-	Route.get(
-		"/invoicing-payment-method",
-		"IndicatorsController.invoicingByPaymentMethod",
-	);
-	Route.get(
-		"/invoicing-new-clients",
-		"IndicatorsController.invoicingByNewClients",
-	);
+  Route.get("/invoicing-product-type", "IndicatorsController.invoicingByProductType");
+  Route.get(
+    "/invoicing-product-type-subgroup",
+    "IndicatorsController.invoicingByProductTypeWithSubgroup",
+  );
+  Route.get("/invoicing-payment-method", "IndicatorsController.invoicingByPaymentMethod");
+  Route.get("/invoicing-new-clients", "IndicatorsController.invoicingByNewClients");
 
-	Route.get(
-		"/median-ticket-consolidated",
-		"IndicatorsController.medianTicketConsolidated",
-	);
-	Route.get(
-		"/median-ticket-origin-consolidated",
-		"IndicatorsController.medianTicketByOriginConsolidated",
-	);
-	Route.get(
-		"/invoicing-product-type-consolidated",
-		"IndicatorsController.invoicingByProductTypeConsolidated",
-	);
-	Route.get(
-		"/invoicing-payment-method-consolidated",
-		"IndicatorsController.invoicingByPaymentMethodConsolidated",
-	);
-	Route.get(
-		"/invoicing-new-clients-consolidated",
-		"IndicatorsController.invoicingByNewClientsConsolidated",
-	);
+  Route.get("/median-ticket-consolidated", "IndicatorsController.medianTicketConsolidated");
+  Route.get(
+    "/median-ticket-origin-consolidated",
+    "IndicatorsController.medianTicketByOriginConsolidated",
+  );
+  Route.get(
+    "/invoicing-product-type-consolidated",
+    "IndicatorsController.invoicingByProductTypeConsolidated",
+  );
+  Route.get(
+    "/invoicing-payment-method-consolidated",
+    "IndicatorsController.invoicingByPaymentMethodConsolidated",
+  );
+  Route.get(
+    "/invoicing-new-clients-consolidated",
+    "IndicatorsController.invoicingByNewClientsConsolidated",
+  );
 
-	Route.get("/scheduling", "IndicatorsController.schedulingIndicators");
+  Route.get("/scheduling", "IndicatorsController.schedulingIndicators");
 
-	Route.get("/subgroups", "IndicatorsController.subgroupIndicators");
-	Route.get("/subgroup-tree", "IndicatorsController.subgroupTreeIndicators");
-	Route.get(
-		"/subgroups-consolidated",
-		"IndicatorsController.consolidatedSubgroupIndicators",
-	);
+  Route.get("/subgroups", "IndicatorsController.subgroupIndicators");
+  Route.get("/subgroup-tree", "IndicatorsController.subgroupTreeIndicators");
+  Route.get("/subgroups-consolidated", "IndicatorsController.consolidatedSubgroupIndicators");
 
-	Route.get("/opportunities", "IndicatorsController.opportunitiesIndicators");
-	Route.get(
-		"/general-opportunities",
-		"IndicatorsController.generalOpportunitiesIndicators",
-	);
-	Route.get("/crm", "IndicatorsController.crmIndicators");
-	Route.get(
-		"/monthly-ideal-funnel",
-		"IndicatorsController.monthlyIdealFunnelIndicators",
-	);
-	Route.get(
-		"/monthly-partial-funnel",
-		"IndicatorsController.monthlyPartialFunnelIndicators",
-	);
+  Route.get("/opportunities", "IndicatorsController.opportunitiesIndicators");
+  Route.get("/general-opportunities", "IndicatorsController.generalOpportunitiesIndicators");
+  Route.get("/crm", "IndicatorsController.crmIndicators");
+  Route.get("/monthly-ideal-funnel", "IndicatorsController.monthlyIdealFunnelIndicators");
+  Route.get("/monthly-partial-funnel", "IndicatorsController.monthlyPartialFunnelIndicators");
 
-	Route.get(
-		"/unconfirmed-budgets",
-		"IndicatorsController.unconfirmedBudgetsIndicators",
-	);
+  Route.get("/unconfirmed-budgets", "IndicatorsController.unconfirmedBudgetsIndicators");
 
-	Route.get("/projection", "IndicatorsController.projectionIndicators");
-	Route.get("/billing", "IndicatorsController.billingIndicators");
-	Route.get("/product-type", "IndicatorsController.productTypeIndicators");
-	Route.get(
-		"/sales-per-period",
-		"IndicatorsController.salesPerPeriodIndicators",
-	);
-	Route.get("/budgets", "IndicatorsController.budgetIndicators");
-	Route.get(
-		"/budgets-by-status",
-		"IndicatorsController.budgetByStatusIndicators",
-	);
-	Route.get("/marketing", "IndicatorsController.marketingIndicators");
+  Route.get("/projection", "IndicatorsController.projectionIndicators");
+  Route.get("/billing", "IndicatorsController.billingIndicators");
+  Route.get("/product-type", "IndicatorsController.productTypeIndicators");
+  Route.get("/sales-per-period", "IndicatorsController.salesPerPeriodIndicators");
+  Route.get("/budgets", "IndicatorsController.budgetIndicators");
+  Route.get("/budgets-by-status", "IndicatorsController.budgetByStatusIndicators");
+  Route.get("/marketing", "IndicatorsController.marketingIndicators");
 
-	Route.get(
-		"/cost-of-acquisition",
-		"IndicatorsController.costOfAcquisitionIndicators",
-	);
-	Route.get(
-		"/bill-payment-format",
-		"IndicatorsController.billPaymentFormatIndicators",
-	);
+  Route.get("/cost-of-acquisition", "IndicatorsController.costOfAcquisitionIndicators");
+  Route.get("/bill-payment-format", "IndicatorsController.billPaymentFormatIndicators");
 
-	Route.get(
-		"/installment-avg",
-		"IndicatorsController.installmentAvgIndicators",
-	);
+  Route.get("/installment-avg", "IndicatorsController.installmentAvgIndicators");
 
-	Route.get(
-		"/avg-receipt-deadline",
-		"IndicatorsController.avgReceiptDeadlineIndicators",
-	);
+  Route.get("/avg-receipt-deadline", "IndicatorsController.avgReceiptDeadlineIndicators");
 
-	Route.get(
-		"/client-group-tree",
-		"IndicatorsController.clientGroupTreeIndicators",
-	);
+  Route.get("/client-group-tree", "IndicatorsController.clientGroupTreeIndicators");
 
-	Route.get(
-		"/median-ticket-origin-2",
-		"IndicatorsController.medianTicketByOrigin_2",
-	);
+  Route.get("/median-ticket-origin-2", "IndicatorsController.medianTicketByOrigin_2");
 
-	Route.get(
-		"/invoicing-product-type-2",
-		"IndicatorsController.invoicingByProductType_2",
-	);
-	Route.get(
-		"/invoicing-payment-method-2",
-		"IndicatorsController.invoicingByPaymentMethod_2",
-	);
-	Route.get(
-		"/invoicing-new-clients-period-2",
-		"IndicatorsController.invoicingNewClientsPeriod_2",
-	);
-	Route.get(
-		"/invoicing-new-clients-2",
-		"IndicatorsController.invoicingNewClients_2",
-	);
-	Route.get(
-		"/bill-payment-format-2",
-		"IndicatorsController.billPaymentFormatIndicators_2",
-	);
-	Route.get(
-		"/bill-for-user-period-2",
-		"IndicatorsController.billForUserPeriod_2",
-	);
-	Route.get("/product-type-2", "IndicatorsController.productType_2");
-	Route.get("/subgroups-2", "IndicatorsController.subgroupIndicators_2");
-	Route.get(
-		"/sales-per-period-2",
-		"IndicatorsController.salesPerPeriodIndicators_2",
-	);
-	Route.get(
-		"/sales-per-user-2",
-		"IndicatorsController.salesPerUserIndicators_2",
-	);
-	Route.get("/budgets-2", "IndicatorsController.budgetsIndicators_2");
-	Route.get("/scheduling-2", "IndicatorsController.schedulingIndicators_2");
-	Route.get(
-		"/opportunities-2",
-		"IndicatorsController.opportunitiesIndicators_2",
-	);
-	Route.get("/crm-2", "IndicatorsController.crmIndicators_2");
-	Route.get(
-		"/scheduling-opportunities-2",
-		"IndicatorsController.schedulingOpportunitiesIndicators_2",
-	);
-	Route.get(
-		"/consolidated-reviewers-2",
-		"IndicatorsController.consolidatedReviewerIndicators",
-	);
-	Route.get("/activity-2", "IndicatorsController.activityIndicators");
-	Route.get(
-		"/sales-per-reviewer-2",
-		"IndicatorsController.salesPerReviwerIndicators",
-	);
-	Route.get("/activities-2", "IndicatorsController.activiesIndicators_2");
-	Route.get(
-		"/sales-convertions-per-seller-2",
-		"IndicatorsController.salesConvertionsPerSeller_2",
-	);
+  Route.get("/invoicing-product-type-2", "IndicatorsController.invoicingByProductType_2");
+  Route.get("/invoicing-payment-method-2", "IndicatorsController.invoicingByPaymentMethod_2");
+  Route.get("/invoicing-new-clients-period-2", "IndicatorsController.invoicingNewClientsPeriod_2");
+  Route.get("/invoicing-new-clients-2", "IndicatorsController.invoicingNewClients_2");
+  Route.get("/bill-payment-format-2", "IndicatorsController.billPaymentFormatIndicators_2");
+  Route.get("/bill-for-user-period-2", "IndicatorsController.billForUserPeriod_2");
+  Route.get("/product-type-2", "IndicatorsController.productType_2");
+  Route.get("/subgroups-2", "IndicatorsController.subgroupIndicators_2");
+  Route.get("/sales-per-period-2", "IndicatorsController.salesPerPeriodIndicators_2");
+  Route.get("/sales-per-user-2", "IndicatorsController.salesPerUserIndicators_2");
+  Route.get("/budgets-2", "IndicatorsController.budgetsIndicators_2");
+  Route.get("/scheduling-2", "IndicatorsController.schedulingIndicators_2");
+  Route.get("/opportunities-2", "IndicatorsController.opportunitiesIndicators_2");
+  Route.get("/crm-2", "IndicatorsController.crmIndicators_2");
+  Route.get(
+    "/scheduling-opportunities-2",
+    "IndicatorsController.schedulingOpportunitiesIndicators_2",
+  );
+  Route.get("/consolidated-reviewers-2", "IndicatorsController.consolidatedReviewerIndicators");
+  Route.get("/activity-2", "IndicatorsController.activityIndicators");
+  Route.get("/sales-per-reviewer-2", "IndicatorsController.salesPerReviwerIndicators");
+  Route.get("/activities-2", "IndicatorsController.activiesIndicators_2");
+  Route.get("/sales-convertions-per-seller-2", "IndicatorsController.salesConvertionsPerSeller_2");
 })
-	.prefix("indicators")
-	.middleware("auth");
+  .prefix("indicators")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/", "BusinessUnitMetasController.index");
-	Route.get("/:id", "BusinessUnitMetasController.show");
-	Route.post("/", "BusinessUnitMetasController.store");
-	Route.put("/", "BusinessUnitMetasController.update");
-	Route.delete("/:id", "BusinessUnitMetasController.destroy");
+  Route.get("/", "BusinessUnitMetasController.index");
+  Route.get("/:id", "BusinessUnitMetasController.show");
+  Route.post("/", "BusinessUnitMetasController.store");
+  Route.put("/", "BusinessUnitMetasController.update");
+  Route.delete("/:id", "BusinessUnitMetasController.destroy");
 })
-	.prefix("business-unit-metas")
-	.middleware("auth");
+  .prefix("business-unit-metas")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/", "MetasController.index");
-	Route.post("/", "MetasController.store");
-	Route.put("/:id", "MetasController.update");
-	Route.delete("/:id", "MetasController.destroy");
+  Route.get("/", "MetasController.index");
+  Route.post("/", "MetasController.store");
+  Route.put("/:id", "MetasController.update");
+  Route.delete("/:id", "MetasController.destroy");
 })
-	.prefix("metas")
-	.middleware("auth");
+  .prefix("metas")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/show-deposit/:id", "DepositsController.showDeposit");
-	Route.get("/search-deposits", "DepositsController.searchDeposits");
-	Route.post("/create-deposit", "DepositsController.createDeposit");
-	Route.post(
-		"/update-principal-deposit/:id",
-		"DepositsController.updatePrincipalDeposit",
-	);
-	Route.post("/update-deposit/:id", "DepositsController.updateDeposit");
+  Route.get("/show-deposit/:id", "DepositsController.showDeposit");
+  Route.get("/search-deposits", "DepositsController.searchDeposits");
+  Route.post("/create-deposit", "DepositsController.createDeposit");
+  Route.post("/update-principal-deposit/:id", "DepositsController.updatePrincipalDeposit");
+  Route.post("/update-deposit/:id", "DepositsController.updateDeposit");
 
-	Route.post("/create-deposit-item", "DepositsController.createDepositItem");
-	Route.post("/update-deposit-item", "DepositsController.updateDepositItem");
+  Route.post("/create-deposit-item", "DepositsController.createDepositItem");
+  Route.post("/update-deposit-item", "DepositsController.updateDepositItem");
 
-	Route.get(
-		"/show-deposit-movements",
-		"DepositsController.showDepositMovements",
-	);
-	Route.get(
-		"/search-deposit-movements",
-		"DepositsController.searchDepositMovements",
-	);
-	Route.post(
-		"/create-deposit-movement",
-		"DepositsController.createDepositMovement",
-	);
+  Route.get("/show-deposit-movements", "DepositsController.showDepositMovements");
+  Route.get("/search-deposit-movements", "DepositsController.searchDepositMovements");
+  Route.post("/create-deposit-movement", "DepositsController.createDepositMovement");
 })
-	.prefix("deposits")
-	.middleware("auth");
+  .prefix("deposits")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.post("/generate-link", "S3sController.createLink");
-	Route.post("/generate-links", "S3sController.createLinks");
+  Route.post("/generate-link", "S3sController.createLink");
+  Route.post("/generate-links", "S3sController.createLinks");
 })
-	.prefix("s3")
-	.middleware("auth");
+  .prefix("s3")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.post("/download", "AssetsController.download");
+  Route.post("/download", "AssetsController.download");
 })
-	.prefix("assets")
-	.middleware("auth");
+  .prefix("assets")
+  .middleware("auth");
 
 Route.resource("client-origin-categories", "ClientOriginCategoriesController")
-	.apiOnly()
-	.middleware({
-		"*": ["auth"],
-	});
+  .apiOnly()
+  .middleware({
+    "*": ["auth"],
+  });
 
 Route.resource("client-origin-groups", "ClientOriginGroupsController")
-	.apiOnly()
-	.middleware({
-		"*": ["auth"],
-	});
+  .apiOnly()
+  .middleware({
+    "*": ["auth"],
+  });
 
 Route.get("/Menu", "PermissionsController.fetchMenu").middleware("auth");
-Route.get("/dashboard", "IndicatorsController.chartsIndicators").middleware(
-	"auth",
+Route.get("/dashboard", "IndicatorsController.chartsIndicators").middleware("auth");
+Route.get("/dashboard-crm", "IndicatorsController.crmDashboard").middleware("auth");
+Route.get("/dashboard-finances-resume", "FinancesController.dashboardFinanceResume").middleware(
+  "auth",
 );
-Route.get("/dashboard-crm", "IndicatorsController.crmDashboard").middleware(
-	"auth",
+Route.get("/dashboard-cashiers-resume", "FinancesController.dashboardCashierResume").middleware(
+  "auth",
 );
-Route.get(
-	"/dashboard-finances-resume",
-	"FinancesController.dashboardFinanceResume",
-).middleware("auth");
-Route.get(
-	"/dashboard-cashiers-resume",
-	"FinancesController.dashboardCashierResume",
-).middleware("auth");
 
 Route.group(() => {
-	Route.get("/documents/:bill", "ProductDocumentsController.documentsFromBill");
-	Route.get("/", "ProductDocumentsController.index");
-	Route.post("/generate", "ProductDocumentsController.generateDocuments");
-	Route.post("/print", "ProductDocumentsController.printDocument");
-	Route.post("/", "ProductDocumentsController.store");
-	Route.delete("/:id", "ProductDocumentsController.destroy");
+  Route.get("/documents/:bill", "ProductDocumentsController.documentsFromBill");
+  Route.get("/", "ProductDocumentsController.index");
+  Route.post("/generate", "ProductDocumentsController.generateDocuments");
+  Route.post("/print", "ProductDocumentsController.printDocument");
+  Route.post("/", "ProductDocumentsController.store");
+  Route.delete("/:id", "ProductDocumentsController.destroy");
 })
-	.prefix("product-documents")
-	.middleware("auth");
+  .prefix("product-documents")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/spreadsheet/:unit", "DreController.generateDreSpreadsheet");
+  Route.get("/spreadsheet/:unit", "DreController.generateDreSpreadsheet");
 })
-	.prefix("dre")
-	.middleware("auth");
+  .prefix("dre")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/", "DictionariesController.index");
+  Route.get("/", "DictionariesController.index");
 }).prefix("dictionary");
 
 Route.group(() => {
-	Route.get("/list-notifications", "NotificationsController.listNotifications");
-	Route.post(
-		"/read-notifications",
-		"NotificationsController.readNotifications",
-	);
-	Route.post(
-		"/create-notification",
-		"NotificationsController.createNotification",
-	);
-	Route.post(
-		"/update-notification/:id",
-		"NotificationsController.updateNotification",
-	);
-	Route.delete(
-		"/exclude-notification/:id",
-		"NotificationsController.excludeNotification",
-	);
+  Route.get("/list-notifications", "NotificationsController.listNotifications");
+  Route.post("/read-notifications", "NotificationsController.readNotifications");
+  Route.post("/create-notification", "NotificationsController.createNotification");
+  Route.post("/update-notification/:id", "NotificationsController.updateNotification");
+  Route.delete("/exclude-notification/:id", "NotificationsController.excludeNotification");
 
-	Route.get("/", "NotificationsController.fullNotifications");
-	Route.get("/GetNotRead", "NotificationsController.unreadNotifications");
-	Route.get("/roles", "NotificationsController.rolesNotifications");
-	Route.get(
-		"/pendingBills",
-		"NotificationsController.pendingBillsNotifications",
-	);
-	Route.get(
-		"/pendingBudgets",
-		"NotificationsController.pendingBudgetsNotifications",
-	);
-	Route.get(
-		"/pendingBillItemEvaluations",
-		"NotificationsController.pendingBillItemEvaluations",
-	);
-	Route.get(
-		"/pendingBillPaymentEvaluations",
-		"NotificationsController.pendingBillPaymentEvaluations",
-	);
-	Route.get(
-		"/pendingBillPaymentApprovals",
-		"NotificationsController.pendingBillPaymentApprovals",
-	);
+  Route.get("/", "NotificationsController.fullNotifications");
+  Route.get("/GetNotRead", "NotificationsController.unreadNotifications");
+  Route.get("/roles", "NotificationsController.rolesNotifications");
+  Route.get("/pendingBills", "NotificationsController.pendingBillsNotifications");
+  Route.get("/pendingBudgets", "NotificationsController.pendingBudgetsNotifications");
+  Route.get("/pendingBillItemEvaluations", "NotificationsController.pendingBillItemEvaluations");
+  Route.get(
+    "/pendingBillPaymentEvaluations",
+    "NotificationsController.pendingBillPaymentEvaluations",
+  );
+  Route.get("/pendingBillPaymentApprovals", "NotificationsController.pendingBillPaymentApprovals");
 })
-	.prefix("Notifications")
-	.middleware("auth");
+  .prefix("Notifications")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/search", "MarketingCampaignsController.search");
-	Route.get("/", "MarketingCampaignsController.index");
-	Route.post("/store", "MarketingCampaignsController.store");
-	Route.put("/update", "MarketingCampaignsController.update");
-	Route.delete("/delete/:id", "MarketingCampaignsController.destroy");
+  Route.get("/search", "MarketingCampaignsController.search");
+  Route.get("/", "MarketingCampaignsController.index");
+  Route.post("/store", "MarketingCampaignsController.store");
+  Route.put("/update", "MarketingCampaignsController.update");
+  Route.delete("/delete/:id", "MarketingCampaignsController.destroy");
 })
-	.prefix("marketing-campaigns")
-	.middleware("auth");
+  .prefix("marketing-campaigns")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/", "DreGroupsController.index");
-	Route.get("/search", "DreGroupsController.search");
+  Route.get("/", "DreGroupsController.index");
+  Route.get("/search", "DreGroupsController.search");
 
-	Route.post("/store", "DreGroupsController.store");
-	Route.post("/store-planning", "DreGroupsController.storePlanning");
+  Route.post("/store", "DreGroupsController.store");
+  Route.post("/store-planning", "DreGroupsController.storePlanning");
 
-	Route.put("/update", "DreGroupsController.update");
-	Route.put("/update-planning", "DreGroupsController.updatePlanning");
+  Route.put("/update", "DreGroupsController.update");
+  Route.put("/update-planning", "DreGroupsController.updatePlanning");
 
-	Route.delete("/delete/:id", "DreGroupsController.destroy");
-	Route.delete("/delete-planning/:id", "DreGroupsController.destroyPlanning");
+  Route.delete("/delete/:id", "DreGroupsController.destroy");
+  Route.delete("/delete-planning/:id", "DreGroupsController.destroyPlanning");
 })
-	.prefix("dre-groups")
-	.middleware("auth");
+  .prefix("dre-groups")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/search/:id", "PerformanceRangeGoalController.search");
+  Route.get("/search/:id", "PerformanceRangeGoalController.search");
 
-	// Route.post("/store", "PerformanceRangeGoalController.store");
+  // Route.post("/store", "PerformanceRangeGoalController.store");
 
-	Route.put("/update", "PerformanceRangeGoalController.update");
+  Route.put("/update", "PerformanceRangeGoalController.update");
 
-	Route.delete("/delete/:id", "PerformanceRangeGoalController.destroy");
+  Route.delete("/delete/:id", "PerformanceRangeGoalController.destroy");
 })
-	.prefix("performance-range-goals")
-	.middleware("auth");
+  .prefix("performance-range-goals")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/search", "ScheduleMovementsController.search");
-	Route.post("/store", "ScheduleMovementsController.store");
-	Route.post("/cancel", "ScheduleMovementsController.cancel");
+  Route.get("/search", "ScheduleMovementsController.search");
+  Route.post("/store", "ScheduleMovementsController.store");
+  Route.post("/cancel", "ScheduleMovementsController.cancel");
 })
-	.prefix("schedule-movements")
-	.middleware("auth");
+  .prefix("schedule-movements")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/search", "OpportunitiesMovementsController.search");
-	Route.get(
-		"/search-from-clients",
-		"OpportunitiesMovementsController.searchFromClients",
-	);
-	Route.get("/", "OpportunitiesMovementsController.index");
-	Route.post("/store", "OpportunitiesMovementsController.store");
-	Route.post("/cancel", "OpportunitiesMovementsController.cancel");
+  Route.get("/search", "OpportunitiesMovementsController.search");
+  Route.get("/search-from-clients", "OpportunitiesMovementsController.searchFromClients");
+  Route.get("/", "OpportunitiesMovementsController.index");
+  Route.post("/store", "OpportunitiesMovementsController.store");
+  Route.post("/cancel", "OpportunitiesMovementsController.cancel");
 })
-	.prefix("opportunity-movements")
-	.middleware("auth");
+  .prefix("opportunity-movements")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/search", "FocusController.search");
-	Route.get("/list-received", "FocusController.listReceived");
-	Route.get("/search-received/:ref", "FocusController.searchReceived");
-	Route.post("/import-received/:ref", "FocusController.importReceived");
+  Route.get("/search", "FocusController.search");
+  Route.get("/list-received", "FocusController.listReceived");
+  Route.get("/search-received/:ref", "FocusController.searchReceived");
+  Route.post("/import-received/:ref", "FocusController.importReceived");
 })
-	.prefix("focus")
-	.middleware("auth");
+  .prefix("focus")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/search", "PatientGendersController.list");
+  Route.get("/search", "PatientGendersController.list");
 })
-	.prefix("patient-genders")
-	.middleware("auth");
+  .prefix("patient-genders")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/dashboard", "PortalController.dashboard");
-	Route.get("/monthly-billing", "PortalController.monthlyBilling");
-	Route.get("/sales-by-period", "PortalController.salesByPeriod");
-	Route.get("/billing", "PortalController.billing");
-	Route.get("/seller-billing-ranking", "PortalController.sellerBillingRanking");
-	Route.get("/billing-ranking", "PortalController.billingRanking");
-	Route.get("/median-ticket", "PortalController.avgTicket");
-	Route.get(
-		"/invoicing-product-type-subgroup-portal",
-		"PortalController.invoicingProductTypeSubgroup",
-	);
+  Route.get("/dashboard", "PortalController.dashboard");
+  Route.get("/monthly-billing", "PortalController.monthlyBilling");
+  Route.get("/sales-by-period", "PortalController.salesByPeriod");
+  Route.get("/billing", "PortalController.billing");
+  Route.get("/seller-billing-ranking", "PortalController.sellerBillingRanking");
+  Route.get("/billing-ranking", "PortalController.billingRanking");
+  Route.get("/median-ticket", "PortalController.avgTicket");
+  Route.get(
+    "/invoicing-product-type-subgroup-portal",
+    "PortalController.invoicingProductTypeSubgroup",
+  );
 })
-	.prefix("portal")
-	.middleware("auth");
+  .prefix("portal")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get(
-		"/list-products-movements",
-		"DepartmentsController.listProductsMovements",
-	);
-	Route.get("/list-products", "DepartmentsController.listProducts");
-	Route.get("/list-items", "DepartmentsController.listItems");
-	Route.get("/resume", "DepartmentsController.resume");
-	Route.get("/", "DepartmentsController.index");
+  Route.get("/list-products-movements", "DepartmentsController.listProductsMovements");
+  Route.get("/list-products", "DepartmentsController.listProducts");
+  Route.get("/list-items", "DepartmentsController.listItems");
+  Route.get("/resume", "DepartmentsController.resume");
+  Route.get("/", "DepartmentsController.index");
 
-	Route.post("/store-products", "DepartmentsController.storeProducts");
-	Route.post("/store-item", "DepartmentsController.storeItem");
-	Route.post("/", "DepartmentsController.store");
+  Route.post("/store-products", "DepartmentsController.storeProducts");
+  Route.post("/store-item", "DepartmentsController.storeItem");
+  Route.post("/", "DepartmentsController.store");
 
-	Route.put("/update-products", "DepartmentsController.updateProducts");
-	Route.put("/delete-products", "DepartmentsController.destroyProducts");
-	Route.put("/delete-item", "DepartmentsController.destroyItem");
-	Route.put("/update-item/:id", "DepartmentsController.updateItem");
-	Route.put("/:id", "DepartmentsController.update");
+  Route.put("/update-products", "DepartmentsController.updateProducts");
+  Route.put("/delete-products", "DepartmentsController.destroyProducts");
+  Route.put("/delete-item", "DepartmentsController.destroyItem");
+  Route.put("/update-item/:id", "DepartmentsController.updateItem");
+  Route.put("/:id", "DepartmentsController.update");
 
-	Route.delete("/:id", "DepartmentsController.destroy");
+  Route.delete("/:id", "DepartmentsController.destroy");
 })
-	.prefix("departments")
-	.middleware("auth");
+  .prefix("departments")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.post("/transfer-opportunity", "CrmV2Controller.transferOpportunity");
-	Route.post("/create-opportunity", "CrmV2Controller.createOpportunity");
-	Route.get(
-		"/search-kanban-opportunities",
-		"CrmV2Controller.searchKanbanOpportunities",
-	);
-	Route.get("/search-opportunities", "CrmV2Controller.searchOpportunities");
-	Route.get("/search-activities", "CrmV2Controller.searchActivities");
-	Route.get(
-		"/search-syncable-opportunities",
-		"CrmV2Controller.searchSyncableOpportunities",
-	);
-	Route.get("/list-kanbans", "CrmV2Controller.listKanbans");
-	Route.post("/store-kanban", "CrmV2Controller.storeKanban");
-	Route.post("/update-kanban", "CrmV2Controller.updateKanban");
-	Route.delete("/delete-kanban/:kanbanID", "CrmV2Controller.deleteKanban");
+  Route.post("/transfer-opportunity", "CrmV2Controller.transferOpportunity");
+  Route.post("/create-opportunity", "CrmV2Controller.createOpportunity");
+  Route.get("/search-kanban-opportunities", "CrmV2Controller.searchKanbanOpportunities");
+  Route.get("/search-opportunities", "CrmV2Controller.searchOpportunities");
+  Route.get("/search-activities", "CrmV2Controller.searchActivities");
+  Route.get("/search-syncable-opportunities", "CrmV2Controller.searchSyncableOpportunities");
+  Route.get("/list-kanbans", "CrmV2Controller.listKanbans");
+  Route.post("/store-kanban", "CrmV2Controller.storeKanban");
+  Route.post("/update-kanban", "CrmV2Controller.updateKanban");
+  Route.delete("/delete-kanban/:kanbanID", "CrmV2Controller.deleteKanban");
 })
-	.prefix("crm-v2")
-	.middleware("auth");
+  .prefix("crm-v2")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/patient/:patientID", "PatientContractsController.forPatient");
-	Route.get("/", "PatientContractsController.index");
-	Route.post("/store-client", "PatientContractsController.clientContract");
-	Route.post("/store", "PatientContractsController.store");
-	Route.put("/update", "PatientContractsController.update");
-	Route.delete("/delete/:id", "PatientContractsController.delete");
+  Route.get("/patient/:patientID", "PatientContractsController.forPatient");
+  Route.get("/", "PatientContractsController.index");
+  Route.post("/store-client", "PatientContractsController.clientContract");
+  Route.post("/store", "PatientContractsController.store");
+  Route.put("/update", "PatientContractsController.update");
+  Route.delete("/delete/:id", "PatientContractsController.delete");
 })
-	.prefix("contracts")
-	.middleware("auth");
+  .prefix("contracts")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.get("/", "BillRelatedTypesController.index");
-	Route.post("/store", "BillRelatedTypesController.store");
-	Route.put("/update", "BillRelatedTypesController.update");
-	Route.delete("/delete/:id", "BillRelatedTypesController.delete");
+  Route.get("/", "BillRelatedTypesController.index");
+  Route.post("/store", "BillRelatedTypesController.store");
+  Route.put("/update", "BillRelatedTypesController.update");
+  Route.delete("/delete/:id", "BillRelatedTypesController.delete");
 })
-	.prefix("bill-related-types")
-	.middleware("auth");
+  .prefix("bill-related-types")
+  .middleware("auth");
 
 Route.group(() => {
-	Route.post("/create-business", "FocusManagementController.createBusiness");
+  Route.post("/create-business", "FocusManagementController.createBusiness");
 })
-	.prefix("focus-management")
-	.middleware("auth");
+  .prefix("focus-management")
+  .middleware("auth");

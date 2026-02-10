@@ -7,13 +7,13 @@ import {
   column,
   HasMany,
   hasMany,
-} from '@ioc:Adonis/Lucid/Orm';
-import EconomicGroup from 'App/Models/EconomicGroup';
-import Product from 'App/Models/Product';
-import VariationGroup from 'App/Models/VariationGroup';
-import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
-import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
+} from "@ioc:Adonis/Lucid/Orm";
+import EconomicGroup from "App/Models/EconomicGroup";
+import Product from "App/Models/Product";
+import VariationGroup from "App/Models/VariationGroup";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import { DateTime } from "luxon";
+import { v4 } from "uuid";
 
 export default class Subgroup extends BaseModel {
   @column({ isPrimary: true })
@@ -26,8 +26,8 @@ export default class Subgroup extends BaseModel {
   public active: boolean;
 
   @column({
-    prepare: value => JSON.stringify(value),
-    consume: value => JSON.parse(value),
+    prepare: (value) => JSON.stringify(value),
+    consume: (value) => JSON.parse(value),
   })
   public tree: Array<string>;
 
@@ -60,8 +60,8 @@ export default class Subgroup extends BaseModel {
   public variation_group_id: string;
 
   @belongsTo(() => VariationGroup, {
-    foreignKey: 'variation_group_id',
-    localKey: 'id',
+    foreignKey: "variation_group_id",
+    localKey: "id",
   })
   public variationGroup: BelongsTo<typeof VariationGroup>;
 
@@ -74,15 +74,15 @@ export default class Subgroup extends BaseModel {
   public parent_id?: string;
 
   @belongsTo(() => Subgroup, {
-    localKey: 'id',
-    foreignKey: 'parent_id',
+    localKey: "id",
+    foreignKey: "parent_id",
   })
   // eslint-disable-next-line no-use-before-define
   public parent: BelongsTo<typeof Subgroup>;
 
   @hasMany(() => Subgroup, {
-    localKey: 'id',
-    foreignKey: 'parent_id',
+    localKey: "id",
+    foreignKey: "parent_id",
   })
   // eslint-disable-next-line no-use-before-define
   public children: HasMany<typeof Subgroup>;

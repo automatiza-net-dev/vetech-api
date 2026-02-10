@@ -1,4 +1,4 @@
-import WeekDay from 'App/Models/shared/WeekDay';
+import WeekDay from "App/Models/shared/WeekDay";
 
 export default interface IWorkingDayData {
   userId: string;

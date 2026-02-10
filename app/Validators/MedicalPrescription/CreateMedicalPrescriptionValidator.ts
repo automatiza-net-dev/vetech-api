@@ -1,9 +1,9 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, schema } from '@ioc:Adonis/Core/Validator';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, schema } from "@ioc:Adonis/Core/Validator";
 import {
   MedicalPrescriptionFrequency,
   MedicalPrescriptionType,
-} from 'App/Models/MedicalPrescription';
+} from "App/Models/MedicalPrescription";
 
 export default class CreateMedicalPrescriptionValidator {
   constructor(protected ctx: HttpContextContract) {}

@@ -1,7 +1,7 @@
-import Factory from '@ioc:Adonis/Lucid/Factory';
-import ScheduleServiceGroup from 'App/Models/ScheduleServiceGroup';
-import ScheduleServiceType from 'App/Models/ScheduleServiceType';
-import { v4 } from 'uuid';
+import Factory from "@ioc:Adonis/Lucid/Factory";
+import ScheduleServiceGroup from "App/Models/ScheduleServiceGroup";
+import ScheduleServiceType from "App/Models/ScheduleServiceType";
+import { v4 } from "uuid";
 
 export default Factory.define(ScheduleServiceType, async () => {
   const group = await ScheduleServiceGroup.create({
@@ -11,7 +11,7 @@ export default Factory.define(ScheduleServiceType, async () => {
 
   return {
     id: v4(),
-    description: 'some description',
+    description: "some description",
     reservedMinutes: 90,
     schedule_service_group_id: group.id,
   };

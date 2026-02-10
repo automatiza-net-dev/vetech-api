@@ -1,9 +1,9 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { inject } from '@adonisjs/fold';
-import SharedService from 'App/Services/SharedService';
-import BusinessUnitMetaService from 'App/Services/BusinessUnitMetaService';
-import CreateMetaValidator from 'App/Validators/BusinessUnitMeta/CreateMetaValidator';
-import UpdateMetaValidator from 'App/Validators/BusinessUnitMeta/UpdateMetaValidator';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { inject } from "@adonisjs/fold";
+import SharedService from "App/Services/SharedService";
+import BusinessUnitMetaService from "App/Services/BusinessUnitMetaService";
+import CreateMetaValidator from "App/Validators/BusinessUnitMeta/CreateMetaValidator";
+import UpdateMetaValidator from "App/Validators/BusinessUnitMeta/UpdateMetaValidator";
 
 @inject()
 export default class BusinessUnitMetasController {
@@ -30,7 +30,7 @@ export default class BusinessUnitMetasController {
 
   public async show({ auth, request, response }: HttpContextContract) {
     const authCtx = await this.sharedService.getAuthContext(auth);
-    const data = await this.service.show(authCtx, request.param('id'));
+    const data = await this.service.show(authCtx, request.param("id"));
 
     return response.ok(data);
   }

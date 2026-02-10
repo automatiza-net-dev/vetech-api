@@ -1,13 +1,13 @@
-import Database from '@ioc:Adonis/Lucid/Database';
-import { test } from '@japa/runner';
-import { DailyCashierStatus } from 'App/Models/DailyCashier';
-import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
-import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
+import Database from "@ioc:Adonis/Lucid/Database";
+import { test } from "@japa/runner";
+import { DailyCashierStatus } from "App/Models/DailyCashier";
+import DailyMovement, { DailyMovementStatus } from "App/Models/DailyMovement";
+import { DateTime } from "luxon";
+import { v4 } from "uuid";
 
-import { generateJwtToken, userBootstrap } from '../utils';
+import { generateJwtToken, userBootstrap } from "../utils";
 
-test.group('Daily movement resource', group => {
+test.group("Daily movement resource", (group) => {
   group.each.setup(async () => {
     await Database.beginGlobalTransaction();
     return () => Database.rollbackGlobalTransaction();
@@ -19,11 +19,11 @@ test.group('Daily movement resource', group => {
     return { user, business, config };
   };
 
-  test('should return all daily movements', async ({ assert, client }) => {
+  test("should return all daily movements", async ({ assert, client }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client.get(`/daily-movements`).bearerToken(token);
@@ -64,7 +64,7 @@ test.group('Daily movement resource', group => {
   //   );
   // });
 
-  test('should throw BadRequestException if daily movement from today is already open', async ({
+  test("should throw BadRequestException if daily movement from today is already open", async ({
     assert,
     client,
   }) => {
@@ -78,7 +78,7 @@ test.group('Daily movement resource', group => {
 
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
@@ -92,12 +92,12 @@ test.group('Daily movement resource', group => {
     assert.equal(400, response.status());
   });
 
-  test('should open a new daily movement', async ({ assert, client }) => {
+  test("should open a new daily movement", async ({ assert, client }) => {
     const { user } = await createData();
 
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
@@ -111,7 +111,7 @@ test.group('Daily movement resource', group => {
     assert.equal(201, response.status());
   });
 
-  test('should throw ResourceNotFoundException if daily movement is not found when closing', async ({
+  test("should throw ResourceNotFoundException if daily movement is not found when closing", async ({
     assert,
     client,
   }) => {
@@ -119,7 +119,7 @@ test.group('Daily movement resource', group => {
 
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
@@ -127,18 +127,15 @@ test.group('Daily movement resource', group => {
       .json({
         userId: user.id,
         closingDate: DateTime.now(),
-        observations: 'Test',
+        observations: "Test",
       })
       .bearerToken(token);
 
     assert.equal(404, response.status());
-    assert.equal(
-      'E_NOT_FOUND: Movimento diário não encontrado',
-      response.body().message,
-    );
+    assert.equal("E_NOT_FOUND: Movimento diário não encontrado", response.body().message);
   });
 
-  test('should throw BadRequestException if daily movement is already closed', async ({
+  test("should throw BadRequestException if daily movement is already closed", async ({
     assert,
     client,
   }) => {
@@ -152,7 +149,7 @@ test.group('Daily movement resource', group => {
 
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
@@ -160,18 +157,18 @@ test.group('Daily movement resource', group => {
       .json({
         userId: user.id,
         closingDate: DateTime.now(),
-        observations: 'Test',
+        observations: "Test",
       })
       .bearerToken(token);
 
     assert.equal(400, response.status());
     assert.equal(
-      'E_DAILY_MOVEMENT_NOT_OPENED: Movimento diário não está aberto',
+      "E_DAILY_MOVEMENT_NOT_OPENED: Movimento diário não está aberto",
       response.body().message,
     );
   });
 
-  test('should throw BadRequestException if daily movement has open daily cashier', async ({
+  test("should throw BadRequestException if daily movement has open daily cashier", async ({
     assert,
     client,
   }) => {
@@ -183,7 +180,7 @@ test.group('Daily movement resource', group => {
       status: DailyMovementStatus.F,
     });
 
-    await movement.related('cashiers').create({
+    await movement.related("cashiers").create({
       user_who_opened_id: user.id,
       openingDate: DateTime.now().minus({ seconds: 1 }),
       status: DailyCashierStatus.A,
@@ -191,7 +188,7 @@ test.group('Daily movement resource', group => {
 
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
@@ -199,14 +196,14 @@ test.group('Daily movement resource', group => {
       .json({
         userId: user.id,
         closingDate: DateTime.now(),
-        observations: 'Test',
+        observations: "Test",
       })
       .bearerToken(token);
 
     assert.equal(400, response.status());
   });
 
-  test('should close a daily movement', async ({ assert, client }) => {
+  test("should close a daily movement", async ({ assert, client }) => {
     const { user, business } = await createData();
     const movement = await DailyMovement.create({
       business_unit_id: business.id,
@@ -217,7 +214,7 @@ test.group('Daily movement resource', group => {
 
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
@@ -225,14 +222,14 @@ test.group('Daily movement resource', group => {
       .json({
         userId: user.id,
         closingDate: DateTime.now(),
-        observations: 'Test',
+        observations: "Test",
       })
       .bearerToken(token);
 
     assert.equal(200, response.status());
   });
 
-  test('should throw ResourceNotFoundException if daily movement is not found when reopening', async ({
+  test("should throw ResourceNotFoundException if daily movement is not found when reopening", async ({
     assert,
     client,
   }) => {
@@ -240,7 +237,7 @@ test.group('Daily movement resource', group => {
 
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
@@ -252,13 +249,10 @@ test.group('Daily movement resource', group => {
       .bearerToken(token);
 
     assert.equal(404, response.status());
-    assert.equal(
-      'E_NOT_FOUND: Movimento diário não encontrado',
-      response.body().message,
-    );
+    assert.equal("E_NOT_FOUND: Movimento diário não encontrado", response.body().message);
   });
 
-  test('should throw BadRequestException if daily movement is already checked when reopening', async ({
+  test("should throw BadRequestException if daily movement is already checked when reopening", async ({
     assert,
     client,
   }) => {
@@ -272,7 +266,7 @@ test.group('Daily movement resource', group => {
 
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
@@ -285,12 +279,12 @@ test.group('Daily movement resource', group => {
 
     assert.equal(400, response.status());
     assert.equal(
-      'E_DAILY_MOVEMENT_CHECKED: Movimento diário já foi conferido',
+      "E_DAILY_MOVEMENT_CHECKED: Movimento diário já foi conferido",
       response.body().message,
     );
   });
 
-  test('should throw BadRequestException if daily movement is from another day when reopening', async ({
+  test("should throw BadRequestException if daily movement is from another day when reopening", async ({
     assert,
     client,
   }) => {
@@ -304,21 +298,19 @@ test.group('Daily movement resource', group => {
 
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
-    const response = await client
-      .post(`/daily-movements/reopen/${movement.id}`)
-      .bearerToken(token);
+    const response = await client.post(`/daily-movements/reopen/${movement.id}`).bearerToken(token);
 
     assert.equal(400, response.status());
     assert.equal(
-      'E_DAILY_MOVEMENT_NOT_SAME_DAY: Movimento diário só pode ser reaberto no mesmo dia',
+      "E_DAILY_MOVEMENT_NOT_SAME_DAY: Movimento diário só pode ser reaberto no mesmo dia",
       response.body().message,
     );
   });
 
-  test('should throw BadRequestException if reopen with another movement open (locked false)', async ({
+  test("should throw BadRequestException if reopen with another movement open (locked false)", async ({
     assert,
     client,
   }) => {
@@ -346,7 +338,7 @@ test.group('Daily movement resource', group => {
 
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
@@ -360,7 +352,7 @@ test.group('Daily movement resource', group => {
     assert.equal(400, response.status());
   });
 
-  test('should reopen a daily movement', async ({ assert, client }) => {
+  test("should reopen a daily movement", async ({ assert, client }) => {
     const { user, business } = await createData();
     const movement = await DailyMovement.create({
       business_unit_id: business.id,
@@ -371,12 +363,10 @@ test.group('Daily movement resource', group => {
 
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
-    const response = await client
-      .post(`/daily-movements/reopen/${movement.id}`)
-      .bearerToken(token);
+    const response = await client.post(`/daily-movements/reopen/${movement.id}`).bearerToken(token);
 
     const body = response.body();
 
@@ -388,7 +378,7 @@ test.group('Daily movement resource', group => {
     assert.equal(0, body.receipts_total);
   });
 
-  test('should throw ResourceNotFoundException if daily movement is not found when checking', async ({
+  test("should throw ResourceNotFoundException if daily movement is not found when checking", async ({
     assert,
     client,
   }) => {
@@ -396,7 +386,7 @@ test.group('Daily movement resource', group => {
 
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
@@ -404,18 +394,15 @@ test.group('Daily movement resource', group => {
       .json({
         userId: user.id,
         checkingDate: DateTime.now(),
-        observations: 'Test',
+        observations: "Test",
       })
       .bearerToken(token);
 
     assert.equal(404, response.status());
-    assert.equal(
-      'E_NOT_FOUND: Movimento diário não encontrado',
-      response.body().message,
-    );
+    assert.equal("E_NOT_FOUND: Movimento diário não encontrado", response.body().message);
   });
 
-  test('should throw BadRequestException if daily movement is not closed when checking', async ({
+  test("should throw BadRequestException if daily movement is not closed when checking", async ({
     assert,
     client,
   }) => {
@@ -429,7 +416,7 @@ test.group('Daily movement resource', group => {
 
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
@@ -437,18 +424,18 @@ test.group('Daily movement resource', group => {
       .json({
         userId: user.id,
         checkingDate: DateTime.now(),
-        observations: 'Test',
+        observations: "Test",
       })
       .bearerToken(token);
 
     assert.equal(400, response.status());
     assert.equal(
-      'E_DAILY_MOVEMENT_NOT_CLOSED: Movimento diário não está fechado',
+      "E_DAILY_MOVEMENT_NOT_CLOSED: Movimento diário não está fechado",
       response.body().message,
     );
   });
 
-  test('should check a daily movement', async ({ assert, client }) => {
+  test("should check a daily movement", async ({ assert, client }) => {
     const { user, business } = await createData();
     const movement = await DailyMovement.create({
       business_unit_id: business.id,
@@ -459,7 +446,7 @@ test.group('Daily movement resource', group => {
 
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
@@ -467,7 +454,7 @@ test.group('Daily movement resource', group => {
       .json({
         userId: user.id,
         checkingDate: DateTime.now(),
-        observations: 'Test',
+        observations: "Test",
       })
       .bearerToken(token);
 
@@ -475,6 +462,6 @@ test.group('Daily movement resource', group => {
 
     assert.equal(200, response.status());
     assert.equal(DailyMovementStatus.C, body.status);
-    assert.equal('Test', body.observations);
+    assert.equal("Test", body.observations);
   });
 });

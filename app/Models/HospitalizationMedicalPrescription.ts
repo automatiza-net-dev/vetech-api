@@ -7,31 +7,31 @@ import {
   column,
   HasMany,
   hasMany,
-} from '@ioc:Adonis/Lucid/Orm';
-import DrugAdministration from 'App/Models/DrugAdministration';
-import Hospitalization from 'App/Models/Hospitalization';
-import HospitalizationMedicalPrescriptionScheduling from 'App/Models/HospitalizationMedicalPrescriptionScheduling';
+} from "@ioc:Adonis/Lucid/Orm";
+import DrugAdministration from "App/Models/DrugAdministration";
+import Hospitalization from "App/Models/Hospitalization";
+import HospitalizationMedicalPrescriptionScheduling from "App/Models/HospitalizationMedicalPrescriptionScheduling";
 import {
   MedicalPrescriptionFluidSet,
   MedicalPrescriptionFrequency,
   MedicalPrescriptionFrequencyQuantityUnit,
   MedicalPrescriptionFrequencyUnit,
   MedicalPrescriptionType,
-} from 'App/Models/MedicalPrescription';
-import Unit from 'App/Models/Unit';
-import User from 'App/Models/User';
-import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
-import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
+} from "App/Models/MedicalPrescription";
+import Unit from "App/Models/Unit";
+import User from "App/Models/User";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import { DateTime } from "luxon";
+import { v4 } from "uuid";
 
 export const HospitalizationMedicalPrescriptionStatus = [
-  'Aberto',
-  'Cancelado',
-  'Interrompido',
-  'Executado',
+  "Aberto",
+  "Cancelado",
+  "Interrompido",
+  "Executado",
 ] as const;
 export type THospitalizationMedicalPrescriptionStatus =
-  typeof HospitalizationMedicalPrescriptionStatus[number];
+  (typeof HospitalizationMedicalPrescriptionStatus)[number];
 
 export default class HospitalizationMedicalPrescription extends BaseModel {
   @column({ isPrimary: true })
@@ -44,7 +44,7 @@ export default class HospitalizationMedicalPrescription extends BaseModel {
   public type: MedicalPrescriptionType;
 
   @column.dateTime({
-    columnName: 'prescribed_at',
+    columnName: "prescribed_at",
   })
   public prescribedAt: DateTime;
 
@@ -52,22 +52,22 @@ export default class HospitalizationMedicalPrescription extends BaseModel {
   public frequency: MedicalPrescriptionFrequency;
 
   @column({
-    columnName: 'frequency_interval',
+    columnName: "frequency_interval",
   })
   public frequencyInterval: number;
 
   @column({
-    columnName: 'frequency_unit',
+    columnName: "frequency_unit",
   })
   public frequencyUnit: MedicalPrescriptionFrequencyUnit;
 
   @column({
-    columnName: 'frequency_quantity',
+    columnName: "frequency_quantity",
   })
   public frequencyQuantity: number;
 
   @column({
-    columnName: 'frequency_quantity_unit',
+    columnName: "frequency_quantity_unit",
   })
   public frequencyQuantityUnit: MedicalPrescriptionFrequencyQuantityUnit;
 
@@ -81,12 +81,12 @@ export default class HospitalizationMedicalPrescription extends BaseModel {
   public dose: number;
 
   @column({
-    columnName: 'fluid_set',
+    columnName: "fluid_set",
   })
   public fluidSet: MedicalPrescriptionFluidSet;
 
   @column({
-    columnName: 'fluid_speed',
+    columnName: "fluid_speed",
   })
   public fluidSpeed: number;
 
@@ -97,17 +97,17 @@ export default class HospitalizationMedicalPrescription extends BaseModel {
   public volume: string;
 
   @column({
-    columnName: 'observation_on_execution',
+    columnName: "observation_on_execution",
   })
   public observationOnExecution: string;
 
   @column()
   public active: boolean;
 
-  @column.dateTime({ columnName: 'execution_start' })
+  @column.dateTime({ columnName: "execution_start" })
   public executionStart: DateTime;
 
-  @column.dateTime({ columnName: 'excluded_at' })
+  @column.dateTime({ columnName: "excluded_at" })
   public excludedAt: DateTime | null;
 
   @column.dateTime({ autoCreate: true })
@@ -135,7 +135,7 @@ export default class HospitalizationMedicalPrescription extends BaseModel {
   public hospitalization_id: string;
 
   @belongsTo(() => Hospitalization, {
-    foreignKey: 'hospitalization_id',
+    foreignKey: "hospitalization_id",
   })
   public hospitalization: BelongsTo<typeof Hospitalization>;
 
@@ -145,7 +145,7 @@ export default class HospitalizationMedicalPrescription extends BaseModel {
   public user_id?: string;
 
   @belongsTo(() => User, {
-    foreignKey: 'user_id',
+    foreignKey: "user_id",
   })
   public user: BelongsTo<typeof User>;
 
@@ -160,7 +160,7 @@ export default class HospitalizationMedicalPrescription extends BaseModel {
   public prescription_unit_id: string;
 
   @belongsTo(() => Unit, {
-    foreignKey: 'prescription_unit_id',
+    foreignKey: "prescription_unit_id",
   })
   public prescriptionUnit: BelongsTo<typeof Unit>;
 
@@ -170,7 +170,7 @@ export default class HospitalizationMedicalPrescription extends BaseModel {
   public fluid_unit_id: string;
 
   @belongsTo(() => Unit, {
-    foreignKey: 'fluid_unit_id',
+    foreignKey: "fluid_unit_id",
   })
   public fluidUnit: BelongsTo<typeof Unit>;
 
@@ -180,14 +180,12 @@ export default class HospitalizationMedicalPrescription extends BaseModel {
   public drug_administration_id: string;
 
   @belongsTo(() => DrugAdministration, {
-    foreignKey: 'drug_administration_id',
+    foreignKey: "drug_administration_id",
   })
   public drugAdministration: BelongsTo<typeof DrugAdministration>;
 
   @hasMany(() => HospitalizationMedicalPrescriptionScheduling, {
-    foreignKey: 'hospitalization_medical_prescription_id',
+    foreignKey: "hospitalization_medical_prescription_id",
   })
-  public scheduling: HasMany<
-    typeof HospitalizationMedicalPrescriptionScheduling
-  >;
+  public scheduling: HasMany<typeof HospitalizationMedicalPrescriptionScheduling>;
 }

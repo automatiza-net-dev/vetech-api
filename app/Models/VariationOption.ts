@@ -5,11 +5,11 @@ import {
   column,
   ManyToMany,
   manyToMany,
-} from '@ioc:Adonis/Lucid/Orm';
-import ProductVariation from 'App/Models/ProductVariation';
-import Variation from 'App/Models/Variation';
-import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
+} from "@ioc:Adonis/Lucid/Orm";
+import ProductVariation from "App/Models/ProductVariation";
+import Variation from "App/Models/Variation";
+import { DateTime } from "luxon";
+import { v4 } from "uuid";
 
 export default class VariationOption extends BaseModel {
   @column({ isPrimary: true })
@@ -34,12 +34,12 @@ export default class VariationOption extends BaseModel {
   public variation: BelongsTo<typeof Variation>;
 
   @manyToMany(() => ProductVariation, {
-    pivotTable: 'product_variation_options',
+    pivotTable: "product_variation_options",
     pivotTimestamps: false,
-    localKey: 'id',
-    pivotForeignKey: 'product_variation_id',
-    relatedKey: 'id',
-    pivotRelatedForeignKey: 'variation_option_id',
+    localKey: "id",
+    pivotForeignKey: "product_variation_id",
+    relatedKey: "id",
+    pivotRelatedForeignKey: "variation_option_id",
   })
   public productVariations: ManyToMany<typeof ProductVariation>;
 }

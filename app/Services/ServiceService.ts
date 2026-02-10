@@ -13,9 +13,7 @@ import Product, { ProductPurpose, ProductType } from "App/Models/Product";
 import ProductVariation from "App/Models/ProductVariation";
 import ReceiptItem from "App/Models/ReceiptItem";
 import SharedService, { AuthContext } from "App/Services/SharedService";
-import IServiceData, {
-  IUpdateService,
-} from "Contracts/interfaces/IServiceData";
+import IServiceData, { IUpdateService } from "Contracts/interfaces/IServiceData";
 import { DateTime } from "luxon";
 
 interface ISearch {
@@ -27,7 +25,7 @@ interface ISearch {
 
 @inject()
 export default class ServiceService {
-  constructor(private readonly sharedService: SharedService) { }
+  constructor(private readonly sharedService: SharedService) {}
 
   public async index(authCtx: AuthContext, data: ISearch) {
     const qb = authCtx.group
@@ -63,9 +61,7 @@ export default class ServiceService {
       .preload("taxationGroup");
 
     if (data.description) {
-      qb.whereRaw("unaccent(description) ilike unaccent(?)", [
-        `%${data.description}%`,
-      ]);
+      qb.whereRaw("unaccent(description) ilike unaccent(?)", [`%${data.description}%`]);
     }
 
     if (data.subgroup) {
@@ -104,8 +100,7 @@ export default class ServiceService {
         id: service.variations[0]?.id ?? null,
         value:
           Number.parseFloat(
-            service.variations[0]?.businessUnitProducts[0]
-              ?.price as unknown as string,
+            service.variations[0]?.businessUnitProducts[0]?.price as unknown as string,
           ) ?? null,
       },
     }));
@@ -156,7 +151,7 @@ export default class ServiceService {
   }
 
   public async store(authCtx: AuthContext, data: IServiceData) {
-    console.log('data', data);
+    console.log("data", data);
     await Database.transaction(async (trx) => {
       const businessUnits = await BusinessUnit.query()
         .useTransaction(trx)
@@ -166,9 +161,7 @@ export default class ServiceService {
           query.preload("serviceVariationGroup");
         });
 
-      const someUnitConfig = businessUnits.find(
-        (bu) => bu.unitConfig,
-      )?.unitConfig;
+      const someUnitConfig = businessUnits.find((bu) => bu.unitConfig)?.unitConfig;
 
       const service = await Product.create(
         {
@@ -244,12 +237,8 @@ export default class ServiceService {
     });
   }
 
-  public async update(
-    authCtx: AuthContext,
-    id: string,
-    data: IUpdateService,
-  ): Promise<Product> {
-    console.log('data', data);
+  public async update(authCtx: AuthContext, id: string, data: IUpdateService): Promise<Product> {
+    console.log("data", data);
     return Database.transaction(async (trx) => {
       const service = await this.show(authCtx, id);
 
@@ -272,10 +261,7 @@ export default class ServiceService {
         );
 
         if (exam.description !== data.description) {
-          await exam
-            .merge({ description: data.description })
-            .useTransaction(trx)
-            .save();
+          await exam.merge({ description: data.description }).useTransaction(trx).save();
         }
       }
 
@@ -309,11 +295,7 @@ export default class ServiceService {
         .first();
 
       if (!product) {
-        throw new ResourceNotFoundException(
-          "Recurso não encontrado",
-          404,
-          "E_NOT_FOUND",
-        );
+        throw new ResourceNotFoundException("Recurso não encontrado", 404, "E_NOT_FOUND");
       }
 
       const biQb = BillItem.query()
@@ -368,12 +350,9 @@ export default class ServiceService {
         );
       }
 
-      await ProductVariation.query()
-        .useTransaction(trx)
-        .where("product_id", product.id)
-        .update({
-          deleted_at: DateTime.now(),
-        });
+      await ProductVariation.query().useTransaction(trx).where("product_id", product.id).update({
+        deleted_at: DateTime.now(),
+      });
 
       await product
         .merge({

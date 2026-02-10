@@ -1,6 +1,6 @@
-import { schema, CustomMessages } from '@ioc:Adonis/Core/Validator';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { AddressTypes } from 'App/Models/Address';
+import { schema, CustomMessages } from "@ioc:Adonis/Core/Validator";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { AddressTypes } from "App/Models/Address";
 
 export default class UpdateAddressValidator {
   constructor(protected ctx: HttpContextContract) {}

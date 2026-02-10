@@ -1,6 +1,6 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
-import WeekDay from 'App/Models/shared/WeekDay';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
+import WeekDay from "App/Models/shared/WeekDay";
 
 export default class CreateWorkingDayValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -9,8 +9,8 @@ export default class CreateWorkingDayValidator {
     userId: schema.string({}, [
       rules.uuid(),
       rules.exists({
-        table: 'users',
-        column: 'id',
+        table: "users",
+        column: "id",
       }),
     ]),
     dayOfWeek: schema.enum(Object.values(WeekDay), []),

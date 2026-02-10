@@ -1,9 +1,9 @@
-import { inject } from '@adonisjs/fold';
-import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import ProductVariationService from 'App/Services/ProductVariationService';
-import SharedService from 'App/Services/SharedService';
-import CreateProductVariationValidator from 'App/Validators/ProductVariation/CreateProductVariationValidator';
-import UpdateProductVariationValidator from 'App/Validators/ProductVariation/UpdateProductVariationValidator';
+import { inject } from "@adonisjs/fold";
+import { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import ProductVariationService from "App/Services/ProductVariationService";
+import SharedService from "App/Services/SharedService";
+import CreateProductVariationValidator from "App/Validators/ProductVariation/CreateProductVariationValidator";
+import UpdateProductVariationValidator from "App/Validators/ProductVariation/UpdateProductVariationValidator";
 
 @inject()
 export default class ProductVariationsController {
@@ -35,12 +35,7 @@ export default class ProductVariationsController {
     return response.created(result);
   }
 
-  public async update({
-    auth,
-    params,
-    request,
-    response,
-  }: HttpContextContract) {
+  public async update({ auth, params, request, response }: HttpContextContract) {
     const payload = await request.validate(UpdateProductVariationValidator);
     const { unit_id } = this.sharedService.extractUser(auth);
 

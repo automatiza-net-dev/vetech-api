@@ -1,5 +1,5 @@
-import { schema, CustomMessages, rules } from '@ioc:Adonis/Core/Validator';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
+import { schema, CustomMessages, rules } from "@ioc:Adonis/Core/Validator";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 
 export default class DisableUserControllerRoleValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -24,8 +24,8 @@ export default class DisableUserControllerRoleValidator {
    *    ```
    */
   public schema = schema.create({
-    id: schema.string({}, [rules.exists({ table: 'users', column: 'id' })]),
-    roleId: schema.number([rules.exists({ table: 'roles', column: 'id' })]),
+    id: schema.string({}, [rules.exists({ table: "users", column: "id" })]),
+    roleId: schema.number([rules.exists({ table: "roles", column: "id" })]),
   });
 
   /**

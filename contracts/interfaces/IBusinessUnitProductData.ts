@@ -1,4 +1,4 @@
-import { BusinessUnitProductMetaType } from 'App/Models/BusinessUnitProduct';
+import { BusinessUnitProductMetaType } from "App/Models/BusinessUnitProduct";
 
 export default interface IBusinessUnitProductData {
   businessUnitId: string;

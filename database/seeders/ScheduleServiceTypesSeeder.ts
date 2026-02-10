@@ -1,16 +1,16 @@
-import BaseSeeder from '@ioc:Adonis/Lucid/Seeder';
-import ScheduleServiceGroup from 'App/Models/ScheduleServiceGroup';
-import ScheduleServiceType from 'App/Models/ScheduleServiceType';
+import BaseSeeder from "@ioc:Adonis/Lucid/Seeder";
+import ScheduleServiceGroup from "App/Models/ScheduleServiceGroup";
+import ScheduleServiceType from "App/Models/ScheduleServiceType";
 
 export default class extends BaseSeeder {
   private BASE_CIRURGIA: Array<Partial<ScheduleServiceType>> = [
     {
-      description: 'Avaliação Cirúrgica',
+      description: "Avaliação Cirúrgica",
       allowReturn: true,
       reservedMinutes: 45,
     },
     {
-      description: 'Cirurgia',
+      description: "Cirurgia",
       allowReturn: true,
       reservedMinutes: 120,
     },
@@ -18,57 +18,57 @@ export default class extends BaseSeeder {
 
   private BASE_CONSULTAS: Array<Partial<ScheduleServiceType>> = [
     {
-      description: 'Consulta Dermatológica',
+      description: "Consulta Dermatológica",
       allowReturn: true,
       reservedMinutes: 45,
     },
     {
-      description: 'Consulta Emergência Rotina',
+      description: "Consulta Emergência Rotina",
       allowReturn: true,
       reservedMinutes: 45,
     },
     {
-      description: 'Consulta Endocrinológica',
+      description: "Consulta Endocrinológica",
       allowReturn: true,
       reservedMinutes: 45,
     },
     {
-      description: 'Consulta Neurológica ( Dra Larissa)',
+      description: "Consulta Neurológica ( Dra Larissa)",
       allowReturn: true,
       reservedMinutes: 45,
     },
     {
-      description: 'Consulta Odontológica',
+      description: "Consulta Odontológica",
       allowReturn: true,
       reservedMinutes: 45,
     },
     {
-      description: 'Consulta Oftalmológica',
+      description: "Consulta Oftalmológica",
       allowReturn: true,
       reservedMinutes: 45,
     },
     {
-      description: 'Consulta Ortopédica',
+      description: "Consulta Ortopédica",
       allowReturn: true,
       reservedMinutes: 45,
     },
     {
-      description: 'Consulta Plantão',
+      description: "Consulta Plantão",
       allowReturn: true,
       reservedMinutes: 30,
     },
     {
-      description: 'Consulta Rotina',
+      description: "Consulta Rotina",
       allowReturn: true,
       reservedMinutes: 45,
     },
     {
-      description: 'Consulta Rotina Felinos',
+      description: "Consulta Rotina Felinos",
       allowReturn: true,
       reservedMinutes: 45,
     },
     {
-      description: 'Histórico do Sisvet',
+      description: "Histórico do Sisvet",
       allowReturn: false,
       reservedMinutes: 45,
     },
@@ -76,37 +76,37 @@ export default class extends BaseSeeder {
 
   private BASE_EXAMES: Array<Partial<ScheduleServiceType>> = [
     {
-      description: 'Coleta de sangue',
+      description: "Coleta de sangue",
       allowReturn: false,
       reservedMinutes: 30,
     },
     {
-      description: 'Coleta de sangue para transfusão',
+      description: "Coleta de sangue para transfusão",
       allowReturn: false,
       reservedMinutes: 60,
     },
     {
-      description: 'Coleta de urina guiada por Usg',
+      description: "Coleta de urina guiada por Usg",
       allowReturn: false,
       reservedMinutes: 60,
     },
     {
-      description: 'Endoscopia/Colonoscopia',
+      description: "Endoscopia/Colonoscopia",
       allowReturn: false,
       reservedMinutes: 90,
     },
     {
-      description: 'Raio-x externo',
+      description: "Raio-x externo",
       allowReturn: false,
       reservedMinutes: 45,
     },
     {
-      description: 'Ultrassom',
+      description: "Ultrassom",
       allowReturn: false,
       reservedMinutes: 30,
     },
     {
-      description: 'Ultrassom Gestacional',
+      description: "Ultrassom Gestacional",
       allowReturn: false,
       reservedMinutes: 45,
     },
@@ -114,22 +114,22 @@ export default class extends BaseSeeder {
 
   private BASE_INTERNACAO: Array<Partial<ScheduleServiceType>> = [
     {
-      description: 'Alta',
+      description: "Alta",
       allowReturn: false,
       reservedMinutes: 30,
     },
     {
-      description: 'Encaminhamento - Receptivo',
+      description: "Encaminhamento - Receptivo",
       allowReturn: false,
       reservedMinutes: 20,
     },
     {
-      description: 'Internamento',
+      description: "Internamento",
       allowReturn: false,
       reservedMinutes: 30,
     },
     {
-      description: 'Visita',
+      description: "Visita",
       allowReturn: false,
       reservedMinutes: 60,
     },
@@ -137,22 +137,22 @@ export default class extends BaseSeeder {
 
   private BASE_PROCEDIMENTOS: Array<Partial<ScheduleServiceType>> = [
     {
-      description: 'Curativo pós cirúrgico',
+      description: "Curativo pós cirúrgico",
       allowReturn: false,
       reservedMinutes: 30,
     },
     {
-      description: 'Procedimento',
+      description: "Procedimento",
       allowReturn: false,
       reservedMinutes: 30,
     },
     {
-      description: 'Retirada de pontos',
+      description: "Retirada de pontos",
       allowReturn: false,
       reservedMinutes: 30,
     },
     {
-      description: 'Vacinação',
+      description: "Vacinação",
       allowReturn: false,
       reservedMinutes: 30,
     },
@@ -160,17 +160,17 @@ export default class extends BaseSeeder {
 
   private BASE_RETORNO: Array<Partial<ScheduleServiceType>> = [
     {
-      description: 'Reavaliação',
+      description: "Reavaliação",
       allowReturn: false,
       reservedMinutes: 45,
     },
     {
-      description: 'Relatório de raio-x',
+      description: "Relatório de raio-x",
       allowReturn: false,
       reservedMinutes: 45,
     },
     {
-      description: 'Retorno',
+      description: "Retorno",
       allowReturn: false,
       reservedMinutes: 45,
     },
@@ -180,57 +180,45 @@ export default class extends BaseSeeder {
     const groups = await ScheduleServiceGroup.all();
 
     // CIRURGIA
-    const cirurgia = groups.find(g => g.description === 'Cirurgia');
+    const cirurgia = groups.find((g) => g.description === "Cirurgia");
     if (!cirurgia) {
-      throw new Error('Grupo Cirurgia não encontrado');
+      throw new Error("Grupo Cirurgia não encontrado");
     }
-    await cirurgia
-      .related('types')
-      .fetchOrCreateMany(this.BASE_CIRURGIA, 'description');
+    await cirurgia.related("types").fetchOrCreateMany(this.BASE_CIRURGIA, "description");
 
     // CONSULTAS
-    const consultas = groups.find(g => g.description === 'Consultas');
+    const consultas = groups.find((g) => g.description === "Consultas");
     if (!consultas) {
-      throw new Error('Grupo Consultas não encontrado');
+      throw new Error("Grupo Consultas não encontrado");
     }
-    await consultas
-      .related('types')
-      .fetchOrCreateMany(this.BASE_CONSULTAS, 'description');
+    await consultas.related("types").fetchOrCreateMany(this.BASE_CONSULTAS, "description");
 
     // EXAMES
-    const exames = groups.find(g => g.description === 'Exames');
+    const exames = groups.find((g) => g.description === "Exames");
     if (!exames) {
-      throw new Error('Grupo Exames não encontrado');
+      throw new Error("Grupo Exames não encontrado");
     }
-    await exames
-      .related('types')
-      .fetchOrCreateMany(this.BASE_EXAMES, 'description');
+    await exames.related("types").fetchOrCreateMany(this.BASE_EXAMES, "description");
 
     // INTERNAÇÃO
-    const internacoes = groups.find(g => g.description === 'Internação');
+    const internacoes = groups.find((g) => g.description === "Internação");
     if (!internacoes) {
-      throw new Error('Grupo Internação não encontrado');
+      throw new Error("Grupo Internação não encontrado");
     }
-    await internacoes
-      .related('types')
-      .fetchOrCreateMany(this.BASE_INTERNACAO, 'description');
+    await internacoes.related("types").fetchOrCreateMany(this.BASE_INTERNACAO, "description");
 
     // PROCEDIMENTOS
-    const procedimentos = groups.find(g => g.description === 'Procedimentos');
+    const procedimentos = groups.find((g) => g.description === "Procedimentos");
     if (!procedimentos) {
-      throw new Error('Grupo Procedimentos não encontrado');
+      throw new Error("Grupo Procedimentos não encontrado");
     }
-    await procedimentos
-      .related('types')
-      .fetchOrCreateMany(this.BASE_PROCEDIMENTOS, 'description');
+    await procedimentos.related("types").fetchOrCreateMany(this.BASE_PROCEDIMENTOS, "description");
 
     // RETORNOS
-    const retorno = groups.find(g => g.description === 'Retorno');
+    const retorno = groups.find((g) => g.description === "Retorno");
     if (!retorno) {
-      throw new Error('Grupo Retorno não encontrado');
+      throw new Error("Grupo Retorno não encontrado");
     }
-    await retorno
-      .related('types')
-      .fetchOrCreateMany(this.BASE_RETORNO, 'description');
+    await retorno.related("types").fetchOrCreateMany(this.BASE_RETORNO, "description");
   }
 }

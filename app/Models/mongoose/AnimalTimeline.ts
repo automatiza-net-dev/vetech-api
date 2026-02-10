@@ -1,26 +1,26 @@
 import { model, Schema } from "@ioc:Mongoose";
 
 interface IAnimalTimeline {
-	timeline_id: string; // id da timeline do banco relacional
-	timeline_type: Record<string, unknown>; // objeto contendo os dados do tipo da timeline
-	timeline_info: Record<string, unknown>; // objeto contendo os dados da timeline, cada tipo de registro terá um objeto diferente
-	extras?: Record<string, unknown>;
-	createdAt: string;
-	updatedAt: string;
+  timeline_id: string; // id da timeline do banco relacional
+  timeline_type: Record<string, unknown>; // objeto contendo os dados do tipo da timeline
+  timeline_info: Record<string, unknown>; // objeto contendo os dados da timeline, cada tipo de registro terá um objeto diferente
+  extras?: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export const animalTimelineSchema = new Schema<IAnimalTimeline>(
-	{
-		timeline_id: { type: String, required: true },
-		timeline_type: { type: Object, required: true },
-		timeline_info: { type: Object, required: true },
-		extras: { type: Object, required: false },
-	},
-	{
-		timestamps: {
-			updatedAt: true,
-		},
-	},
+  {
+    timeline_id: { type: String, required: true },
+    timeline_type: { type: Object, required: true },
+    timeline_info: { type: Object, required: true },
+    extras: { type: Object, required: false },
+  },
+  {
+    timestamps: {
+      updatedAt: true,
+    },
+  },
 );
 
 const AnimalTimeline = model<IAnimalTimeline>("timeline", animalTimelineSchema);

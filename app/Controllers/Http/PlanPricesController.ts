@@ -1,7 +1,7 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import PlanPriceService from 'App/Services/PlanPriceService';
-import UpdatePlanPriceValidator from 'App/Validators/PlanPrice/UpdatePlanPriceValidator';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import PlanPriceService from "App/Services/PlanPriceService";
+import UpdatePlanPriceValidator from "App/Validators/PlanPrice/UpdatePlanPriceValidator";
 
 @inject()
 export default class PlanPricesController {

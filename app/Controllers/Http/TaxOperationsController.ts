@@ -1,9 +1,9 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import SharedService from 'App/Services/SharedService';
-import TaxOperationService from 'App/Services/TaxOperationService';
-import CreateTaxOperationValidator from 'App/Validators/TaxOperation/CreateTaxOperationValidator';
-import UpdateTaxOperationValidator from 'App/Validators/TaxOperation/UpdateTaxOperationValidator';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import SharedService from "App/Services/SharedService";
+import TaxOperationService from "App/Services/TaxOperationService";
+import CreateTaxOperationValidator from "App/Validators/TaxOperation/CreateTaxOperationValidator";
+import UpdateTaxOperationValidator from "App/Validators/TaxOperation/UpdateTaxOperationValidator";
 
 @inject()
 export default class TaxOperationsController {
@@ -15,7 +15,7 @@ export default class TaxOperationsController {
   public async index({ request, response, auth }: HttpContextContract) {
     const { unit_id, user } = this.sharedService.extractUser(auth);
 
-    const data = request.only(['type', 'category']);
+    const data = request.only(["type", "category"]);
     const result = await this.taxOperationService.index(unit_id, user, data);
 
     return response.ok(result);
@@ -25,11 +25,7 @@ export default class TaxOperationsController {
     const { unit_id, user } = this.sharedService.extractUser(auth);
     const payload = await request.validate(CreateTaxOperationValidator);
 
-    const taxOperation = await this.taxOperationService.store(
-      unit_id,
-      user,
-      payload,
-    );
+    const taxOperation = await this.taxOperationService.store(unit_id, user, payload);
 
     return response.created(taxOperation);
   }
@@ -37,30 +33,16 @@ export default class TaxOperationsController {
   public async show({ params, response, auth }: HttpContextContract) {
     const { unit_id, user } = this.sharedService.extractUser(auth);
 
-    const taxOperation = await this.taxOperationService.show(
-      unit_id,
-      user,
-      params.id,
-    );
+    const taxOperation = await this.taxOperationService.show(unit_id, user, params.id);
 
     return response.ok(taxOperation);
   }
 
-  public async update({
-    params,
-    request,
-    response,
-    auth,
-  }: HttpContextContract) {
+  public async update({ params, request, response, auth }: HttpContextContract) {
     const { unit_id, user } = this.sharedService.extractUser(auth);
     const data = await request.validate(UpdateTaxOperationValidator);
 
-    const taxOperation = await this.taxOperationService.update(
-      unit_id,
-      user,
-      params.id,
-      data,
-    );
+    const taxOperation = await this.taxOperationService.update(unit_id, user, params.id, data);
 
     return response.ok(taxOperation);
   }

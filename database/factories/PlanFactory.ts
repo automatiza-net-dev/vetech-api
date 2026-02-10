@@ -1,5 +1,5 @@
-import Factory from '@ioc:Adonis/Lucid/Factory';
-import Plan from 'App/Models/Plan';
+import Factory from "@ioc:Adonis/Lucid/Factory";
+import Plan from "App/Models/Plan";
 
 export default Factory.define(Plan, ({ faker }) => {
   return {

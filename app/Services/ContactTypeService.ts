@@ -1,6 +1,6 @@
-import { inject } from '@adonisjs/fold';
-import ContactType from 'App/Models/ContactType';
-import SharedService, { AuthContext } from 'App/Services/SharedService';
+import { inject } from "@adonisjs/fold";
+import ContactType from "App/Models/ContactType";
+import SharedService, { AuthContext } from "App/Services/SharedService";
 
 interface ISearch {
   description?: string;
@@ -13,18 +13,16 @@ export default class ContactTypeService {
 
   public async index(authCtx: AuthContext, data: ISearch) {
     const qb = ContactType.query()
-      .where('system_id', authCtx.system.id)
-      .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
-        authCtx.group.id,
-      ])
-      .where('type', 'crm');
+      .where("system_id", authCtx.system.id)
+      .whereRaw("(economic_group_id = ? or economic_group_id is null)", [authCtx.group.id])
+      .where("type", "crm");
 
     if (data.description) {
-      qb.whereILike('description', `%${data.description}`);
+      qb.whereILike("description", `%${data.description}`);
     }
 
     if (data.active) {
-      qb.where('active', data.active === 'true');
+      qb.where("active", data.active === "true");
     }
 
     return qb;
@@ -32,11 +30,9 @@ export default class ContactTypeService {
 
   public async show(authCtx: AuthContext, id: string) {
     const model = await ContactType.query()
-      .where('system_id', authCtx.system.id)
-      .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
-        authCtx.group.id,
-      ])
-      .where('id', id)
+      .where("system_id", authCtx.system.id)
+      .whereRaw("(economic_group_id = ? or economic_group_id is null)", [authCtx.group.id])
+      .where("id", id)
       .first();
 
     if (!model) {

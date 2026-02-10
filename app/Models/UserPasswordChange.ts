@@ -1,6 +1,6 @@
-import { DateTime } from 'luxon';
-import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
-import User from './User';
+import { DateTime } from "luxon";
+import { BaseModel, BelongsTo, belongsTo, column } from "@ioc:Adonis/Lucid/Orm";
+import User from "./User";
 
 export default class UserPasswordChange extends BaseModel {
   @column({ isPrimary: true })
@@ -45,7 +45,7 @@ export default class UserPasswordChange extends BaseModel {
   public user_id: string;
 
   @belongsTo(() => User, {
-    foreignKey: 'user_id',
+    foreignKey: "user_id",
   })
   public user: BelongsTo<typeof User>;
 }

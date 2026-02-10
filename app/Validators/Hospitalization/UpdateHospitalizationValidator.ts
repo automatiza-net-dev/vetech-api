@@ -1,26 +1,20 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
-import { HospitalizationStatus } from 'App/Models/Hospitalization';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
+import { HospitalizationStatus } from "App/Models/Hospitalization";
 
 export default class UpdateHospitalizationValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
-    tutorId: schema.string({}, [
-      rules.uuid(),
-      rules.exists({ table: 'patients', column: 'id' }),
-    ]),
-    patientId: schema.string({}, [
-      rules.uuid(),
-      rules.exists({ table: 'patients', column: 'id' }),
-    ]),
+    tutorId: schema.string({}, [rules.uuid(), rules.exists({ table: "patients", column: "id" })]),
+    patientId: schema.string({}, [rules.uuid(), rules.exists({ table: "patients", column: "id" })]),
     bedId: schema.string.optional({}, [
       rules.uuid(),
-      rules.exists({ table: 'beds', column: 'id' }),
+      rules.exists({ table: "beds", column: "id" }),
     ]),
     userId: schema.string.optional({}, [
       rules.uuid(),
-      rules.exists({ table: 'users', column: 'id' }),
+      rules.exists({ table: "users", column: "id" }),
     ]),
     type: schema.number([rules.range(1, 3)]),
     complaint: schema.string(),

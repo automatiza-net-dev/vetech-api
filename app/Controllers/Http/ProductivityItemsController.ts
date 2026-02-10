@@ -10,134 +10,96 @@ import User from "App/Models/User";
 
 @inject()
 export default class ProductivityItemsController {
-	constructor(
-		private sharedService: SharedService,
-		private service: ProductivityItemService,
-	) {}
+  constructor(
+    private sharedService: SharedService,
+    private service: ProductivityItemService,
+  ) {}
 
-	public async storeItem({ auth, request, response }: HttpContextContract) {
-		const payload = await request.validate(CreateProductivityItemValidator);
+  public async storeItem({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(CreateProductivityItemValidator);
 
-		if (auth.user instanceof User) {
-			const ctx = await this.sharedService.getAuthContext(auth);
+    if (auth.user instanceof User) {
+      const ctx = await this.sharedService.getAuthContext(auth);
 
-			const result = await this.service.storeItem(
-				ctx.system.id,
-				ctx.group.id,
-				payload,
-			);
+      const result = await this.service.storeItem(ctx.system.id, ctx.group.id, payload);
 
-			return response.created(result);
-		}
+      return response.created(result);
+    }
 
-		const result = await this.service.storeItem(
-			auth.user?.system_id ?? -1,
-			undefined,
-			payload,
-		);
+    const result = await this.service.storeItem(auth.user?.system_id ?? -1, undefined, payload);
 
-		return response.created(result);
-	}
+    return response.created(result);
+  }
 
-	public async updateItem({ auth, request, response }: HttpContextContract) {
-		const payload = await request.validate(UpdateProductivityItemValidator);
+  public async updateItem({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(UpdateProductivityItemValidator);
 
-		await this.service.updateItem(
-			await this.sharedService.getAuthContext(auth),
-			payload,
-		);
+    await this.service.updateItem(await this.sharedService.getAuthContext(auth), payload);
 
-		return response.noContent();
-	}
+    return response.noContent();
+  }
 
-	public async searchItems({ auth, request, response }: HttpContextContract) {
-		if (auth.user instanceof User) {
-			const ctx = await this.sharedService.getAuthContext(auth);
+  public async searchItems({ auth, request, response }: HttpContextContract) {
+    if (auth.user instanceof User) {
+      const ctx = await this.sharedService.getAuthContext(auth);
 
-			const result = await this.service.searchItems(
-				ctx.system.id,
-				ctx.group.id,
-				request.qs(),
-			);
+      const result = await this.service.searchItems(ctx.system.id, ctx.group.id, request.qs());
 
-			return response.created(result);
-		}
+      return response.created(result);
+    }
 
-		const result = await this.service.searchItems(
-			auth.user?.system_id ?? -1,
-			undefined,
-			request.qs(),
-		);
+    const result = await this.service.searchItems(
+      auth.user?.system_id ?? -1,
+      undefined,
+      request.qs(),
+    );
 
-		return response.ok(result);
-	}
+    return response.ok(result);
+  }
 
-	public async storeItemProduct({
-		auth,
-		request,
-		response,
-	}: HttpContextContract) {
-		const payload = await request.validate(
-			CreateProductivityItemProductValidator,
-		);
+  public async storeItemProduct({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(CreateProductivityItemProductValidator);
 
-		const result = await this.service.batchCreateItemProduct(
-			await this.sharedService.getAuthContext(auth),
-			payload,
-		);
+    const result = await this.service.batchCreateItemProduct(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
 
-		return response.created(result);
-	}
+    return response.created(result);
+  }
 
-	public async updateItemProduct({
-		auth,
-		request,
-		response,
-	}: HttpContextContract) {
-		const payload = await request.validate(
-			UpdateProductivityItemProductValidator,
-		);
+  public async updateItemProduct({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(UpdateProductivityItemProductValidator);
 
-		await this.service.updateItemProduct(
-			await this.sharedService.getAuthContext(auth),
-			payload,
-		);
+    await this.service.updateItemProduct(await this.sharedService.getAuthContext(auth), payload);
 
-		return response.noContent();
-	}
+    return response.noContent();
+  }
 
-	public async searchItemProducts({
-		auth,
-		request,
-		response,
-	}: HttpContextContract) {
-		const result = await this.service.searchItemProducts(
-			await this.sharedService.getAuthContext(auth),
-			request.qs(),
-		);
+  public async searchItemProducts({ auth, request, response }: HttpContextContract) {
+    const result = await this.service.searchItemProducts(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
 
-		return response.ok(result);
-	}
+    return response.ok(result);
+  }
 
-	public async deleteItem({ auth, request, response }: HttpContextContract) {
-		await this.service.deleteProductivityItem(
-			await this.sharedService.getAuthContext(auth),
-			request.param("itemID", "-1"),
-		);
+  public async deleteItem({ auth, request, response }: HttpContextContract) {
+    await this.service.deleteProductivityItem(
+      await this.sharedService.getAuthContext(auth),
+      request.param("itemID", "-1"),
+    );
 
-		return response.noContent();
-	}
+    return response.noContent();
+  }
 
-	public async deleteItemProduct({
-		auth,
-		request,
-		response,
-	}: HttpContextContract) {
-		await this.service.deleteProductivityItemProduct(
-			await this.sharedService.getAuthContext(auth),
-			request.param("productItemID", "-1"),
-		);
+  public async deleteItemProduct({ auth, request, response }: HttpContextContract) {
+    await this.service.deleteProductivityItemProduct(
+      await this.sharedService.getAuthContext(auth),
+      request.param("productItemID", "-1"),
+    );
 
-		return response.noContent();
-	}
+    return response.noContent();
+  }
 }

@@ -1,5 +1,5 @@
-import { schema, CustomMessages, rules } from '@ioc:Adonis/Core/Validator';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
+import { schema, CustomMessages, rules } from "@ioc:Adonis/Core/Validator";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 
 export default class ChangePasswordValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -24,9 +24,7 @@ export default class ChangePasswordValidator {
    *    ```
    */
   public schema = schema.create({
-    hash: schema.string({}, [
-      rules.exists({ table: 'user_password_changes', column: 'hash' }),
-    ]),
+    hash: schema.string({}, [rules.exists({ table: "user_password_changes", column: "hash" })]),
     password: schema.string({}, [rules.confirmed()]),
   });
 

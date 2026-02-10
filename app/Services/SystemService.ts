@@ -1,4 +1,4 @@
-import { inject } from '@adonisjs/fold';
+import { inject } from "@adonisjs/fold";
 
 @inject()
 export class SystemService {}

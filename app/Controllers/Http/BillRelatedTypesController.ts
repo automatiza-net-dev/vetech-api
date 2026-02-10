@@ -7,43 +7,43 @@ import UpdateBillRelatedTypeValidator from "App/Validators/BillRelatedType/Updat
 
 @inject()
 export default class BillRelatedTypesController {
-	constructor(
-		private sharedService: SharedService,
-		private service: BillRelatedTypeService,
-	) {}
+  constructor(
+    private sharedService: SharedService,
+    private service: BillRelatedTypeService,
+  ) {}
 
-	public async index({ auth, request, response }: HttpContextContract) {
-		const authCtx = await this.sharedService.getAuthContext(auth);
+  public async index({ auth, request, response }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
 
-		const data = await this.service.index(authCtx, request.qs());
+    const data = await this.service.index(authCtx, request.qs());
 
-		return response.ok(data);
-	}
+    return response.ok(data);
+  }
 
-	public async store({ auth, request, response }: HttpContextContract) {
-		const payload = await request.validate(CreateBillRelatedTypeValidator);
-		const authCtx = await this.sharedService.getAuthContext(auth);
+  public async store({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(CreateBillRelatedTypeValidator);
+    const authCtx = await this.sharedService.getAuthContext(auth);
 
-		const data = await this.service.store(authCtx, payload);
+    const data = await this.service.store(authCtx, payload);
 
-		return response.created(data);
-	}
+    return response.created(data);
+  }
 
-	public async update({ auth, request, response }: HttpContextContract) {
-		const payload = await request.validate(UpdateBillRelatedTypeValidator);
-		const authCtx = await this.sharedService.getAuthContext(auth);
+  public async update({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(UpdateBillRelatedTypeValidator);
+    const authCtx = await this.sharedService.getAuthContext(auth);
 
-		const data = await this.service.update(authCtx, payload);
+    const data = await this.service.update(authCtx, payload);
 
-		return response.ok(data);
-	}
+    return response.ok(data);
+  }
 
-	public async delete({ auth, params, response }: HttpContextContract) {
-		const authCtx = await this.sharedService.getAuthContext(auth);
-		await this.service.delete(authCtx, {
-			id: params.id,
-		});
+  public async delete({ auth, params, response }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
+    await this.service.delete(authCtx, {
+      id: params.id,
+    });
 
-		return response.noContent();
-	}
+    return response.noContent();
+  }
 }

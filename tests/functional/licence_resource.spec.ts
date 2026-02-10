@@ -1,15 +1,15 @@
-import Database from '@ioc:Adonis/Lucid/Database';
-import { test } from '@japa/runner';
-import BusinessUnit from 'App/Models/BusinessUnit';
-import EconomicGroup from 'App/Models/EconomicGroup';
-import Licence, { LicenceType } from 'App/Models/Licence';
-import Plan from 'App/Models/Plan';
-import User from 'App/Models/User';
-import LicenceService from 'App/Services/LicenceService';
-import { addDays } from 'date-fns';
-import { v4 } from 'uuid';
+import Database from "@ioc:Adonis/Lucid/Database";
+import { test } from "@japa/runner";
+import BusinessUnit from "App/Models/BusinessUnit";
+import EconomicGroup from "App/Models/EconomicGroup";
+import Licence, { LicenceType } from "App/Models/Licence";
+import Plan from "App/Models/Plan";
+import User from "App/Models/User";
+import LicenceService from "App/Services/LicenceService";
+import { addDays } from "date-fns";
+import { v4 } from "uuid";
 
-import { userBootstrap } from '../utils';
+import { userBootstrap } from "../utils";
 
 type CreateLicence = {
   type: LicenceType;
@@ -17,7 +17,7 @@ type CreateLicence = {
   active: boolean;
 };
 
-test.group('Licence resource', group => {
+test.group("Licence resource", (group) => {
   let service: LicenceService;
 
   group.setup(async () => {
@@ -36,7 +36,7 @@ test.group('Licence resource', group => {
 
     await licence.delete();
 
-    const newLicence = await business.related('licences').create({
+    const newLicence = await business.related("licences").create({
       id: v4(),
       type: data.type,
       active: data.active,
@@ -46,7 +46,7 @@ test.group('Licence resource', group => {
     await Plan.create({
       id: v4(),
       default: true,
-      description: '',
+      description: "",
       trialDays: 10,
       trialAdditional: 10,
     });
@@ -54,7 +54,7 @@ test.group('Licence resource', group => {
     return [business, group, user, newLicence];
   };
 
-  test('should throw error if no active licence', async ({ assert }) => {
+  test("should throw error if no active licence", async ({ assert }) => {
     const [unit] = await createBusinessUnit({
       expiration: new Date(),
       type: LicenceType.ADDITIONAL_TRIAL,
@@ -64,11 +64,11 @@ test.group('Licence resource', group => {
     try {
       await service.addAdditionalTrial({ unit: unit.id });
     } catch (err) {
-      assert.equal('E_NO_LICENCE: Não existe licença ativa', err.message);
+      assert.equal("E_NO_LICENCE: Não existe licença ativa", err.message);
     }
   });
 
-  test('should throw error if licence is not trial', async ({ assert }) => {
+  test("should throw error if licence is not trial", async ({ assert }) => {
     const [unit] = await createBusinessUnit({
       expiration: new Date(),
       type: LicenceType.PAY,
@@ -78,18 +78,13 @@ test.group('Licence resource', group => {
     try {
       await service.addAdditionalTrial({ unit: unit.id });
     } catch (err) {
-      assert.equal(
-        'E_BAD_LICENCE: Apenas licença em teste podem ser extendidas',
-        err.message,
-      );
+      assert.equal("E_BAD_LICENCE: Apenas licença em teste podem ser extendidas", err.message);
     }
   });
 
-  test('should throw error if licence has invalid expiration date', async ({
-    assert,
-  }) => {
+  test("should throw error if licence has invalid expiration date", async ({ assert }) => {
     const [unit] = await createBusinessUnit({
-      expiration: new Date('2025-01-01'),
+      expiration: new Date("2025-01-01"),
       type: LicenceType.TRIAL,
       active: true,
     });
@@ -97,23 +92,23 @@ test.group('Licence resource', group => {
     try {
       await service.addAdditionalTrial({ unit: unit.id });
     } catch (err) {
-      assert.equal('E_BAD_LICENCE: Licença ainda não expirou', err.message);
+      assert.equal("E_BAD_LICENCE: Licença ainda não expirou", err.message);
     }
   });
 
-  test('should create ustom licence', async ({ client, assert }) => {
+  test("should create ustom licence", async ({ client, assert }) => {
     const [unit] = await createBusinessUnit({
-      expiration: new Date('2025-01-01'),
+      expiration: new Date("2025-01-01"),
       type: LicenceType.TRIAL,
       active: true,
     });
 
-    const response = await client.post('/licences/custom').json({
+    const response = await client.post("/licences/custom").json({
       business_unit_id: unit.id,
       expiration_date: addDays(new Date(), 10),
     });
 
-    const unitLicences = await unit.related('licences').query();
+    const unitLicences = await unit.related("licences").query();
 
     assert.equal(201, response.status());
     assert.equal(2, unitLicences.length);

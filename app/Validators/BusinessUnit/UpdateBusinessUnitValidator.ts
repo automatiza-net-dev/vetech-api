@@ -3,32 +3,32 @@ import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
 import { UnitStatus } from "App/Models/BusinessUnit";
 
 export default class UpdateBusinessUnitValidator {
-	constructor(protected ctx: HttpContextContract) {}
+  constructor(protected ctx: HttpContextContract) {}
 
-	public schema = schema.create({
-		phone: schema.string.optional({}, [rules.maxLength(14)]),
-		identification: schema.string.optional({}, [rules.maxLength(80)]),
-		fantasyName: schema.string.optional({}, [rules.maxLength(80)]),
-		companyName: schema.string.optional({}, [rules.maxLength(80)]),
-		email: schema.string.optional({}, [rules.email()]),
-		document: schema.string.optional({}),
-		postal_code: schema.string.optional({}),
-		address: schema.string.optional({}),
-		number: schema.string.optional({}),
-		complement: schema.string.optional({}),
-		district: schema.string.optional({}),
-		city: schema.string.optional({}),
-		state: schema.string.optional({}),
-		active: schema.boolean.optional([]),
+  public schema = schema.create({
+    phone: schema.string.optional({}, [rules.maxLength(14)]),
+    identification: schema.string.optional({}, [rules.maxLength(80)]),
+    fantasyName: schema.string.optional({}, [rules.maxLength(80)]),
+    companyName: schema.string.optional({}, [rules.maxLength(80)]),
+    email: schema.string.optional({}, [rules.email()]),
+    document: schema.string.optional({}),
+    postal_code: schema.string.optional({}),
+    address: schema.string.optional({}),
+    number: schema.string.optional({}),
+    complement: schema.string.optional({}),
+    district: schema.string.optional({}),
+    city: schema.string.optional({}),
+    state: schema.string.optional({}),
+    active: schema.boolean.optional([]),
 
-		state_registration: schema.string.optional({}),
-		cityCode: schema.string.optional({}),
-		city_registration: schema.string.optional({}),
-		cnae: schema.string.optional({}),
-		simple: schema.boolean(),
+    state_registration: schema.string.optional({}),
+    cityCode: schema.string.optional({}),
+    city_registration: schema.string.optional({}),
+    cnae: schema.string.optional({}),
+    simple: schema.boolean(),
 
-		status: schema.enum.optional(UnitStatus),
-	});
+    status: schema.enum.optional(UnitStatus),
+  });
 
-	public messages: CustomMessages = {};
+  public messages: CustomMessages = {};
 }

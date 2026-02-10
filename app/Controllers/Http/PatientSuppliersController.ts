@@ -7,67 +7,59 @@ import UpdatePatientSupplierValidator from "App/Validators/Patient/UpdatePatient
 
 @inject()
 export default class PatientSuppliersController {
-	constructor(
-		private readonly service: PatientService,
-		private readonly sharedService: SharedService,
-	) {}
+  constructor(
+    private readonly service: PatientService,
+    private readonly sharedService: SharedService,
+  ) {}
 
-	public async index({ auth, request, response }: HttpContextContract) {
-		const qs = request.qs();
-		const patients = await this.service.supplierIndex(
-			await this.sharedService.getAuthContext(auth),
-			{
-				name: qs.name,
-				document: qs.document,
-			},
-		);
+  public async index({ auth, request, response }: HttpContextContract) {
+    const qs = request.qs();
+    const patients = await this.service.supplierIndex(
+      await this.sharedService.getAuthContext(auth),
+      {
+        name: qs.name,
+        document: qs.document,
+      },
+    );
 
-		return response.ok(patients);
-	}
+    return response.ok(patients);
+  }
 
-	public async show({ auth, params, response }: HttpContextContract) {
-		const patients = await this.service.show(
-			await this.sharedService.getAuthContext(auth),
-			params.id,
-		);
+  public async show({ auth, params, response }: HttpContextContract) {
+    const patients = await this.service.show(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
 
-		return response.ok(patients);
-	}
+    return response.ok(patients);
+  }
 
-	public async store({ auth, request, response }: HttpContextContract) {
-		const payload = await request.validate(CreatePatientSupplierValidator);
+  public async store({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(CreatePatientSupplierValidator);
 
-		const supplier = await this.service.storeSupplier(
-			await this.sharedService.getAuthContext(auth),
-			payload,
-		);
+    const supplier = await this.service.storeSupplier(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
 
-		return response.created(supplier);
-	}
+    return response.created(supplier);
+  }
 
-	public async update({
-		auth,
-		params,
-		request,
-		response,
-	}: HttpContextContract) {
-		const payload = await request.validate(UpdatePatientSupplierValidator);
+  public async update({ auth, params, request, response }: HttpContextContract) {
+    const payload = await request.validate(UpdatePatientSupplierValidator);
 
-		const supplier = await this.service.updateSupplier(
-			await this.sharedService.getAuthContext(auth),
-			params.id,
-			payload,
-		);
+    const supplier = await this.service.updateSupplier(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+      payload,
+    );
 
-		return response.ok(supplier);
-	}
+    return response.ok(supplier);
+  }
 
-	public async destroy({ auth, params, response }: HttpContextContract) {
-		await this.service.destroySupplier(
-			await this.sharedService.getAuthContext(auth),
-			params.id,
-		);
+  public async destroy({ auth, params, response }: HttpContextContract) {
+    await this.service.destroySupplier(await this.sharedService.getAuthContext(auth), params.id);
 
-		return response.noContent();
-	}
+    return response.noContent();
+  }
 }

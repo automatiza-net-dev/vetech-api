@@ -5,47 +5,44 @@ import {
   BelongsTo,
   belongsTo,
   column,
-} from '@ioc:Adonis/Lucid/Orm';
-import DrugAdministration from 'App/Models/DrugAdministration';
-import Unit from 'App/Models/Unit';
-import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
-import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
+} from "@ioc:Adonis/Lucid/Orm";
+import DrugAdministration from "App/Models/DrugAdministration";
+import Unit from "App/Models/Unit";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import { DateTime } from "luxon";
+import { v4 } from "uuid";
 
 export enum MedicalPrescriptionType {
-  'PROCEDURE' = 'PROCEDURE',
-  'MEDICATION' = 'MEDICATION',
-  'FLUID_THERAPY' = 'FLUID_THERAPY',
+  "PROCEDURE" = "PROCEDURE",
+  "MEDICATION" = "MEDICATION",
+  "FLUID_THERAPY" = "FLUID_THERAPY",
 }
 
 export enum MedicalPrescriptionFrequency {
-  'RECURRENT' = 'RECURRENT',
-  'ONCE' = 'ONCE',
-  'WHEN_NEEDED' = 'WHEN_NEEDED',
+  "RECURRENT" = "RECURRENT",
+  "ONCE" = "ONCE",
+  "WHEN_NEEDED" = "WHEN_NEEDED",
 }
 
 export enum MedicalPrescriptionFrequencyUnit {
-  'HOUR' = 'HOUR',
-  'DAY' = 'DAY',
+  "HOUR" = "HOUR",
+  "DAY" = "DAY",
 }
 
 export enum MedicalPrescriptionFrequencyQuantityUnit {
-  'HOUR' = 'HOUR',
-  'DAY' = 'DAY',
-  'TIMES' = 'TIMES',
+  "HOUR" = "HOUR",
+  "DAY" = "DAY",
+  "TIMES" = "TIMES",
 }
 
 export enum MedicalPrescriptionFluidSet {
-  'MACRODROPS' = 'MACRODROPS',
-  'MICRODROPS' = 'MICRODROPS',
+  "MACRODROPS" = "MACRODROPS",
+  "MICRODROPS" = "MICRODROPS",
 }
 
-export const MedicalPrescriptionFluidSetLabel: Record<
-  MedicalPrescriptionFluidSet,
-  string
-> = {
-  [MedicalPrescriptionFluidSet.MACRODROPS]: 'MacroGotas',
-  [MedicalPrescriptionFluidSet.MICRODROPS]: 'MicroGotas',
+export const MedicalPrescriptionFluidSetLabel: Record<MedicalPrescriptionFluidSet, string> = {
+  [MedicalPrescriptionFluidSet.MACRODROPS]: "MacroGotas",
+  [MedicalPrescriptionFluidSet.MICRODROPS]: "MicroGotas",
 };
 
 export default class MedicalPrescription extends BaseModel {
@@ -59,7 +56,7 @@ export default class MedicalPrescription extends BaseModel {
   public type: MedicalPrescriptionType;
 
   @column.dateTime({
-    columnName: 'prescribed_at',
+    columnName: "prescribed_at",
   })
   public prescribedAt: DateTime;
 
@@ -67,22 +64,22 @@ export default class MedicalPrescription extends BaseModel {
   public frequency: MedicalPrescriptionFrequency;
 
   @column({
-    columnName: 'frequency_interval',
+    columnName: "frequency_interval",
   })
   public frequencyInterval: number;
 
   @column({
-    columnName: 'frequency_unit',
+    columnName: "frequency_unit",
   })
   public frequencyUnit: MedicalPrescriptionFrequencyUnit;
 
   @column({
-    columnName: 'frequency_quantity',
+    columnName: "frequency_quantity",
   })
   public frequencyQuantity: number;
 
   @column({
-    columnName: 'frequency_quantity_unit',
+    columnName: "frequency_quantity_unit",
   })
   public frequencyQuantityUnit: MedicalPrescriptionFrequencyQuantityUnit;
 
@@ -96,12 +93,12 @@ export default class MedicalPrescription extends BaseModel {
   public dose: number;
 
   @column({
-    columnName: 'fluid_set',
+    columnName: "fluid_set",
   })
   public fluidSet: MedicalPrescriptionFluidSet;
 
   @column({
-    columnName: 'fluid_speed',
+    columnName: "fluid_speed",
   })
   public fluidSpeed: number;
 
@@ -141,7 +138,7 @@ export default class MedicalPrescription extends BaseModel {
   public prescription_unit_id: string;
 
   @belongsTo(() => Unit, {
-    foreignKey: 'prescription_unit_id',
+    foreignKey: "prescription_unit_id",
   })
   public prescriptionUnit: BelongsTo<typeof Unit>;
 
@@ -151,7 +148,7 @@ export default class MedicalPrescription extends BaseModel {
   public fluid_unit_id: string;
 
   @belongsTo(() => Unit, {
-    foreignKey: 'fluid_unit_id',
+    foreignKey: "fluid_unit_id",
   })
   public fluidUnit: BelongsTo<typeof Unit>;
 
@@ -166,7 +163,7 @@ export default class MedicalPrescription extends BaseModel {
   public drug_administration_id: string;
 
   @belongsTo(() => DrugAdministration, {
-    foreignKey: 'drug_administration_id',
+    foreignKey: "drug_administration_id",
   })
   public drugAdministration: BelongsTo<typeof DrugAdministration>;
 }

@@ -1,5 +1,5 @@
-import { schema, CustomMessages, rules } from '@ioc:Adonis/Core/Validator';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
+import { schema, CustomMessages, rules } from "@ioc:Adonis/Core/Validator";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 
 export default class ClearPaymentValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -26,7 +26,7 @@ export default class ClearPaymentValidator {
   public schema = schema.create({
     dailyCashierId: schema.string({}, [
       rules.uuid(),
-      rules.exists({ table: 'daily_cashiers', column: 'id' }),
+      rules.exists({ table: "daily_cashiers", column: "id" }),
     ]),
     items: schema.array().members(schema.number([])),
   });

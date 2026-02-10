@@ -1,18 +1,18 @@
-import Database from '@ioc:Adonis/Lucid/Database';
-import { test } from '@japa/runner';
-import Bill, { BillStatus } from 'App/Models/Bill';
-import BusinessUnitFiscalDocument from 'App/Models/BusinessUnitFiscalDocument';
-import { DailyCashierStatus } from 'App/Models/DailyCashier';
-import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
+import Database from "@ioc:Adonis/Lucid/Database";
+import { test } from "@japa/runner";
+import Bill, { BillStatus } from "App/Models/Bill";
+import BusinessUnitFiscalDocument from "App/Models/BusinessUnitFiscalDocument";
+import { DailyCashierStatus } from "App/Models/DailyCashier";
+import DailyMovement, { DailyMovementStatus } from "App/Models/DailyMovement";
 import FiscalDocument, {
   FiscalDocumentMovementType,
   FiscalDocumentType,
-} from 'App/Models/FiscalDocument';
-import { DateTime } from 'luxon';
+} from "App/Models/FiscalDocument";
+import { DateTime } from "luxon";
 
-import { generateJwtToken, userBootstrap } from '../utils';
+import { generateJwtToken, userBootstrap } from "../utils";
 
-test.group('Business unit fiscal document resource', group => {
+test.group("Business unit fiscal document resource", (group) => {
   group.each.setup(async () => {
     await Database.beginGlobalTransaction();
     return () => Database.rollbackGlobalTransaction();
@@ -27,7 +27,7 @@ test.group('Business unit fiscal document resource', group => {
       openingDate: DateTime.now(),
       status: DailyMovementStatus.A,
     });
-    const dailyCashier = await dailyMovement.related('cashiers').create({
+    const dailyCashier = await dailyMovement.related("cashiers").create({
       business_unit_id: dailyMovement.business_unit_id,
       user_who_opened_id: user.id,
       openingDate: DateTime.now(),
@@ -45,8 +45,8 @@ test.group('Business unit fiscal document resource', group => {
     });
 
     const fiscalDocument = await FiscalDocument.create({
-      description: 'some description',
-      model: 'some model',
+      description: "some description",
+      model: "some model",
       documentType: FiscalDocumentType.P,
       movementType: FiscalDocumentMovementType.A,
       active: true,
@@ -58,9 +58,9 @@ test.group('Business unit fiscal document resource', group => {
 
       documentType: FiscalDocumentType.P,
       movementType: FiscalDocumentMovementType.A,
-      description: 'some description',
-      model: 'some model',
-      series: 'some series',
+      description: "some description",
+      model: "some model",
+      series: "some series",
       sequence: 1,
     });
 
@@ -74,14 +74,11 @@ test.group('Business unit fiscal document resource', group => {
     };
   };
 
-  test('should create business unit fiscal document', async ({
-    assert,
-    client,
-  }) => {
+  test("should create business unit fiscal document", async ({ assert, client }) => {
     const { user, fiscalDocument } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
@@ -90,9 +87,9 @@ test.group('Business unit fiscal document resource', group => {
         fiscalDocumentId: fiscalDocument.id,
         type: FiscalDocumentType.P,
         movement: FiscalDocumentMovementType.A,
-        description: 'some description',
-        model: 'some model',
-        series: 'some series 1',
+        description: "some description",
+        model: "some model",
+        series: "some series 1",
         sequence: 1,
       })
       .bearerToken(token);

@@ -1,17 +1,17 @@
-import Mail from '@ioc:Adonis/Addons/Mail';
-import Encryption from '@ioc:Adonis/Core/Encryption';
-import Database from '@ioc:Adonis/Lucid/Database';
-import { test } from '@japa/runner';
-import { LicenceType } from 'App/Models/Licence';
-import UserPasswordChange from 'App/Models/UserPasswordChange';
-import RoleFactory from 'Database/factories/RoleFactory';
-import { addDays } from 'date-fns';
-import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
+import Mail from "@ioc:Adonis/Addons/Mail";
+import Encryption from "@ioc:Adonis/Core/Encryption";
+import Database from "@ioc:Adonis/Lucid/Database";
+import { test } from "@japa/runner";
+import { LicenceType } from "App/Models/Licence";
+import UserPasswordChange from "App/Models/UserPasswordChange";
+import RoleFactory from "Database/factories/RoleFactory";
+import { addDays } from "date-fns";
+import { DateTime } from "luxon";
+import { v4 } from "uuid";
 
-import { generateJwtToken, userBootstrap } from '../utils';
+import { generateJwtToken, userBootstrap } from "../utils";
 
-test.group('Auth resource', group => {
+test.group("Auth resource", (group) => {
   group.each.setup(async () => {
     await Database.beginGlobalTransaction();
     return () => Database.rollbackGlobalTransaction();
@@ -21,18 +21,17 @@ test.group('Auth resource', group => {
     activeLicence = true,
     expiration,
     licenceType = LicenceType.PAY,
-    system_name = 'SUT',
+    system_name = "SUT",
   }: {
     activeLicence?: boolean;
     expiration?: Date;
     licenceType?: LicenceType;
     system_name?: string;
   }) => {
-    const { user, group, business, licence, role, system } =
-      await userBootstrap(system_name);
+    const { user, group, business, licence, role, system } = await userBootstrap(system_name);
     await licence.delete();
 
-    const newLicence = await business.related('licences').create({
+    const newLicence = await business.related("licences").create({
       id: v4(),
       expirationDate: expiration ?? addDays(new Date(), 7),
       type: licenceType,
@@ -51,7 +50,7 @@ test.group('Auth resource', group => {
   //   assert.equal(user.id, loggedUser.user.id);
   // });
 
-  test('should throw BadRequestException if swapping for a wrong unit', async ({
+  test("should throw BadRequestException if swapping for a wrong unit", async ({
     client,
     assert,
   }) => {
@@ -59,7 +58,7 @@ test.group('Auth resource', group => {
     const { business } = await createUser({});
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
@@ -72,14 +71,11 @@ test.group('Auth resource', group => {
     assert.equal(400, response.status());
   });
 
-  test('should return new token with swapped unit', async ({
-    client,
-    assert,
-  }) => {
+  test("should return new token with swapped unit", async ({ client, assert }) => {
     const { user, business } = await createUser({});
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
@@ -92,118 +88,112 @@ test.group('Auth resource', group => {
     assert.equal(204, response.status());
   });
 
-  test('should login a new user', async ({ client, assert }) => {
+  test("should login a new user", async ({ client, assert }) => {
     const { user, business } = await createUser({});
 
     const response = await client.post(`/auth/login`).json({
       email: user.email,
-      password: '102030',
+      password: "102030",
       business_unit_id: business.id,
-      system: 'SUT',
+      system: "SUT",
     });
 
     const body = response.body();
 
     assert.equal(200, response.status());
-    assert.equal('bearer', body.type);
+    assert.equal("bearer", body.type);
   });
 
-  test('should return error for invalid login/system', async ({
-    client,
-    assert,
-  }) => {
+  test("should return error for invalid login/system", async ({ client, assert }) => {
     const { business } = await createUser({});
     const { user } = await createUser({
-      system_name: 'SUT2',
+      system_name: "SUT2",
     });
 
     const response = await client.post(`/auth/login`).json({
       email: user.email,
-      password: '102030',
+      password: "102030",
       business_unit_id: business.id,
-      system: 'SUT',
+      system: "SUT",
     });
 
     assert.equal(400, response.status());
   });
 
-  test('should return a list of units if no unit is sent having more than one unit', async ({
+  test("should return a list of units if no unit is sent having more than one unit", async ({
     client,
     assert,
   }) => {
     const { user, group } = await createUser({});
     const role = await RoleFactory.create();
-    const unit = await group.related('businessUnits').create({
+    const unit = await group.related("businessUnits").create({
       id: v4(),
       document: user.document,
       phone: user.phone,
       email: user.email,
-      origin: 'TESTING',
+      origin: "TESTING",
     });
-    await user.related('roles').create({
+    await user.related("roles").create({
       role_id: role.id,
       unit_id: unit.id,
     });
 
     const response = await client.post(`/auth/login`).json({
       email: user.email,
-      password: '102030',
-      system: 'SUT',
+      password: "102030",
+      system: "SUT",
     });
 
     assert.equal(200, response.status());
   });
 
-  test('should return 400 on bad login credentials', async ({
-    client,
-    assert,
-  }) => {
+  test("should return 400 on bad login credentials", async ({ client, assert }) => {
     const { user } = await createUser({});
 
     const response = await client.post(`/auth/login`).json({
       email: user.email,
-      password: 'bad-password',
-      system: 'SUT',
+      password: "bad-password",
+      system: "SUT",
     });
 
     assert.equal(400, response.status());
   });
 
-  test('should login controller', async ({ client, assert }) => {
+  test("should login controller", async ({ client, assert }) => {
     const { user, business, role } = await createUser({});
 
-    await role.merge({ type: 'controller' }).save();
-    await user.merge({ type: 'controller' }).save();
+    await role.merge({ type: "controller" }).save();
+    await user.merge({ type: "controller" }).save();
 
     const response = await client.post(`/auth/controller-login`).json({
       email: user.email,
-      password: '102030',
+      password: "102030",
       business_unit_id: business.id,
-      system: 'SUT',
+      system: "SUT",
     });
 
     assert.equal(200, response.status());
   });
 
-  test('should return BadRequestException if role is not controller', async ({
+  test("should return BadRequestException if role is not controller", async ({
     client,
     assert,
   }) => {
     const { user, business } = await createUser({});
 
-    await user.merge({ type: 'controller' }).save();
+    await user.merge({ type: "controller" }).save();
 
     const response = await client.post(`/auth/controller-login`).json({
       email: user.email,
-      password: '102030',
+      password: "102030",
       business_unit_id: business.id,
-      system: 'SUT',
+      system: "SUT",
     });
 
     assert.equal(400, response.status());
   });
 
-  test('should return BadRequestException if user is not controller', async ({
+  test("should return BadRequestException if user is not controller", async ({
     client,
     assert,
   }) => {
@@ -211,9 +201,9 @@ test.group('Auth resource', group => {
 
     const response = await client.post(`/auth/controller-login`).json({
       email: user.email,
-      password: '102030',
+      password: "102030",
       business_unit_id: business.id,
-      system: 'SUT',
+      system: "SUT",
     });
 
     assert.equal(400, response.status());
@@ -305,7 +295,7 @@ test.group('Auth resource', group => {
   //   assert.equal('bearer', body.type);
   // });
 
-  test('should handle forgot password', async ({ client, assert }) => {
+  test("should handle forgot password", async ({ client, assert }) => {
     const { user, system } = await createUser({});
     const mailer = Mail.fake();
 
@@ -315,43 +305,41 @@ test.group('Auth resource', group => {
     });
 
     assert.equal(204, response.status());
-    assert.isTrue(
-      mailer.exists(mail => mail.subject === 'Recuperação de Senha'),
-    );
+    assert.isTrue(mailer.exists((mail) => mail.subject === "Recuperação de Senha"));
 
     Mail.restore();
   });
 
-  test('should throw error on invalid hash', async ({ client, assert }) => {
+  test("should throw error on invalid hash", async ({ client, assert }) => {
     const { user } = await createUser({});
-    const hash = Encryption.encrypt('invalid@mail.com', '30min');
+    const hash = Encryption.encrypt("invalid@mail.com", "30min");
 
     const response = await client.post(`/auth/reset-password`).json({
       email: user.email,
-      password: '102030',
-      password_confirmation: '102030',
+      password: "102030",
+      password_confirmation: "102030",
       hash,
     });
 
     assert.equal(400, response.status());
   });
 
-  test('should handle reset password', async ({ client, assert }) => {
+  test("should handle reset password", async ({ client, assert }) => {
     const { user } = await createUser({});
-    const hash = Encryption.encrypt(user.email, '30min');
+    const hash = Encryption.encrypt(user.email, "30min");
 
     await UserPasswordChange.create({
       system_id: user.system_id,
       user_id: user.id,
       hash,
       expiresAt: DateTime.now().plus({ hour: 1 }),
-      type: 'sut',
+      type: "sut",
     });
 
     const response = await client.post(`/auth/reset-password`).json({
       email: user.email,
-      password: '102030',
-      password_confirmation: '102030',
+      password: "102030",
+      password_confirmation: "102030",
       hash,
     });
 

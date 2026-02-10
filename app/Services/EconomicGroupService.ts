@@ -1,8 +1,8 @@
-import { inject } from '@adonisjs/fold';
-import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
-import EconomicGroup from 'App/Models/EconomicGroup';
-import User from 'App/Models/User';
-import { IUpdateEconomicGroup } from 'Contracts/interfaces/UpdateEconomicGroup';
+import { inject } from "@adonisjs/fold";
+import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
+import EconomicGroup from "App/Models/EconomicGroup";
+import User from "App/Models/User";
+import { IUpdateEconomicGroup } from "Contracts/interfaces/UpdateEconomicGroup";
 
 interface ISearch {
   name?: string;
@@ -21,8 +21,8 @@ export default class EconomicGroupService {
     const qb = EconomicGroup.query();
 
     if (data.name) {
-      qb.where('fantasy_name', 'ilike', `%${data.name}%`);
-      qb.orWhere('company_name', 'ilike', `%${data.name}%`);
+      qb.where("fantasy_name", "ilike", `%${data.name}%`);
+      qb.orWhere("company_name", "ilike", `%${data.name}%`);
     }
 
     return qb;
@@ -33,26 +33,23 @@ export default class EconomicGroupService {
 
     if (!group) {
       throw new ResourceNotFoundException(
-        'O grupo econômico não foi encontrado',
+        "O grupo econômico não foi encontrado",
         404,
-        'E_NOT_FOUND',
+        "E_NOT_FOUND",
       );
     }
 
     return group;
   }
 
-  public async update(
-    id: string,
-    data: IUpdateEconomicGroup,
-  ): Promise<EconomicGroup> {
+  public async update(id: string, data: IUpdateEconomicGroup): Promise<EconomicGroup> {
     const group = await EconomicGroup.find(id);
 
     if (!group) {
       throw new ResourceNotFoundException(
-        'O grupo econômico não foi encontrado',
+        "O grupo econômico não foi encontrado",
         404,
-        'E_NOT_FOUND',
+        "E_NOT_FOUND",
       );
     }
 
@@ -64,29 +61,29 @@ export default class EconomicGroupService {
 
     if (!group) {
       throw new ResourceNotFoundException(
-        'O grupo econômico não foi encontrado',
+        "O grupo econômico não foi encontrado",
         404,
-        'E_NOT_FOUND',
+        "E_NOT_FOUND",
       );
     }
 
-    const qb = group.related('users').query();
+    const qb = group.related("users").query();
 
     if (data.name) {
-      qb.where('name', 'ilike', `%${data.name}%`);
+      qb.where("name", "ilike", `%${data.name}%`);
     }
 
     if (data.document) {
-      qb.where('document', 'ilike', `%${data.document}%`);
+      qb.where("document", "ilike", `%${data.document}%`);
     }
 
     if (data.phone) {
-      qb.where('phone', 'ilike', `%${data.phone}%`);
+      qb.where("phone", "ilike", `%${data.phone}%`);
     }
 
     if (data.role) {
-      qb.whereHas('roles', query => {
-        query.where('role_id', data.role ?? '');
+      qb.whereHas("roles", (query) => {
+        query.where("role_id", data.role ?? "");
       });
     }
 
@@ -94,6 +91,6 @@ export default class EconomicGroupService {
   }
 
   public async userEconomicGroups(user: User): Promise<Array<EconomicGroup>> {
-    return user.related('economicGroups').query();
+    return user.related("economicGroups").query();
   }
 }

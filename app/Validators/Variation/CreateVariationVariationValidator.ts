@@ -1,5 +1,5 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
 
 export default class CreateVariationVariationValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -8,15 +8,15 @@ export default class CreateVariationVariationValidator {
     group_variation_id: schema.string({}, [
       rules.uuid(),
       rules.exists({
-        table: 'variation_groups',
-        column: 'id',
+        table: "variation_groups",
+        column: "id",
       }),
     ]),
     variation_id: schema.string({}, [
       rules.uuid(),
       rules.exists({
-        table: 'variations',
-        column: 'id',
+        table: "variations",
+        column: "id",
       }),
     ]),
   });

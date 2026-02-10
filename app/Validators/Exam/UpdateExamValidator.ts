@@ -1,5 +1,5 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
 
 export default class UpdateExamValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -8,8 +8,8 @@ export default class UpdateExamValidator {
     subgroupId: schema.string.optional({}, [
       rules.uuid(),
       rules.exists({
-        table: 'subgroups',
-        column: 'id',
+        table: "subgroups",
+        column: "id",
       }),
     ]),
     name: schema.string({}, []),

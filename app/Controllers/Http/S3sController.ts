@@ -7,25 +7,25 @@ import CreateLinksValidator from "App/Validators/S3/CreateLinksValidator";
 
 @inject()
 export default class S3sController {
-	constructor(private sharedService: SharedService) {}
+  constructor(private sharedService: SharedService) {}
 
-	public async createLink({ request, response }: HttpContextContract) {
-		return this.sharedService.errorHoc(response, async () => {
-			const data = await request.validate(CreateLinkValidator);
+  public async createLink({ request, response }: HttpContextContract) {
+    return this.sharedService.errorHoc(response, async () => {
+      const data = await request.validate(CreateLinkValidator);
 
-			const linkMap = await SharedService.ComputePublicS3Link([data.key]);
+      const linkMap = await SharedService.ComputePublicS3Link([data.key]);
 
-			return response.ok(linkMap[0]);
-		});
-	}
+      return response.ok(linkMap[0]);
+    });
+  }
 
-	public async createLinks({ request, response }: HttpContextContract) {
-		return this.sharedService.errorHoc(response, async () => {
-			const data = await request.validate(CreateLinksValidator);
+  public async createLinks({ request, response }: HttpContextContract) {
+    return this.sharedService.errorHoc(response, async () => {
+      const data = await request.validate(CreateLinksValidator);
 
-			const linkMap = await SharedService.ComputePublicS3Link(data.keys);
+      const linkMap = await SharedService.ComputePublicS3Link(data.keys);
 
-			return response.ok(linkMap);
-		});
-	}
+      return response.ok(linkMap);
+    });
+  }
 }

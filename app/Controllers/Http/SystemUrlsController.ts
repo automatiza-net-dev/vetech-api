@@ -7,27 +7,24 @@ import UploadImageValidator from "App/Validators/SystemUrl/UploadImageValidator"
 
 @inject()
 export default class SystemUrlsController {
-	constructor(
-		private sharedService: SharedService,
-		private readonly service: SystemUrlService,
-	) {}
+  constructor(
+    private sharedService: SharedService,
+    private readonly service: SystemUrlService,
+  ) {}
 
-	public async search({ request, response }: HttpContextContract) {
-		const body = await request.validate(SearchSystemUrlValidator);
+  public async search({ request, response }: HttpContextContract) {
+    const body = await request.validate(SearchSystemUrlValidator);
 
-		const result = await this.service.getSystemUrl(body);
+    const result = await this.service.getSystemUrl(body);
 
-		return response.ok(result);
-	}
+    return response.ok(result);
+  }
 
-	public async uploadImages({ auth, request, response }: HttpContextContract) {
-		const body = await request.validate(UploadImageValidator);
+  public async uploadImages({ auth, request, response }: HttpContextContract) {
+    const body = await request.validate(UploadImageValidator);
 
-		await this.service.uploadImages(
-			await this.sharedService.getAuthContext(auth),
-			body,
-		);
+    await this.service.uploadImages(await this.sharedService.getAuthContext(auth), body);
 
-		return response.noContent();
-	}
+    return response.noContent();
+  }
 }

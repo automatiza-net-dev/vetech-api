@@ -1,9 +1,9 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import GroupService from 'App/Services/GroupService';
-import SharedService from 'App/Services/SharedService';
-import CreateGroupValidator from 'App/Validators/Group/CreateGroupValidator';
-import UpdateGroupValidator from 'App/Validators/Group/UpdateGroupValidator';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import GroupService from "App/Services/GroupService";
+import SharedService from "App/Services/SharedService";
+import CreateGroupValidator from "App/Validators/Group/CreateGroupValidator";
+import UpdateGroupValidator from "App/Validators/Group/UpdateGroupValidator";
 
 @inject()
 export default class GroupsController {
@@ -41,12 +41,7 @@ export default class GroupsController {
     return response.created(result);
   }
 
-  public async update({
-    auth,
-    params,
-    request,
-    response,
-  }: HttpContextContract) {
+  public async update({ auth, params, request, response }: HttpContextContract) {
     const payload = await request.validate(UpdateGroupValidator);
     const { unit_id } = this.sharedService.extractUser(auth);
 

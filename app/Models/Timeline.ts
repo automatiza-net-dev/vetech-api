@@ -5,13 +5,13 @@ import {
   BelongsTo,
   belongsTo,
   column,
-} from '@ioc:Adonis/Lucid/Orm';
-import Patient from 'App/Models/Patient';
-import Schedule from 'App/Models/Schedule';
-import TimelineType from 'App/Models/TimelineType';
-import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
-import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
+} from "@ioc:Adonis/Lucid/Orm";
+import Patient from "App/Models/Patient";
+import Schedule from "App/Models/Schedule";
+import TimelineType from "App/Models/TimelineType";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import { DateTime } from "luxon";
+import { v4 } from "uuid";
 
 export default class Timeline extends BaseModel {
   @column({ isPrimary: true })

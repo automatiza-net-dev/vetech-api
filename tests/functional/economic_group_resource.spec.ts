@@ -1,11 +1,11 @@
-import Database from '@ioc:Adonis/Lucid/Database';
-import { test } from '@japa/runner';
-import EconomicGroup from 'App/Models/EconomicGroup';
-import User from 'App/Models/User';
+import Database from "@ioc:Adonis/Lucid/Database";
+import { test } from "@japa/runner";
+import EconomicGroup from "App/Models/EconomicGroup";
+import User from "App/Models/User";
 
-import { userBootstrap } from '../utils';
+import { userBootstrap } from "../utils";
 
-test.group('Economic group resource', group => {
+test.group("Economic group resource", (group) => {
   group.each.setup(async () => {
     await Database.beginGlobalTransaction();
     return () => Database.rollbackGlobalTransaction();
@@ -16,21 +16,15 @@ test.group('Economic group resource', group => {
     return [group, user];
   };
 
-  test('should return a list of all economic groups', async ({
-    client,
-    assert,
-  }) => {
-    const response = await client.get('/economic-groups');
+  test("should return a list of all economic groups", async ({ client, assert }) => {
+    const response = await client.get("/economic-groups");
 
     const economicGroups = response.body();
 
     assert.isArray(economicGroups);
   });
 
-  test('should return a list of all economic group users', async ({
-    client,
-    assert,
-  }) => {
+  test("should return a list of all economic group users", async ({ client, assert }) => {
     const [group, user] = await createEconomicGroup();
     const response = await client.get(`/economic-groups/${group.id}/users`);
 
@@ -40,10 +34,7 @@ test.group('Economic group resource', group => {
     assert.equal(user.id, users[0].id);
   });
 
-  test('should return a list of user economic groups"', async ({
-    client,
-    assert,
-  }) => {
+  test('should return a list of user economic groups"', async ({ client, assert }) => {
     const [group, user] = await createEconomicGroup();
     const response = await client.get(`/economic-groups/user`).loginAs(user);
 
@@ -53,14 +44,14 @@ test.group('Economic group resource', group => {
     assert.equal(group.id, groups[0].id);
   });
 
-  test('update economic group', async ({ client, assert }) => {
+  test("update economic group", async ({ client, assert }) => {
     const [group] = await createEconomicGroup();
     const response = await client.put(`/economic-groups/${group.id}`).json({
-      fantasyName: 'new fantasy name',
-      companyName: 'new company name',
-      document: '1234',
-      responsibleEmail: 'responsible123@mail.com',
-      responsiblePhone: '123123',
+      fantasyName: "new fantasy name",
+      companyName: "new company name",
+      document: "1234",
+      responsibleEmail: "responsible123@mail.com",
+      responsiblePhone: "123123",
     });
 
     const updatedGroup = response.body();

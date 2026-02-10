@@ -1,29 +1,18 @@
-import Database from '@ioc:Adonis/Lucid/Database';
-import { test } from '@japa/runner';
-import AccountPlan from 'App/Models/AccountPlan';
-import AccountPlanGroup, {
-  AccountPlanGroupType,
-} from 'App/Models/AccountPlanGroup';
-import Banking, {
-  BankingOriginFlag,
-  BankingStatus,
-  BankingType,
-} from 'App/Models/Banking';
-import CheckingAccount, {
-  CheckingAccountType,
-} from 'App/Models/CheckingAccount';
-import { DailyCashierStatus } from 'App/Models/DailyCashier';
-import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
-import PaymentMethod, {
-  PaymentMethodTef,
-  PaymentMethodType,
-} from 'App/Models/PaymentMethod';
-import PatientFactory from 'Database/factories/PatientFactory';
-import { DateTime } from 'luxon';
+import Database from "@ioc:Adonis/Lucid/Database";
+import { test } from "@japa/runner";
+import AccountPlan from "App/Models/AccountPlan";
+import AccountPlanGroup, { AccountPlanGroupType } from "App/Models/AccountPlanGroup";
+import Banking, { BankingOriginFlag, BankingStatus, BankingType } from "App/Models/Banking";
+import CheckingAccount, { CheckingAccountType } from "App/Models/CheckingAccount";
+import { DailyCashierStatus } from "App/Models/DailyCashier";
+import DailyMovement, { DailyMovementStatus } from "App/Models/DailyMovement";
+import PaymentMethod, { PaymentMethodTef, PaymentMethodType } from "App/Models/PaymentMethod";
+import PatientFactory from "Database/factories/PatientFactory";
+import { DateTime } from "luxon";
 
-import { generateJwtToken, userBootstrap } from '../utils';
+import { generateJwtToken, userBootstrap } from "../utils";
 
-test.group('Banking resource', group => {
+test.group("Banking resource", (group) => {
   group.each.setup(async () => {
     await Database.beginGlobalTransaction();
     return () => Database.rollbackGlobalTransaction();
@@ -34,20 +23,20 @@ test.group('Banking resource', group => {
 
     const apg = await AccountPlanGroup.create({
       economic_group_id: business.economicGroupId,
-      description: 'some description',
+      description: "some description",
       type: AccountPlanGroupType.A,
     });
 
     const ap = await AccountPlan.create({
       business_unit_id: business.id,
-      description: 'some description',
-      code: 'some code',
+      description: "some description",
+      code: "some code",
       account_plan_group_id: apg.id,
     });
 
     const paymentMethod = await PaymentMethod.create({
       economicGroupId: business.economicGroupId,
-      description: 'some description',
+      description: "some description",
       requiresDocument: true,
       tef: PaymentMethodTef.N,
       automaticCancellation: true,
@@ -65,19 +54,19 @@ test.group('Banking resource', group => {
     const checkingAccount = await CheckingAccount.create({
       economic_group_id: business.economicGroupId,
       business_unit_id: business.id,
-      description: 'some description',
-      accountNumber: 'some',
-      bankCode: 'some',
-      bankName: 'some',
-      agency: 'some',
+      description: "some description",
+      accountNumber: "some",
+      bankCode: "some",
+      bankName: "some",
+      agency: "some",
       type: CheckingAccountType.CC,
       balance: 0,
 
       limit: 0,
-      agencyPhone: 'some',
-      managerName: 'some',
-      managerEmail: 'some',
-      managerPhone: 'some',
+      agencyPhone: "some",
+      managerName: "some",
+      managerEmail: "some",
+      managerPhone: "some",
     });
 
     const patient = await PatientFactory.create();
@@ -91,8 +80,8 @@ test.group('Banking resource', group => {
       checking_account_id: checkingAccount.id,
 
       type: BankingType.C,
-      document: 'some',
-      historic: 'some',
+      document: "some",
+      historic: "some",
       issueDate: DateTime.now(),
       documentValue: 1,
       feeValue: 1,
@@ -109,11 +98,11 @@ test.group('Banking resource', group => {
       balance: 10,
       paymentMethodDiscountPercentage: paymentMethod.fee,
       paymentMethodDiscountValue: 0,
-      competenceDate: '03/2023',
-      fiscalNote: 'some',
-      userDocument: 'some',
-      nsuDocument: 'some',
-      barCode: 'some',
+      competenceDate: "03/2023",
+      fiscalNote: "some",
+      userDocument: "some",
+      nsuDocument: "some",
+      barCode: "some",
     });
 
     await Banking.create({
@@ -125,8 +114,8 @@ test.group('Banking resource', group => {
       checking_account_id: checkingAccount.id,
 
       type: BankingType.C,
-      document: 'some',
-      historic: 'some',
+      document: "some",
+      historic: "some",
       issueDate: DateTime.now(),
       documentValue: 2,
       feeValue: 2,
@@ -143,11 +132,11 @@ test.group('Banking resource', group => {
       balance: 20,
       paymentMethodDiscountPercentage: paymentMethod.fee,
       paymentMethodDiscountValue: 0,
-      competenceDate: '03/2023',
-      fiscalNote: 'some',
-      userDocument: 'some',
-      nsuDocument: 'some',
-      barCode: 'some',
+      competenceDate: "03/2023",
+      fiscalNote: "some",
+      userDocument: "some",
+      nsuDocument: "some",
+      barCode: "some",
     });
 
     const dailyMovement = await DailyMovement.create({
@@ -156,7 +145,7 @@ test.group('Banking resource', group => {
       openingDate: DateTime.now(),
       status: DailyMovementStatus.A,
     });
-    const dailyCashier = await dailyMovement.related('cashiers').create({
+    const dailyCashier = await dailyMovement.related("cashiers").create({
       business_unit_id: dailyMovement.business_unit_id,
       user_who_opened_id: user.id,
       openingDate: DateTime.now(),
@@ -174,11 +163,11 @@ test.group('Banking resource', group => {
     };
   };
 
-  test('should create banking', async ({ assert, client }) => {
+  test("should create banking", async ({ assert, client }) => {
     const props = await createData();
     const token = await generateJwtToken(client, {
       email: props.user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
@@ -189,8 +178,8 @@ test.group('Banking resource', group => {
         accountPlanId: props.ap.id,
         paymentMethodId: props.paymentMethod.id,
         checkingAccountId: props.checkingAccount.id,
-        document: 'some',
-        historic: 'some',
+        document: "some",
+        historic: "some",
         issueDate: DateTime.now().minus({ hour: 1 }),
         documentValue: 1,
         feeValue: 1,
@@ -208,7 +197,7 @@ test.group('Banking resource', group => {
     assert.equal(201, response.status());
   });
 
-  test('should throw BadRequestException if no daily cashier (type = usuario)', async ({
+  test("should throw BadRequestException if no daily cashier (type = usuario)", async ({
     assert,
     client,
   }) => {
@@ -217,7 +206,7 @@ test.group('Banking resource', group => {
 
     const token = await generateJwtToken(client, {
       email: props.user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
@@ -228,8 +217,8 @@ test.group('Banking resource', group => {
         accountPlanId: props.ap.id,
         paymentMethodId: props.paymentMethod.id,
         checkingAccountId: props.checkingAccount.id,
-        document: 'some',
-        historic: 'some',
+        document: "some",
+        historic: "some",
         issueDate: DateTime.now().minus({ hour: 1 }),
         documentValue: 1,
         feeValue: 1,
@@ -245,18 +234,18 @@ test.group('Banking resource', group => {
     assert.equal(400, response.status());
   });
 
-  test('should throw BadRequestException if no daily cashier (type = geral)', async ({
+  test("should throw BadRequestException if no daily cashier (type = geral)", async ({
     assert,
     client,
   }) => {
     const props = await createData();
 
-    await props.config.merge({ dailyCashierType: 'geral' }).save();
+    await props.config.merge({ dailyCashierType: "geral" }).save();
     await props.dailyCashier.softDelete();
 
     const token = await generateJwtToken(client, {
       email: props.user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
@@ -267,8 +256,8 @@ test.group('Banking resource', group => {
         accountPlanId: props.ap.id,
         paymentMethodId: props.paymentMethod.id,
         checkingAccountId: props.checkingAccount.id,
-        document: 'some',
-        historic: 'some',
+        document: "some",
+        historic: "some",
         issueDate: DateTime.now().minus({ hour: 1 }),
         documentValue: 1,
         feeValue: 1,

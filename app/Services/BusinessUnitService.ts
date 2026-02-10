@@ -8,12 +8,8 @@ import BadRequestException from "App/Exceptions/BadRequestException";
 import InternalErrorException from "App/Exceptions/InternalErrorException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import BusinessUnit from "App/Models/BusinessUnit";
-import BusinessUnitConfig, {
-	TConfigSchema,
-} from "App/Models/BusinessUnitConfig";
-import CheckingAccount, {
-	CheckingAccountType,
-} from "App/Models/CheckingAccount";
+import BusinessUnitConfig, { TConfigSchema } from "App/Models/BusinessUnitConfig";
+import CheckingAccount, { CheckingAccountType } from "App/Models/CheckingAccount";
 import { LicenceType } from "App/Models/Licence";
 import Patient, { PatientType } from "App/Models/Patient";
 import PatientContact from "App/Models/PatientContact";
@@ -28,873 +24,768 @@ import { addDays } from "date-fns";
 import { v4 } from "uuid";
 
 interface ISearchBusinessUnit {
-	identification?: string;
-	email?: string;
+  identification?: string;
+  email?: string;
 }
 
 interface ISearchClinic {
-	identification?: string;
-	document?: string;
-	name?: string;
+  identification?: string;
+  document?: string;
+  name?: string;
 }
 
 @inject()
 export default class BusinessUnitService {
-	constructor(private readonly sharedService: SharedService) {}
-
-	public async systemUnits(systemID: number): Promise<Array<BusinessUnit>> {
-		return BusinessUnit.query()
-			.where("active", true)
-			.whereNull("deleted_at")
-			.select("id", "identification", "economic_group_id")
-			.preload("economicGroup", (query) => {
-				query.select("id", "companyName");
-			})
-			.whereHas("economicGroup", (query) => {
-				query.where("system_id", systemID);
-			});
-	}
-
-	public async index(
-		authCtx: AuthContext,
-		data: ISearchBusinessUnit,
-	): Promise<Array<BusinessUnit>> {
-		const qb = BusinessUnit.query()
-			.where("economic_group_id", authCtx.group.id)
-			.preload("economicGroup");
-
-		if (data.identification) {
-			qb.where("identification", "ilike", `%${data.identification}%`);
-		}
-
-		if (data.email) {
-			qb.where("email", "ilike", `%${data.email}%`);
-		}
-
-		return qb;
-	}
-
-	public async store(authCtx: AuthContext, data: ICreateBusinessUnit) {
-		try {
-			await Database.transaction(async (trx) => {
-				const economicGroups = await authCtx.user
-					.related("economicGroups")
-					.query()
-					.useTransaction(trx);
-				const economicGroup = economicGroups.find(
-					(eg) => eg.id === data.economic_group_id,
-				);
-
-				if (!economicGroup) {
-					throw new BadRequestException("Grupo econômico inválido");
-				}
-
-				if (!validCNPJ(data.document)) {
-					throw new BadRequestException(
-						"CPF/CNPJ inválido",
-						400,
-						"E_INVALID_DOCUMENT",
-					);
-				}
-				const hasUnitWithDocument = await economicGroup
-					.related("businessUnits")
-					.query()
-					.useTransaction(trx)
-					.where("document", data.document)
-					.first();
-				if (hasUnitWithDocument) {
-					throw new BadRequestException(
-						`Este Cnpj já existe neste Grupo Economico para a Clinica "${
-							data.fantasyName ?? "-"
-						}";`,
-						400,
-						"E_INVALID_DOCUMENT",
-					);
-				}
-
-				const unit = await economicGroup.related("businessUnits").create(
-					{
-						system_id: authCtx.system.id,
-						...data,
-					},
-					{
-						client: trx,
-					},
-				);
-
-				await unit.related("unitConfig").create(
-					{
-						config: authCtx.systemUrl.defaultConfig,
-					},
-					{
-						client: trx,
-					},
-				);
-
-				const unitPatient = await Patient.create(
-					{
-						business_unit_id: unit.id,
-						type: PatientType.UNIT,
-						name: unit.identification,
-					},
-					{ client: trx },
-				);
-				await unitPatient
-					.related("tutor")
-					.create({ corporateName: unit.companyName }, { client: trx });
-				await unitPatient.related("contacts").createMany(
-					[
-						{
-							main: true,
-							contact: data.email,
-							observation: "",
-							type: "email",
-							notGiven: false,
-						},
-						{
-							main: false,
-							contact: data.phone,
-							observation: "",
-							type: "celular",
-							notGiven: false,
-						},
-					].filter((r) => !!r.contact) as Partial<PatientContact>[],
-					{ client: trx },
-				);
-
-				await unit
-					.merge({ unit_patient_id: unitPatient.id })
-					.useTransaction(trx)
-					.save();
-
-				await unit.related("licences").create(
-					{
-						id: v4(),
-						expirationDate: addDays(new Date(), 1000),
-						type: LicenceType.TRIAL,
-						active: true,
-					},
-					{
-						client: trx,
-					},
-				);
-
-				const products = await economicGroup
-					.related("products")
-					.query()
-					.useTransaction(trx)
-					.preload("variations", (query) => {
-						query.preload("businessUnitProducts");
-					});
-
-				// eslint-disable-next-line no-restricted-syntax
-				for await (const product of products) {
-					// eslint-disable-next-line no-restricted-syntax
-					for await (const variation of product.variations) {
-						const [unitPrice] = product.variations[0].businessUnitProducts;
-
-						if (unitPrice) {
-							await variation.related("businessUnitProducts").create(
-								{
-									businness_unit_id: unit.id,
-									stock: 0,
-									price: unitPrice.price,
-									costPrice: unitPrice.costPrice,
-									maximumStock: unitPrice.maximumStock,
-									minimumStock: unitPrice.minimumStock,
-									maximumDiscountPercentage:
-										unitPrice.maximumDiscountPercentage,
-									maximumDiscountValue: unitPrice.maximumDiscountValue,
-									profitMargin: unitPrice.profitMargin,
-								},
-								{
-									client: trx,
-								},
-							);
-						}
-					}
-				}
-
-				await CheckingAccount.create(
-					{
-						economic_group_id: economicGroup.id,
-						business_unit_id: unit.id,
-						description: `Cofre - ${unit.identification ?? "Não informado"}`,
-						accountNumber: "Cofre",
-						bankCode: "Cofre",
-						bankName: "Cofre",
-						agency: "001",
-						type: CheckingAccountType.CX,
-						balance: 0,
-						active: true,
-					},
-					{
-						client: trx,
-					},
-				);
-
-				return {
-					id: unit.id,
-				};
-			});
-		} catch (error) {
-			Logger.error(error.message);
-
-			throw new InternalErrorException(
-				"Erro na execução",
-				500,
-				"E_INTERNAL_ERROR",
-			);
-		}
-	}
-
-	public async addCollaborator(
-		unitId: string,
-		props: {
-			userId: string;
-			roleId: number;
-		},
-	) {
-		await Database.transaction(async (trx) => {
-			const unit = await BusinessUnit.query()
-				.useTransaction(trx)
-				.where("id", unitId)
-				.firstOrFail();
-
-			const userToAdd = await User.query()
-				.useTransaction(trx)
-				.where("id", props.userId)
-				.preload("roles")
-				.firstOrFail();
-			const hasRoleAlready = userToAdd.roles.find(
-				(role) => role.role_id === props.roleId,
-			);
-
-			if (hasRoleAlready) {
-				throw new BadRequestException(
-					"Este usuário já é colaborador desta unidade",
-					400,
-					"E_ALREADY_EXISTS",
-				);
-			}
-
-			await userToAdd.related("roles").create(
-				{
-					role_id: props.roleId,
-					unit_id: unit.id,
-					active: true,
-				},
-				{
-					client: trx,
-				},
-			);
-
-			await userToAdd
-				.related("economicGroups")
-				.sync([unit.economicGroupId], false, trx);
-		});
-
-		// role
-		// unit
-	}
-
-	public async createCollaborator(
-		authCtx: AuthContext,
-		props: {
-			systemId: number;
-			roleId: number;
-			name: string;
-			email: string;
-			password: string;
-		},
-	) {
-		await Database.transaction(async (trx) => {
-			const unit = await BusinessUnit.query()
-				.useTransaction(trx)
-				.where("id", authCtx.unit.id)
-				.preload("economicGroup")
-				.firstOrFail();
-
-			const userAlreadyExists = await User.query()
-				.useTransaction(trx)
-				.whereRaw("lower(email) = lower(?)", [props.email])
-				.where("system_id", props.systemId)
-				.first();
-
-			if (userAlreadyExists) {
-				throw new BadRequestException(
-					"Este usuário já existe",
-					400,
-					"E_ALREADY_EXISTS",
-				);
-			}
-
-			const userToAdd = await User.create(
-				{
-					name: props.name,
-					email: props.email,
-					password: props.password,
-					system_id: props.systemId,
-					type: "user",
-				},
-				{
-					client: trx,
-				},
-			);
-
-			await userToAdd.related("roles").create(
-				{
-					role_id: props.roleId,
-					unit_id: unit.id,
-					active: true,
-				},
-				{
-					client: trx,
-				},
-			);
-
-			await userToAdd
-				.related("economicGroups")
-				.sync([unit.economicGroupId], false, trx);
-		});
-	}
-
-	public async show(id: string) {
-		const unit = await BusinessUnit.query()
-			.where("id", id)
-			.preload("economicGroup")
-			.first();
-
-		if (!unit) {
-			throw new ResourceNotFoundException(
-				"A unidade não foi encontrada",
-				404,
-				"E_NOT_FOUND",
-			);
-		}
-
-		const jsonData = unit.toJSON();
-		jsonData.fantasyName = jsonData.fantasy_name;
-		jsonData.companyName = jsonData.company_name;
-		jsonData.postalCode = jsonData.postal_code;
-		jsonData.stateRegistration = jsonData.state_registration;
-		jsonData.cityRegistration = jsonData.city_registration;
-		jsonData.cityCode = jsonData.city_code;
-
-		jsonData.fantasy_name = undefined;
-		jsonData.company_name = undefined;
-		jsonData.postal_code = undefined;
-		jsonData.state_registration = undefined;
-		jsonData.city_registration = undefined;
-		jsonData.city_code = undefined;
-
-		return jsonData;
-	}
-
-	public async update(
-		id: string,
-		data: IUpdateBusinessUnit,
-	): Promise<BusinessUnit> {
-		return Database.transaction(async (trx) => {
-			const unit = await BusinessUnit.query()
-				.useTransaction(trx)
-				.where("id", id)
-				.preload("economicGroup")
-				.first();
-
-			if (!unit) {
-				throw new ResourceNotFoundException(
-					"A unidade não foi encontrada",
-					404,
-					"E_NOT_FOUND",
-				);
-			}
-
-			if (data.document && data.document !== unit.document) {
-				if (!validCNPJ(data.document)) {
-					throw new BadRequestException(
-						"CPF/CNPJ inválido",
-						400,
-						"E_INVALID_DOCUMENT",
-					);
-				}
-				const hasUnitWithDocument = await unit.economicGroup
-					.related("businessUnits")
-					.query()
-					.useTransaction(trx)
-					.where("document", data.document)
-					.first();
-				if (hasUnitWithDocument) {
-					throw new BadRequestException(
-						`Este Cnpj já existe neste Grupo Economico para a Clinica "${
-							unit.fantasyName ?? "-"
-						}";`,
-						400,
-						"E_INVALID_DOCUMENT",
-					);
-				}
-			}
-
-			if (!unit.unit_patient_id) {
-				const unitPatient = await Patient.create(
-					{
-						business_unit_id: unit.id,
-						type: PatientType.UNIT,
-						name: unit.identification,
-					},
-					{ client: trx },
-				);
-				await unitPatient
-					.related("tutor")
-					.create({ corporateName: unit.companyName }, { client: trx });
-				await unitPatient.related("contacts").createMany(
-					[
-						{
-							main: true,
-							contact: data.email,
-							observation: "",
-							type: "email",
-							notGiven: false,
-						},
-						{
-							main: false,
-							contact: data.phone,
-							observation: "",
-							type: "celular",
-							notGiven: false,
-						},
-					].filter((r) => !!r.contact) as Partial<PatientContact>[],
-					{ client: trx },
-				);
-
-				await unit
-					.merge({ unit_patient_id: unitPatient.id })
-					.useTransaction(trx)
-					.save();
-			} else {
-				await Database.from("patients")
-					.update({
-						name: data.identification,
-					})
-					.where("id", unit.unit_patient_id)
-					.useTransaction(trx);
-				await Database.from("patient_tutors")
-					.update({
-						corporate_name: data.companyName ?? "Sem identificação",
-					})
-					.where("patient_id", unit.unit_patient_id)
-					.useTransaction(trx);
-			}
-
-			return unit
-				.merge({
-					identification: data.identification,
-					fantasyName: data.fantasy_name,
-					companyName: data.companyName,
-					email: data.email,
-					document: data.document,
-					phone: data.phone,
-					postalCode: data.postal_code,
-					address: data.address,
-					number: data.number,
-					complement: data.complement,
-					district: data.district,
-					city: data.city,
-					state: data.state,
-					active: data.active,
-
-					stateRegistration: data.state_registration,
-					cityRegistration: data.city_registration,
-					cnae: data.cnae,
-					simple: data.simple,
-					cityCode: data.cityCode,
-
-					status: data.status,
-				})
-				.useTransaction(trx)
-				.save();
-		});
-	}
-
-	public async updateAcquirer(
-		unitId: string,
-		id: string,
-		data: IBusinessUnitAcquirerData,
-	) {
-		await Database.transaction(async (trx) => {
-			const unit = await BusinessUnit.query()
-				.where("id", unitId)
-				.useTransaction(trx)
-				.firstOrFail();
-
-			const acquirer = await unit
-				.related("acquirers")
-				.query()
-				.where("id", id)
-				.first();
-
-			if (!acquirer) {
-				throw new ResourceNotFoundException(
-					"Adquirente não encontrado",
-					404,
-					"ERR",
-				);
-			}
-
-			await acquirer
-				.merge({ document: data.document, active: data.active })
-				.useTransaction(trx)
-				.save();
-		});
-	}
-
-	public async deleteAcquirer(unitId: string, id: string) {
-		await Database.transaction(async (trx) => {
-			const unit = await BusinessUnit.query()
-				.where("id", unitId)
-				.useTransaction(trx)
-				.firstOrFail();
-
-			const acquirer = await unit
-				.related("acquirers")
-				.query()
-				.where("id", id)
-				.first();
-
-			if (!acquirer) {
-				throw new ResourceNotFoundException(
-					"Adquirente não encontrado",
-					404,
-					"ERR",
-				);
-			}
-
-			await acquirer.softDelete();
-		});
-	}
-
-	public async updateUser(
-		unitId: string,
-		_: User,
-		id: string,
-		data: IUpdateUnitUser,
-	) {
-		// TODO enable later
-		// if (!(await this.sharedService.userHasRoles(loggedUser, ['admin']))) {
-		//   throw new BadRequestException(
-		//     'Apenas administradores podem alterar usuários',
-		//   );
-		// }
-
-		const user = await User.find(id);
-
-		if (!user) {
-			throw new ResourceNotFoundException(
-				"Usuário não encontrado",
-				404,
-				"E_NOT_FOUND",
-			);
-		}
-
-		if (data.email && data.email !== user.email) {
-			const existingUser = await User.findBy("email", data.email);
-			if (existingUser) {
-				throw new BadRequestException("E-mail já cadastrado");
-			}
-		}
-
-		const { roles, ...sanitized } = data;
-
-		if (roles?.length === 0) {
-			throw new BadRequestException(
-				"Não selecionar cargos vai desativar o usuário",
-			);
-		}
-
-		Object.assign(user, sanitized);
-
-		await user.load("roles", (query) => {
-			query.where("unit_id", unitId);
-			query.preload("role");
-		});
-
-		let signature = user.signatureImagePath;
-		if (data.signature?.tmpPath) {
-			const fileBuffer = await readFile(data.signature.tmpPath);
-			const resizedBuffer = await sharp(fileBuffer)
-				.resize({
-					width: 150,
-					fit: "contain",
-					background: { r: 255, g: 255, b: 255, alpha: 0 },
-				})
-				.png()
-				.toBuffer();
-
-			signature = `assinaturas/${user.id}-${data.signature.clientName}`;
-			Drive.use("s3-cdn").put(signature, resizedBuffer, {
-				visibility: "public",
-				contentDisposition: "inline",
-			});
-		}
-
-		await Database.transaction(async (trx) => {
-			await user
-				.merge({
-					name: data.name,
-					email: data.email,
-					document: data.document,
-					phone: data.phone,
-					postalCode: data.postalCode,
-					address: data.address,
-					number: data.number,
-					district: data.district,
-					city: data.city,
-					state: data.state,
-					inscription: data.inscription,
-					licensingJob: data.licensingJob,
-					onDuty: data.onDuty,
-					birthDate: data.birthDate,
-					signatureImagePath: signature,
-				})
-				.useTransaction(trx)
-				.save();
-
-			if ((roles ?? []).length > 0) {
-				await user.related("roles").query().delete().useTransaction(trx);
-
-				// eslint-disable-next-line no-restricted-syntax
-				for await (const role of roles ?? []) {
-					await user.related("roles").create(
-						{
-							role_id: role,
-							unit_id: unitId,
-						},
-						{
-							client: trx,
-						},
-					);
-				}
-			}
-		});
-
-		return user;
-	}
-
-	public async getUserBusinessUnits(authCtx: AuthContext, data: ISearchClinic) {
-		const query = BusinessUnit.query()
-			.preload("economicGroup")
-			.where("economic_group_id", authCtx.group.id);
-
-		if (data.document) {
-			query.where("document", "ilike", `%${data.document}%`);
-		}
-
-		if (data.name) {
-			query.whereRaw("(fantasy_name ilike ? or company_name ilike ?)", [
-				`%${data.name}%`,
-				`%${data.name}%`,
-			]);
-		}
-
-		if (data.identification) {
-			query.where("identification", "ilike", `%${data.identification}%`);
-		}
-
-		const entities = await query;
-
-		return entities.map((elem) => ({
-			id: elem.id,
-			identification: elem.identification,
-			document: elem.document,
-			fantasyName: elem.fantasyName,
-			companyName: elem.companyName,
-			phone: elem.phone,
-			group: elem.economicGroup,
-		}));
-	}
-
-	async searchUser(authCtx: AuthContext, id: string) {
-		const user = await User.query()
-			.where("id", id)
-			.preload("roles", (query) => {
-				query.preload("role").preload("unit").preload("deposit");
-
-				query.whereHas("unit", (q) => {
-					q.where("economic_group_id", authCtx.group.id);
-				});
-			})
-			.first();
-
-		if (!user) {
-			throw new ResourceNotFoundException(
-				"Usuário não encontrado",
-				404,
-				"E_NOT_FOUND",
-			);
-		}
-
-		return {
-			...user.toJSON(),
-			roles: user.roles.map((f) => ({
-				id: f.role.id,
-				name: f.role.name,
-				active: f.active,
-				unit: {
-					id: f.unit.id,
-					name: f.unit.companyName ?? "-",
-				},
-				deposit: f.deposit ?? null,
-			})),
-		};
-	}
-
-	public async checkExistingDocument(document: string) {
-		const isValidDocument = this.sharedService.validDocument(document);
-		if (!isValidDocument) {
-			return {
-				valid: false,
-				exists: false,
-			};
-		}
-
-		const doc = await BusinessUnit.findBy("document", document);
-
-		return {
-			valid: true,
-			exists: Boolean(doc),
-		};
-	}
-
-	public async syncConfig(authCtx: AuthContext) {
-		const data: TConfigSchema = {
-			crm: {
-				crm_useful_days: authCtx.unit.unitConfig.crmUsefulDays,
-				default_funnel_meta_id: authCtx.unit.unitConfig.default_funnel_meta_id,
-			},
-			bills: {
-				sale_exit_account_plan_id:
-					authCtx.unit.unitConfig.sale_exit_account_plan_id,
-				other_exit_account_plan_id:
-					authCtx.unit.unitConfig.other_exit_account_plan_id,
-				requires_bill_patient: authCtx.unit.unitConfig.requiresBillPatient,
-			},
-			receipts: {
-				order_entry_account_plan_id:
-					authCtx.unit.unitConfig.order_entry_account_plan_id,
-				other_entry_account_plan_id:
-					authCtx.unit.unitConfig.other_entry_account_plan_id,
-				generate_finances_on_receipt_finish:
-					authCtx.unit.unitConfig.generatesFinancesOnReceiptsFinish,
-			},
-			products: {
-				service_variation_group_id:
-					authCtx.unit.unitConfig.service_variation_group_id,
-			},
-			fiscalDocuments: {
-				fiscal_document_environment:
-					authCtx.unit.unitConfig.fiscalDocumentEnvironment,
-				focus_homologation_token: authCtx.unit.unitConfig.focusProductionToken,
-				focus_production_token: authCtx.unit.unitConfig.focusProductionToken,
-				xml_download_authorization:
-					authCtx.unit.unitConfig.xmlDownloadAuthorization,
-				group_nfse_documents: authCtx.unit.unitConfig.groupNfseDocuments,
-				default_nfse_description:
-					authCtx.unit.unitConfig.defaultNfseDescription ?? undefined,
-			},
-			schedules: {
-				allow_change_schedule_duration:
-					authCtx.unit.unitConfig.allowChangeScheduleDuration,
-				interval: authCtx.unit.unitConfig.interval,
-				show_treatment_executions_schedule:
-					authCtx.unit.unitConfig.showTreatmentExecutionsSchedule,
-				show_treatment_schedules:
-					authCtx.unit.unitConfig.showsTreatmentSchedules,
-				treatment_schedule_service_type_id:
-					authCtx.unit.unitConfig.treatment_schedule_service_type_id,
-				return_interval: authCtx.unit.unitConfig.returnInterval,
-				allowed_return_qty: authCtx.unit.unitConfig.allowedReturnQty,
-				schedule_late_minutes: authCtx.unit.unitConfig.scheduleLateMinutes,
-				schedule_missed_minutes: authCtx.unit.unitConfig.scheduleMissedMinutes,
-				integrates_to_crm_schedules:
-					authCtx.unit.unitConfig.integratesToCrmSchedules,
-				sync_schedule_movements: authCtx.unit.unitConfig.syncScheduleMovements,
-				sync_schedules_crm: authCtx.unit.unitConfig.syncCrmSchedules,
-			},
-			businessUnits: {
-				patient_dependent: authCtx.unit.unitConfig.requiresScheduleTutor,
-				locked_daily_movement_date:
-					authCtx.unit.unitConfig.lockedDailyMovementDate,
-				daily_cashier_type: authCtx.unit.unitConfig.dailyCashierType,
-				requires_finance_client: authCtx.unit.unitConfig.requiresFinanceClient,
-				marketing_account_plan_id:
-					authCtx.unit.unitConfig.marketing_account_plan_id,
-				incoming_deposit_id: authCtx.unit.unitConfig.incoming_deposit_id,
-				outgoing_deposit_id: authCtx.unit.unitConfig.outgoing_deposit_id,
-				balance_control: authCtx.unit.unitConfig.balanceControl,
-				controls_deposit: authCtx.unit.unitConfig.controlsDeposit,
-				requires_client_document:
-					authCtx.unit.unitConfig.requiresClientDocument,
-				alter_prices: authCtx.unit.unitConfig.alterPrices,
-				dashboard_lists_retroactive_schedules:
-					authCtx.unit.unitConfig.dashboardListsRetroactiveSchedules,
-				dre_report_file: authCtx.unit.unitConfig.dreReportFile ?? undefined,
-				useful_days: authCtx.unit.unitConfig.crmUsefulDays,
-				treatment: authCtx.unit.unitConfig.treatment,
-				overall_resume_type: authCtx.unit.unitConfig.overallResumeType,
-				ticket_type: authCtx.unit.unitConfig.ticketType,
-				reviewer: authCtx.unit.unitConfig.reviewer,
-				internal_code: authCtx.unit.unitConfig.internalCode,
-			},
-			budgets: {
-				budgets_payments_required:
-					authCtx.unit.unitConfig.budgetsPaymentsRequired,
-			},
-		};
-
-		await authCtx.unit.unitConfig.merge({ config: data }).save();
-	}
-
-	public async calculateStates(authCtx: AuthContext) {
-		const result: { state: string }[] = await Database.from("business_units")
-			.select(Database.raw("distinct state"))
-			.whereRaw("economic_group_id = ?", [authCtx.group.id])
-			.whereRaw("state is not null")
-			.orderBy("state");
-
-		return result.map((r) => r.state);
-	}
-
-	public async mergeConfig(
-		_: AuthContext,
-		data: {
-			systemIDList: number[];
-			key: string;
-			param: {
-				[key: string]: unknown;
-			};
-		},
-	) {
-		await Database.transaction(async (trx) => {
-			const configs = await BusinessUnitConfig.query()
-				.useTransaction(trx)
-				.whereHas("businessUnit", (query) => {
-					query.whereHas("economicGroup", (query) => {
-						query.whereIn("system_id", data.systemIDList);
-					});
-				});
-
-			const tasks = configs.map((cfg) => {
-				if (cfg.config[data.key]) {
-					const updatedCfg = { ...cfg.config[data.key], ...data.param };
-					return cfg.merge({ config: updatedCfg }).useTransaction(trx).save();
-				}
-
-				const updatedCfg = Object.assign(cfg.config, {
-					[data.key]: data.param,
-				});
-				return cfg.merge({ config: updatedCfg }).useTransaction(trx).save();
-			});
-			await Promise.all(tasks);
-		});
-	}
+  constructor(private readonly sharedService: SharedService) {}
+
+  public async systemUnits(systemID: number): Promise<Array<BusinessUnit>> {
+    return BusinessUnit.query()
+      .where("active", true)
+      .whereNull("deleted_at")
+      .select("id", "identification", "economic_group_id")
+      .preload("economicGroup", (query) => {
+        query.select("id", "companyName");
+      })
+      .whereHas("economicGroup", (query) => {
+        query.where("system_id", systemID);
+      });
+  }
+
+  public async index(
+    authCtx: AuthContext,
+    data: ISearchBusinessUnit,
+  ): Promise<Array<BusinessUnit>> {
+    const qb = BusinessUnit.query()
+      .where("economic_group_id", authCtx.group.id)
+      .preload("economicGroup");
+
+    if (data.identification) {
+      qb.where("identification", "ilike", `%${data.identification}%`);
+    }
+
+    if (data.email) {
+      qb.where("email", "ilike", `%${data.email}%`);
+    }
+
+    return qb;
+  }
+
+  public async store(authCtx: AuthContext, data: ICreateBusinessUnit) {
+    try {
+      await Database.transaction(async (trx) => {
+        const economicGroups = await authCtx.user
+          .related("economicGroups")
+          .query()
+          .useTransaction(trx);
+        const economicGroup = economicGroups.find((eg) => eg.id === data.economic_group_id);
+
+        if (!economicGroup) {
+          throw new BadRequestException("Grupo econômico inválido");
+        }
+
+        if (!validCNPJ(data.document)) {
+          throw new BadRequestException("CPF/CNPJ inválido", 400, "E_INVALID_DOCUMENT");
+        }
+        const hasUnitWithDocument = await economicGroup
+          .related("businessUnits")
+          .query()
+          .useTransaction(trx)
+          .where("document", data.document)
+          .first();
+        if (hasUnitWithDocument) {
+          throw new BadRequestException(
+            `Este Cnpj já existe neste Grupo Economico para a Clinica "${
+              data.fantasyName ?? "-"
+            }";`,
+            400,
+            "E_INVALID_DOCUMENT",
+          );
+        }
+
+        const unit = await economicGroup.related("businessUnits").create(
+          {
+            system_id: authCtx.system.id,
+            ...data,
+          },
+          {
+            client: trx,
+          },
+        );
+
+        await unit.related("unitConfig").create(
+          {
+            config: authCtx.systemUrl.defaultConfig,
+          },
+          {
+            client: trx,
+          },
+        );
+
+        const unitPatient = await Patient.create(
+          {
+            business_unit_id: unit.id,
+            type: PatientType.UNIT,
+            name: unit.identification,
+          },
+          { client: trx },
+        );
+        await unitPatient
+          .related("tutor")
+          .create({ corporateName: unit.companyName }, { client: trx });
+        await unitPatient.related("contacts").createMany(
+          [
+            {
+              main: true,
+              contact: data.email,
+              observation: "",
+              type: "email",
+              notGiven: false,
+            },
+            {
+              main: false,
+              contact: data.phone,
+              observation: "",
+              type: "celular",
+              notGiven: false,
+            },
+          ].filter((r) => !!r.contact) as Partial<PatientContact>[],
+          { client: trx },
+        );
+
+        await unit.merge({ unit_patient_id: unitPatient.id }).useTransaction(trx).save();
+
+        await unit.related("licences").create(
+          {
+            id: v4(),
+            expirationDate: addDays(new Date(), 1000),
+            type: LicenceType.TRIAL,
+            active: true,
+          },
+          {
+            client: trx,
+          },
+        );
+
+        const products = await economicGroup
+          .related("products")
+          .query()
+          .useTransaction(trx)
+          .preload("variations", (query) => {
+            query.preload("businessUnitProducts");
+          });
+
+        // eslint-disable-next-line no-restricted-syntax
+        for await (const product of products) {
+          // eslint-disable-next-line no-restricted-syntax
+          for await (const variation of product.variations) {
+            const [unitPrice] = product.variations[0].businessUnitProducts;
+
+            if (unitPrice) {
+              await variation.related("businessUnitProducts").create(
+                {
+                  businness_unit_id: unit.id,
+                  stock: 0,
+                  price: unitPrice.price,
+                  costPrice: unitPrice.costPrice,
+                  maximumStock: unitPrice.maximumStock,
+                  minimumStock: unitPrice.minimumStock,
+                  maximumDiscountPercentage: unitPrice.maximumDiscountPercentage,
+                  maximumDiscountValue: unitPrice.maximumDiscountValue,
+                  profitMargin: unitPrice.profitMargin,
+                },
+                {
+                  client: trx,
+                },
+              );
+            }
+          }
+        }
+
+        await CheckingAccount.create(
+          {
+            economic_group_id: economicGroup.id,
+            business_unit_id: unit.id,
+            description: `Cofre - ${unit.identification ?? "Não informado"}`,
+            accountNumber: "Cofre",
+            bankCode: "Cofre",
+            bankName: "Cofre",
+            agency: "001",
+            type: CheckingAccountType.CX,
+            balance: 0,
+            active: true,
+          },
+          {
+            client: trx,
+          },
+        );
+
+        return {
+          id: unit.id,
+        };
+      });
+    } catch (error) {
+      Logger.error(error.message);
+
+      throw new InternalErrorException("Erro na execução", 500, "E_INTERNAL_ERROR");
+    }
+  }
+
+  public async addCollaborator(
+    unitId: string,
+    props: {
+      userId: string;
+      roleId: number;
+    },
+  ) {
+    await Database.transaction(async (trx) => {
+      const unit = await BusinessUnit.query().useTransaction(trx).where("id", unitId).firstOrFail();
+
+      const userToAdd = await User.query()
+        .useTransaction(trx)
+        .where("id", props.userId)
+        .preload("roles")
+        .firstOrFail();
+      const hasRoleAlready = userToAdd.roles.find((role) => role.role_id === props.roleId);
+
+      if (hasRoleAlready) {
+        throw new BadRequestException(
+          "Este usuário já é colaborador desta unidade",
+          400,
+          "E_ALREADY_EXISTS",
+        );
+      }
+
+      await userToAdd.related("roles").create(
+        {
+          role_id: props.roleId,
+          unit_id: unit.id,
+          active: true,
+        },
+        {
+          client: trx,
+        },
+      );
+
+      await userToAdd.related("economicGroups").sync([unit.economicGroupId], false, trx);
+    });
+
+    // role
+    // unit
+  }
+
+  public async createCollaborator(
+    authCtx: AuthContext,
+    props: {
+      systemId: number;
+      roleId: number;
+      name: string;
+      email: string;
+      password: string;
+    },
+  ) {
+    await Database.transaction(async (trx) => {
+      const unit = await BusinessUnit.query()
+        .useTransaction(trx)
+        .where("id", authCtx.unit.id)
+        .preload("economicGroup")
+        .firstOrFail();
+
+      const userAlreadyExists = await User.query()
+        .useTransaction(trx)
+        .whereRaw("lower(email) = lower(?)", [props.email])
+        .where("system_id", props.systemId)
+        .first();
+
+      if (userAlreadyExists) {
+        throw new BadRequestException("Este usuário já existe", 400, "E_ALREADY_EXISTS");
+      }
+
+      const userToAdd = await User.create(
+        {
+          name: props.name,
+          email: props.email,
+          password: props.password,
+          system_id: props.systemId,
+          type: "user",
+        },
+        {
+          client: trx,
+        },
+      );
+
+      await userToAdd.related("roles").create(
+        {
+          role_id: props.roleId,
+          unit_id: unit.id,
+          active: true,
+        },
+        {
+          client: trx,
+        },
+      );
+
+      await userToAdd.related("economicGroups").sync([unit.economicGroupId], false, trx);
+    });
+  }
+
+  public async show(id: string) {
+    const unit = await BusinessUnit.query().where("id", id).preload("economicGroup").first();
+
+    if (!unit) {
+      throw new ResourceNotFoundException("A unidade não foi encontrada", 404, "E_NOT_FOUND");
+    }
+
+    const jsonData = unit.toJSON();
+    jsonData.fantasyName = jsonData.fantasy_name;
+    jsonData.companyName = jsonData.company_name;
+    jsonData.postalCode = jsonData.postal_code;
+    jsonData.stateRegistration = jsonData.state_registration;
+    jsonData.cityRegistration = jsonData.city_registration;
+    jsonData.cityCode = jsonData.city_code;
+
+    jsonData.fantasy_name = undefined;
+    jsonData.company_name = undefined;
+    jsonData.postal_code = undefined;
+    jsonData.state_registration = undefined;
+    jsonData.city_registration = undefined;
+    jsonData.city_code = undefined;
+
+    return jsonData;
+  }
+
+  public async update(id: string, data: IUpdateBusinessUnit): Promise<BusinessUnit> {
+    return Database.transaction(async (trx) => {
+      const unit = await BusinessUnit.query()
+        .useTransaction(trx)
+        .where("id", id)
+        .preload("economicGroup")
+        .first();
+
+      if (!unit) {
+        throw new ResourceNotFoundException("A unidade não foi encontrada", 404, "E_NOT_FOUND");
+      }
+
+      if (data.document && data.document !== unit.document) {
+        if (!validCNPJ(data.document)) {
+          throw new BadRequestException("CPF/CNPJ inválido", 400, "E_INVALID_DOCUMENT");
+        }
+        const hasUnitWithDocument = await unit.economicGroup
+          .related("businessUnits")
+          .query()
+          .useTransaction(trx)
+          .where("document", data.document)
+          .first();
+        if (hasUnitWithDocument) {
+          throw new BadRequestException(
+            `Este Cnpj já existe neste Grupo Economico para a Clinica "${
+              unit.fantasyName ?? "-"
+            }";`,
+            400,
+            "E_INVALID_DOCUMENT",
+          );
+        }
+      }
+
+      if (!unit.unit_patient_id) {
+        const unitPatient = await Patient.create(
+          {
+            business_unit_id: unit.id,
+            type: PatientType.UNIT,
+            name: unit.identification,
+          },
+          { client: trx },
+        );
+        await unitPatient
+          .related("tutor")
+          .create({ corporateName: unit.companyName }, { client: trx });
+        await unitPatient.related("contacts").createMany(
+          [
+            {
+              main: true,
+              contact: data.email,
+              observation: "",
+              type: "email",
+              notGiven: false,
+            },
+            {
+              main: false,
+              contact: data.phone,
+              observation: "",
+              type: "celular",
+              notGiven: false,
+            },
+          ].filter((r) => !!r.contact) as Partial<PatientContact>[],
+          { client: trx },
+        );
+
+        await unit.merge({ unit_patient_id: unitPatient.id }).useTransaction(trx).save();
+      } else {
+        await Database.from("patients")
+          .update({
+            name: data.identification,
+          })
+          .where("id", unit.unit_patient_id)
+          .useTransaction(trx);
+        await Database.from("patient_tutors")
+          .update({
+            corporate_name: data.companyName ?? "Sem identificação",
+          })
+          .where("patient_id", unit.unit_patient_id)
+          .useTransaction(trx);
+      }
+
+      return unit
+        .merge({
+          identification: data.identification,
+          fantasyName: data.fantasy_name,
+          companyName: data.companyName,
+          email: data.email,
+          document: data.document,
+          phone: data.phone,
+          postalCode: data.postal_code,
+          address: data.address,
+          number: data.number,
+          complement: data.complement,
+          district: data.district,
+          city: data.city,
+          state: data.state,
+          active: data.active,
+
+          stateRegistration: data.state_registration,
+          cityRegistration: data.city_registration,
+          cnae: data.cnae,
+          simple: data.simple,
+          cityCode: data.cityCode,
+
+          status: data.status,
+        })
+        .useTransaction(trx)
+        .save();
+    });
+  }
+
+  public async updateAcquirer(unitId: string, id: string, data: IBusinessUnitAcquirerData) {
+    await Database.transaction(async (trx) => {
+      const unit = await BusinessUnit.query().where("id", unitId).useTransaction(trx).firstOrFail();
+
+      const acquirer = await unit.related("acquirers").query().where("id", id).first();
+
+      if (!acquirer) {
+        throw new ResourceNotFoundException("Adquirente não encontrado", 404, "ERR");
+      }
+
+      await acquirer
+        .merge({ document: data.document, active: data.active })
+        .useTransaction(trx)
+        .save();
+    });
+  }
+
+  public async deleteAcquirer(unitId: string, id: string) {
+    await Database.transaction(async (trx) => {
+      const unit = await BusinessUnit.query().where("id", unitId).useTransaction(trx).firstOrFail();
+
+      const acquirer = await unit.related("acquirers").query().where("id", id).first();
+
+      if (!acquirer) {
+        throw new ResourceNotFoundException("Adquirente não encontrado", 404, "ERR");
+      }
+
+      await acquirer.softDelete();
+    });
+  }
+
+  public async updateUser(unitId: string, _: User, id: string, data: IUpdateUnitUser) {
+    // TODO enable later
+    // if (!(await this.sharedService.userHasRoles(loggedUser, ['admin']))) {
+    //   throw new BadRequestException(
+    //     'Apenas administradores podem alterar usuários',
+    //   );
+    // }
+
+    const user = await User.find(id);
+
+    if (!user) {
+      throw new ResourceNotFoundException("Usuário não encontrado", 404, "E_NOT_FOUND");
+    }
+
+    if (data.email && data.email !== user.email) {
+      const existingUser = await User.findBy("email", data.email);
+      if (existingUser) {
+        throw new BadRequestException("E-mail já cadastrado");
+      }
+    }
+
+    const { roles, ...sanitized } = data;
+
+    if (roles?.length === 0) {
+      throw new BadRequestException("Não selecionar cargos vai desativar o usuário");
+    }
+
+    Object.assign(user, sanitized);
+
+    await user.load("roles", (query) => {
+      query.where("unit_id", unitId);
+      query.preload("role");
+    });
+
+    let signature = user.signatureImagePath;
+    if (data.signature?.tmpPath) {
+      const fileBuffer = await readFile(data.signature.tmpPath);
+      const resizedBuffer = await sharp(fileBuffer)
+        .resize({
+          width: 150,
+          fit: "contain",
+          background: { r: 255, g: 255, b: 255, alpha: 0 },
+        })
+        .png()
+        .toBuffer();
+
+      signature = `assinaturas/${user.id}-${data.signature.clientName}`;
+      Drive.use("s3-cdn").put(signature, resizedBuffer, {
+        visibility: "public",
+        contentDisposition: "inline",
+      });
+    }
+
+    await Database.transaction(async (trx) => {
+      await user
+        .merge({
+          name: data.name,
+          email: data.email,
+          document: data.document,
+          phone: data.phone,
+          postalCode: data.postalCode,
+          address: data.address,
+          number: data.number,
+          district: data.district,
+          city: data.city,
+          state: data.state,
+          inscription: data.inscription,
+          licensingJob: data.licensingJob,
+          onDuty: data.onDuty,
+          birthDate: data.birthDate,
+          signatureImagePath: signature,
+        })
+        .useTransaction(trx)
+        .save();
+
+      if ((roles ?? []).length > 0) {
+        await user.related("roles").query().delete().useTransaction(trx);
+
+        // eslint-disable-next-line no-restricted-syntax
+        for await (const role of roles ?? []) {
+          await user.related("roles").create(
+            {
+              role_id: role,
+              unit_id: unitId,
+            },
+            {
+              client: trx,
+            },
+          );
+        }
+      }
+    });
+
+    return user;
+  }
+
+  public async getUserBusinessUnits(authCtx: AuthContext, data: ISearchClinic) {
+    const query = BusinessUnit.query()
+      .preload("economicGroup")
+      .where("economic_group_id", authCtx.group.id);
+
+    if (data.document) {
+      query.where("document", "ilike", `%${data.document}%`);
+    }
+
+    if (data.name) {
+      query.whereRaw("(fantasy_name ilike ? or company_name ilike ?)", [
+        `%${data.name}%`,
+        `%${data.name}%`,
+      ]);
+    }
+
+    if (data.identification) {
+      query.where("identification", "ilike", `%${data.identification}%`);
+    }
+
+    const entities = await query;
+
+    return entities.map((elem) => ({
+      id: elem.id,
+      identification: elem.identification,
+      document: elem.document,
+      fantasyName: elem.fantasyName,
+      companyName: elem.companyName,
+      phone: elem.phone,
+      group: elem.economicGroup,
+    }));
+  }
+
+  async searchUser(authCtx: AuthContext, id: string) {
+    const user = await User.query()
+      .where("id", id)
+      .preload("roles", (query) => {
+        query.preload("role").preload("unit").preload("deposit");
+
+        query.whereHas("unit", (q) => {
+          q.where("economic_group_id", authCtx.group.id);
+        });
+      })
+      .first();
+
+    if (!user) {
+      throw new ResourceNotFoundException("Usuário não encontrado", 404, "E_NOT_FOUND");
+    }
+
+    return {
+      ...user.toJSON(),
+      roles: user.roles.map((f) => ({
+        id: f.role.id,
+        name: f.role.name,
+        active: f.active,
+        unit: {
+          id: f.unit.id,
+          name: f.unit.companyName ?? "-",
+        },
+        deposit: f.deposit ?? null,
+      })),
+    };
+  }
+
+  public async checkExistingDocument(document: string) {
+    const isValidDocument = this.sharedService.validDocument(document);
+    if (!isValidDocument) {
+      return {
+        valid: false,
+        exists: false,
+      };
+    }
+
+    const doc = await BusinessUnit.findBy("document", document);
+
+    return {
+      valid: true,
+      exists: Boolean(doc),
+    };
+  }
+
+  public async syncConfig(authCtx: AuthContext) {
+    const data: TConfigSchema = {
+      crm: {
+        crm_useful_days: authCtx.unit.unitConfig.crmUsefulDays,
+        default_funnel_meta_id: authCtx.unit.unitConfig.default_funnel_meta_id,
+      },
+      bills: {
+        sale_exit_account_plan_id: authCtx.unit.unitConfig.sale_exit_account_plan_id,
+        other_exit_account_plan_id: authCtx.unit.unitConfig.other_exit_account_plan_id,
+        requires_bill_patient: authCtx.unit.unitConfig.requiresBillPatient,
+      },
+      receipts: {
+        order_entry_account_plan_id: authCtx.unit.unitConfig.order_entry_account_plan_id,
+        other_entry_account_plan_id: authCtx.unit.unitConfig.other_entry_account_plan_id,
+        generate_finances_on_receipt_finish:
+          authCtx.unit.unitConfig.generatesFinancesOnReceiptsFinish,
+      },
+      products: {
+        service_variation_group_id: authCtx.unit.unitConfig.service_variation_group_id,
+      },
+      fiscalDocuments: {
+        fiscal_document_environment: authCtx.unit.unitConfig.fiscalDocumentEnvironment,
+        focus_homologation_token: authCtx.unit.unitConfig.focusProductionToken,
+        focus_production_token: authCtx.unit.unitConfig.focusProductionToken,
+        xml_download_authorization: authCtx.unit.unitConfig.xmlDownloadAuthorization,
+        group_nfse_documents: authCtx.unit.unitConfig.groupNfseDocuments,
+        default_nfse_description: authCtx.unit.unitConfig.defaultNfseDescription ?? undefined,
+      },
+      schedules: {
+        allow_change_schedule_duration: authCtx.unit.unitConfig.allowChangeScheduleDuration,
+        interval: authCtx.unit.unitConfig.interval,
+        show_treatment_executions_schedule: authCtx.unit.unitConfig.showTreatmentExecutionsSchedule,
+        show_treatment_schedules: authCtx.unit.unitConfig.showsTreatmentSchedules,
+        treatment_schedule_service_type_id:
+          authCtx.unit.unitConfig.treatment_schedule_service_type_id,
+        return_interval: authCtx.unit.unitConfig.returnInterval,
+        allowed_return_qty: authCtx.unit.unitConfig.allowedReturnQty,
+        schedule_late_minutes: authCtx.unit.unitConfig.scheduleLateMinutes,
+        schedule_missed_minutes: authCtx.unit.unitConfig.scheduleMissedMinutes,
+        integrates_to_crm_schedules: authCtx.unit.unitConfig.integratesToCrmSchedules,
+        sync_schedule_movements: authCtx.unit.unitConfig.syncScheduleMovements,
+        sync_schedules_crm: authCtx.unit.unitConfig.syncCrmSchedules,
+      },
+      businessUnits: {
+        patient_dependent: authCtx.unit.unitConfig.requiresScheduleTutor,
+        locked_daily_movement_date: authCtx.unit.unitConfig.lockedDailyMovementDate,
+        daily_cashier_type: authCtx.unit.unitConfig.dailyCashierType,
+        requires_finance_client: authCtx.unit.unitConfig.requiresFinanceClient,
+        marketing_account_plan_id: authCtx.unit.unitConfig.marketing_account_plan_id,
+        incoming_deposit_id: authCtx.unit.unitConfig.incoming_deposit_id,
+        outgoing_deposit_id: authCtx.unit.unitConfig.outgoing_deposit_id,
+        balance_control: authCtx.unit.unitConfig.balanceControl,
+        controls_deposit: authCtx.unit.unitConfig.controlsDeposit,
+        requires_client_document: authCtx.unit.unitConfig.requiresClientDocument,
+        alter_prices: authCtx.unit.unitConfig.alterPrices,
+        dashboard_lists_retroactive_schedules:
+          authCtx.unit.unitConfig.dashboardListsRetroactiveSchedules,
+        dre_report_file: authCtx.unit.unitConfig.dreReportFile ?? undefined,
+        useful_days: authCtx.unit.unitConfig.crmUsefulDays,
+        treatment: authCtx.unit.unitConfig.treatment,
+        overall_resume_type: authCtx.unit.unitConfig.overallResumeType,
+        ticket_type: authCtx.unit.unitConfig.ticketType,
+        reviewer: authCtx.unit.unitConfig.reviewer,
+        internal_code: authCtx.unit.unitConfig.internalCode,
+      },
+      budgets: {
+        budgets_payments_required: authCtx.unit.unitConfig.budgetsPaymentsRequired,
+      },
+    };
+
+    await authCtx.unit.unitConfig.merge({ config: data }).save();
+  }
+
+  public async calculateStates(authCtx: AuthContext) {
+    const result: { state: string }[] = await Database.from("business_units")
+      .select(Database.raw("distinct state"))
+      .whereRaw("economic_group_id = ?", [authCtx.group.id])
+      .whereRaw("state is not null")
+      .orderBy("state");
+
+    return result.map((r) => r.state);
+  }
+
+  public async mergeConfig(
+    _: AuthContext,
+    data: {
+      systemIDList: number[];
+      key: string;
+      param: {
+        [key: string]: unknown;
+      };
+    },
+  ) {
+    await Database.transaction(async (trx) => {
+      const configs = await BusinessUnitConfig.query()
+        .useTransaction(trx)
+        .whereHas("businessUnit", (query) => {
+          query.whereHas("economicGroup", (query) => {
+            query.whereIn("system_id", data.systemIDList);
+          });
+        });
+
+      const tasks = configs.map((cfg) => {
+        if (cfg.config[data.key]) {
+          const updatedCfg = { ...cfg.config[data.key], ...data.param };
+          return cfg.merge({ config: updatedCfg }).useTransaction(trx).save();
+        }
+
+        const updatedCfg = Object.assign(cfg.config, {
+          [data.key]: data.param,
+        });
+        return cfg.merge({ config: updatedCfg }).useTransaction(trx).save();
+      });
+      await Promise.all(tasks);
+    });
+  }
 }

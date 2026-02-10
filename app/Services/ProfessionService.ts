@@ -1,6 +1,6 @@
-import { inject } from '@adonisjs/fold';
-import Profession from 'App/Models/Profession';
-import SharedService from 'App/Services/SharedService';
+import { inject } from "@adonisjs/fold";
+import Profession from "App/Models/Profession";
+import SharedService from "App/Services/SharedService";
 
 interface ISearch {
   description?: string;
@@ -14,7 +14,7 @@ export default class ProfessionService {
     const qb = Profession.query();
 
     if (data.description) {
-      qb.where('description', 'ilike', `%${data.description}%`);
+      qb.where("description", "ilike", `%${data.description}%`);
     }
 
     return qb;
@@ -22,7 +22,7 @@ export default class ProfessionService {
 
   async show(id: number): Promise<Profession> {
     const profession = await Profession.query()
-      .where('id', id)
+      .where("id", id)
 
       .first();
 

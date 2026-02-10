@@ -9,13 +9,13 @@ import {
   hasMany,
   ManyToMany,
   manyToMany,
-} from '@ioc:Adonis/Lucid/Orm';
-import EconomicGroup from 'App/Models/EconomicGroup';
-import Product from 'App/Models/Product';
-import Variation from 'App/Models/Variation';
-import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
-import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
+} from "@ioc:Adonis/Lucid/Orm";
+import EconomicGroup from "App/Models/EconomicGroup";
+import Product from "App/Models/Product";
+import Variation from "App/Models/Variation";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import { DateTime } from "luxon";
+import { v4 } from "uuid";
 
 export default class VariationGroup extends BaseModel {
   @column({ isPrimary: true })
@@ -53,17 +53,17 @@ export default class VariationGroup extends BaseModel {
   public economicGroup: BelongsTo<typeof EconomicGroup>;
 
   @manyToMany(() => Variation, {
-    pivotTable: 'variation_group_variations',
-    localKey: 'id',
-    pivotForeignKey: 'group_variation_id',
-    relatedKey: 'id',
-    pivotRelatedForeignKey: 'variation_id',
+    pivotTable: "variation_group_variations",
+    localKey: "id",
+    pivotForeignKey: "group_variation_id",
+    relatedKey: "id",
+    pivotRelatedForeignKey: "variation_id",
   })
   public variations: ManyToMany<typeof Variation>;
 
   @hasMany(() => Product, {
-    localKey: 'id',
-    foreignKey: ' variation_group_id',
+    localKey: "id",
+    foreignKey: " variation_group_id",
   })
   public products: HasMany<typeof Product>;
 }

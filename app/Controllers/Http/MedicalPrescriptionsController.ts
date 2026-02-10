@@ -1,11 +1,11 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import MedicalPrescriptionService, {
   MedicalPrescriptionValidation,
-} from 'App/Services/MedicalPrescriptionService';
-import SharedService from 'App/Services/SharedService';
-import CreateMedicalPrescriptionValidator from 'App/Validators/MedicalPrescription/CreateMedicalPrescriptionValidator';
-import UpdateMedicalPrescriptionValidator from 'App/Validators/MedicalPrescription/UpdateMedicalPrescriptionValidator';
+} from "App/Services/MedicalPrescriptionService";
+import SharedService from "App/Services/SharedService";
+import CreateMedicalPrescriptionValidator from "App/Validators/MedicalPrescription/CreateMedicalPrescriptionValidator";
+import UpdateMedicalPrescriptionValidator from "App/Validators/MedicalPrescription/UpdateMedicalPrescriptionValidator";
 
 @inject()
 export default class MedicalPrescriptionsController {
@@ -15,9 +15,7 @@ export default class MedicalPrescriptionsController {
   ) {}
 
   public async index({ auth, response }: HttpContextContract) {
-    const result = await this.service.index(
-      await this.sharedService.getAuthContext(auth),
-    );
+    const result = await this.service.index(await this.sharedService.getAuthContext(auth));
 
     return response.ok(result);
   }
@@ -46,12 +44,7 @@ export default class MedicalPrescriptionsController {
     return response.created(result);
   }
 
-  public async update({
-    auth,
-    params,
-    request,
-    response,
-  }: HttpContextContract) {
+  public async update({ auth, params, request, response }: HttpContextContract) {
     const payload = await request.validate(UpdateMedicalPrescriptionValidator);
     const { key } = this.service.matchSchema(payload.type, payload.frequency);
     const payload2 = await request.validate(MedicalPrescriptionValidation[key]);
@@ -67,10 +60,7 @@ export default class MedicalPrescriptionsController {
   }
 
   public async destroy({ auth, params, response }: HttpContextContract) {
-    await this.service.delete(
-      await this.sharedService.getAuthContext(auth),
-      params.id,
-    );
+    await this.service.delete(await this.sharedService.getAuthContext(auth), params.id);
 
     return response.noContent();
   }

@@ -1,6 +1,6 @@
-import { MultipartFileContract } from '@ioc:Adonis/Core/BodyParser';
-import { TutorResidences } from 'App/Models/PatientTutor';
-import { DateTime } from 'luxon';
+import { MultipartFileContract } from "@ioc:Adonis/Core/BodyParser";
+import { TutorResidences } from "App/Models/PatientTutor";
+import { DateTime } from "luxon";
 
 export default interface IPatientSupplierData {
   name: string;
@@ -11,7 +11,7 @@ export default interface IPatientSupplierData {
 
   birthDate?: DateTime;
   inscription?: string;
-  residence?: typeof TutorResidences[number];
+  residence?: (typeof TutorResidences)[number];
   photo?: MultipartFileContract;
   tags?: string;
   active?: boolean;

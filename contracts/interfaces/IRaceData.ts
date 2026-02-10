@@ -1,4 +1,4 @@
-import { RaceFur } from 'App/Models/Race';
+import { RaceFur } from "App/Models/Race";
 
 export default interface IRaceData {
   description: string;

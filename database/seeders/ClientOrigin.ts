@@ -1,148 +1,148 @@
-import BaseSeeder from '@ioc:Adonis/Lucid/Seeder';
-import ClientOrigin, { ClientOriginType } from 'App/Models/ClientOrigin';
-import System from 'App/Models/System';
+import BaseSeeder from "@ioc:Adonis/Lucid/Seeder";
+import ClientOrigin, { ClientOriginType } from "App/Models/ClientOrigin";
+import System from "App/Models/System";
 
 export default class extends BaseSeeder {
   private BASE: Array<Partial<ClientOrigin>> = [
     {
-      description: 'Google',
+      description: "Google",
       type: ClientOriginType.C,
       active: true,
     },
     {
-      description: 'Facebook',
+      description: "Facebook",
       type: ClientOriginType.C,
       active: true,
     },
     {
-      description: 'Instagram',
+      description: "Instagram",
       type: ClientOriginType.C,
       active: true,
     },
     {
-      description: 'Indicação de amigo',
+      description: "Indicação de amigo",
       type: ClientOriginType.C,
       active: true,
     },
     {
-      description: 'Indicação de colega veterinário',
+      description: "Indicação de colega veterinário",
       type: ClientOriginType.C,
       active: true,
     },
     {
-      description: 'Indicação de Petshop',
+      description: "Indicação de Petshop",
       type: ClientOriginType.C,
       active: true,
     },
     {
-      description: 'Passando na rua',
+      description: "Passando na rua",
       type: ClientOriginType.C,
       active: true,
     },
     {
-      description: 'Radio',
+      description: "Radio",
       type: ClientOriginType.C,
       active: true,
     },
     {
-      description: 'Televisão',
+      description: "Televisão",
       type: ClientOriginType.C,
       active: true,
     },
     {
-      description: 'Panfletagem',
+      description: "Panfletagem",
       type: ClientOriginType.C,
       active: true,
     },
     {
-      description: 'Base de Clientes',
+      description: "Base de Clientes",
       type: ClientOriginType.CRM,
     },
     {
-      description: 'Bussdor',
+      description: "Bussdor",
       type: ClientOriginType.CRM,
     },
     {
-      description: 'E-mail',
+      description: "E-mail",
       type: ClientOriginType.CRM,
     },
     {
-      description: 'Evento',
+      description: "Evento",
       type: ClientOriginType.CRM,
     },
     {
-      description: 'Facebook',
+      description: "Facebook",
       type: ClientOriginType.CRM,
     },
     {
-      description: 'Google',
+      description: "Google",
       type: ClientOriginType.CRM,
     },
     {
-      description: 'Indicação Cliente',
+      description: "Indicação Cliente",
       type: ClientOriginType.CRM,
     },
     {
-      description: 'Indicação Funcionário',
+      description: "Indicação Funcionário",
       type: ClientOriginType.CRM,
     },
     {
-      description: 'Indicação Veterinários',
+      description: "Indicação Veterinários",
       type: ClientOriginType.CRM,
     },
     {
-      description: 'Instagram',
+      description: "Instagram",
       type: ClientOriginType.CRM,
     },
     {
-      description: 'Pet Shop',
+      description: "Pet Shop",
       type: ClientOriginType.CRM,
     },
     {
-      description: 'Não Se Lembra',
+      description: "Não Se Lembra",
       type: ClientOriginType.CRM,
     },
     {
-      description: 'Outdoor',
+      description: "Outdoor",
       type: ClientOriginType.CRM,
     },
     {
-      description: 'Outros',
+      description: "Outros",
       type: ClientOriginType.CRM,
     },
     {
-      description: 'Panfleto',
+      description: "Panfleto",
       type: ClientOriginType.CRM,
     },
     {
-      description: 'Fachada (Passou na Frente)',
+      description: "Fachada (Passou na Frente)",
       type: ClientOriginType.CRM,
     },
     {
-      description: 'Rádio',
+      description: "Rádio",
       type: ClientOriginType.CRM,
     },
     {
-      description: 'TV',
+      description: "TV",
       type: ClientOriginType.CRM,
     },
     {
-      description: 'Youtube',
+      description: "Youtube",
       type: ClientOriginType.CRM,
     },
   ];
 
   public async run() {
-    const systems = await System.query().whereIn('name', ['Vetech', 'Sanclá']);
+    const systems = await System.query().whereIn("name", ["Vetech", "Sanclá"]);
 
     if (systems.length < 2) {
-      throw new Error('Systems not found');
+      throw new Error("Systems not found");
     }
 
-    const tasks = systems.map(system => {
+    const tasks = systems.map((system) => {
       return ClientOrigin.fetchOrCreateMany(
-        ['description', 'system_id'],
-        this.BASE.map(elem2 => ({ ...elem2, system_id: system.id })),
+        ["description", "system_id"],
+        this.BASE.map((elem2) => ({ ...elem2, system_id: system.id })),
       );
     });
     await Promise.all(tasks);

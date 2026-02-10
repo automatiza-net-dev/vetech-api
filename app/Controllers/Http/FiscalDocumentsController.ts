@@ -1,6 +1,6 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import FiscalDocumentService from 'App/Services/FiscalDocumentService';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import FiscalDocumentService from "App/Services/FiscalDocumentService";
 
 @inject()
 export default class FiscalDocumentsController {

@@ -1,4 +1,4 @@
-import { UnitType } from 'App/Models/Unit';
+import { UnitType } from "App/Models/Unit";
 
 export default interface IUnitData {
   name: string;

@@ -1,7 +1,7 @@
-import { inject } from '@adonisjs/fold';
-import Database from '@ioc:Adonis/Lucid/Database';
-import Address, { AddressTypes } from 'App/Models/Address';
-import SharedService, { AuthContext } from 'App/Services/SharedService';
+import { inject } from "@adonisjs/fold";
+import Database from "@ioc:Adonis/Lucid/Database";
+import Address, { AddressTypes } from "App/Models/Address";
+import SharedService, { AuthContext } from "App/Services/SharedService";
 
 @inject()
 export default class AddressService {
@@ -9,9 +9,9 @@ export default class AddressService {
 
   async index(_: AuthContext, uID: string) {
     return Address.query()
-      .where('user_id', uID)
-      .orderBy('main', 'desc')
-      .orderBy('created_at', 'desc');
+      .where("user_id", uID)
+      .orderBy("main", "desc")
+      .orderBy("created_at", "desc");
   }
 
   async store(
@@ -20,7 +20,7 @@ export default class AddressService {
       userId: string;
       main: boolean;
       code: number;
-      type: typeof AddressTypes[number];
+      type: (typeof AddressTypes)[number];
       postalCode: string;
       address: string;
       number: string;
@@ -30,14 +30,11 @@ export default class AddressService {
       state: string;
     },
   ) {
-    await Database.transaction(async trx => {
+    await Database.transaction(async (trx) => {
       const { userId, ...rest } = data;
 
       if (data.main) {
-        await Address.query()
-          .useTransaction(trx)
-          .where('user_id', userId)
-          .update({ main: false });
+        await Address.query().useTransaction(trx).where("user_id", userId).update({ main: false });
       }
 
       await Address.create(
@@ -53,7 +50,7 @@ export default class AddressService {
   }
 
   async show(_: AuthContext, id: number) {
-    const addr = await Address.query().where('id', id).first();
+    const addr = await Address.query().where("id", id).first();
 
     if (!addr) {
       throw this.sharedService.ResourceNotFound();
@@ -68,7 +65,7 @@ export default class AddressService {
     data: {
       main: boolean;
       code: number;
-      type: typeof AddressTypes[number];
+      type: (typeof AddressTypes)[number];
       postalCode: string;
       address: string;
       number: string;
@@ -79,13 +76,13 @@ export default class AddressService {
       active: boolean;
     },
   ) {
-    await Database.transaction(async trx => {
+    await Database.transaction(async (trx) => {
       const addr = await Address.query()
         .useTransaction(trx)
-        .where('id', id)
-        .whereHas('user', query => {
-          query.whereHas('economicGroups', query => {
-            query.where('economic_group_id', authCtx.group.id);
+        .where("id", id)
+        .whereHas("user", (query) => {
+          query.whereHas("economicGroups", (query) => {
+            query.where("economic_group_id", authCtx.group.id);
           });
         })
         .first();
@@ -97,7 +94,7 @@ export default class AddressService {
       if (data.main) {
         await Address.query()
           .useTransaction(trx)
-          .where('user_id', authCtx.user.id)
+          .where("user_id", authCtx.user.id)
           .update({ main: false });
       }
 
@@ -107,10 +104,10 @@ export default class AddressService {
 
   async destroy(authCtx: AuthContext, id: number) {
     const addr = await Address.query()
-      .where('id', id)
-      .whereHas('user', query => {
-        query.whereHas('economicGroups', query => {
-          query.where('economic_group_id', authCtx.group.id);
+      .where("id", id)
+      .whereHas("user", (query) => {
+        query.whereHas("economicGroups", (query) => {
+          query.where("economic_group_id", authCtx.group.id);
         });
       })
       .first();

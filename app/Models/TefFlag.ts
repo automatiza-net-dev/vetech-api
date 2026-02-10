@@ -1,18 +1,13 @@
-import {
-  BaseModel,
-  beforeFetch,
-  beforeFind,
-  column,
-} from '@ioc:Adonis/Lucid/Orm';
-import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
-import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
+import { BaseModel, beforeFetch, beforeFind, column } from "@ioc:Adonis/Lucid/Orm";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import { DateTime } from "luxon";
+import { v4 } from "uuid";
 
 export enum TefFlagType {
-  A = 'A',
-  B = 'B',
-  C = 'C',
-  D = 'D',
+  A = "A",
+  B = "B",
+  C = "C",
+  D = "D",
 }
 
 export default class TefFlag extends BaseModel {
@@ -26,7 +21,7 @@ export default class TefFlag extends BaseModel {
   public code: string;
 
   @column({
-    columnName: 'nfe_code',
+    columnName: "nfe_code",
   })
   public nfe_code: string;
 

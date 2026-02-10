@@ -1,5 +1,5 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
 
 export default class CreateLicenceValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -8,8 +8,8 @@ export default class CreateLicenceValidator {
     business_unit_id: schema.string({}, [
       rules.uuid(),
       rules.exists({
-        table: 'business_units',
-        column: 'id',
+        table: "business_units",
+        column: "id",
       }),
     ]),
     expiration_date: schema.date({}),

@@ -1,9 +1,9 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import SharedService from 'App/Services/SharedService';
-import UnitService from 'App/Services/UnitService';
-import CreateUnitValidator from 'App/Validators/Unit/CreateUnitValidator';
-import UpdateUnitValidator from 'App/Validators/Unit/UpdateUnitValidator';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import SharedService from "App/Services/SharedService";
+import UnitService from "App/Services/UnitService";
+import CreateUnitValidator from "App/Validators/Unit/CreateUnitValidator";
+import UpdateUnitValidator from "App/Validators/Unit/UpdateUnitValidator";
 
 @inject()
 export default class UnitsController {
@@ -14,12 +14,9 @@ export default class UnitsController {
 
   public async index({ auth, request, response }: HttpContextContract) {
     const qs = request.qs();
-    const result = await this.service.index(
-      await this.sharedService.getAuthContext(auth),
-      {
-        type: qs.type,
-      },
-    );
+    const result = await this.service.index(await this.sharedService.getAuthContext(auth), {
+      type: qs.type,
+    });
 
     return response.ok(result);
   }
@@ -36,20 +33,12 @@ export default class UnitsController {
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateUnitValidator);
 
-    const result = await this.service.store(
-      await this.sharedService.getAuthContext(auth),
-      payload,
-    );
+    const result = await this.service.store(await this.sharedService.getAuthContext(auth), payload);
 
     return response.created(result);
   }
 
-  public async update({
-    auth,
-    params,
-    request,
-    response,
-  }: HttpContextContract) {
+  public async update({ auth, params, request, response }: HttpContextContract) {
     const payload = await request.validate(UpdateUnitValidator);
 
     const result = await this.service.update(
@@ -62,10 +51,7 @@ export default class UnitsController {
   }
 
   public async destroy({ auth, params, response }: HttpContextContract) {
-    await this.service.destroy(
-      await this.sharedService.getAuthContext(auth),
-      params.id,
-    );
+    await this.service.destroy(await this.sharedService.getAuthContext(auth), params.id);
 
     return response.noContent();
   }

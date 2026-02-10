@@ -1,11 +1,11 @@
-import Database from '@ioc:Adonis/Lucid/Database';
-import { test } from '@japa/runner';
-import Reason from 'App/Models/Reason';
-import { v4 } from 'uuid';
+import Database from "@ioc:Adonis/Lucid/Database";
+import { test } from "@japa/runner";
+import Reason from "App/Models/Reason";
+import { v4 } from "uuid";
 
-import { generateJwtToken, userBootstrap } from '../utils';
+import { generateJwtToken, userBootstrap } from "../utils";
 
-test.group('Reason resource', group => {
+test.group("Reason resource", (group) => {
   group.each.setup(async () => {
     await Database.beginGlobalTransaction();
     return () => Database.rollbackGlobalTransaction();
@@ -15,9 +15,9 @@ test.group('Reason resource', group => {
     const { user, group, system } = await userBootstrap();
 
     const reason = await Reason.create({
-      reason: 'any reason',
+      reason: "any reason",
       requiresObservation: true,
-      type: 'RA',
+      type: "RA",
       economicGroupId: group.id,
       system_id: system.id,
     });
@@ -25,26 +25,23 @@ test.group('Reason resource', group => {
     return { user, reason };
   };
 
-  test('should list reasons', async ({ assert, client }) => {
+  test("should list reasons", async ({ assert, client }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
-    const response = await client.get('/reasons').bearerToken(token);
+    const response = await client.get("/reasons").bearerToken(token);
 
     assert.equal(200, response.status());
   });
 
-  test('should throw NotFoundException if no reason is found', async ({
-    assert,
-    client,
-  }) => {
+  test("should throw NotFoundException if no reason is found", async ({ assert, client }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client.get(`/reasons/${v4()}`).bearerToken(token);
@@ -52,53 +49,51 @@ test.group('Reason resource', group => {
     assert.equal(404, response.status());
   });
 
-  test('should return the reason', async ({ assert, client }) => {
+  test("should return the reason", async ({ assert, client }) => {
     const { user, reason } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
-    const response = await client
-      .get(`/reasons/${reason.id}`)
-      .bearerToken(token);
+    const response = await client.get(`/reasons/${reason.id}`).bearerToken(token);
 
     assert.equal(200, response.status());
     assert.equal(reason.reason, response.body().reason);
   });
 
-  test('should create a reason', async ({ assert, client }) => {
+  test("should create a reason", async ({ assert, client }) => {
     const { user } = await userBootstrap();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
-      .post('/reasons')
+      .post("/reasons")
       .json({
-        reason: 'any reason',
+        reason: "any reason",
         requiresObservation: true,
-        type: 'RA',
+        type: "RA",
       })
       .bearerToken(token);
 
     assert.equal(201, response.status());
   });
 
-  test('should update a reason', async ({ assert, client }) => {
+  test("should update a reason", async ({ assert, client }) => {
     const { user, reason } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
       .put(`/reasons/${reason.id}`)
       .json({
-        reason: 'any reason',
+        reason: "any reason",
         requiresObservation: true,
-        type: 'RA',
+        type: "RA",
         active: true,
       })
       .bearerToken(token);
@@ -106,51 +101,49 @@ test.group('Reason resource', group => {
     assert.equal(200, response.status());
   });
 
-  test('should delete a reason', async ({ assert, client }) => {
+  test("should delete a reason", async ({ assert, client }) => {
     const { user, reason } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
-    const response = await client
-      .delete(`/reasons/${reason.id}`)
-      .bearerToken(token);
+    const response = await client.delete(`/reasons/${reason.id}`).bearerToken(token);
 
     assert.equal(204, response.status());
   });
-  test('should winning reasons', async ({ assert, client }) => {
+  test("should winning reasons", async ({ assert, client }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
-    const response = await client.get('/reasons/winning').bearerToken(token);
+    const response = await client.get("/reasons/winning").bearerToken(token);
 
     assert.equal(200, response.status());
   });
 
-  test('should winning reasons', async ({ assert, client }) => {
+  test("should winning reasons", async ({ assert, client }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
-    const response = await client.get('/reasons/winning').bearerToken(token);
+    const response = await client.get("/reasons/winning").bearerToken(token);
 
     assert.equal(200, response.status());
   });
 
-  test('should losing reasons', async ({ assert, client }) => {
+  test("should losing reasons", async ({ assert, client }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
-    const response = await client.get('/reasons/losing').bearerToken(token);
+    const response = await client.get("/reasons/losing").bearerToken(token);
 
     assert.equal(200, response.status());
   });

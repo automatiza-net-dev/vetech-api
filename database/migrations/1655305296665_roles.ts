@@ -1,20 +1,20 @@
-import BaseSchema from '@ioc:Adonis/Lucid/Schema';
+import BaseSchema from "@ioc:Adonis/Lucid/Schema";
 
 export default class extends BaseSchema {
-  protected tableName = 'roles';
+  protected tableName = "roles";
 
   public async up() {
-    this.schema.createTable(this.tableName, table => {
-      table.increments('id');
+    this.schema.createTable(this.tableName, (table) => {
+      table.increments("id");
 
-      table.string('name').unique();
+      table.string("name").unique();
 
       /**
        * Uses timestamptz for PostgreSQL and DATETIME2 for MSSQL
        */
-      table.timestamp('created_at', { useTz: true });
-      table.timestamp('updated_at', { useTz: true });
-      table.dateTime('deleted_at').defaultTo(null);
+      table.timestamp("created_at", { useTz: true });
+      table.timestamp("updated_at", { useTz: true });
+      table.dateTime("deleted_at").defaultTo(null);
     });
   }
 

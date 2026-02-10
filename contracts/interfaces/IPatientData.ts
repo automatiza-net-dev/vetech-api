@@ -3,37 +3,37 @@ import { PatientVaccineOrigin } from "App/Models/Patient";
 import { DateTime } from "luxon";
 
 export default interface IPatientData {
-	name: string;
-	active: boolean;
+  name: string;
+  active: boolean;
 
-	holders?: { id: string; main: boolean }[];
-	raceId?: string;
-	castrated?: boolean;
-	photo?: MultipartFileContract;
-	gender?: string;
-	tags?: string;
-	birthDate?: DateTime | string;
-	birthDays?: number;
-	birthMonths?: number;
-	birthYears?: number;
-	microchip?: string;
-	hypertension?: boolean;
-	diabetes?: boolean;
-	community?: boolean;
-	glycemia?: number;
-	pressure?: string;
-	vaccineOrigin?: PatientVaccineOrigin;
-	hairId?: string;
+  holders?: { id: string; main: boolean }[];
+  raceId?: string;
+  castrated?: boolean;
+  photo?: MultipartFileContract;
+  gender?: string;
+  tags?: string;
+  birthDate?: DateTime | string;
+  birthDays?: number;
+  birthMonths?: number;
+  birthYears?: number;
+  microchip?: string;
+  hypertension?: boolean;
+  diabetes?: boolean;
+  community?: boolean;
+  glycemia?: number;
+  pressure?: string;
+  vaccineOrigin?: PatientVaccineOrigin;
+  hairId?: string;
 }
 
 export interface IFastStorePatient {
-	tutorName?: string;
-	tutorEmail?: string;
-	tutorPhone: string;
-	tutorOriginId?: string;
-  marketingCampaignId?: number
+  tutorName?: string;
+  tutorEmail?: string;
+  tutorPhone: string;
+  tutorOriginId?: string;
+  marketingCampaignId?: number;
 
-	patientName?: string;
-	patientRaceId?: string;
-	patientGender?: string;
+  patientName?: string;
+  patientRaceId?: string;
+  patientGender?: string;
 }

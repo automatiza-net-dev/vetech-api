@@ -10,860 +10,785 @@ import IManageRolePermissions from "Contracts/interfaces/IManageRolePermissions"
 import IRoleData from "Contracts/interfaces/IRoleData";
 
 interface ISearch {
-	name?: string;
-	new?: string;
+  name?: string;
+  new?: string;
 }
 
 @inject()
 export default class RoleService {
-	constructor(private sharedService: SharedService) {}
+  constructor(private sharedService: SharedService) {}
 
-	public async index(
-		systemID: number,
-		unitID: string | null,
-		userType: string,
-		data: ISearch,
-	) {
-		const qb = Role.query().orderByRaw("name").where("system_id", systemID);
+  public async index(systemID: number, unitID: string | null, userType: string, data: ISearch) {
+    const qb = Role.query().orderByRaw("name").where("system_id", systemID);
 
-		if (unitID) {
-			const thing = await Database.from("business_units")
-				.select("economic_group_id")
-				.where("id", unitID)
-				.firstOrFail();
-			qb.where("economic_group_id", thing?.economic_group_id);
+    if (unitID) {
+      const thing = await Database.from("business_units")
+        .select("economic_group_id")
+        .where("id", unitID)
+        .firstOrFail();
+      qb.where("economic_group_id", thing?.economic_group_id);
 
-			if (userType === "user") {
-				qb.whereIn("type", ["user", "both", "all"]);
-			}
+      if (userType === "user") {
+        qb.whereIn("type", ["user", "both", "all"]);
+      }
 
-			if (userType === "controller") {
-				qb.whereIn("type", ["controller", "user", "both", "all"]);
-			}
+      if (userType === "controller") {
+        qb.whereIn("type", ["controller", "user", "both", "all"]);
+      }
 
-			if (userType === "system") {
-				qb.whereIn("type", ["system", "user", "all"]);
-			}
-		} else {
-			qb.whereRaw("economic_group_id is null");
+      if (userType === "system") {
+        qb.whereIn("type", ["system", "user", "all"]);
+      }
+    } else {
+      qb.whereRaw("economic_group_id is null");
 
-			if (userType === "user") {
-				qb.whereIn("type", ["user", "both", "all"]);
-			}
+      if (userType === "user") {
+        qb.whereIn("type", ["user", "both", "all"]);
+      }
 
-			if (userType === "controller") {
-				qb.whereIn("type", ["controller", "both", "all"]);
-			}
+      if (userType === "controller") {
+        qb.whereIn("type", ["controller", "both", "all"]);
+      }
 
-			if (userType === "system") {
-				qb.whereIn("type", ["system", "all"]);
-			}
-		}
+      if (userType === "system") {
+        qb.whereIn("type", ["system", "all"]);
+      }
+    }
 
-		if (data.name) {
-			qb.where("name", "ilike", `%${data.name}%`);
-		}
+    if (data.name) {
+      qb.where("name", "ilike", `%${data.name}%`);
+    }
 
-		const result = await qb;
-		const permissions = await Database.from("role_permissions")
-			.whereIn(
-				"role_id",
-				result.map((r) => r.id),
-			)
-			.whereNull("status");
+    const result = await qb;
+    const permissions = await Database.from("role_permissions")
+      .whereIn(
+        "role_id",
+        result.map((r) => r.id),
+      )
+      .whereNull("status");
 
-		return result.map((r) => {
-			return {
-				...r.toJSON(),
-				newItems: permissions.filter((p) => p.role_id === r.id).length > 0,
-			};
-		});
-	}
+    return result.map((r) => {
+      return {
+        ...r.toJSON(),
+        newItems: permissions.filter((p) => p.role_id === r.id).length > 0,
+      };
+    });
+  }
 
-	public async controllerIndex(
-		systemID: number,
-		data: ISearch,
-	): Promise<Array<Role>> {
-		const qb = Role.query()
-			.where("system_id", systemID)
-			// .where("economic_group_id", authCtx.group.id)
-			.where("type", "controller" as TRoleType);
+  public async controllerIndex(systemID: number, data: ISearch): Promise<Array<Role>> {
+    const qb = Role.query()
+      .where("system_id", systemID)
+      // .where("economic_group_id", authCtx.group.id)
+      .where("type", "controller" as TRoleType);
 
-		if (data.name) {
-			qb.where("name", "ilike", `%${data.name}%`);
-		}
+    if (data.name) {
+      qb.where("name", "ilike", `%${data.name}%`);
+    }
 
-		return qb;
-	}
+    return qb;
+  }
 
-	public async store(authCtx: AuthContext, data: IRoleData): Promise<Role> {
-		return Database.transaction(async (trx) => {
-			const newRole = await Role.create(
-				{
-					system_id: authCtx.system.id,
-					economic_group_id: authCtx.group.id,
-					user_id: authCtx.user.id,
+  public async store(authCtx: AuthContext, data: IRoleData): Promise<Role> {
+    return Database.transaction(async (trx) => {
+      const newRole = await Role.create(
+        {
+          system_id: authCtx.system.id,
+          economic_group_id: authCtx.group.id,
+          user_id: authCtx.user.id,
 
-					name: data.name,
-					type: "user",
-					externalAccess: data.externalAccess,
-				},
-				{
-					client: trx,
-				},
-			);
+          name: data.name,
+          type: "user",
+          externalAccess: data.externalAccess,
+        },
+        {
+          client: trx,
+        },
+      );
 
-			await Promise.all(
-				data.profiles.map((p) =>
-					Database.rawQuery(
-						`insert into role_profile_accesses (role_id, profile_access_id, active, created_at, type)
+      await Promise.all(
+        data.profiles.map((p) =>
+          Database.rawQuery(
+            `insert into role_profile_accesses (role_id, profile_access_id, active, created_at, type)
 values (?, ?, ?, now(), 'user')`,
-						[newRole.id, p.id, p.active],
-					)
-						.useTransaction(trx)
-						.exec(),
-				),
-			);
+            [newRole.id, p.id, p.active],
+          )
+            .useTransaction(trx)
+            .exec(),
+        ),
+      );
 
-			const tasks = data.screens
-				.flatMap((s) => s.permissions.map((sp) => sp))
-				.map(async (sp) => {
-					return Database.rawQuery(
-						`insert into role_permissions (role_id, permission_id, created_at, updated_at, active, status)
+      const tasks = data.screens
+        .flatMap((s) => s.permissions.map((sp) => sp))
+        .map(async (sp) => {
+          return Database.rawQuery(
+            `insert into role_permissions (role_id, permission_id, created_at, updated_at, active, status)
 values (?, ?, now(), now(), ?, ?)`,
-						[newRole.id, sp.id, sp.active ?? false, sp.status ?? false],
-					)
-						.useTransaction(trx)
-						.exec();
-				});
-			await Promise.all(tasks);
+            [newRole.id, sp.id, sp.active ?? false, sp.status ?? false],
+          )
+            .useTransaction(trx)
+            .exec();
+        });
+      await Promise.all(tasks);
 
-			return newRole;
-		});
-	}
+      return newRole;
+    });
+  }
 
-	public async storeController(
-		authCtx: AuthContext,
-		data: Omit<IRoleData, "active">,
-	): Promise<Role> {
-		return Database.transaction(async (trx) => {
-			const permissions = await Permission.query()
-				.useTransaction(trx)
-				.whereIn("type", ["controller", "both"] as TRoleType[])
-				.whereHas("systems", (query) => {
-					query.where("system_id", authCtx.system.id);
-				});
+  public async storeController(
+    authCtx: AuthContext,
+    data: Omit<IRoleData, "active">,
+  ): Promise<Role> {
+    return Database.transaction(async (trx) => {
+      const permissions = await Permission.query()
+        .useTransaction(trx)
+        .whereIn("type", ["controller", "both"] as TRoleType[])
+        .whereHas("systems", (query) => {
+          query.where("system_id", authCtx.system.id);
+        });
 
-			const newRole = await Role.create(
-				{
-					name: data.name,
-					type: "controller",
-					system_id: authCtx.system.id,
-					economic_group_id: authCtx.group.id,
-					externalAccess: data.externalAccess,
-				},
-				{
-					client: trx,
-				},
-			);
+      const newRole = await Role.create(
+        {
+          name: data.name,
+          type: "controller",
+          system_id: authCtx.system.id,
+          economic_group_id: authCtx.group.id,
+          externalAccess: data.externalAccess,
+        },
+        {
+          client: trx,
+        },
+      );
 
-			await newRole.related("permissions").attach(
-				permissions.map((p) => p.id),
-				trx,
-			);
+      await newRole.related("permissions").attach(
+        permissions.map((p) => p.id),
+        trx,
+      );
 
-			return newRole;
-		});
-	}
+      return newRole;
+    });
+  }
 
-	public async show(authCtx: AuthContext, id: number) {
-		const role = await Role.query()
-			.where("system_id", authCtx.system.id)
-			.where("economic_group_id", authCtx.group.id)
-			.where("id", id)
-			.first();
+  public async show(authCtx: AuthContext, id: number) {
+    const role = await Role.query()
+      .where("system_id", authCtx.system.id)
+      .where("economic_group_id", authCtx.group.id)
+      .where("id", id)
+      .first();
 
-		if (!role) {
-			throw new ResourceNotFoundException(
-				"Cargo não foi encontrado",
-				404,
-				"E_NOT_FOUND",
-			);
-		}
+    if (!role) {
+      throw new ResourceNotFoundException("Cargo não foi encontrado", 404, "E_NOT_FOUND");
+    }
 
-		return {
-			id: role.id,
-			name: role.name,
-			type: role.type,
-			externalAccess: role.externalAccess,
-		};
-	}
+    return {
+      id: role.id,
+      name: role.name,
+      type: role.type,
+      externalAccess: role.externalAccess,
+    };
+  }
 
-	public async update(
-		systemID: string,
-		id: number,
-		data: IRoleData & { active: boolean },
-	): Promise<Role> {
-		return Database.transaction(async (trx) => {
-			const role = await Role.query()
-				.useTransaction(trx)
-				.where("system_id", systemID)
-				.where("id", id)
-				.first();
+  public async update(
+    systemID: string,
+    id: number,
+    data: IRoleData & { active: boolean },
+  ): Promise<Role> {
+    return Database.transaction(async (trx) => {
+      const role = await Role.query()
+        .useTransaction(trx)
+        .where("system_id", systemID)
+        .where("id", id)
+        .first();
 
-			if (!role) {
-				throw new ResourceNotFoundException(
-					"Cargo não foi encontrado",
-					404,
-					"E_NOT_FOUND",
-				);
-			}
+      if (!role) {
+        throw new ResourceNotFoundException("Cargo não foi encontrado", 404, "E_NOT_FOUND");
+      }
 
-			await Database.rawQuery(
-				"delete from role_profile_accesses where role_id = ?",
-				[role.id],
-			)
-				.useTransaction(trx)
-				.exec();
+      await Database.rawQuery("delete from role_profile_accesses where role_id = ?", [role.id])
+        .useTransaction(trx)
+        .exec();
 
-			await Promise.all(
-				data.profiles.map((p) =>
-					Database.rawQuery(
-						`insert into role_profile_accesses (role_id, profile_access_id, active, created_at, type)
+      await Promise.all(
+        data.profiles.map((p) =>
+          Database.rawQuery(
+            `insert into role_profile_accesses (role_id, profile_access_id, active, created_at, type)
 values (?, ?, ?, now(), 'user')`,
-						[role.id, p.id, p.active],
-					)
-						.useTransaction(trx)
-						.exec(),
-				),
-			);
+            [role.id, p.id, p.active],
+          )
+            .useTransaction(trx)
+            .exec(),
+        ),
+      );
 
-			await Database.rawQuery(
-				"delete from role_permissions where role_id = ?",
-				[role.id],
-			)
-				.useTransaction(trx)
-				.exec();
+      await Database.rawQuery("delete from role_permissions where role_id = ?", [role.id])
+        .useTransaction(trx)
+        .exec();
 
-			const tasks = data.screens
-				.flatMap((s) => s.permissions.map((sp) => sp))
-				.map(async (sp) => {
-					return Database.rawQuery(
-						`insert into role_permissions (role_id, permission_id, created_at, updated_at, active, status)
+      const tasks = data.screens
+        .flatMap((s) => s.permissions.map((sp) => sp))
+        .map(async (sp) => {
+          return Database.rawQuery(
+            `insert into role_permissions (role_id, permission_id, created_at, updated_at, active, status)
 values (?, ?, now(), now(), ?, ?)`,
-						[role.id, sp.id, sp.active ?? false, sp.status ?? false],
-					)
-						.useTransaction(trx)
-						.exec();
-				});
-			await Promise.all(tasks);
+            [role.id, sp.id, sp.active ?? false, sp.status ?? false],
+          )
+            .useTransaction(trx)
+            .exec();
+        });
+      await Promise.all(tasks);
 
-			return role
-				.merge({
-					name: data.name,
-					externalAccess: data.externalAccess,
-					active: data.active,
-				})
-				.useTransaction(trx)
-				.save();
-		});
-	}
+      return role
+        .merge({
+          name: data.name,
+          externalAccess: data.externalAccess,
+          active: data.active,
+        })
+        .useTransaction(trx)
+        .save();
+    });
+  }
 
-	public async updateController(
-		systemID: number,
-		id: number,
-		data: IRoleData,
-	): Promise<Role> {
-		const role = await Role.query()
-			.where("system_id", systemID)
-			// .where("economic_group_id", authCtx.group.id)
-			.where("type", "controller" as TRoleType)
-			.where("id", id)
-			.first();
+  public async updateController(systemID: number, id: number, data: IRoleData): Promise<Role> {
+    const role = await Role.query()
+      .where("system_id", systemID)
+      // .where("economic_group_id", authCtx.group.id)
+      .where("type", "controller" as TRoleType)
+      .where("id", id)
+      .first();
 
-		if (!role) {
-			throw new ResourceNotFoundException(
-				"Cargo não foi encontrado",
-				404,
-				"E_NOT_FOUND",
-			);
-		}
+    if (!role) {
+      throw new ResourceNotFoundException("Cargo não foi encontrado", 404, "E_NOT_FOUND");
+    }
 
-		return role
-			.merge({
-				name: data.name,
-				externalAccess: data.externalAccess,
-				active: data.active,
-			})
-			.save();
-	}
+    return role
+      .merge({
+        name: data.name,
+        externalAccess: data.externalAccess,
+        active: data.active,
+      })
+      .save();
+  }
 
-	public async delete(authCtx: AuthContext, id: number): Promise<void> {
-		const role = await Role.query()
-			.where("system_id", authCtx.system.id)
-			.where("economic_group_id", authCtx.group.id)
-			.where("id", id)
-			.preload("users")
-			.first();
+  public async delete(authCtx: AuthContext, id: number): Promise<void> {
+    const role = await Role.query()
+      .where("system_id", authCtx.system.id)
+      .where("economic_group_id", authCtx.group.id)
+      .where("id", id)
+      .preload("users")
+      .first();
 
-		if (!role) {
-			throw new ResourceNotFoundException(
-				"Cargo não foi encontrado",
-				404,
-				"E_NOT_FOUND",
-			);
-		}
+    if (!role) {
+      throw new ResourceNotFoundException("Cargo não foi encontrado", 404, "E_NOT_FOUND");
+    }
 
-		if (role.users.length > 0) {
-			throw new BadRequestException(
-				"Não é possível excluir um cargo que possui permissões",
-				400,
-				"E_BAD_REQUEST",
-			);
-		}
+    if (role.users.length > 0) {
+      throw new BadRequestException(
+        "Não é possível excluir um cargo que possui permissões",
+        400,
+        "E_BAD_REQUEST",
+      );
+    }
 
-		await role.softDelete();
-	}
+    await role.softDelete();
+  }
 
-	public async deleteController(systemID: number, id: number): Promise<void> {
-		const role = await Role.query()
-			.where("system_id", systemID)
-			// .where("economic_group_id", authCtx.group.id)
-			.where("type", "controller" as TRoleType)
-			.where("id", id)
-			.preload("users")
-			.first();
+  public async deleteController(systemID: number, id: number): Promise<void> {
+    const role = await Role.query()
+      .where("system_id", systemID)
+      // .where("economic_group_id", authCtx.group.id)
+      .where("type", "controller" as TRoleType)
+      .where("id", id)
+      .preload("users")
+      .first();
 
-		if (!role) {
-			throw new ResourceNotFoundException(
-				"Cargo não foi encontrado",
-				404,
-				"E_NOT_FOUND",
-			);
-		}
+    if (!role) {
+      throw new ResourceNotFoundException("Cargo não foi encontrado", 404, "E_NOT_FOUND");
+    }
 
-		if (role.users.length > 0) {
-			throw new BadRequestException(
-				"Não é possível excluir um controle de acesso que está vinculado à usuários",
-				400,
-				"E_BAD_REQUEST",
-			);
-		}
+    if (role.users.length > 0) {
+      throw new BadRequestException(
+        "Não é possível excluir um controle de acesso que está vinculado à usuários",
+        400,
+        "E_BAD_REQUEST",
+      );
+    }
 
-		await role.softDelete();
-	}
+    await role.softDelete();
+  }
 
-	public async rolePermissionMetadata(
-		systemID: number,
-		id: number,
-		data: { type?: string; newItems?: string },
-	) {
-		const role = await Role.query()
-			// .where("economic_group_id", authCtx.group.id)
-			.where("system_id", systemID)
-			.where("id", id)
-			.first();
+  public async rolePermissionMetadata(
+    systemID: number,
+    id: number,
+    data: { type?: string; newItems?: string },
+  ) {
+    const role = await Role.query()
+      // .where("economic_group_id", authCtx.group.id)
+      .where("system_id", systemID)
+      .where("id", id)
+      .first();
 
-		if (!role) {
-			throw this.sharedService.ResourceNotFound();
-		}
+    if (!role) {
+      throw this.sharedService.ResourceNotFound();
+    }
 
-		const qb = Database.from("profile_accesses")
-			.select(
-				Database.raw(`profile_accesses.id,
+    const qb = Database.from("profile_accesses")
+      .select(
+        Database.raw(`profile_accesses.id,
        profile_accesses.description,
        case when role_profile_accesses.role_id is not null then role_profile_accesses.active else false end as active`),
-			)
-			.joinRaw(
-				`left join role_profile_accesses
+      )
+      .joinRaw(
+        `left join role_profile_accesses
                    on profile_accesses.id = role_profile_accesses.profile_access_id and
                       role_profile_accesses.role_id = ?`,
-				[id],
-			)
-			.whereRaw("profile_accesses.system_id = ?", [systemID])
-			.orderByRaw("profile_accesses.description");
+        [id],
+      )
+      .whereRaw("profile_accesses.system_id = ?", [systemID])
+      .orderByRaw("profile_accesses.description");
 
-		if (data.type === "user") {
-			qb.whereIn("profile_accesses.type", [
-				"user",
-				"both",
-				"all",
-			] as TPermissionType[]);
-		}
+    if (data.type === "user") {
+      qb.whereIn("profile_accesses.type", ["user", "both", "all"] as TPermissionType[]);
+    }
 
-		if (data.type === "controller") {
-			qb.whereIn("profile_accesses.type", [
-				"controller",
-				"both",
-				"all",
-			] as TPermissionType[]);
-		}
+    if (data.type === "controller") {
+      qb.whereIn("profile_accesses.type", ["controller", "both", "all"] as TPermissionType[]);
+    }
 
-		if (data.type === "system") {
-			qb.whereIn("profile_accesses.type", [
-				"system",
-				"all",
-			] as TPermissionType[]);
-		}
+    if (data.type === "system") {
+      qb.whereIn("profile_accesses.type", ["system", "all"] as TPermissionType[]);
+    }
 
-		const roleProfiles: { id: number; description: string; active: boolean }[] =
-			await qb;
+    const roleProfiles: { id: number; description: string; active: boolean }[] = await qb;
 
-		const screensWithPermissions: {
-			sid: number;
-			sname: string;
-			pid: number;
-			description: string;
-			control_id: string;
-			active: boolean;
-			status: boolean;
-		}[] = await Database.from("screens")
-			.select(
-				Database.raw(`screens.id as sid,
+    const screensWithPermissions: {
+      sid: number;
+      sname: string;
+      pid: number;
+      description: string;
+      control_id: string;
+      active: boolean;
+      status: boolean;
+    }[] = await Database.from("screens")
+      .select(
+        Database.raw(`screens.id as sid,
        screens.name as sname,
        permissions.id as pid,
        permissions.description,
        permissions.control_id,
        role_permissions.active,
        role_permissions.status`),
-			)
-			.joinRaw("join permissions on screens.id = permissions.screen_id")
-			.joinRaw(
-				"join role_permissions on permissions.id = role_permissions.permission_id and role_id = ?",
-				[id],
-			)
-			.orderByRaw("screens.name, control_id");
+      )
+      .joinRaw("join permissions on screens.id = permissions.screen_id")
+      .joinRaw(
+        "join role_permissions on permissions.id = role_permissions.permission_id and role_id = ?",
+        [id],
+      )
+      .orderByRaw("screens.name, control_id");
 
-		return {
-			id: role.id,
-			name: role.name,
-			active: role.active,
-			externalAccess: role.externalAccess,
-			profiles: roleProfiles,
-			screens: screensWithPermissions.reduce(
-				(acc, curr) => {
-					if (!acc.some((sc) => sc.id === curr.sid)) {
-						acc.push({
-							id: curr.sid,
-							name: curr.sname,
-							permissions: [],
-						});
-					}
+    return {
+      id: role.id,
+      name: role.name,
+      active: role.active,
+      externalAccess: role.externalAccess,
+      profiles: roleProfiles,
+      screens: screensWithPermissions.reduce(
+        (acc, curr) => {
+          if (!acc.some((sc) => sc.id === curr.sid)) {
+            acc.push({
+              id: curr.sid,
+              name: curr.sname,
+              permissions: [],
+            });
+          }
 
-					return acc.map((sc) => {
-						if (sc.id !== curr.sid) {
-							return sc;
-						}
+          return acc.map((sc) => {
+            if (sc.id !== curr.sid) {
+              return sc;
+            }
 
-						sc.permissions.push({
-							id: curr.pid,
-							description: curr.description,
-							controlId: curr.control_id,
-							active: curr.active,
-							status: curr.status,
-						});
-						return sc;
-					});
-				},
-				[] as {
-					id: number;
-					name: string;
-					permissions: {
-						id: number;
-						description: string;
-						controlId: string;
-						active: boolean;
-						status: boolean;
-					}[];
-				}[],
-			),
-		};
-	}
+            sc.permissions.push({
+              id: curr.pid,
+              description: curr.description,
+              controlId: curr.control_id,
+              active: curr.active,
+              status: curr.status,
+            });
+            return sc;
+          });
+        },
+        [] as {
+          id: number;
+          name: string;
+          permissions: {
+            id: number;
+            description: string;
+            controlId: string;
+            active: boolean;
+            status: boolean;
+          }[];
+        }[],
+      ),
+    };
+  }
 
-	public async rolePermissionSchematics(
-		systemID: number,
-		data: { type?: string; newItems?: string },
-	) {
-		const qb = Database.from("profile_accesses")
-			.select(
-				Database.raw(`profile_accesses.id,
+  public async rolePermissionSchematics(
+    systemID: number,
+    data: { type?: string; newItems?: string },
+  ) {
+    const qb = Database.from("profile_accesses")
+      .select(
+        Database.raw(`profile_accesses.id,
        profile_accesses.description,
        false as active`),
-			)
-			.whereRaw("profile_accesses.system_id = ?", [systemID])
-			.orderByRaw("profile_accesses.description");
+      )
+      .whereRaw("profile_accesses.system_id = ?", [systemID])
+      .orderByRaw("profile_accesses.description");
 
-		if (data.type === "user") {
-			qb.whereIn("profile_accesses.type", [
-				"user",
-				"both",
-				"all",
-			] as TPermissionType[]);
-		}
+    if (data.type === "user") {
+      qb.whereIn("profile_accesses.type", ["user", "both", "all"] as TPermissionType[]);
+    }
 
-		if (data.type === "controller") {
-			qb.whereIn("profile_accesses.type", [
-				"controller",
-				"both",
-				"all",
-			] as TPermissionType[]);
-		}
+    if (data.type === "controller") {
+      qb.whereIn("profile_accesses.type", ["controller", "both", "all"] as TPermissionType[]);
+    }
 
-		if (data.type === "system") {
-			qb.whereIn("profile_accesses.type", [
-				"system",
-				"all",
-			] as TPermissionType[]);
-		}
+    if (data.type === "system") {
+      qb.whereIn("profile_accesses.type", ["system", "all"] as TPermissionType[]);
+    }
 
-		const roleProfiles: { id: number; description: string; active: boolean }[] =
-			await qb;
+    const roleProfiles: { id: number; description: string; active: boolean }[] = await qb;
 
-		const screensWithPermissions: {
-			sid: number;
-			sname: string;
-			pid: number;
-			description: string;
-			control_id: string;
-			active: boolean;
-			status: boolean;
-		}[] = await Database.from("screens")
-			.select(
-				Database.raw(`screens.id as sid,
+    const screensWithPermissions: {
+      sid: number;
+      sname: string;
+      pid: number;
+      description: string;
+      control_id: string;
+      active: boolean;
+      status: boolean;
+    }[] = await Database.from("screens")
+      .select(
+        Database.raw(`screens.id as sid,
        screens.name as sname,
        permissions.id as pid,
        permissions.description,
        permissions.control_id,
        true as active,
        true as status`),
-			)
-			.joinRaw("join permissions on screens.id = permissions.screen_id")
-			.joinRaw(
-				"join systems_permissions sp on permissions.id = sp.permission_id and sp.system_id = ?",
-				[systemID],
-			)
-			.orderByRaw("screens.name, control_id");
+      )
+      .joinRaw("join permissions on screens.id = permissions.screen_id")
+      .joinRaw(
+        "join systems_permissions sp on permissions.id = sp.permission_id and sp.system_id = ?",
+        [systemID],
+      )
+      .orderByRaw("screens.name, control_id");
 
-		return {
-			id: null,
-			name: null,
-			active: false,
-			externalAccess: false,
-			profiles: roleProfiles,
-			screens: screensWithPermissions.reduce(
-				(acc, curr) => {
-					if (!acc.some((sc) => sc.id === curr.sid)) {
-						acc.push({
-							id: curr.sid,
-							name: curr.sname,
-							permissions: [],
-						});
-					}
+    return {
+      id: null,
+      name: null,
+      active: false,
+      externalAccess: false,
+      profiles: roleProfiles,
+      screens: screensWithPermissions.reduce(
+        (acc, curr) => {
+          if (!acc.some((sc) => sc.id === curr.sid)) {
+            acc.push({
+              id: curr.sid,
+              name: curr.sname,
+              permissions: [],
+            });
+          }
 
-					return acc.map((sc) => {
-						if (sc.id !== curr.sid) {
-							return sc;
-						}
+          return acc.map((sc) => {
+            if (sc.id !== curr.sid) {
+              return sc;
+            }
 
-						sc.permissions.push({
-							id: curr.pid,
-							description: curr.description,
-							controlId: curr.control_id,
-							active: curr.active,
-							status: curr.status,
-						});
-						return sc;
-					});
-				},
-				[] as {
-					id: number;
-					name: string;
-					permissions: {
-						id: number;
-						description: string;
-						controlId: string;
-						active: boolean;
-						status: boolean;
-					}[];
-				}[],
-			),
-		};
-	}
+            sc.permissions.push({
+              id: curr.pid,
+              description: curr.description,
+              controlId: curr.control_id,
+              active: curr.active,
+              status: curr.status,
+            });
+            return sc;
+          });
+        },
+        [] as {
+          id: number;
+          name: string;
+          permissions: {
+            id: number;
+            description: string;
+            controlId: string;
+            active: boolean;
+            status: boolean;
+          }[];
+        }[],
+      ),
+    };
+  }
 
-	public async addPermissionsToRole(
-		authCtx: AuthContext,
-		data: {
-			roleId: number;
-			permissions: Array<number>;
-		},
-	) {
-		await Database.transaction(async (trx) => {
-			const role = await Role.query()
-				.useTransaction(trx)
-				.where("id", data.roleId)
-				.where("system_id", authCtx.system.id)
-				.where("economic_group_id", authCtx.group.id)
-				.first();
+  public async addPermissionsToRole(
+    authCtx: AuthContext,
+    data: {
+      roleId: number;
+      permissions: Array<number>;
+    },
+  ) {
+    await Database.transaction(async (trx) => {
+      const role = await Role.query()
+        .useTransaction(trx)
+        .where("id", data.roleId)
+        .where("system_id", authCtx.system.id)
+        .where("economic_group_id", authCtx.group.id)
+        .first();
 
-			if (!role) {
-				throw this.sharedService.ResourceNotFound();
-			}
+      if (!role) {
+        throw this.sharedService.ResourceNotFound();
+      }
 
-			await role.related("permissions").sync(data.permissions, false, trx);
-		});
-	}
+      await role.related("permissions").sync(data.permissions, false, trx);
+    });
+  }
 
-	public async manageRolePermissions(
-		systemID: number,
-		data: IManageRolePermissions,
-	): Promise<void> {
-		await Database.transaction(async (trx) => {
-			const client = Database.connection();
+  public async manageRolePermissions(
+    systemID: number,
+    data: IManageRolePermissions,
+  ): Promise<void> {
+    await Database.transaction(async (trx) => {
+      const client = Database.connection();
 
-			const roles = await Role.query()
-				.useTransaction(trx)
-				.where("system_id", systemID)
-				// .where("economic_group_id", authCtx.group.id)
-				.whereIn(
-					"id",
-					data.data.map((d) => d.role),
-				);
+      const roles = await Role.query()
+        .useTransaction(trx)
+        .where("system_id", systemID)
+        // .where("economic_group_id", authCtx.group.id)
+        .whereIn(
+          "id",
+          data.data.map((d) => d.role),
+        );
 
-			const promises = roles.map(async (role) => {
-				const permissions = data.data.find(
-					(d) => d.role === role.id,
-				)?.permissions;
+      const promises = roles.map(async (role) => {
+        const permissions = data.data.find((d) => d.role === role.id)?.permissions;
 
-				if (permissions) {
-					const promises = permissions.map(async (permission) => {
-						await client
-							.from("role_permissions")
-							.where("role_id", role.id)
-							.where("permission_id", permission.id)
-							.update({ status: Boolean(permission.active) });
-					});
+        if (permissions) {
+          const promises = permissions.map(async (permission) => {
+            await client
+              .from("role_permissions")
+              .where("role_id", role.id)
+              .where("permission_id", permission.id)
+              .update({ status: Boolean(permission.active) });
+          });
 
-					await Promise.all(promises);
-				}
-			});
-			await Promise.all(promises);
-		});
-	}
+          await Promise.all(promises);
+        }
+      });
+      await Promise.all(promises);
+    });
+  }
 
-	public async searchRolePermissions(
-		systemID: number,
-		type: string | null,
-		data: { id?: string; active?: string },
-	) {
-		const qb = Database.from("role_profile_accesses")
-			.select(
-				Database.raw(`roles.id as role_id,
+  public async searchRolePermissions(
+    systemID: number,
+    type: string | null,
+    data: { id?: string; active?: string },
+  ) {
+    const qb = Database.from("role_profile_accesses")
+      .select(
+        Database.raw(`roles.id as role_id,
        roles.name,
        roles.active,
        roles.external_access,
        profile_accesses.id as a_id,
        profile_accesses.description`),
-			)
-			.joinRaw(
-				"join profile_accesses on role_profile_accesses.profile_access_id = profile_accesses.id",
-			)
-			.joinRaw("join roles on role_profile_accesses.role_id = roles.id")
-			.where("roles.system_id", systemID);
+      )
+      .joinRaw(
+        "join profile_accesses on role_profile_accesses.profile_access_id = profile_accesses.id",
+      )
+      .joinRaw("join roles on role_profile_accesses.role_id = roles.id")
+      .where("roles.system_id", systemID);
 
-		if (data.id) {
-			qb.where("roles.id", data.id);
-		}
+    if (data.id) {
+      qb.where("roles.id", data.id);
+    }
 
-		if (data.active) {
-			qb.where("roles.active", data.active !== "0");
-		}
+    if (data.active) {
+      qb.where("roles.active", data.active !== "0");
+    }
 
-		if (!type || type === "user") {
-			qb.whereIn("profile_accesses.type", ["user", "both", "all"]);
-		}
-		if (type === "controller") {
-			qb.whereIn("profile_accesses.type", ["controller", "both", "all"]);
-		}
-		if (type === "system") {
-			qb.whereIn("profile_accesses.type", ["system", "both", "all"]);
-		}
+    if (!type || type === "user") {
+      qb.whereIn("profile_accesses.type", ["user", "both", "all"]);
+    }
+    if (type === "controller") {
+      qb.whereIn("profile_accesses.type", ["controller", "both", "all"]);
+    }
+    if (type === "system") {
+      qb.whereIn("profile_accesses.type", ["system", "both", "all"]);
+    }
 
-		const result = await qb;
+    const result = await qb;
 
-		const uniqueRoles: number[] = result.reduce((acc: number[], curr) => {
-			if (acc.includes(curr.role_id)) {
-				return acc;
-			}
+    const uniqueRoles: number[] = result.reduce((acc: number[], curr) => {
+      if (acc.includes(curr.role_id)) {
+        return acc;
+      }
 
-			acc.push(curr.role_id);
-			return acc;
-		}, [] as number[]);
+      acc.push(curr.role_id);
+      return acc;
+    }, [] as number[]);
 
-		const mappedRoles = uniqueRoles.map((roleID: number) => {
-			return {
-				id: roleID,
-				name: result.find((r) => r.role_id === roleID)?.name,
-				active: result.find((r) => r.role_id === roleID)?.active,
-				externalAccess: result.find((r) => r.role_id === roleID)
-					?.external_access,
-				profiles: result
-					.filter((r) => r.role_id === roleID)
-					.map((r) => ({ id: r.a_id, description: r.description })),
-			};
-		});
+    const mappedRoles = uniqueRoles.map((roleID: number) => {
+      return {
+        id: roleID,
+        name: result.find((r) => r.role_id === roleID)?.name,
+        active: result.find((r) => r.role_id === roleID)?.active,
+        externalAccess: result.find((r) => r.role_id === roleID)?.external_access,
+        profiles: result
+          .filter((r) => r.role_id === roleID)
+          .map((r) => ({ id: r.a_id, description: r.description })),
+      };
+    });
 
-		if (mappedRoles.length === 0) {
-			return [];
-		}
+    if (mappedRoles.length === 0) {
+      return [];
+    }
 
-		if (data.id) {
-			const mappedRole = mappedRoles.find(
-				(r) => r.id === Number.parseInt(data.id ?? "-1"),
-			);
-			if (!mappedRole) {
-				throw new BadRequestException(
-					"Cargo não encontrado",
-					400,
-					"E_NOT_FOUND",
-				);
-			}
+    if (data.id) {
+      const mappedRole = mappedRoles.find((r) => r.id === Number.parseInt(data.id ?? "-1"));
+      if (!mappedRole) {
+        throw new BadRequestException("Cargo não encontrado", 400, "E_NOT_FOUND");
+      }
 
-			return mappedRole;
-		}
+      return mappedRole;
+    }
 
-		return mappedRoles;
-	}
+    return mappedRoles;
+  }
 
-	public async searchControllerRolePermissions(
-		systemID: number,
-		roleType: TRoleType,
-		data: { id?: string; active?: string },
-	) {
-		const qb = Role.query()
-			.where("system_id", systemID)
-			.where("type", "controller" as TRoleType);
+  public async searchControllerRolePermissions(
+    systemID: number,
+    roleType: TRoleType,
+    data: { id?: string; active?: string },
+  ) {
+    const qb = Role.query()
+      .where("system_id", systemID)
+      .where("type", "controller" as TRoleType);
 
-		if (data.id) {
-			qb.where("id", data.id);
-		}
+    if (data.id) {
+      qb.where("id", data.id);
+    }
 
-		if (data.active) {
-			qb.where("active", data.active !== "0");
-		}
+    if (data.active) {
+      qb.where("active", data.active !== "0");
+    }
 
-		qb.preload("permissions", (query) => {
-			if (roleType === "user") {
-				query.whereIn("type", ["user", "both", "all"] as TPermissionType[]);
-			}
+    qb.preload("permissions", (query) => {
+      if (roleType === "user") {
+        query.whereIn("type", ["user", "both", "all"] as TPermissionType[]);
+      }
 
-			if (roleType === "controller") {
-				query.whereIn("type", [
-					"controller",
-					"both",
-					"all",
-				] as TPermissionType[]);
-			}
+      if (roleType === "controller") {
+        query.whereIn("type", ["controller", "both", "all"] as TPermissionType[]);
+      }
 
-			if (roleType === "system") {
-				query.whereIn("type", ["system", "all"] as TPermissionType[]);
-			}
-		});
+      if (roleType === "system") {
+        query.whereIn("type", ["system", "all"] as TPermissionType[]);
+      }
+    });
 
-		qb.preload("accesses", (query) => {
-			if (roleType === "user") {
-				query.whereIn("type", ["user", "both", "all"] as TRoleType[]);
-			}
+    qb.preload("accesses", (query) => {
+      if (roleType === "user") {
+        query.whereIn("type", ["user", "both", "all"] as TRoleType[]);
+      }
 
-			if (roleType === "controller") {
-				query.whereIn("type", ["controller", "both", "all"] as TRoleType[]);
-			}
+      if (roleType === "controller") {
+        query.whereIn("type", ["controller", "both", "all"] as TRoleType[]);
+      }
 
-			if (roleType === "system") {
-				query.whereIn("type", ["system", "all"] as TRoleType[]);
-			}
+      if (roleType === "system") {
+        query.whereIn("type", ["system", "all"] as TRoleType[]);
+      }
 
-			query.preload("profile");
-		});
+      query.preload("profile");
+    });
 
-		const result = await qb;
+    const result = await qb;
 
-		if (data.id) {
-			if (result.length === 0) {
-				throw this.sharedService.ResourceNotFound();
-			}
+    if (data.id) {
+      if (result.length === 0) {
+        throw this.sharedService.ResourceNotFound();
+      }
 
-			const [elem] = result;
-			return {
-				id: elem.id,
-				name: elem.name,
-				active: elem.active,
-				externalAccess: elem.externalAccess,
-				profiles: elem.accesses.map((access) => ({
-					id: access.profile.id,
-					description: access.profile.description,
-				})),
-			};
-		}
+      const [elem] = result;
+      return {
+        id: elem.id,
+        name: elem.name,
+        active: elem.active,
+        externalAccess: elem.externalAccess,
+        profiles: elem.accesses.map((access) => ({
+          id: access.profile.id,
+          description: access.profile.description,
+        })),
+      };
+    }
 
-		return result.map((elem) => ({
-			id: elem.id,
-			name: elem.name,
-			active: elem.active,
-			externalAccess: elem.externalAccess,
-			profiles: elem.accesses.map((access) => ({
-				id: access.profile.id,
-				description: access.profile.description,
-			})),
-		}));
-	}
+    return result.map((elem) => ({
+      id: elem.id,
+      name: elem.name,
+      active: elem.active,
+      externalAccess: elem.externalAccess,
+      profiles: elem.accesses.map((access) => ({
+        id: access.profile.id,
+        description: access.profile.description,
+      })),
+    }));
+  }
 
-	public async copyRole(systemID: number, data: { roleId: number }) {
-		return await Database.transaction(async (trx) => {
-			const role = await Role.query()
-				.useTransaction(trx)
-				.where("id", data.roleId)
-				.where("system_id", systemID)
-				.first();
+  public async copyRole(systemID: number, data: { roleId: number }) {
+    return await Database.transaction(async (trx) => {
+      const role = await Role.query()
+        .useTransaction(trx)
+        .where("id", data.roleId)
+        .where("system_id", systemID)
+        .first();
 
-			if (!role) {
-				throw this.sharedService.ResourceNotFound();
-			}
+      if (!role) {
+        throw this.sharedService.ResourceNotFound();
+      }
 
-			const rolePermissions = await Database.from("role_permissions")
-				.useTransaction(trx)
-				.where("role_id", role.id);
+      const rolePermissions = await Database.from("role_permissions")
+        .useTransaction(trx)
+        .where("role_id", role.id);
 
-			const roleProfileAccesses = await Database.from("role_profile_accesses")
-				.useTransaction(trx)
-				.where("role_id", role.id);
+      const roleProfileAccesses = await Database.from("role_profile_accesses")
+        .useTransaction(trx)
+        .where("role_id", role.id);
 
-			const newRole = await Role.create(
-				{
-					name: `${role.name} - Cópia`,
-					system_id: role.system_id,
-					type: role.type,
-					economic_group_id: role.economic_group_id,
-					active: role.active,
-					externalAccess: role.externalAccess,
-				},
-				{
-					client: trx,
-				},
-			);
+      const newRole = await Role.create(
+        {
+          name: `${role.name} - Cópia`,
+          system_id: role.system_id,
+          type: role.type,
+          economic_group_id: role.economic_group_id,
+          active: role.active,
+          externalAccess: role.externalAccess,
+        },
+        {
+          client: trx,
+        },
+      );
 
-			await newRole.related("permissions").attach(
-				rolePermissions.map((p) => p.permission_id),
-				trx,
-			);
+      await newRole.related("permissions").attach(
+        rolePermissions.map((p) => p.permission_id),
+        trx,
+      );
 
-			await newRole.related("accesses").createMany(
-				roleProfileAccesses.map((p) => ({
-					profile_access_id: p.profile_access_id,
-				})),
-				trx,
-			);
+      await newRole.related("accesses").createMany(
+        roleProfileAccesses.map((p) => ({
+          profile_access_id: p.profile_access_id,
+        })),
+        trx,
+      );
 
-			return newRole;
-		});
-	}
+      return newRole;
+    });
+  }
 }

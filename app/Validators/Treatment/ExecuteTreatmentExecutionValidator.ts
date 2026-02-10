@@ -2,26 +2,18 @@ import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
 
 export default class ExecuteTreatmentExecutionValidator {
-	constructor(protected ctx: HttpContextContract) {}
+  constructor(protected ctx: HttpContextContract) {}
 
-	public schema = schema.create({
-		executionId: schema.number([
-			rules.exists({ table: "treatment_executions", column: "id" }),
-		]),
-		treatmentId: schema.number([
-			rules.exists({ table: "treatments", column: "id" }),
-		]),
-		treatmentItemId: schema.number([
-			rules.exists({ table: "treatment_items", column: "id" }),
-		]),
-		executionUser: schema.string.optional({}, [
-			rules.exists({ table: "users", column: "id" }),
-		]),
+  public schema = schema.create({
+    executionId: schema.number([rules.exists({ table: "treatment_executions", column: "id" })]),
+    treatmentId: schema.number([rules.exists({ table: "treatments", column: "id" })]),
+    treatmentItemId: schema.number([rules.exists({ table: "treatment_items", column: "id" })]),
+    executionUser: schema.string.optional({}, [rules.exists({ table: "users", column: "id" })]),
 
-		quantity: schema.number(),
-		executionDate: schema.date(),
-		observations: schema.string.optional({ trim: true }),
-	});
+    quantity: schema.number(),
+    executionDate: schema.date(),
+    observations: schema.string.optional({ trim: true }),
+  });
 
-	public messages: CustomMessages = {};
+  public messages: CustomMessages = {};
 }

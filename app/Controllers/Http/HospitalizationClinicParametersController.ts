@@ -1,9 +1,9 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import HospitalizationClinicParameterService from 'App/Services/HospitalizationClinicParameterService';
-import SharedService from 'App/Services/SharedService';
-import CreateHospitalizationClinicParameterValidator from 'App/Validators/HospitalizationClinicParameter/CreateHospitalizationClinicParameterValidator';
-import UpdateHospitalizationClinicParameterValidator from 'App/Validators/HospitalizationClinicParameter/UpdateHospitalizationClinicParameterValidator';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import HospitalizationClinicParameterService from "App/Services/HospitalizationClinicParameterService";
+import SharedService from "App/Services/SharedService";
+import CreateHospitalizationClinicParameterValidator from "App/Validators/HospitalizationClinicParameter/CreateHospitalizationClinicParameterValidator";
+import UpdateHospitalizationClinicParameterValidator from "App/Validators/HospitalizationClinicParameter/UpdateHospitalizationClinicParameterValidator";
 
 @inject()
 export default class HospitalizationClinicParametersController {
@@ -13,9 +13,7 @@ export default class HospitalizationClinicParametersController {
   ) {}
 
   public async store({ auth, request, response }: HttpContextContract) {
-    const payload = await request.validate(
-      CreateHospitalizationClinicParameterValidator,
-    );
+    const payload = await request.validate(CreateHospitalizationClinicParameterValidator);
     const { user, unit_id } = this.sharedService.extractUser(auth);
 
     const result = await this.service.store(unit_id, user, payload);
@@ -23,15 +21,8 @@ export default class HospitalizationClinicParametersController {
     return response.created(result);
   }
 
-  public async update({
-    auth,
-    params,
-    request,
-    response,
-  }: HttpContextContract) {
-    const payload = await request.validate(
-      UpdateHospitalizationClinicParameterValidator,
-    );
+  public async update({ auth, params, request, response }: HttpContextContract) {
+    const payload = await request.validate(UpdateHospitalizationClinicParameterValidator);
 
     const { unit_id } = this.sharedService.extractUser(auth);
     const result = await this.service.update(unit_id, params.id, payload);

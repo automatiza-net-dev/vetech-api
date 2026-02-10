@@ -1,7 +1,7 @@
-import BaseSeeder from '@ioc:Adonis/Lucid/Seeder';
+import BaseSeeder from "@ioc:Adonis/Lucid/Seeder";
 
 export default class extends BaseSeeder {
   public async run() {
-    throw new Error('Not implemented');
+    throw new Error("Not implemented");
   }
 }

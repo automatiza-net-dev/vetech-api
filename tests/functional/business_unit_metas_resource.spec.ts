@@ -1,12 +1,12 @@
-import Database from '@ioc:Adonis/Lucid/Database';
-import { test } from '@japa/runner';
-import BusinessUnitMeta from 'App/Models/BusinessUnitMeta';
-import Meta from 'App/Models/Meta';
-import { v4 } from 'uuid';
+import Database from "@ioc:Adonis/Lucid/Database";
+import { test } from "@japa/runner";
+import BusinessUnitMeta from "App/Models/BusinessUnitMeta";
+import Meta from "App/Models/Meta";
+import { v4 } from "uuid";
 
-import { generateJwtToken, userBootstrap } from '../utils';
+import { generateJwtToken, userBootstrap } from "../utils";
 
-test.group('Business Units Metas resource', group => {
+test.group("Business Units Metas resource", (group) => {
   group.each.setup(async () => {
     await Database.beginGlobalTransaction();
     return () => Database.rollbackGlobalTransaction();
@@ -17,41 +17,41 @@ test.group('Business Units Metas resource', group => {
 
     const meta = await Meta.create({
       economic_group_id: group.id,
-      description: 'some description',
+      description: "some description",
     });
 
     const buMeta = await BusinessUnitMeta.create({
       meta_id: meta.id,
       business_unit_id: business.id,
       value: 100,
-      period: 'Ano',
+      period: "Ano",
     });
 
     return { user, buMeta, meta };
   };
 
-  test('should get all metas', async ({ assert, client }) => {
+  test("should get all metas", async ({ assert, client }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
-    const result = await client.get('/business-unit-metas').bearerToken(token);
+    const result = await client.get("/business-unit-metas").bearerToken(token);
 
     assert.equal(200, result.status());
     assert.isArray(result.body());
   });
 
-  test('should create meta', async ({ assert, client }) => {
+  test("should create meta", async ({ assert, client }) => {
     const { user, meta, buMeta } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const result = await client
-      .post('/business-unit-metas')
+      .post("/business-unit-metas")
       .json({
         metaId: meta.id,
         businessUnitId: buMeta.business_unit_id,
@@ -63,41 +63,38 @@ test.group('Business Units Metas resource', group => {
     assert.equal(201, result.status());
   });
 
-  test('should throw BadRequestException when matching data', async ({
-    assert,
-    client,
-  }) => {
+  test("should throw BadRequestException when matching data", async ({ assert, client }) => {
     const { user, meta, buMeta } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     await BusinessUnitMeta.create({
       meta_id: meta.id,
       business_unit_id: buMeta.business_unit_id,
       value: 100,
-      period: 'Ano',
+      period: "Ano",
     });
 
     const result = await client
-      .post('/business-unit-metas')
+      .post("/business-unit-metas")
       .json({
         metaId: meta.id,
         businessUnitId: buMeta.business_unit_id,
         value: 100,
-        period: 'Ano',
+        period: "Ano",
       })
       .bearerToken(token);
 
     assert.equal(400, result.status());
   });
 
-  test('should update meta', async ({ assert, client }) => {
+  test("should update meta", async ({ assert, client }) => {
     const { user, buMeta } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const result = await client
@@ -111,42 +108,38 @@ test.group('Business Units Metas resource', group => {
     assert.equal(204, result.status());
   });
 
-  test('should return metas', async ({ assert, client }) => {
+  test("should return metas", async ({ assert, client }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
-    const result = await client.get('/business-unit-metas').bearerToken(token);
+    const result = await client.get("/business-unit-metas").bearerToken(token);
 
     assert.equal(200, result.status());
   });
 
-  test('should return single metas', async ({ assert, client }) => {
+  test("should return single metas", async ({ assert, client }) => {
     const { user, buMeta } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
-    const result = await client
-      .get(`/business-unit-metas/${buMeta.id}`)
-      .bearerToken(token);
+    const result = await client.get(`/business-unit-metas/${buMeta.id}`).bearerToken(token);
 
     assert.equal(200, result.status());
   });
 
-  test('should delete meta', async ({ assert, client }) => {
+  test("should delete meta", async ({ assert, client }) => {
     const { user, buMeta } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
-    const result = await client
-      .delete(`/business-unit-metas/${buMeta.id}`)
-      .bearerToken(token);
+    const result = await client.delete(`/business-unit-metas/${buMeta.id}`).bearerToken(token);
 
     assert.equal(204, result.status());
   });

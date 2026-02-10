@@ -1,10 +1,10 @@
-import Database from '@ioc:Adonis/Lucid/Database';
-import { test } from '@japa/runner';
-import Meta from 'App/Models/Meta';
-import { v4 } from 'uuid';
-import { userBootstrap, generateJwtToken } from '../utils';
+import Database from "@ioc:Adonis/Lucid/Database";
+import { test } from "@japa/runner";
+import Meta from "App/Models/Meta";
+import { v4 } from "uuid";
+import { userBootstrap, generateJwtToken } from "../utils";
 
-test.group('Meta resource', group => {
+test.group("Meta resource", (group) => {
   group.each.setup(async () => {
     await Database.beginGlobalTransaction();
     return () => Database.rollbackGlobalTransaction();
@@ -17,75 +17,75 @@ test.group('Meta resource', group => {
       economic_group_id: group.id,
       system_id: group.system_id,
       description: v4(),
-      type: 'some type',
+      type: "some type",
     });
 
     return { user, meta };
   };
 
-  test('should get all metas', async ({ assert, client }) => {
+  test("should get all metas", async ({ assert, client }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
-    const result = await client.get('/metas').bearerToken(token);
+    const result = await client.get("/metas").bearerToken(token);
 
     assert.equal(200, result.status());
   });
 
-  test('should create meta', async ({ assert, client }) => {
+  test("should create meta", async ({ assert, client }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const result = await client
-      .post('/metas')
+      .post("/metas")
       .json({
-        description: 'some description',
-        type: 'some type',
+        description: "some description",
+        type: "some type",
       })
       .bearerToken(token);
 
     assert.equal(201, result.status());
   });
 
-  test('should throw BadRequestException when creating duplicated meta', async ({
+  test("should throw BadRequestException when creating duplicated meta", async ({
     assert,
     client,
   }) => {
     const { user, meta } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const result = await client
-      .post('/metas')
+      .post("/metas")
       .json({
         description: meta.description,
-        type: 'some type',
+        type: "some type",
       })
       .bearerToken(token);
 
     assert.equal(400, result.status());
   });
 
-  test('should update meta', async ({ assert, client }) => {
+  test("should update meta", async ({ assert, client }) => {
     const { user, meta } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const result = await client
       .put(`/metas/${meta.id}`)
       .json({
         description: v4(),
-        type: 'some type',
+        type: "some type",
         active: true,
       })
       .bearerToken(token);
@@ -93,28 +93,28 @@ test.group('Meta resource', group => {
     assert.equal(204, result.status());
   });
 
-  test('should throw BadRequestException when updated duplicated meta', async ({
+  test("should throw BadRequestException when updated duplicated meta", async ({
     assert,
     client,
   }) => {
     const { user, meta } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const otherMeta = await Meta.create({
       economic_group_id: meta.economic_group_id,
       system_id: meta.system_id,
       description: v4(),
-      type: 'some type',
+      type: "some type",
     });
 
     const result = await client
       .put(`/metas/${meta.id}`)
       .json({
         description: otherMeta.description,
-        type: 'some type',
+        type: "some type",
         active: true,
       })
       .bearerToken(token);
@@ -122,11 +122,11 @@ test.group('Meta resource', group => {
     assert.equal(400, result.status());
   });
 
-  test('should delete meta', async ({ assert, client }) => {
+  test("should delete meta", async ({ assert, client }) => {
     const { user, meta } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const result = await client.delete(`/metas/${meta.id}`).bearerToken(token);

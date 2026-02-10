@@ -1,9 +1,9 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import PlanService from 'App/Services/PlanService';
-import SharedService from 'App/Services/SharedService';
-import CreatePlanValidator from 'App/Validators/Plan/CreatePlanValidator';
-import UpdatePlanValidator from 'App/Validators/Plan/UpdatePlanValidator';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import PlanService from "App/Services/PlanService";
+import SharedService from "App/Services/SharedService";
+import CreatePlanValidator from "App/Validators/Plan/CreatePlanValidator";
+import UpdatePlanValidator from "App/Validators/Plan/UpdatePlanValidator";
 
 @inject()
 export default class PlansController {
@@ -15,21 +15,15 @@ export default class PlansController {
   public async index({ request, response, auth }: HttpContextContract) {
     const qs = request.qs();
     return response.ok(
-      await this.planService.index(
-        await this.sharedService.getAuthContext(auth),
-        {
-          description: qs.description,
-        },
-      ),
+      await this.planService.index(await this.sharedService.getAuthContext(auth), {
+        description: qs.description,
+      }),
     );
   }
 
   public async store({ request, response, auth }: HttpContextContract) {
     const data = await request.validate(CreatePlanValidator);
-    const plan = await this.planService.store(
-      await this.sharedService.getAuthContext(auth),
-      data,
-    );
+    const plan = await this.planService.store(await this.sharedService.getAuthContext(auth), data);
 
     return response.created(plan);
   }
@@ -43,12 +37,7 @@ export default class PlansController {
     return response.ok(plan);
   }
 
-  public async update({
-    params,
-    request,
-    response,
-    auth,
-  }: HttpContextContract) {
+  public async update({ params, request, response, auth }: HttpContextContract) {
     const data = await request.validate(UpdatePlanValidator);
     const plan = await this.planService.update(
       await this.sharedService.getAuthContext(auth),
@@ -60,10 +49,7 @@ export default class PlansController {
   }
 
   public async destroy({ params, response, auth }: HttpContextContract) {
-    await this.planService.remove(
-      await this.sharedService.getAuthContext(auth),
-      params.id,
-    );
+    await this.planService.remove(await this.sharedService.getAuthContext(auth), params.id);
 
     return response.noContent();
   }

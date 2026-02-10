@@ -9,80 +9,76 @@ import UpdateDreGroupValidator from "App/Validators/DreGroup/UpdateDreGroupValid
 
 @inject()
 export default class DreGroupsController {
-	constructor(
-		private shared: SharedService,
-		private service: DreGroupService,
-	) {}
+  constructor(
+    private shared: SharedService,
+    private service: DreGroupService,
+  ) {}
 
-	public async index(ctx: HttpContextContract) {
-		const authCtx = await this.shared.getAuthContext(ctx.auth);
+  public async index(ctx: HttpContextContract) {
+    const authCtx = await this.shared.getAuthContext(ctx.auth);
 
-		return ctx.response.ok(await this.service.index(authCtx, ctx.request.qs()));
-	}
+    return ctx.response.ok(await this.service.index(authCtx, ctx.request.qs()));
+  }
 
-	public async search(ctx: HttpContextContract) {
-		const authCtx = await this.shared.getAuthContext(ctx.auth);
+  public async search(ctx: HttpContextContract) {
+    const authCtx = await this.shared.getAuthContext(ctx.auth);
 
-		return ctx.response.ok(
-			await this.service.search(authCtx, ctx.request.qs()),
-		);
-	}
+    return ctx.response.ok(await this.service.search(authCtx, ctx.request.qs()));
+  }
 
-	public async store(ctx: HttpContextContract) {
-		await this.shared.errorHoc(ctx.response, async () => {
-			const body = await ctx.request.validate(CreateDreGroupValidator);
-			const authCtx = await this.shared.getAuthContext(ctx.auth);
+  public async store(ctx: HttpContextContract) {
+    await this.shared.errorHoc(ctx.response, async () => {
+      const body = await ctx.request.validate(CreateDreGroupValidator);
+      const authCtx = await this.shared.getAuthContext(ctx.auth);
 
-			return ctx.response.created(await this.service.store(authCtx, body));
-		});
-	}
+      return ctx.response.created(await this.service.store(authCtx, body));
+    });
+  }
 
-	public async storePlanning(ctx: HttpContextContract) {
-		await this.shared.errorHoc(ctx.response, async () => {
-			const body = await ctx.request.validate(CreateDreGroupPlanningValidator);
-			const authCtx = await this.shared.getAuthContext(ctx.auth);
+  public async storePlanning(ctx: HttpContextContract) {
+    await this.shared.errorHoc(ctx.response, async () => {
+      const body = await ctx.request.validate(CreateDreGroupPlanningValidator);
+      const authCtx = await this.shared.getAuthContext(ctx.auth);
 
-			return ctx.response.created(
-				await this.service.storePlanning(authCtx, body),
-			);
-		});
-	}
+      return ctx.response.created(await this.service.storePlanning(authCtx, body));
+    });
+  }
 
-	public async update(ctx: HttpContextContract) {
-		await this.shared.errorHoc(ctx.response, async () => {
-			const body = await ctx.request.validate(UpdateDreGroupValidator);
-			const authCtx = await this.shared.getAuthContext(ctx.auth);
+  public async update(ctx: HttpContextContract) {
+    await this.shared.errorHoc(ctx.response, async () => {
+      const body = await ctx.request.validate(UpdateDreGroupValidator);
+      const authCtx = await this.shared.getAuthContext(ctx.auth);
 
-			return ctx.response.ok(await this.service.update(authCtx, body));
-		});
-	}
+      return ctx.response.ok(await this.service.update(authCtx, body));
+    });
+  }
 
-	public async updatePlanning(ctx: HttpContextContract) {
-		await this.shared.errorHoc(ctx.response, async () => {
-			const body = await ctx.request.validate(UpdateDreGroupPlanningValidator);
-			const authCtx = await this.shared.getAuthContext(ctx.auth);
+  public async updatePlanning(ctx: HttpContextContract) {
+    await this.shared.errorHoc(ctx.response, async () => {
+      const body = await ctx.request.validate(UpdateDreGroupPlanningValidator);
+      const authCtx = await this.shared.getAuthContext(ctx.auth);
 
-			return ctx.response.ok(await this.service.updatePlanning(authCtx, body));
-		});
-	}
+      return ctx.response.ok(await this.service.updatePlanning(authCtx, body));
+    });
+  }
 
-	public async destroy(ctx: HttpContextContract) {
-		await this.shared.errorHoc(ctx.response, async () => {
-			const authCtx = await this.shared.getAuthContext(ctx.auth);
+  public async destroy(ctx: HttpContextContract) {
+    await this.shared.errorHoc(ctx.response, async () => {
+      const authCtx = await this.shared.getAuthContext(ctx.auth);
 
-			await this.service.delete(authCtx, { id: ctx.params.id });
+      await this.service.delete(authCtx, { id: ctx.params.id });
 
-			return ctx.response.noContent();
-		});
-	}
+      return ctx.response.noContent();
+    });
+  }
 
-	public async destroyPlanning(ctx: HttpContextContract) {
-		await this.shared.errorHoc(ctx.response, async () => {
-			const authCtx = await this.shared.getAuthContext(ctx.auth);
+  public async destroyPlanning(ctx: HttpContextContract) {
+    await this.shared.errorHoc(ctx.response, async () => {
+      const authCtx = await this.shared.getAuthContext(ctx.auth);
 
-			await this.service.deletePlanning(authCtx, { id: ctx.params.id });
+      await this.service.deletePlanning(authCtx, { id: ctx.params.id });
 
-			return ctx.response.noContent();
-		});
-	}
+      return ctx.response.noContent();
+    });
+  }
 }

@@ -1,5 +1,5 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
 
 export default class UpdateVaccineCalendarValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -10,8 +10,8 @@ export default class UpdateVaccineCalendarValidator {
     productId: schema.string.optional({}, [
       rules.uuid(),
       rules.exists({
-        table: 'products',
-        column: 'id',
+        table: "products",
+        column: "id",
       }),
     ]),
     dose: schema.number([rules.unsigned()]),

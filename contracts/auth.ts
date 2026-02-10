@@ -5,10 +5,10 @@
  * file.
  */
 
-import ThirdPartyUserPermission from 'App/Models/ThirdPartyUserPermission';
-import User from 'App/Models/User';
+import ThirdPartyUserPermission from "App/Models/ThirdPartyUserPermission";
+import User from "App/Models/User";
 
-declare module '@ioc:Adonis/Addons/Auth' {
+declare module "@ioc:Adonis/Addons/Auth" {
   /*
   |--------------------------------------------------------------------------
   | Providers
@@ -74,12 +74,12 @@ declare module '@ioc:Adonis/Addons/Auth' {
     |
     */
     api: {
-      implementation: OATGuardContract<'user', 'api'>;
-      config: OATGuardConfig<'user'>;
+      implementation: OATGuardContract<"user", "api">;
+      config: OATGuardConfig<"user">;
     };
     tpApi: {
-      implementation: OATGuardContract<'tpUser', 'tpApi'>;
-      config: OATGuardConfig<'tpUser'>;
+      implementation: OATGuardContract<"tpUser", "tpApi">;
+      config: OATGuardConfig<"tpUser">;
     };
   }
 }

@@ -7,16 +7,16 @@ import {
   column,
   HasMany,
   hasMany,
-} from '@ioc:Adonis/Lucid/Orm';
-import Licence from 'App/Models/Licence';
-import Plan from 'App/Models/Plan';
-import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
-import { DateTime } from 'luxon';
+} from "@ioc:Adonis/Lucid/Orm";
+import Licence from "App/Models/Licence";
+import Plan from "App/Models/Plan";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import { DateTime } from "luxon";
 
 export enum PlanPriceRecurrence {
-  MONTHLY = 'monthly',
-  YEARLY = 'yearly',
-  CUSTOM = 'custom',
+  MONTHLY = "monthly",
+  YEARLY = "yearly",
+  CUSTOM = "custom",
 }
 
 export default class PlanPrice extends BaseModel {
@@ -24,7 +24,7 @@ export default class PlanPrice extends BaseModel {
   public id: string;
 
   @column({
-    columnName: 'plan_price',
+    columnName: "plan_price",
     serialize: (data: string) => parseFloat(data),
   })
   public planPrice: number;
@@ -33,12 +33,12 @@ export default class PlanPrice extends BaseModel {
   public recurrence: PlanPriceRecurrence;
 
   @column({
-    columnName: 'expiration_days',
+    columnName: "expiration_days",
   })
   public expirationDays: number;
 
   @column({
-    columnName: 'plan_id',
+    columnName: "plan_id",
   })
   public plan_id: string;
 
@@ -65,8 +65,8 @@ export default class PlanPrice extends BaseModel {
   }
 
   @hasMany(() => Licence, {
-    localKey: 'id',
-    foreignKey: 'plan_price_id',
+    localKey: "id",
+    foreignKey: "plan_price_id",
   })
   public licences: HasMany<typeof Licence>;
 }

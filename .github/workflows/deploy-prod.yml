@@ -42,5 +42,3 @@ jobs:
           if [ "${{ job.status }}" == "success" ]; then STATUS="✅ Sucesso [prod]"; fi
           curl -H "Content-Type: application/json" -d "{\"content\": \"$STATUS - ${{ github.workflow }}\"}" \
           ${{ secrets.PROD_DISCORD_WEBHOOK }}
-
-

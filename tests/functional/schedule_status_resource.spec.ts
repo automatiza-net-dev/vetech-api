@@ -1,9 +1,9 @@
-import Database from '@ioc:Adonis/Lucid/Database';
-import { test } from '@japa/runner';
+import Database from "@ioc:Adonis/Lucid/Database";
+import { test } from "@japa/runner";
 
-import { generateJwtToken, userBootstrap } from '../utils';
+import { generateJwtToken, userBootstrap } from "../utils";
 
-test.group('Schedule status resource', group => {
+test.group("Schedule status resource", (group) => {
   group.each.setup(async () => {
     await Database.beginGlobalTransaction();
     return () => Database.rollbackGlobalTransaction();
@@ -12,9 +12,9 @@ test.group('Schedule status resource', group => {
   const createData = async () => {
     const { user, group, business, system } = await userBootstrap();
 
-    const status = await group.related('scheduleStatuses').create({
-      color: 'color1',
-      description: 'description1',
+    const status = await group.related("scheduleStatuses").create({
+      color: "color1",
+      description: "description1",
       system_id: system.id,
     });
 
@@ -68,24 +68,21 @@ test.group('Schedule status resource', group => {
   //   assert.isDefined(response.body().economic_group_id);
   // });
 
-  test('should return a list of schedule statuses', async ({
-    assert,
-    client,
-  }) => {
+  test("should return a list of schedule statuses", async ({ assert, client }) => {
     const { user, status } = await createData();
 
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
-    const response = await client.get('/schedule-statuses').bearerToken(token);
+    const response = await client.get("/schedule-statuses").bearerToken(token);
 
     const body = response.body();
 
     assert.equal(200, response.status());
     assert.isArray(body);
-    assert.isTrue(Boolean(body.find(b => b.id === status.id)));
+    assert.isTrue(Boolean(body.find((b) => b.id === status.id)));
   });
 
   // test('should throw ResourceNotFoundException if no status was found', async ({

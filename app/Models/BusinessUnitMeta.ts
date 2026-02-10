@@ -1,7 +1,7 @@
-import { DateTime } from 'luxon';
-import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
-import BusinessUnit from './BusinessUnit';
-import Meta from './Meta';
+import { DateTime } from "luxon";
+import { BaseModel, BelongsTo, belongsTo, column } from "@ioc:Adonis/Lucid/Orm";
+import BusinessUnit from "./BusinessUnit";
+import Meta from "./Meta";
 
 export default class BusinessUnitMeta extends BaseModel {
   @column({ isPrimary: true })
@@ -28,7 +28,7 @@ export default class BusinessUnitMeta extends BaseModel {
   public business_unit_id: string;
 
   @belongsTo(() => BusinessUnit, {
-    foreignKey: 'business_unit_id',
+    foreignKey: "business_unit_id",
   })
   public unit: BelongsTo<typeof BusinessUnit>;
 
@@ -38,7 +38,7 @@ export default class BusinessUnitMeta extends BaseModel {
   public meta_id: number;
 
   @belongsTo(() => Meta, {
-    foreignKey: 'meta_id',
+    foreignKey: "meta_id",
   })
   public meta: BelongsTo<typeof Meta>;
 }

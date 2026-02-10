@@ -1,5 +1,5 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
 
 export default class ExcludeTreatmentExecutionValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -25,11 +25,9 @@ export default class ExcludeTreatmentExecutionValidator {
    */
   public schema = schema.create({
     treatmentExecutionId: schema.number([
-      rules.exists({ table: 'treatment_executions', column: 'id' }),
+      rules.exists({ table: "treatment_executions", column: "id" }),
     ]),
-    treatmentId: schema.number([
-      rules.exists({ table: 'treatments', column: 'id' }),
-    ]),
+    treatmentId: schema.number([rules.exists({ table: "treatments", column: "id" })]),
 
     reason: schema.string(),
   });

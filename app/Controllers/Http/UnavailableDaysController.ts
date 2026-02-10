@@ -1,9 +1,9 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import SharedService from 'App/Services/SharedService';
-import UnavailableDayService from 'App/Services/UnavailableDayService';
-import CreateUnavailableDayValidator from 'App/Validators/UnavailableDay/CreateUnavailableDayValidator';
-import UpdateUnavailableDayValidator from 'App/Validators/UnavailableDay/UpdateUnavailableDayValidator';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import SharedService from "App/Services/SharedService";
+import UnavailableDayService from "App/Services/UnavailableDayService";
+import CreateUnavailableDayValidator from "App/Validators/UnavailableDay/CreateUnavailableDayValidator";
+import UpdateUnavailableDayValidator from "App/Validators/UnavailableDay/UpdateUnavailableDayValidator";
 
 @inject()
 export default class UnavailableDaysController {
@@ -38,12 +38,7 @@ export default class UnavailableDaysController {
     return response.created(data);
   }
 
-  public async update({
-    auth,
-    params,
-    request,
-    response,
-  }: HttpContextContract) {
+  public async update({ auth, params, request, response }: HttpContextContract) {
     const payload = await request.validate(UpdateUnavailableDayValidator);
     const { unit_id } = this.sharedService.extractUser(auth);
 

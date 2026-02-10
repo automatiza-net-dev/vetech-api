@@ -1,8 +1,8 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import SharedService from 'App/Services/SharedService';
-import VaccineCalendarService from 'App/Services/VaccineCalendarService';
-import UpdateVaccineCalendarValidator from 'App/Validators/VaccineCalendar/UpdateVaccineCalendarValidator';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import SharedService from "App/Services/SharedService";
+import VaccineCalendarService from "App/Services/VaccineCalendarService";
+import UpdateVaccineCalendarValidator from "App/Validators/VaccineCalendar/UpdateVaccineCalendarValidator";
 
 @inject()
 export default class VaccineCalendarsController {
@@ -25,12 +25,7 @@ export default class VaccineCalendarsController {
     return response.ok(result);
   }
 
-  public async update({
-    auth,
-    params,
-    request,
-    response,
-  }: HttpContextContract) {
+  public async update({ auth, params, request, response }: HttpContextContract) {
     const payload = await request.validate(UpdateVaccineCalendarValidator);
 
     const result = await this.service.update(

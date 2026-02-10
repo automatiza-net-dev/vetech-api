@@ -1,9 +1,9 @@
 import { AccountPlanGroupType } from "App/Models/AccountPlanGroup";
 
 export default interface IAccountPlanGroupData {
-	dreGroupId?: number;
+  dreGroupId?: number;
 
-	description: string;
-	type: AccountPlanGroupType;
-	active: boolean;
+  description: string;
+  type: AccountPlanGroupType;
+  active: boolean;
 }

@@ -1,5 +1,5 @@
 export default interface IInviteData {
-	businessUnitId: string;
-	roleId: number;
-	email: string;
+  businessUnitId: string;
+  roleId: number;
+  email: string;
 }

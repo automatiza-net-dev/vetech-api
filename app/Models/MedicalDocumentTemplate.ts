@@ -5,12 +5,12 @@ import {
   BelongsTo,
   belongsTo,
   column,
-} from '@ioc:Adonis/Lucid/Orm';
-import EconomicGroup from 'App/Models/EconomicGroup';
-import TimelineType from 'App/Models/TimelineType';
-import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
-import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
+} from "@ioc:Adonis/Lucid/Orm";
+import EconomicGroup from "App/Models/EconomicGroup";
+import TimelineType from "App/Models/TimelineType";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import { DateTime } from "luxon";
+import { v4 } from "uuid";
 
 export default class MedicalDocumentTemplate extends BaseModel {
   @column({ isPrimary: true })

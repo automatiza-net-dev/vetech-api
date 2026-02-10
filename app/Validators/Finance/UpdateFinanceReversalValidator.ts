@@ -1,6 +1,6 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, schema } from '@ioc:Adonis/Core/Validator';
-import { FinanceOriginDownFlag } from 'App/Models/Finance';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, schema } from "@ioc:Adonis/Core/Validator";
+import { FinanceOriginDownFlag } from "App/Models/Finance";
 
 export default class UpdateFinanceReversalValidator {
   constructor(protected ctx: HttpContextContract) {}

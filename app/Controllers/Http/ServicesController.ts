@@ -1,9 +1,9 @@
-import { inject } from '@adonisjs/fold';
-import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import ServiceService from 'App/Services/ServiceService';
-import SharedService from 'App/Services/SharedService';
-import CreateServiceValidator from 'App/Validators/Service/CreateServiceValidator';
-import UpdateServiceValidator from 'App/Validators/Service/UpdateServiceValidator';
+import { inject } from "@adonisjs/fold";
+import { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import ServiceService from "App/Services/ServiceService";
+import SharedService from "App/Services/SharedService";
+import CreateServiceValidator from "App/Validators/Service/CreateServiceValidator";
+import UpdateServiceValidator from "App/Validators/Service/UpdateServiceValidator";
 
 @inject()
 export default class ServicesController {
@@ -40,12 +40,7 @@ export default class ServicesController {
     return response.created(result);
   }
 
-  public async update({
-    auth,
-    params,
-    request,
-    response,
-  }: HttpContextContract) {
+  public async update({ auth, params, request, response }: HttpContextContract) {
     const payload = await request.validate(UpdateServiceValidator);
     const authCtx = await this.sharedService.getAuthContext(auth);
     const result = await this.service.update(authCtx, params.id, payload);

@@ -1,11 +1,11 @@
-import Database from '@ioc:Adonis/Lucid/Database';
-import { test } from '@japa/runner';
-import TimelineType from 'App/Models/TimelineType';
-import { v4 } from 'uuid';
+import Database from "@ioc:Adonis/Lucid/Database";
+import { test } from "@japa/runner";
+import TimelineType from "App/Models/TimelineType";
+import { v4 } from "uuid";
 
-import { generateJwtToken, userBootstrap } from '../utils';
+import { generateJwtToken, userBootstrap } from "../utils";
 
-test.group('Pathology resource', group => {
+test.group("Pathology resource", (group) => {
   group.each.setup(async () => {
     await Database.beginGlobalTransaction();
     return () => Database.rollbackGlobalTransaction();
@@ -16,14 +16,14 @@ test.group('Pathology resource', group => {
 
     const pathologyNoSQL = await TimelineType.create({
       id: v4(),
-      description: 'Patologia',
-      color: '#000',
+      description: "Patologia",
+      color: "#000",
       requiresObservation: false,
     });
 
-    const pathology = await group.related('pathologies').create({
-      description: 'any description',
-      definition: 'any definition',
+    const pathology = await group.related("pathologies").create({
+      description: "any description",
+      definition: "any definition",
       timeline_type_id: pathologyNoSQL.id,
       system_id: system.id,
     });
@@ -31,87 +31,80 @@ test.group('Pathology resource', group => {
     return { user, pathology };
   };
 
-  test('should get all pathologies', async ({ client, assert }) => {
+  test("should get all pathologies", async ({ client, assert }) => {
     const { user, pathology } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
-    const response = await client.get('/pathologies').bearerToken(token);
+    const response = await client.get("/pathologies").bearerToken(token);
     const body = response.body();
 
     assert.equal(200, response.status());
-    assert.isTrue(Boolean(body.find(f => f.id === pathology.id)));
+    assert.isTrue(Boolean(body.find((f) => f.id === pathology.id)));
   });
 
-  test('should throw ResouceNotFound if no pathology was found', async ({
-    client,
-    assert,
-  }) => {
+  test("should throw ResouceNotFound if no pathology was found", async ({ client, assert }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
-    const response = await client
-      .get(`/pathologies/${v4()}`)
-      .bearerToken(token);
+    const response = await client.get(`/pathologies/${v4()}`).bearerToken(token);
     const body = response.body();
 
     assert.equal(404, response.status());
-    assert.equal('E_NOT_FOUND: Recurso não encontrado', body.message);
+    assert.equal("E_NOT_FOUND: Recurso não encontrado", body.message);
   });
 
-  test('should return given pathology', async ({ client, assert }) => {
+  test("should return given pathology", async ({ client, assert }) => {
     const { user, pathology } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
-    const response = await client
-      .get(`/pathologies/${pathology.id}`)
-      .bearerToken(token);
+    const response = await client.get(`/pathologies/${pathology.id}`).bearerToken(token);
     const body = response.body();
 
     assert.equal(200, response.status());
     assert.equal(pathology.id, body.id);
   });
 
-  test('should create pathology', async ({ client, assert }) => {
+  test("should create pathology", async ({ client, assert }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
       .post(`/pathologies`)
       .json({
-        description: 'any description',
-        definition: 'any definition',
-        template: 'any template',
+        description: "any description",
+        definition: "any definition",
+        template: "any template",
       })
       .bearerToken(token);
 
     assert.equal(201, response.status());
   });
 
-  test('should update a pathology', async ({ client, assert }) => {
+  test("should update a pathology", async ({ client, assert }) => {
     const { user, pathology } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
       .put(`/pathologies/${pathology.id}`)
       .json({
-        description: 'another description',
-        definition: 'any definition',
-        template: 'any template',
+        description: "another description",
+        definition: "any definition",
+        template: "any template",
         active: true,
       })
       .bearerToken(token);
@@ -123,16 +116,14 @@ test.group('Pathology resource', group => {
     assert.notEqual(pathology.description, body.description);
   });
 
-  test('should delete a pathology', async ({ client, assert }) => {
+  test("should delete a pathology", async ({ client, assert }) => {
     const { user, pathology } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
-    const response = await client
-      .delete(`/pathologies/${pathology.id}`)
-      .bearerToken(token);
+    const response = await client.delete(`/pathologies/${pathology.id}`).bearerToken(token);
 
     assert.equal(204, response.status());
   });

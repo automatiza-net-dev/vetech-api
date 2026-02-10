@@ -1,10 +1,6 @@
-import Factory from '@ioc:Adonis/Lucid/Factory';
-import Patient, {
-  PatientGender,
-  PatientType,
-  PatientWeightOrigin,
-} from 'App/Models/Patient';
-import { DateTime } from 'luxon';
+import Factory from "@ioc:Adonis/Lucid/Factory";
+import Patient, { PatientGender, PatientType, PatientWeightOrigin } from "App/Models/Patient";
+import { DateTime } from "luxon";
 
 export default Factory.define(Patient, ({ faker }) => {
   return {
@@ -14,12 +10,12 @@ export default Factory.define(Patient, ({ faker }) => {
     type: Object.values(PatientType)[faker.number.int({ min: 0, max: 1 })],
     name: faker.person.firstName(),
     tags: faker.lorem.words(4),
-    birthDate: new Date('2022-01-01'),
+    birthDate: new Date("2022-01-01"),
     createdAt: DateTime.now(),
     updatedAt: DateTime.now(),
     weight: 10,
     weightDate: DateTime.now(),
     weightOrigin: PatientWeightOrigin.A,
-    tag: '2023_00001',
+    tag: "2023_00001",
   };
 }).build();

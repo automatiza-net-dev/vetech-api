@@ -7,12 +7,12 @@ import {
   column,
   hasMany,
   HasMany,
-} from '@ioc:Adonis/Lucid/Orm';
-import EconomicGroup from 'App/Models/EconomicGroup';
-import Race from 'App/Models/Race';
-import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
-import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
+} from "@ioc:Adonis/Lucid/Orm";
+import EconomicGroup from "App/Models/EconomicGroup";
+import Race from "App/Models/Race";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import { DateTime } from "luxon";
+import { v4 } from "uuid";
 
 export default class Specie extends BaseModel {
   @column({ isPrimary: true })
@@ -52,7 +52,7 @@ export default class Specie extends BaseModel {
   public system_id: number;
 
   @hasMany(() => Race, {
-    foreignKey: 'specie_id',
+    foreignKey: "specie_id",
   })
   public races: HasMany<typeof Race>;
 }

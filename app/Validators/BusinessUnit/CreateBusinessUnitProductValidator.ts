@@ -1,6 +1,6 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
-import { BusinessUnitProductMetaType } from 'App/Models/BusinessUnitProduct';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
+import { BusinessUnitProductMetaType } from "App/Models/BusinessUnitProduct";
 
 export default class CreateBusinessUnitProductValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -9,15 +9,15 @@ export default class CreateBusinessUnitProductValidator {
     productVariationId: schema.string({}, [
       rules.uuid(),
       rules.exists({
-        table: 'product_variations',
-        column: 'id',
+        table: "product_variations",
+        column: "id",
       }),
     ]),
     businessUnitId: schema.string({}, [
       rules.uuid(),
       rules.exists({
-        table: 'business_units',
-        column: 'id',
+        table: "business_units",
+        column: "id",
       }),
     ]),
     stock: schema.number([rules.unsigned()]),

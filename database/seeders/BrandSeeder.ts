@@ -1,176 +1,176 @@
-import BaseSeeder from '@ioc:Adonis/Lucid/Seeder';
-import Brand from 'App/Models/Brand';
+import BaseSeeder from "@ioc:Adonis/Lucid/Seeder";
+import Brand from "App/Models/Brand";
 
 export default class extends BaseSeeder {
   BASE = [
     {
-      description: 'Não informado',
+      description: "Não informado",
     },
     {
-      description: 'ASFER',
+      description: "ASFER",
     },
     {
-      description: 'SR',
+      description: "SR",
     },
     {
-      description: 'MEDIX',
+      description: "MEDIX",
     },
     {
-      description: 'Solidor',
+      description: "Solidor",
     },
     {
-      description: 'Descarpack',
+      description: "Descarpack",
     },
     {
-      description: 'pharma',
+      description: "pharma",
     },
     {
-      description: 'FARMACE',
+      description: "FARMACE",
     },
     {
-      description: 'HIPOLABOR',
+      description: "HIPOLABOR",
     },
     {
-      description: 'Cristalia',
+      description: "Cristalia",
     },
     {
-      description: 'Agener União',
+      description: "Agener União",
     },
     {
-      description: 'HALEX ISTAR',
+      description: "HALEX ISTAR",
     },
     {
-      description: 'HYPOFARMA',
+      description: "HYPOFARMA",
     },
     {
-      description: 'Chemitec',
+      description: "Chemitec",
     },
     {
-      description: 'isoforine',
+      description: "isoforine",
     },
     {
-      description: 'FRESENIUS',
+      description: "FRESENIUS",
     },
     {
-      description: 'Vetnil',
+      description: "Vetnil",
     },
     {
-      description: 'Virbac',
+      description: "Virbac",
     },
     {
-      description: 'World Veterinária',
+      description: "World Veterinária",
     },
     {
-      description: 'Labgard',
+      description: "Labgard",
     },
     {
-      description: 'Cepav',
+      description: "Cepav",
     },
     {
-      description: 'Ceva',
+      description: "Ceva",
     },
     {
-      description: 'Merial',
+      description: "Merial",
     },
     {
-      description: 'MEDLEY',
+      description: "MEDLEY",
     },
     {
-      description: 'Ourofino',
+      description: "Ourofino",
     },
     {
-      description: 'Zoetis',
+      description: "Zoetis",
     },
     {
-      description: 'MSD',
+      description: "MSD",
     },
     {
-      description: 'NEVE',
+      description: "NEVE",
     },
     {
-      description: 'CREMER',
+      description: "CREMER",
     },
     {
-      description: 'PROCANINE',
+      description: "PROCANINE",
     },
     {
-      description: 'OPHTHALM',
+      description: "OPHTHALM",
     },
     {
-      description: 'KARINA',
+      description: "KARINA",
     },
     {
-      description: 'UNIÃO QUIMICA',
+      description: "UNIÃO QUIMICA",
     },
     {
-      description: 'EMBRAMED',
+      description: "EMBRAMED",
     },
     {
-      description: 'ABBOTT',
+      description: "ABBOTT",
     },
     {
-      description: 'CAPROFYL',
+      description: "CAPROFYL",
     },
     {
-      description: 'SHALON',
+      description: "SHALON",
     },
     {
-      description: 'MULTIGEL',
+      description: "MULTIGEL",
     },
     {
-      description: 'MUCAMBO',
+      description: "MUCAMBO",
     },
     {
-      description: 'INOVE',
+      description: "INOVE",
     },
     {
-      description: 'LEMGRUBER',
+      description: "LEMGRUBER",
     },
     {
-      description: 'supersafety',
+      description: "supersafety",
     },
     {
-      description: 'IMPEL',
+      description: "IMPEL",
     },
     {
-      description: 'Pearson',
+      description: "Pearson",
     },
     {
-      description: 'Santisa',
+      description: "Santisa",
     },
     {
-      description: 'mark med',
+      description: "mark med",
     },
     {
-      description: 'medsonda',
+      description: "medsonda",
     },
     {
-      description: 'EQUIPLEX',
+      description: "EQUIPLEX",
     },
     {
-      description: 'ISOFARMA',
+      description: "ISOFARMA",
     },
     {
-      description: 'CLEAN-UP',
+      description: "CLEAN-UP",
     },
     {
-      description: 'MAXXIMED',
+      description: "MAXXIMED",
     },
     {
-      description: 'ANADONA',
+      description: "ANADONA",
     },
     {
-      description: 'Rabisin',
+      description: "Rabisin",
     },
     {
-      description: 'Pfizer',
+      description: "Pfizer",
     },
   ];
 
   public async run() {
     await Brand.fetchOrCreateMany(
-      'description',
-      this.BASE.map(elem => ({
+      "description",
+      this.BASE.map((elem) => ({
         description: elem.description,
       })),
     );

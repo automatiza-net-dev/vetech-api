@@ -1,5 +1,5 @@
-import { schema, CustomMessages, rules } from '@ioc:Adonis/Core/Validator';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
+import { schema, CustomMessages, rules } from "@ioc:Adonis/Core/Validator";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 
 export default class SyncProfileAccessValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -24,14 +24,10 @@ export default class SyncProfileAccessValidator {
    *    ```
    */
   public schema = schema.create({
-    roleId: schema.number([rules.exists({ table: 'roles', column: 'id' })]),
+    roleId: schema.number([rules.exists({ table: "roles", column: "id" })]),
     profileAccessIdList: schema
       .array()
-      .members(
-        schema.number([
-          rules.exists({ table: 'profile_accesses', column: 'id' }),
-        ]),
-      ),
+      .members(schema.number([rules.exists({ table: "profile_accesses", column: "id" })])),
   });
 
   /**

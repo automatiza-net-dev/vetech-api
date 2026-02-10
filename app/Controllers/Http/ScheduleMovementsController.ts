@@ -6,45 +6,45 @@ import CreateMovementValidator from "App/Validators/ScheduleMovements/CreateMove
 
 @inject()
 export default class ScheduleMovementsController {
-	constructor(
-		private sharedService: SharedService,
-		private service: ScheduleMovementsService,
-	) {}
+  constructor(
+    private sharedService: SharedService,
+    private service: ScheduleMovementsService,
+  ) {}
 
-	public async search({ request, response, auth }: HttpContextContract) {
-		return this.sharedService.errorHoc(response, async () => {
-			const result = await this.service.searchScheduleMovements(
-				await this.sharedService.getAuthContext(auth),
-				request.qs(),
-			);
+  public async search({ request, response, auth }: HttpContextContract) {
+    return this.sharedService.errorHoc(response, async () => {
+      const result = await this.service.searchScheduleMovements(
+        await this.sharedService.getAuthContext(auth),
+        request.qs(),
+      );
 
-			return response.ok(result);
-		});
-	}
+      return response.ok(result);
+    });
+  }
 
-	public async store({ request, response, auth }: HttpContextContract) {
-		return this.sharedService.errorHoc(response, async () => {
-			const data = await request.validate(CreateMovementValidator);
+  public async store({ request, response, auth }: HttpContextContract) {
+    return this.sharedService.errorHoc(response, async () => {
+      const data = await request.validate(CreateMovementValidator);
 
-			await this.service.createScheduleMovements(
-				await this.sharedService.getAuthContext(auth),
-				data.items,
-			);
+      await this.service.createScheduleMovements(
+        await this.sharedService.getAuthContext(auth),
+        data.items,
+      );
 
-			return response.created();
-		});
-	}
+      return response.created();
+    });
+  }
 
-	public async cancel({ request, response, auth }: HttpContextContract) {
-		return this.sharedService.errorHoc(response, async () => {
-			const data = await request.validate(CreateMovementValidator);
+  public async cancel({ request, response, auth }: HttpContextContract) {
+    return this.sharedService.errorHoc(response, async () => {
+      const data = await request.validate(CreateMovementValidator);
 
-			await this.service.cancelScheduleMovements(
-				await this.sharedService.getAuthContext(auth),
-				data.items,
-			);
+      await this.service.cancelScheduleMovements(
+        await this.sharedService.getAuthContext(auth),
+        data.items,
+      );
 
-			return response.noContent();
-		});
-	}
+      return response.noContent();
+    });
+  }
 }

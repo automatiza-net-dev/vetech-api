@@ -5,20 +5,20 @@ import {
   BelongsTo,
   belongsTo,
   column,
-} from '@ioc:Adonis/Lucid/Orm';
-import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
-import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
-import PaymentMethod from 'App/Models/PaymentMethod';
-import AccountPlan from 'App/Models/AccountPlan';
+} from "@ioc:Adonis/Lucid/Orm";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import { DateTime } from "luxon";
+import { v4 } from "uuid";
+import PaymentMethod from "App/Models/PaymentMethod";
+import AccountPlan from "App/Models/AccountPlan";
 
 export enum DailyCashierEntryType {
-  D = 'DEBITO',
-  C = 'CREDITO',
+  D = "DEBITO",
+  C = "CREDITO",
 }
 
 export enum DailyCashierEntryStatus {
-  A = 'ATIVO',
+  A = "ATIVO",
 }
 
 export default class DailyCashierEntry extends BaseModel {
@@ -26,7 +26,7 @@ export default class DailyCashierEntry extends BaseModel {
   public id: string = v4();
 
   @column.dateTime({
-    columnName: 'entry_date',
+    columnName: "entry_date",
   })
   public entryDate: DateTime;
 
@@ -37,7 +37,7 @@ export default class DailyCashierEntry extends BaseModel {
   public description: string;
 
   @column({
-    columnName: 'fiscal_note',
+    columnName: "fiscal_note",
   })
   public fiscalNote: string;
 
@@ -87,7 +87,7 @@ export default class DailyCashierEntry extends BaseModel {
   public payment_method_id: string;
 
   @belongsTo(() => PaymentMethod, {
-    foreignKey: 'payment_method_id',
+    foreignKey: "payment_method_id",
   })
   public paymentMethod: BelongsTo<typeof PaymentMethod>;
 
@@ -97,7 +97,7 @@ export default class DailyCashierEntry extends BaseModel {
   public account_plan_id: string;
 
   @belongsTo(() => AccountPlan, {
-    foreignKey: 'account_plan_id',
+    foreignKey: "account_plan_id",
   })
   public accountPlan: BelongsTo<typeof AccountPlan>;
 }

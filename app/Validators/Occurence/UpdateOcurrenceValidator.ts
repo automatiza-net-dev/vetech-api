@@ -1,6 +1,6 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, schema } from '@ioc:Adonis/Core/Validator';
-import { OccurrenceType } from 'App/Models/Occurrence';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, schema } from "@ioc:Adonis/Core/Validator";
+import { OccurrenceType } from "App/Models/Occurrence";
 
 export default class UpdateOcurrenceValidator {
   constructor(protected ctx: HttpContextContract) {}

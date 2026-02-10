@@ -1,9 +1,9 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import BedService from 'App/Services/BedService';
-import SharedService from 'App/Services/SharedService';
-import CreateBedValidator from 'App/Validators/Bed/CreateBedValidator';
-import UpdateBedValidator from 'App/Validators/Bed/UpdateBedValidator';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import BedService from "App/Services/BedService";
+import SharedService from "App/Services/SharedService";
+import CreateBedValidator from "App/Validators/Bed/CreateBedValidator";
+import UpdateBedValidator from "App/Validators/Bed/UpdateBedValidator";
 
 @inject()
 export default class BedsController {
@@ -42,12 +42,7 @@ export default class BedsController {
     return response.json(bed);
   }
 
-  public async update({
-    auth,
-    params,
-    request,
-    response,
-  }: HttpContextContract) {
+  public async update({ auth, params, request, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
     const payload = await request.validate(UpdateBedValidator);
 

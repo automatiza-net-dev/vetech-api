@@ -1,15 +1,15 @@
-import Database from '@ioc:Adonis/Lucid/Database';
-import { test } from '@japa/runner';
-import { BusinessUnitProductMetaType } from 'App/Models/BusinessUnitProduct';
-import Kit from 'App/Models/Kit';
-import { ProductType } from 'App/Models/Product';
-import Unit, { UnitType } from 'App/Models/Unit';
-import { IUpsertKitItemData } from 'Contracts/interfaces/IKitData';
-import { DateTime } from 'luxon';
+import Database from "@ioc:Adonis/Lucid/Database";
+import { test } from "@japa/runner";
+import { BusinessUnitProductMetaType } from "App/Models/BusinessUnitProduct";
+import Kit from "App/Models/Kit";
+import { ProductType } from "App/Models/Product";
+import Unit, { UnitType } from "App/Models/Unit";
+import { IUpsertKitItemData } from "Contracts/interfaces/IKitData";
+import { DateTime } from "luxon";
 
-import { generateJwtToken, userBootstrap } from '../utils';
+import { generateJwtToken, userBootstrap } from "../utils";
 
-test.group('kit resource', group => {
+test.group("kit resource", (group) => {
   group.each.setup(async () => {
     await Database.beginGlobalTransaction();
     return () => Database.rollbackGlobalTransaction();
@@ -19,35 +19,35 @@ test.group('kit resource', group => {
     const { user, business, group } = await userBootstrap();
 
     const kit = await Kit.create({
-      description: 'some description',
+      description: "some description",
       fromExpiration: DateTime.now(),
       toExpiration: DateTime.now(),
       economic_group_id: business.economicGroupId,
     });
 
     const unit = await Unit.create({
-      name: 'some name',
-      tag: 'some tag',
+      name: "some name",
+      tag: "some tag",
       type: UnitType.PRODUCT,
     });
 
-    const product = await group.related('products').create({
-      description: 'some product',
+    const product = await group.related("products").create({
+      description: "some product",
       type: ProductType.PRODUCT,
-      referenceCode: 'some reference code',
+      referenceCode: "some reference code",
       collectionYear: 2022,
-      ncm: 'some ncm',
-      cest: 'some cest',
-      features: 'some features',
+      ncm: "some ncm",
+      cest: "some cest",
+      features: "some features",
       unit_id: unit.id,
       active: true,
     });
 
-    const variation = await product.related('variations').create({
-      barcode: '123',
+    const variation = await product.related("variations").create({
+      barcode: "123",
     });
 
-    await variation.related('businessUnitProducts').create({
+    await variation.related("businessUnitProducts").create({
       businness_unit_id: business.id,
       price: 10,
       stock: 10,
@@ -63,7 +63,7 @@ test.group('kit resource', group => {
       profitMargin: 10,
     });
 
-    const kitItem = await kit.related('items').create({
+    const kitItem = await kit.related("items").create({
       product_variation_id: variation.id,
       quantity: 10,
       discountPrice: 10,
@@ -76,39 +76,37 @@ test.group('kit resource', group => {
     return { user, kit, variation, kitItem };
   };
 
-  test('should return all kits', async ({ assert, client }) => {
+  test("should return all kits", async ({ assert, client }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const qs = new URLSearchParams({
-      id: '1',
-      productCode: 'some',
-      description: 'asd',
+      id: "1",
+      productCode: "some",
+      description: "asd",
       fromExpiration: new Date().toISOString(),
       toExpiration: new Date().toISOString(),
     });
-    const response = await client
-      .get(`/kits?${qs.toString()}`)
-      .bearerToken(token);
+    const response = await client.get(`/kits?${qs.toString()}`).bearerToken(token);
 
     assert.equal(200, response.status());
     assert.isArray(response.body());
   });
 
-  test('should create kit', async ({ assert, client }) => {
+  test("should create kit", async ({ assert, client }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
       .post(`/kits`)
       .json({
-        description: 'some description',
+        description: "some description",
         fromExpiration: new Date(),
         toExpiration: new Date(),
       })
@@ -117,26 +115,20 @@ test.group('kit resource', group => {
     assert.equal(201, response.status());
   });
 
-  test('should throw NotFoundException if no kit is found', async ({
-    assert,
-    client,
-  }) => {
+  test("should throw NotFoundException if no kit is found", async ({ assert, client }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client.get(`/kits/${-1}`).bearerToken(token);
 
     assert.equal(404, response.status());
-    assert.equal(
-      'E_NOT_FOUND: Recurso não encontrado',
-      response.body().message,
-    );
+    assert.equal("E_NOT_FOUND: Recurso não encontrado", response.body().message);
   });
 
-  test('should throw NotFoundException if kit does not belong to unit', async ({
+  test("should throw NotFoundException if kit does not belong to unit", async ({
     assert,
     client,
   }) => {
@@ -144,23 +136,20 @@ test.group('kit resource', group => {
     const { kit } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client.get(`/kits/${kit.id}`).bearerToken(token);
 
     assert.equal(404, response.status());
-    assert.equal(
-      'E_NOT_FOUND: Recurso não encontrado',
-      response.body().message,
-    );
+    assert.equal("E_NOT_FOUND: Recurso não encontrado", response.body().message);
   });
 
-  test('should return kit', async ({ assert, client }) => {
+  test("should return kit", async ({ assert, client }) => {
     const { user, kit } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client.get(`/kits/${kit.id}`).bearerToken(token);
@@ -169,17 +158,17 @@ test.group('kit resource', group => {
     assert.equal(kit.id, response.body().id);
   });
 
-  test('should update kit', async ({ assert, client }) => {
+  test("should update kit", async ({ assert, client }) => {
     const { user, kit } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
       .put(`/kits/${kit.id}`)
       .json({
-        description: 'some description',
+        description: "some description",
         fromExpiration: new Date(),
         toExpiration: new Date(),
         active: true,
@@ -190,11 +179,11 @@ test.group('kit resource', group => {
     assert.equal(kit.id, response.body().id);
   });
 
-  test('should soft delete kit', async ({ assert, client }) => {
+  test("should soft delete kit", async ({ assert, client }) => {
     const { user, kit } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client.delete(`/kits/${kit.id}`).bearerToken(token);
@@ -202,11 +191,11 @@ test.group('kit resource', group => {
     assert.equal(204, response.status());
   });
 
-  test('should add item to kit', async ({ assert, client }) => {
+  test("should add item to kit", async ({ assert, client }) => {
     const { user, kit, variation } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
@@ -223,14 +212,14 @@ test.group('kit resource', group => {
     assert.equal(204, response.status());
   });
 
-  test('should throw BadRequestException if discount is bigger than max discount', async ({
+  test("should throw BadRequestException if discount is bigger than max discount", async ({
     assert,
     client,
   }) => {
     const { user, kit, variation } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
@@ -247,11 +236,11 @@ test.group('kit resource', group => {
     assert.equal(400, response.status());
   });
 
-  test('should update item from kit', async ({ assert, client }) => {
+  test("should update item from kit", async ({ assert, client }) => {
     const { user, variation, kitItem } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
@@ -267,14 +256,11 @@ test.group('kit resource', group => {
     assert.equal(204, response.status());
   });
 
-  test('should throw BadRequestException if no item was found', async ({
-    assert,
-    client,
-  }) => {
+  test("should throw BadRequestException if no item was found", async ({ assert, client }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client.delete(`/kits/item/${-1}`).bearerToken(token);
@@ -282,16 +268,14 @@ test.group('kit resource', group => {
     assert.equal(404, response.status());
   });
 
-  test('should delete item from kit', async ({ assert, client }) => {
+  test("should delete item from kit", async ({ assert, client }) => {
     const { user, kitItem } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
-    const response = await client
-      .delete(`/kits/item/${kitItem.id}`)
-      .bearerToken(token);
+    const response = await client.delete(`/kits/item/${kitItem.id}`).bearerToken(token);
 
     assert.equal(204, response.status());
   });

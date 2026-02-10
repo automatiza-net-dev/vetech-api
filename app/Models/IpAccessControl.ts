@@ -1,14 +1,14 @@
-import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
-import { DateTime } from 'luxon';
-import User from 'App/Models/User';
-import BusinessUnit from './BusinessUnit';
+import { BaseModel, BelongsTo, belongsTo, column } from "@ioc:Adonis/Lucid/Orm";
+import { DateTime } from "luxon";
+import User from "App/Models/User";
+import BusinessUnit from "./BusinessUnit";
 
 export default class IpAccessControl extends BaseModel {
   @column({ isPrimary: true })
   public id: number;
 
   @column({
-    columnName: 'ip_address',
+    columnName: "ip_address",
   })
   public ipAddress: string;
 
@@ -24,8 +24,8 @@ export default class IpAccessControl extends BaseModel {
   public business_unit_id: string;
 
   @belongsTo(() => BusinessUnit, {
-    foreignKey: 'business_unit_id',
-    localKey: 'id',
+    foreignKey: "business_unit_id",
+    localKey: "id",
   })
   public unit: BelongsTo<typeof BusinessUnit>;
 
@@ -35,8 +35,8 @@ export default class IpAccessControl extends BaseModel {
   public user_id: string;
 
   @belongsTo(() => User, {
-    foreignKey: 'user_id',
-    localKey: 'id',
+    foreignKey: "user_id",
+    localKey: "id",
   })
   public user: BelongsTo<typeof User>;
 }

@@ -1,6 +1,6 @@
-import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
-import PaymentMethodFlag from 'App/Models/PaymentMethodFlag';
-import { DateTime } from 'luxon';
+import { BaseModel, BelongsTo, belongsTo, column } from "@ioc:Adonis/Lucid/Orm";
+import PaymentMethodFlag from "App/Models/PaymentMethodFlag";
+import { DateTime } from "luxon";
 
 export default class PaymentMethodFlagInstallment extends BaseModel {
   @column({ isPrimary: true })
@@ -24,7 +24,7 @@ export default class PaymentMethodFlagInstallment extends BaseModel {
   public payment_method_flag_id: string;
 
   @belongsTo(() => PaymentMethodFlag, {
-    foreignKey: 'payment_method_flag_id',
+    foreignKey: "payment_method_flag_id",
   })
   public flag: BelongsTo<typeof PaymentMethodFlag>;
 }

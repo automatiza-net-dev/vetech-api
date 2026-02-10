@@ -1,9 +1,9 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import MedicalDocumentTemplateService from 'App/Services/MedicalDocumentTemplateService';
-import SharedService from 'App/Services/SharedService';
-import CreateMedicalDocumentTemplateValidator from 'App/Validators/MedicalDocumentTemplate/CreateMedicalDocumentTemplateValidator';
-import UpdateMedicalDocumentTemplateValidator from 'App/Validators/MedicalDocumentTemplate/UpdateMedicalDocumentTemplateValidator';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import MedicalDocumentTemplateService from "App/Services/MedicalDocumentTemplateService";
+import SharedService from "App/Services/SharedService";
+import CreateMedicalDocumentTemplateValidator from "App/Validators/MedicalDocumentTemplate/CreateMedicalDocumentTemplateValidator";
+import UpdateMedicalDocumentTemplateValidator from "App/Validators/MedicalDocumentTemplate/UpdateMedicalDocumentTemplateValidator";
 
 @inject()
 export default class MedicalDocumentTemplatesController {
@@ -15,13 +15,10 @@ export default class MedicalDocumentTemplatesController {
   public async index({ auth, request, response }: HttpContextContract) {
     const qs = request.qs();
 
-    const result = await this.service.index(
-      await this.sharedService.getAuthContext(auth),
-      {
-        title: qs.title,
-        description: qs.description,
-      },
-    );
+    const result = await this.service.index(await this.sharedService.getAuthContext(auth), {
+      title: qs.title,
+      description: qs.description,
+    });
 
     return response.ok(result);
   }
@@ -36,27 +33,15 @@ export default class MedicalDocumentTemplatesController {
   }
 
   public async store({ auth, request, response }: HttpContextContract) {
-    const payload = await request.validate(
-      CreateMedicalDocumentTemplateValidator,
-    );
+    const payload = await request.validate(CreateMedicalDocumentTemplateValidator);
 
-    const result = await this.service.store(
-      await this.sharedService.getAuthContext(auth),
-      payload,
-    );
+    const result = await this.service.store(await this.sharedService.getAuthContext(auth), payload);
 
     return response.created(result);
   }
 
-  public async update({
-    auth,
-    params,
-    request,
-    response,
-  }: HttpContextContract) {
-    const payload = await request.validate(
-      UpdateMedicalDocumentTemplateValidator,
-    );
+  public async update({ auth, params, request, response }: HttpContextContract) {
+    const payload = await request.validate(UpdateMedicalDocumentTemplateValidator);
 
     const result = await this.service.update(
       await this.sharedService.getAuthContext(auth),
@@ -68,10 +53,7 @@ export default class MedicalDocumentTemplatesController {
   }
 
   public async destroy({ auth, params, response }: HttpContextContract) {
-    await this.service.destroy(
-      await this.sharedService.getAuthContext(auth),
-      params.id,
-    );
+    await this.service.destroy(await this.sharedService.getAuthContext(auth), params.id);
 
     return response.noContent();
   }

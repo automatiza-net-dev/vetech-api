@@ -1,9 +1,9 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import ClientOriginService from 'App/Services/ClientOriginService';
-import SharedService from 'App/Services/SharedService';
-import CreateClientOriginValidator from 'App/Validators/ClientOrigin/CreateClientOriginValidator';
-import UpdateClientOriginValidator from 'App/Validators/ClientOrigin/UpdateClientOriginValidator';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import ClientOriginService from "App/Services/ClientOriginService";
+import SharedService from "App/Services/SharedService";
+import CreateClientOriginValidator from "App/Validators/ClientOrigin/CreateClientOriginValidator";
+import UpdateClientOriginValidator from "App/Validators/ClientOrigin/UpdateClientOriginValidator";
 
 @inject()
 export default class ClientOriginsController {
@@ -14,10 +14,7 @@ export default class ClientOriginsController {
 
   public async index({ auth, request, response }: HttpContextContract) {
     const search = request.qs();
-    const result = await this.service.index(
-      await this.sharedService.getAuthContext(auth),
-      search,
-    );
+    const result = await this.service.index(await this.sharedService.getAuthContext(auth), search);
 
     return response.ok(result);
   }
@@ -25,10 +22,7 @@ export default class ClientOriginsController {
   public async store({ request, response, auth }: HttpContextContract) {
     const data = await request.validate(CreateClientOriginValidator);
 
-    const client = await this.service.store(
-      await this.sharedService.getAuthContext(auth),
-      data,
-    );
+    const client = await this.service.store(await this.sharedService.getAuthContext(auth), data);
 
     return response.created(client);
   }
@@ -42,12 +36,7 @@ export default class ClientOriginsController {
     return response.ok(client);
   }
 
-  public async update({
-    auth,
-    request,
-    response,
-    params,
-  }: HttpContextContract) {
+  public async update({ auth, request, response, params }: HttpContextContract) {
     const data = await request.validate(UpdateClientOriginValidator);
 
     const client = await this.service.update(
@@ -60,10 +49,7 @@ export default class ClientOriginsController {
   }
 
   public async destroy({ auth, response, params }: HttpContextContract) {
-    await this.service.destroy(
-      await this.sharedService.getAuthContext(auth),
-      params.id,
-    );
+    await this.service.destroy(await this.sharedService.getAuthContext(auth), params.id);
 
     return response.noContent();
   }

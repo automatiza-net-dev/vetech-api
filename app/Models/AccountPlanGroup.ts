@@ -1,69 +1,62 @@
-import {
-	BaseModel,
-	BelongsTo,
-	belongsTo,
-	column,
-	HasMany,
-	hasMany,
-} from "@ioc:Adonis/Lucid/Orm";
+import { BaseModel, BelongsTo, belongsTo, column, HasMany, hasMany } from "@ioc:Adonis/Lucid/Orm";
 import AccountPlan from "App/Models/AccountPlan";
 import { DateTime } from "luxon";
 import DreGroup from "./DreGroup";
 
 export enum AccountPlanGroupType {
-	C = "CREDITO",
-	D = "DEBITO",
-	A = "AMBOS",
+  C = "CREDITO",
+  D = "DEBITO",
+  A = "AMBOS",
 }
 
 export default class AccountPlanGroup extends BaseModel {
-	@column({ isPrimary: true })
-	public id: number;
+  @column({ isPrimary: true })
+  public id: number;
 
-	@column()
-	public description: string;
+  @column()
+  public description: string;
 
-	@column()
-	public type: AccountPlanGroupType;
+  @column()
+  public type: AccountPlanGroupType;
 
-	@column({
-		columnName: "dre_basis",
-		serializeAs: null,
-	})
-	public dreBasis: boolean;
+  @column({
+    columnName: "dre_basis",
+    serializeAs: null,
+  })
+  public dreBasis: boolean;
 
-	@column()
-	public active: boolean;
+  @column()
+  public active: boolean;
 
-	@column.dateTime({ autoCreate: true })
-	public createdAt: DateTime;
+  @column.dateTime({ autoCreate: true })
+  public createdAt: DateTime;
 
-	@column.dateTime({ autoCreate: true, autoUpdate: true })
-	public updatedAt: DateTime;
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  public updatedAt: DateTime;
 
-	@column({
-		serializeAs: null,
-	})
-	public system_id: number;
+  @column({
+    serializeAs: null,
+  })
+  public system_id: number;
 
-	@column({
-		// serializeAs: null,
-	})
-	public economic_group_id: string;
+  @column({
+    // serializeAs: null,
+  })
+  public economic_group_id: string;
 
-	@column({
-		serializeAs: null,
-	})
-	public dre_group_id: number;
+  @column({
+    serializeAs: null,
+  })
+  public dre_group_id: number;
 
-	@belongsTo(() => DreGroup, {
-		localKey: "id",
-		foreignKey: "dre_group_id",
-	})
-	public dreGroup: BelongsTo<typeof DreGroup>;
+  @belongsTo(() => DreGroup, {
+    localKey: "id",
+    foreignKey: "dre_group_id",
+  })
+  public dreGroup: BelongsTo<typeof DreGroup>;
 
-	@hasMany(() => AccountPlan, {
-		foreignKey: "account_plan_group_id",
-	})
-	public accountPlans: HasMany<typeof AccountPlan>;
+  @hasMany(() => AccountPlan, {
+    foreignKey: "account_plan_group_id",
+  })
+  public accountPlans: HasMany<typeof AccountPlan>;
 }

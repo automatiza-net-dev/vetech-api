@@ -9,7 +9,7 @@ import Env from "@ioc:Adonis/Core/Env";
 import { DatabaseConfig } from "@ioc:Adonis/Lucid/Database";
 
 const databaseConfig: DatabaseConfig = {
-	/*
+  /*
   |--------------------------------------------------------------------------
   | Connection
   |--------------------------------------------------------------------------
@@ -19,10 +19,10 @@ const databaseConfig: DatabaseConfig = {
   | file.
   |
   */
-	connection: Env.get("DB_CONNECTION"),
+  connection: Env.get("DB_CONNECTION"),
 
-	connections: {
-		/*
+  connections: {
+    /*
     |--------------------------------------------------------------------------
     | PostgreSQL config
     |--------------------------------------------------------------------------
@@ -33,20 +33,20 @@ const databaseConfig: DatabaseConfig = {
     | npm i pg
     |
     */
-		pg: {
-			client: "pg",
-			connection: `postgresql://${Env.get("PG_USER")}:${Env.get(
-				"PG_PASSWORD",
-			)}@${Env.get("PG_HOST")}:${Env.get("PG_PORT")}/${Env.get(
-				"PG_DB_NAME",
-			)}?options=-c%20TimeZone=America/Sao_Paulo`,
-			migrations: {
-				naturalSort: true,
-			},
-			healthCheck: false,
-			debug: true,
-		},
-	},
+    pg: {
+      client: "pg",
+      connection: `postgresql://${Env.get("PG_USER")}:${Env.get(
+        "PG_PASSWORD",
+      )}@${Env.get("PG_HOST")}:${Env.get("PG_PORT")}/${Env.get(
+        "PG_DB_NAME",
+      )}?options=-c%20TimeZone=America/Sao_Paulo`,
+      migrations: {
+        naturalSort: true,
+      },
+      healthCheck: false,
+      debug: true,
+    },
+  },
 };
 
 export default databaseConfig;

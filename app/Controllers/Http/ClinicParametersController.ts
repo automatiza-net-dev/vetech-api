@@ -1,9 +1,9 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import ClinicParameterService from 'App/Services/ClinicParameterService';
-import SharedService from 'App/Services/SharedService';
-import CreateClinicParameterValidator from 'App/Validators/ClinicParameter/CreateClinicParameterValidator';
-import UpdateClinicParameterValidator from 'App/Validators/ClinicParameter/UpdateClinicParameterValidator';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import ClinicParameterService from "App/Services/ClinicParameterService";
+import SharedService from "App/Services/SharedService";
+import CreateClinicParameterValidator from "App/Validators/ClinicParameter/CreateClinicParameterValidator";
+import UpdateClinicParameterValidator from "App/Validators/ClinicParameter/UpdateClinicParameterValidator";
 
 @inject()
 export default class ClinicParametersController {
@@ -13,9 +13,7 @@ export default class ClinicParametersController {
   ) {}
 
   public async index({ auth, response }: HttpContextContract) {
-    const beds = await this.service.index(
-      await this.sharedService.getAuthContext(auth),
-    );
+    const beds = await this.service.index(await this.sharedService.getAuthContext(auth));
 
     return response.ok(beds);
   }
@@ -23,29 +21,18 @@ export default class ClinicParametersController {
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateClinicParameterValidator);
 
-    const bed = await this.service.store(
-      await this.sharedService.getAuthContext(auth),
-      payload,
-    );
+    const bed = await this.service.store(await this.sharedService.getAuthContext(auth), payload);
 
     return response.created(bed);
   }
 
   public async show({ auth, params, response }: HttpContextContract) {
-    const bed = await this.service.show(
-      await this.sharedService.getAuthContext(auth),
-      params.id,
-    );
+    const bed = await this.service.show(await this.sharedService.getAuthContext(auth), params.id);
 
     return response.json(bed);
   }
 
-  public async update({
-    auth,
-    params,
-    request,
-    response,
-  }: HttpContextContract) {
+  public async update({ auth, params, request, response }: HttpContextContract) {
     const payload = await request.validate(UpdateClinicParameterValidator);
 
     const bed = await this.service.update(
@@ -58,10 +45,7 @@ export default class ClinicParametersController {
   }
 
   public async destroy({ auth, params, response }: HttpContextContract) {
-    await this.service.destroy(
-      await this.sharedService.getAuthContext(auth),
-      params.id,
-    );
+    await this.service.destroy(await this.sharedService.getAuthContext(auth), params.id);
 
     return response.noContent();
   }

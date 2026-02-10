@@ -1,16 +1,16 @@
-import { BaseModel, column } from '@ioc:Adonis/Lucid/Orm';
-import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
+import { BaseModel, column } from "@ioc:Adonis/Lucid/Orm";
+import { DateTime } from "luxon";
+import { v4 } from "uuid";
 
 export enum FiscalDocumentType {
-  P = 'PRODUTOS',
-  S = 'SERVICOS',
+  P = "PRODUTOS",
+  S = "SERVICOS",
 }
 
 export enum FiscalDocumentMovementType {
-  A = 'AMBOS',
-  S = 'SAIDA',
-  E = 'ENTRADA',
+  A = "AMBOS",
+  S = "SAIDA",
+  E = "ENTRADA",
 }
 
 export default class FiscalDocument extends BaseModel {
@@ -18,17 +18,17 @@ export default class FiscalDocument extends BaseModel {
   public id: string = v4();
 
   @column({
-    columnName: 'document_type',
+    columnName: "document_type",
   })
   public documentType: FiscalDocumentType;
 
   @column({
-    columnName: 'movement_type',
+    columnName: "movement_type",
   })
   public movementType: FiscalDocumentMovementType;
 
   @column({
-    columnName: 'image_name',
+    columnName: "image_name",
   })
   public imageName: string;
 

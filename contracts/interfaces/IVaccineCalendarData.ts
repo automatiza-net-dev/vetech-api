@@ -1,4 +1,4 @@
-import { DateTime } from 'luxon';
+import { DateTime } from "luxon";
 
 export interface IVaccineCalendarData {
   schedulingDate?: DateTime;
@@ -7,5 +7,5 @@ export interface IVaccineCalendarData {
   dose: number;
   laboratory?: string;
   batch?: string;
-  appliedOutside?: boolean
+  appliedOutside?: boolean;
 }

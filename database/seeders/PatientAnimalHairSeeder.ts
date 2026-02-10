@@ -1,134 +1,134 @@
-import BaseSeeder from '@ioc:Adonis/Lucid/Seeder';
-import PatientAnimalHair from 'App/Models/PatientAnimalHair';
+import BaseSeeder from "@ioc:Adonis/Lucid/Seeder";
+import PatientAnimalHair from "App/Models/PatientAnimalHair";
 
 export default class extends BaseSeeder {
   BASE = [
     {
-      description: 'Abricot',
+      description: "Abricot",
     },
     {
-      description: 'Amarelo',
+      description: "Amarelo",
     },
     {
-      description: 'Arlequim',
+      description: "Arlequim",
     },
     {
-      description: 'Azul',
+      description: "Azul",
     },
     {
-      description: 'Azul Ruão',
+      description: "Azul Ruão",
     },
     {
-      description: 'Bege',
+      description: "Bege",
     },
     {
-      description: 'Black And Tan',
+      description: "Black And Tan",
     },
     {
-      description: 'Boston',
+      description: "Boston",
     },
     {
-      description: 'Branca',
+      description: "Branca",
     },
     {
-      description: 'Branco e Bege',
+      description: "Branco e Bege",
     },
     {
-      description: 'Branco e Cinza',
+      description: "Branco e Cinza",
     },
     {
-      description: 'Branco e Marrom',
+      description: "Branco e Marrom",
     },
     {
-      description: 'Branco e Preto',
+      description: "Branco e Preto",
     },
     {
-      description: 'Branco e Vermelho',
+      description: "Branco e Vermelho",
     },
     {
-      description: 'Bronze',
+      description: "Bronze",
     },
     {
-      description: 'Caracteristica',
+      description: "Caracteristica",
     },
     {
-      description: 'Caramelo',
+      description: "Caramelo",
     },
     {
-      description: 'Carvao',
+      description: "Carvao",
     },
     {
-      description: 'Champanhe',
+      description: "Champanhe",
     },
     {
-      description: 'Cinza',
+      description: "Cinza",
     },
     {
-      description: 'Dourado',
+      description: "Dourado",
     },
     {
-      description: 'Fulvo',
+      description: "Fulvo",
     },
     {
-      description: 'Indefinida',
+      description: "Indefinida",
     },
     {
-      description: 'Manto Negro',
+      description: "Manto Negro",
     },
     {
-      description: 'Marrom',
+      description: "Marrom",
     },
     {
-      description: 'Marta e Branco',
+      description: "Marta e Branco",
     },
     {
-      description: 'Pelo Duro (Arame)',
+      description: "Pelo Duro (Arame)",
     },
     {
-      description: 'Pintado',
+      description: "Pintado",
     },
     {
-      description: 'Preta',
+      description: "Preta",
     },
     {
-      description: 'Preto e Amarelo',
+      description: "Preto e Amarelo",
     },
     {
-      description: 'Preto e Branco',
+      description: "Preto e Branco",
     },
     {
-      description: 'Preto e Marrom',
+      description: "Preto e Marrom",
     },
     {
-      description: 'Preto e Vermelho',
+      description: "Preto e Vermelho",
     },
     {
-      description: 'Preto,branco e Marrom',
+      description: "Preto,branco e Marrom",
     },
     {
-      description: 'Red Merle',
+      description: "Red Merle",
     },
     {
-      description: 'Sal e Pimenta',
+      description: "Sal e Pimenta",
     },
     {
-      description: 'Tigrado',
+      description: "Tigrado",
     },
     {
-      description: 'Tricolor',
+      description: "Tricolor",
     },
     {
-      description: 'Vermelho',
+      description: "Vermelho",
     },
     {
-      description: 'Vermelho e Branco',
+      description: "Vermelho e Branco",
     },
   ];
 
   public async run() {
     await PatientAnimalHair.fetchOrCreateMany(
-      'description',
-      this.BASE.map(elem => ({
+      "description",
+      this.BASE.map((elem) => ({
         description: elem.description,
       })),
     );

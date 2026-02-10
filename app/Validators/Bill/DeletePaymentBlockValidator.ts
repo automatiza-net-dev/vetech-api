@@ -1,5 +1,5 @@
-import { schema, CustomMessages, rules } from '@ioc:Adonis/Core/Validator';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
+import { schema, CustomMessages, rules } from "@ioc:Adonis/Core/Validator";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 
 export default class DeletePaymentBlockValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -26,8 +26,8 @@ export default class DeletePaymentBlockValidator {
   public schema = schema.create({
     billId: schema.string([
       rules.exists({
-        table: 'bills',
-        column: 'id',
+        table: "bills",
+        column: "id",
       }),
     ]),
     block: schema.number(),

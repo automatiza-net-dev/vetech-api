@@ -1,11 +1,11 @@
-import Database from '@ioc:Adonis/Lucid/Database';
-import { test } from '@japa/runner';
-import ClientOrigin, { ClientOriginType } from 'App/Models/ClientOrigin';
-import { v4 } from 'uuid';
+import Database from "@ioc:Adonis/Lucid/Database";
+import { test } from "@japa/runner";
+import ClientOrigin, { ClientOriginType } from "App/Models/ClientOrigin";
+import { v4 } from "uuid";
 
-import { generateJwtToken, userBootstrap } from '../utils';
+import { generateJwtToken, userBootstrap } from "../utils";
 
-test.group('Client origin resource', group => {
+test.group("Client origin resource", (group) => {
   group.each.setup(async () => {
     await Database.beginGlobalTransaction();
     return () => Database.rollbackGlobalTransaction();
@@ -15,7 +15,7 @@ test.group('Client origin resource', group => {
     const { user, business, group, system } = await userBootstrap();
 
     const origin = await ClientOrigin.create({
-      description: 'some description',
+      description: "some description",
       type: ClientOriginType.C,
       economic_group_id: group.id,
       system_id: system.id,
@@ -24,11 +24,11 @@ test.group('Client origin resource', group => {
     return { user, business, origin };
   };
 
-  test('should return all client origins', async ({ assert, client }) => {
+  test("should return all client origins", async ({ assert, client }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client.get(`/client-origins`).bearerToken(token);
@@ -37,17 +37,17 @@ test.group('Client origin resource', group => {
     assert.isArray(response.body());
   });
 
-  test('should create client origin', async ({ assert, client }) => {
+  test("should create client origin", async ({ assert, client }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
       .post(`/client-origins`)
       .json({
-        description: 'some description',
+        description: "some description",
         type: ClientOriginType.C,
       })
       .bearerToken(token);
@@ -56,17 +56,17 @@ test.group('Client origin resource', group => {
     assert.exists(response.body().id);
   });
 
-  test('should update client origin', async ({ assert, client }) => {
+  test("should update client origin", async ({ assert, client }) => {
     const { user, origin } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
       .put(`/client-origins/${origin.id}`)
       .json({
-        description: 'some description',
+        description: "some description",
         type: ClientOriginType.C,
         active: true,
       })
@@ -76,47 +76,38 @@ test.group('Client origin resource', group => {
     assert.exists(response.body().id);
   });
 
-  test('should delete client origin', async ({ assert, client }) => {
+  test("should delete client origin", async ({ assert, client }) => {
     const { user, origin } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
-    const response = await client
-      .delete(`/client-origins/${origin.id}`)
-      .bearerToken(token);
+    const response = await client.delete(`/client-origins/${origin.id}`).bearerToken(token);
 
     assert.equal(204, response.status());
   });
 
-  test('should return NotFoundException if no client was found', async ({
-    assert,
-    client,
-  }) => {
+  test("should return NotFoundException if no client was found", async ({ assert, client }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
-    const response = await client
-      .get(`/client-origins/${v4()}`)
-      .bearerToken(token);
+    const response = await client.get(`/client-origins/${v4()}`).bearerToken(token);
 
     assert.equal(404, response.status());
   });
 
-  test('should return client origin', async ({ assert, client }) => {
+  test("should return client origin", async ({ assert, client }) => {
     const { user, origin } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
-    const response = await client
-      .get(`/client-origins/${origin.id}`)
-      .bearerToken(token);
+    const response = await client.get(`/client-origins/${origin.id}`).bearerToken(token);
 
     assert.equal(200, response.status());
     assert.exists(response.body().id);

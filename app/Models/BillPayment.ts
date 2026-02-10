@@ -1,11 +1,4 @@
-import {
-	BaseModel,
-	BelongsTo,
-	belongsTo,
-	column,
-	HasOne,
-	hasOne,
-} from "@ioc:Adonis/Lucid/Orm";
+import { BaseModel, BelongsTo, belongsTo, column, HasOne, hasOne } from "@ioc:Adonis/Lucid/Orm";
 import Bill from "App/Models/Bill";
 import PaymentMethod from "App/Models/PaymentMethod";
 import TefAcquirer from "App/Models/TefAcquirer";

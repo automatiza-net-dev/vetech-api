@@ -1,5 +1,5 @@
-import { HospitalizationStatus } from 'App/Models/Hospitalization';
-import { DateTime } from 'luxon';
+import { HospitalizationStatus } from "App/Models/Hospitalization";
+import { DateTime } from "luxon";
 
 export interface IHospitalizationData {
   tutorId: string;

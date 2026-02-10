@@ -1,5 +1,5 @@
-import { schema, CustomMessages, rules } from '@ioc:Adonis/Core/Validator';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
+import { schema, CustomMessages, rules } from "@ioc:Adonis/Core/Validator";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 
 export default class CopyRoleValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -26,8 +26,8 @@ export default class CopyRoleValidator {
   public schema = schema.create({
     roleId: schema.number([
       rules.exists({
-        table: 'roles',
-        column: 'id',
+        table: "roles",
+        column: "id",
       }),
     ]),
   });

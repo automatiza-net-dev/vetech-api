@@ -1,7 +1,7 @@
 import { inject } from "@adonisjs/fold";
 import { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import PatientService from "App/Services/PatientService";
-import SharedService, { } from "App/Services/SharedService";
+import SharedService from "App/Services/SharedService";
 import AssignPatientTutorValidator from "App/Validators/Patient/AssignPatientTutorValidator";
 import CreateLiftOneTutorForGenericValidator from "App/Validators/Patient/CreateLiftOneTutorForGenericValidator";
 import CreateLiftOneTutorForRegisterValidator from "App/Validators/Patient/CreateLiftOneTutorForRegisterValidator";
@@ -21,14 +21,11 @@ export default class PatientTutorsController {
   constructor(
     private readonly service: PatientService,
     private readonly sharedService: SharedService,
-  ) { }
+  ) {}
 
   public async allIndex({ auth, request, response }: HttpContextContract) {
     const qs = request.qs();
-    const patients = await this.service.allIndex(
-      await this.sharedService.getAuthContext(auth),
-      qs,
-    );
+    const patients = await this.service.allIndex(await this.sharedService.getAuthContext(auth), qs);
 
     return response.ok(patients);
   }
@@ -77,7 +74,6 @@ export default class PatientTutorsController {
     return response.ok(data);
   }
 
-
   public async show({ auth, params, response }: HttpContextContract) {
     const patients = await this.service.show(
       await this.sharedService.getAuthContext(auth),
@@ -101,21 +97,16 @@ export default class PatientTutorsController {
       const authCtx = await this.sharedService.getAuthContext(ctx.auth);
 
       const syncedBody = Object.assign({}, ctx.request.body(), {
-        contacts: ctx.request
-          .body()
-          ?.contacts?.map((c: Record<string, unknown>) => {
-            c.main = typeof c.main === "string" ? c.main === "true" : c.main;
-            c.notGiven =
-              typeof c.notGiven === "string"
-                ? c.notGiven === "true"
-                : c.notGiven;
+        contacts: ctx.request.body()?.contacts?.map((c: Record<string, unknown>) => {
+          c.main = typeof c.main === "string" ? c.main === "true" : c.main;
+          c.notGiven = typeof c.notGiven === "string" ? c.notGiven === "true" : c.notGiven;
 
-            if (!c.contact) {
-              c.contact = "-";
-            }
+          if (!c.contact) {
+            c.contact = "-";
+          }
 
-            return c;
-          }),
+          return c;
+        }),
 
         photo: ctx.request.file("photo"),
       });
@@ -157,29 +148,20 @@ export default class PatientTutorsController {
     return this.sharedService.errorHoc(response, async () => {
       const payload = await request.validate(AssignPatientTutorValidator);
 
-      await this.service.assignPatientTutor(
-        await this.sharedService.getAuthContext(auth),
-        payload,
-      );
+      await this.service.assignPatientTutor(await this.sharedService.getAuthContext(auth), payload);
 
       return response.created();
     });
   }
 
-  public async update({
-    auth,
-    params,
-    request,
-    response,
-  }: HttpContextContract) {
+  public async update({ auth, params, request, response }: HttpContextContract) {
     return this.sharedService.errorHoc(response, async () => {
       const authCtx = await this.sharedService.getAuthContext(auth);
 
       const syncedBody = Object.assign({}, request.body(), {
         contacts: request.body()?.["contacts"]?.map((c) => {
           c.main = typeof c.main === "string" ? c.main === "true" : c.main;
-          c.notGiven =
-            typeof c.notGiven === "string" ? c.notGiven === "true" : c.notGiven;
+          c.notGiven = typeof c.notGiven === "string" ? c.notGiven === "true" : c.notGiven;
 
           if (!c.contact) {
             c.contact = "-";

@@ -1,5 +1,5 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
 
 export default class CreateMedicationOnceOrNeededValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -8,16 +8,16 @@ export default class CreateMedicationOnceOrNeededValidator {
     prescriptionUnitId: schema.string({}, [
       rules.uuid(),
       rules.exists({
-        table: 'units',
-        column: 'id',
+        table: "units",
+        column: "id",
       }),
     ]),
     dose: schema.number(),
     drugAdministrationId: schema.string({}, [
       rules.uuid(),
       rules.exists({
-        table: 'drug_administrations',
-        column: 'id',
+        table: "drug_administrations",
+        column: "id",
       }),
     ]),
   });

@@ -71,11 +71,7 @@ export const ConfigBusinessUnitsSchema = z.object({
   incoming_deposit_id: z.coerce.number().optional().nullable(),
   outgoing_deposit_id: z.coerce.number().optional().nullable(),
   balance_control: z
-    .union([
-      z.literal("realizado"),
-      z.literal("usuario"),
-      z.literal("previsto"),
-    ])
+    .union([z.literal("realizado"), z.literal("usuario"), z.literal("previsto")])
     .optional()
     .nullable(),
   controls_deposit: z.boolean().optional().nullable(),

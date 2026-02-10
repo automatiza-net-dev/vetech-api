@@ -5,14 +5,9 @@
  * file.
  */
 
-import TestUtils from '@ioc:Adonis/Core/TestUtils';
-import {
-  apiClient,
-  assert,
-  runFailedTests,
-  specReporter,
-} from '@japa/preset-adonis';
-import type { Config } from '@japa/runner';
+import TestUtils from "@ioc:Adonis/Core/TestUtils";
+import { apiClient, assert, runFailedTests, specReporter } from "@japa/preset-adonis";
+import type { Config } from "@japa/runner";
 
 /*
 |--------------------------------------------------------------------------
@@ -25,11 +20,7 @@ import type { Config } from '@japa/runner';
 | Feel free to remove existing plugins or add more.
 |
 */
-export const plugins: Config['plugins'] = [
-  assert(),
-  runFailedTests(),
-  apiClient(),
-];
+export const plugins: Config["plugins"] = [assert(), runFailedTests(), apiClient()];
 
 /*
 |--------------------------------------------------------------------------
@@ -41,7 +32,7 @@ export const plugins: Config['plugins'] = [
 | of tests on the terminal.
 |
 */
-export const reporters: Config['reporters'] = [specReporter()];
+export const reporters: Config["reporters"] = [specReporter()];
 
 /*
 |--------------------------------------------------------------------------
@@ -55,7 +46,7 @@ export const reporters: Config['reporters'] = [specReporter()];
 | within the runner hooks
 |
 */
-export const runnerHooks: Required<Pick<Config, 'setup' | 'teardown'>> = {
+export const runnerHooks: Required<Pick<Config, "setup" | "teardown">> = {
   setup: [
     () => TestUtils.ace().loadCommands(),
     // () => TestUtils.db().migrate(),
@@ -75,8 +66,8 @@ export const runnerHooks: Required<Pick<Config, 'setup' | 'teardown'>> = {
 | You can use this method to configure suites. For example: Only start
 | the HTTP server when it is a functional suite.
 */
-export const configureSuite: Config['configureSuite'] = suite => {
-  if (suite.name === 'functional') {
+export const configureSuite: Config["configureSuite"] = (suite) => {
+  if (suite.name === "functional") {
     suite.setup(() => TestUtils.httpServer().start());
   }
 };

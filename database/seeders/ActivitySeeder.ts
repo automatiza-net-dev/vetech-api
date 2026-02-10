@@ -1,83 +1,83 @@
-import BaseSeeder from '@ioc:Adonis/Lucid/Seeder';
-import Activity from 'App/Models/Activity';
+import BaseSeeder from "@ioc:Adonis/Lucid/Seeder";
+import Activity from "App/Models/Activity";
 
 export default class extends BaseSeeder {
   public async run() {
     const data = [
       {
-        description: 'Agendamento – Avaliação Cirúrgica',
+        description: "Agendamento – Avaliação Cirúrgica",
         duration: 30,
-        type: 'crm',
+        type: "crm",
         active: true,
       },
       {
-        description: 'Agendamento – Avaliação Preventiva',
+        description: "Agendamento – Avaliação Preventiva",
         duration: 30,
-        type: 'crm',
+        type: "crm",
         active: true,
       },
       {
-        description: 'Agendamento – Consulta',
+        description: "Agendamento – Consulta",
         duration: 30,
-        type: 'crm',
+        type: "crm",
         active: true,
       },
       {
-        description: 'Agendamento – Exames',
+        description: "Agendamento – Exames",
         duration: 30,
-        type: 'crm',
+        type: "crm",
         active: true,
       },
       {
-        description: 'Agendamento – Outros',
+        description: "Agendamento – Outros",
         duration: 30,
-        type: 'crm',
+        type: "crm",
         active: true,
       },
       {
-        description: 'Agendamento – Reavaliação',
+        description: "Agendamento – Reavaliação",
         duration: 30,
-        type: 'crm',
+        type: "crm",
         active: true,
       },
       {
-        description: 'Agendamento – Vacinas',
+        description: "Agendamento – Vacinas",
         duration: 30,
-        type: 'crm',
+        type: "crm",
         active: true,
       },
       {
-        description: 'Confirmação de Agenda – WhatsApp',
+        description: "Confirmação de Agenda – WhatsApp",
         duration: 30,
-        type: 'crm',
+        type: "crm",
         active: true,
       },
       {
-        description: 'Confirmação de Agenda - Ligação',
+        description: "Confirmação de Agenda - Ligação",
         duration: 30,
-        type: 'crm',
+        type: "crm",
         active: true,
       },
       {
-        description: 'Ligação',
+        description: "Ligação",
         duration: 30,
-        type: 'crm',
+        type: "crm",
         active: true,
       },
       {
-        description: 'Retorno – Envio de Vídeo ou Card',
+        description: "Retorno – Envio de Vídeo ou Card",
         duration: 30,
-        type: 'crm',
+        type: "crm",
         active: true,
       },
       {
-        description: 'Retorno – Ligação',
+        description: "Retorno – Ligação",
         duration: 30,
-        type: 'crm',
+        type: "crm",
         active: true,
       },
     ];
 
-    await Activity.fetchOrCreateMany('description', data);
+    await Activity.fetchOrCreateMany("description", data);
   }
 }

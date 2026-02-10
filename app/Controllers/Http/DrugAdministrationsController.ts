@@ -1,9 +1,9 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import DrugAdministrationService from 'App/Services/DrugAdministrationService';
-import SharedService from 'App/Services/SharedService';
-import CreateDrugAdministrationValidator from 'App/Validators/DrugAdministration/CreateDrugAdministrationValidator';
-import UpdateDrugAdministrationValidator from 'App/Validators/DrugAdministration/UpdateDrugAdministrationValidator';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import DrugAdministrationService from "App/Services/DrugAdministrationService";
+import SharedService from "App/Services/SharedService";
+import CreateDrugAdministrationValidator from "App/Validators/DrugAdministration/CreateDrugAdministrationValidator";
+import UpdateDrugAdministrationValidator from "App/Validators/DrugAdministration/UpdateDrugAdministrationValidator";
 
 @inject()
 export default class DrugAdministrationsController {
@@ -13,9 +13,7 @@ export default class DrugAdministrationsController {
   ) {}
 
   public async index({ auth, response }: HttpContextContract) {
-    const result = await this.service.index(
-      await this.sharedService.getAuthContext(auth),
-    );
+    const result = await this.service.index(await this.sharedService.getAuthContext(auth));
 
     return response.ok(result);
   }
@@ -32,20 +30,12 @@ export default class DrugAdministrationsController {
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateDrugAdministrationValidator);
 
-    const result = await this.service.store(
-      await this.sharedService.getAuthContext(auth),
-      payload,
-    );
+    const result = await this.service.store(await this.sharedService.getAuthContext(auth), payload);
 
     return response.created(result);
   }
 
-  public async update({
-    auth,
-    params,
-    request,
-    response,
-  }: HttpContextContract) {
+  public async update({ auth, params, request, response }: HttpContextContract) {
     const payload = await request.validate(UpdateDrugAdministrationValidator);
 
     const result = await this.service.update(
@@ -58,10 +48,7 @@ export default class DrugAdministrationsController {
   }
 
   public async destroy({ auth, params, response }: HttpContextContract) {
-    await this.service.destroy(
-      await this.sharedService.getAuthContext(auth),
-      params.id,
-    );
+    await this.service.destroy(await this.sharedService.getAuthContext(auth), params.id);
 
     return response.noContent();
   }

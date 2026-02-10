@@ -1,11 +1,11 @@
-import Factory from '@ioc:Adonis/Lucid/Factory';
-import Role from 'App/Models/Role';
+import Factory from "@ioc:Adonis/Lucid/Factory";
+import Role from "App/Models/Role";
 
 export default Factory.define(Role, ({ faker }) => {
   return {
     name: faker.string.uuid(),
     externalAccess: true,
-    type: 'user' as const,
+    type: "user" as const,
     active: true,
   };
 }).build();

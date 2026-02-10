@@ -1,7 +1,7 @@
-import { inject } from '@adonisjs/fold';
-import ClinicParameter from 'App/Models/ClinicParameter';
-import SharedService, { AuthContext } from 'App/Services/SharedService';
-import IClinicParameterData from 'Contracts/interfaces/IClinicParameterData';
+import { inject } from "@adonisjs/fold";
+import ClinicParameter from "App/Models/ClinicParameter";
+import SharedService, { AuthContext } from "App/Services/SharedService";
+import IClinicParameterData from "Contracts/interfaces/IClinicParameterData";
 
 @inject()
 export default class ClinicParameterService {
@@ -9,17 +9,13 @@ export default class ClinicParameterService {
 
   public async index(authCtx: AuthContext) {
     return ClinicParameter.query()
-      .whereRaw(
-        '(economic_group_id = ? or economic_group_id is null) and deleted_at is null',
-        [authCtx.group.id],
-      )
-      .where('system_id', authCtx.system.id);
+      .whereRaw("(economic_group_id = ? or economic_group_id is null) and deleted_at is null", [
+        authCtx.group.id,
+      ])
+      .where("system_id", authCtx.system.id);
   }
 
-  public async store(
-    authCtx: AuthContext,
-    data: Omit<IClinicParameterData, 'active'>,
-  ) {
+  public async store(authCtx: AuthContext, data: Omit<IClinicParameterData, "active">) {
     return ClinicParameter.create({
       name: data.name,
       tag: data.tag,
@@ -49,11 +45,7 @@ export default class ClinicParameterService {
     return ent;
   }
 
-  public async update(
-    authCtx: AuthContext,
-    id: string,
-    data: IClinicParameterData,
-  ) {
+  public async update(authCtx: AuthContext, id: string, data: IClinicParameterData) {
     const entity = await this.show(authCtx, id);
 
     if (!entity.economic_group_id) {

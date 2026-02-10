@@ -1,4 +1,4 @@
-import { MovementCategory, MovementType } from 'App/Models/TaxationGroupRule';
+import { MovementCategory, MovementType } from "App/Models/TaxationGroupRule";
 
 export default interface ITaxOperation {
   code: string;

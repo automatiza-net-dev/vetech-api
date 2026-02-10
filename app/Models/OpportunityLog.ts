@@ -1,25 +1,25 @@
-import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
-import ContactSubject from 'App/Models/ContactSubject';
-import ContactType from 'App/Models/ContactType';
-import Patient from 'App/Models/Patient';
-import { DateTime } from 'luxon';
+import { BaseModel, BelongsTo, belongsTo, column } from "@ioc:Adonis/Lucid/Orm";
+import ContactSubject from "App/Models/ContactSubject";
+import ContactType from "App/Models/ContactType";
+import Patient from "App/Models/Patient";
+import { DateTime } from "luxon";
 
 export default class OpportunityLog extends BaseModel {
   @column({ isPrimary: true })
   public id: number;
 
   @column.dateTime({
-    columnName: 'opening_date',
+    columnName: "opening_date",
   })
   public openingDate: DateTime;
 
   @column.dateTime({
-    columnName: 'closing_date',
+    columnName: "closing_date",
   })
   public closingDate: DateTime;
 
   @column.dateTime({
-    columnName: 'contact_date',
+    columnName: "contact_date",
   })
   public contactDate: DateTime;
 
@@ -27,12 +27,12 @@ export default class OpportunityLog extends BaseModel {
   public value: number;
 
   @column({
-    columnName: 'profit_value',
+    columnName: "profit_value",
   })
   public profitValue: number;
 
   @column({
-    columnName: 'result_observation',
+    columnName: "result_observation",
   })
   public resultObservation: string;
 
@@ -97,7 +97,7 @@ export default class OpportunityLog extends BaseModel {
   public client_id: string;
 
   @belongsTo(() => Patient, {
-    foreignKey: 'client_id',
+    foreignKey: "client_id",
   })
   public client: BelongsTo<typeof Patient>;
 
@@ -107,7 +107,7 @@ export default class OpportunityLog extends BaseModel {
   public contact_id: string;
 
   @belongsTo(() => Patient, {
-    foreignKey: 'contact_id',
+    foreignKey: "contact_id",
   })
   public contact: BelongsTo<typeof Patient>;
 
@@ -117,7 +117,7 @@ export default class OpportunityLog extends BaseModel {
   public contact_type_id: number;
 
   @belongsTo(() => ContactType, {
-    foreignKey: 'contact_type_id',
+    foreignKey: "contact_type_id",
   })
   public contactType: BelongsTo<typeof ContactType>;
 
@@ -127,7 +127,7 @@ export default class OpportunityLog extends BaseModel {
   public contact_subject_id: number;
 
   @belongsTo(() => ContactSubject, {
-    foreignKey: 'contact_subject_id',
+    foreignKey: "contact_subject_id",
   })
   public contactSubject: BelongsTo<typeof ContactSubject>;
 

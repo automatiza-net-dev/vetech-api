@@ -32,17 +32,7 @@ export enum ProductPurpose {
   BOTH = "both",
 }
 
-export const ProductIcmsOrigin = [
-  "0",
-  "1",
-  "2",
-  "3",
-  "4",
-  "5",
-  "6",
-  "7",
-  "8",
-] as const;
+export const ProductIcmsOrigin = ["0", "1", "2", "3", "4", "5", "6", "7", "8"] as const;
 
 export const PServiceType = ["service", "exam"] as const;
 

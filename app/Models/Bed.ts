@@ -1,17 +1,12 @@
-import {
-  BaseModel,
-  beforeFetch,
-  beforeFind,
-  column,
-} from '@ioc:Adonis/Lucid/Orm';
-import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
-import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
+import { BaseModel, beforeFetch, beforeFind, column } from "@ioc:Adonis/Lucid/Orm";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import { DateTime } from "luxon";
+import { v4 } from "uuid";
 
 export enum BedType {
-  ICU = 'ICU',
-  HOSPITALIZATION = 'HOSPITALIZATION',
-  OBSERVATION = 'OBSERVATION',
+  ICU = "ICU",
+  HOSPITALIZATION = "HOSPITALIZATION",
+  OBSERVATION = "OBSERVATION",
 }
 
 export default class Bed extends BaseModel {

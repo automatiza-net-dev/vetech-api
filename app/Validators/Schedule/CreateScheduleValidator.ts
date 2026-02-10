@@ -2,66 +2,66 @@ import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
 
 export default class CreateScheduleValidator {
-	constructor(protected ctx: HttpContextContract) {}
+  constructor(protected ctx: HttpContextContract) {}
 
-	public schema = schema.create({
-		scheduleServiceTypeId: schema.string({}, [
-			rules.uuid(),
-			rules.exists({
-				table: "schedule_service_types",
-				column: "id",
-			}),
-		]),
-		startHour: schema.date({}),
-		endHour: schema.date({}),
-		executions: schema.array.optional().members(
-			schema.object().members({
-				treatmentId: schema.number(),
-				treatmentItemId: schema.number(),
-				treatmentExecutionId: schema.number(),
-				checked: schema.boolean(),
-			}),
-		),
+  public schema = schema.create({
+    scheduleServiceTypeId: schema.string({}, [
+      rules.uuid(),
+      rules.exists({
+        table: "schedule_service_types",
+        column: "id",
+      }),
+    ]),
+    startHour: schema.date({}),
+    endHour: schema.date({}),
+    executions: schema.array.optional().members(
+      schema.object().members({
+        treatmentId: schema.number(),
+        treatmentItemId: schema.number(),
+        treatmentExecutionId: schema.number(),
+        checked: schema.boolean(),
+      }),
+    ),
 
-		patientId: schema.string.optional({}, [
-			rules.uuid(),
-			rules.exists({
-				table: "patients",
-				column: "id",
-			}),
-		]),
-		holderId: schema.string.optional({}, [
-			rules.uuid(),
-			rules.exists({
-				table: "patients",
-				column: "id",
-			}),
-		]),
-		userId: schema.string.optional({}, [
-			rules.uuid(),
-			rules.exists({
-				table: "users",
-				column: "id",
-			}),
-		]),
-		scheduleOriginId: schema.string.optional({}, [
-			rules.uuid(),
-			rules.exists({
-				table: "schedules",
-				column: "id",
-			}),
-		]),
-		ignoreBlocking: schema.boolean.optional([]),
-		patientName: schema.string.optional({}, []),
-		patientPhone: schema.string.optional({}, []),
-		age: schema.number.optional([rules.unsigned()]),
-		raceId: schema.string.optional({}),
-		majorComplaint: schema.string.optional({}),
-		ignoreOverlapping: schema.boolean.optional([]),
-		onDuty: schema.boolean.optional([]),
-		userEmail: schema.string.optional([rules.email()]),
-		userPwd: schema.string.optional(),
-	});
+    patientId: schema.string.optional({}, [
+      rules.uuid(),
+      rules.exists({
+        table: "patients",
+        column: "id",
+      }),
+    ]),
+    holderId: schema.string.optional({}, [
+      rules.uuid(),
+      rules.exists({
+        table: "patients",
+        column: "id",
+      }),
+    ]),
+    userId: schema.string.optional({}, [
+      rules.uuid(),
+      rules.exists({
+        table: "users",
+        column: "id",
+      }),
+    ]),
+    scheduleOriginId: schema.string.optional({}, [
+      rules.uuid(),
+      rules.exists({
+        table: "schedules",
+        column: "id",
+      }),
+    ]),
+    ignoreBlocking: schema.boolean.optional([]),
+    patientName: schema.string.optional({}, []),
+    patientPhone: schema.string.optional({}, []),
+    age: schema.number.optional([rules.unsigned()]),
+    raceId: schema.string.optional({}),
+    majorComplaint: schema.string.optional({}),
+    ignoreOverlapping: schema.boolean.optional([]),
+    onDuty: schema.boolean.optional([]),
+    userEmail: schema.string.optional([rules.email()]),
+    userPwd: schema.string.optional(),
+  });
 
-	public messages: CustomMessages = {};
+  public messages: CustomMessages = {};
 }

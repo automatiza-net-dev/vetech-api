@@ -1,4 +1,4 @@
-import { DateTime } from 'luxon';
+import { DateTime } from "luxon";
 
 export default interface ICreateAppointment {
   scheduleServiceId: string;

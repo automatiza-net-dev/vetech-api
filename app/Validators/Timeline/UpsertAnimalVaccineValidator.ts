@@ -1,5 +1,5 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
 
 export default class UpsertAnimalVaccineValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -10,8 +10,8 @@ export default class UpsertAnimalVaccineValidator {
     technicianId: schema.string({}, [
       rules.uuid(),
       rules.exists({
-        table: 'users',
-        column: 'id',
+        table: "users",
+        column: "id",
       }),
     ]),
     expectedDate: schema.date.optional({}, []),
@@ -21,8 +21,8 @@ export default class UpsertAnimalVaccineValidator {
     vaccineId: schema.string({}, [
       rules.uuid(),
       rules.exists({
-        table: 'patient_vaccines',
-        column: 'id',
+        table: "patient_vaccines",
+        column: "id",
       }),
     ]),
   });

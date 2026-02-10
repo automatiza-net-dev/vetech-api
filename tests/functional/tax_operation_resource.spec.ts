@@ -1,12 +1,12 @@
-import Database from '@ioc:Adonis/Lucid/Database';
-import { test } from '@japa/runner';
-import { MovementCategory, MovementType } from 'App/Models/TaxationGroupRule';
-import TaxOperation from 'App/Models/TaxOperation';
-import { v4 } from 'uuid';
+import Database from "@ioc:Adonis/Lucid/Database";
+import { test } from "@japa/runner";
+import { MovementCategory, MovementType } from "App/Models/TaxationGroupRule";
+import TaxOperation from "App/Models/TaxOperation";
+import { v4 } from "uuid";
 
-import { generateJwtToken, userBootstrap } from '../utils';
+import { generateJwtToken, userBootstrap } from "../utils";
 
-test.group('Tax operation resource', group => {
+test.group("Tax operation resource", (group) => {
   group.each.setup(async () => {
     await Database.beginGlobalTransaction();
     return () => Database.rollbackGlobalTransaction();
@@ -16,8 +16,8 @@ test.group('Tax operation resource', group => {
     const { user, group } = await userBootstrap();
 
     const operation = await TaxOperation.create({
-      code: 'any code',
-      description: 'any description',
+      code: "any code",
+      description: "any description",
       movementType: MovementType.E,
       movementCategory: MovementCategory.DE,
       generatesFinancial: true,
@@ -28,64 +28,57 @@ test.group('Tax operation resource', group => {
     return { user, operation };
   };
 
-  test('should list tax operations', async ({ assert, client }) => {
+  test("should list tax operations", async ({ assert, client }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
-      .get('/tax-operations')
+      .get("/tax-operations")
 
       .bearerToken(token);
 
     assert.equal(200, response.status());
   });
 
-  test('should throw NotFoundException if no operation is found', async ({
-    assert,
-    client,
-  }) => {
+  test("should throw NotFoundException if no operation is found", async ({ assert, client }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
-    const response = await client
-      .get(`/tax-operations/${v4()}`)
-      .bearerToken(token);
+    const response = await client.get(`/tax-operations/${v4()}`).bearerToken(token);
 
     assert.equal(404, response.status());
   });
 
-  test('should get tax operation', async ({ assert, client }) => {
+  test("should get tax operation", async ({ assert, client }) => {
     const { user, operation } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
-    const response = await client
-      .get(`/tax-operations/${operation.id}`)
-      .bearerToken(token);
+    const response = await client.get(`/tax-operations/${operation.id}`).bearerToken(token);
 
     assert.equal(200, response.status());
   });
 
-  test('should create new tax operation', async ({ client, assert }) => {
+  test("should create new tax operation", async ({ client, assert }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
-      .post('/tax-operations')
+      .post("/tax-operations")
       .json({
-        code: 'any code',
-        description: 'any description',
+        code: "any code",
+        description: "any description",
         movementType: MovementType.E,
         movementCategory: MovementCategory.DE,
         generatesFinancial: true,
@@ -96,18 +89,18 @@ test.group('Tax operation resource', group => {
     assert.equal(201, response.status());
   });
 
-  test('should update tax operation', async ({ client, assert }) => {
+  test("should update tax operation", async ({ client, assert }) => {
     const { user, operation } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
       .put(`/tax-operations/${operation.id}`)
       .json({
-        code: 'new code',
-        description: 'any description',
+        code: "new code",
+        description: "any description",
         movementType: MovementType.E,
         movementCategory: MovementCategory.DE,
         generatesFinancial: true,
@@ -120,16 +113,14 @@ test.group('Tax operation resource', group => {
     assert.notEqual(operation.code, response.body().code);
   });
 
-  test('should delete tax operation', async ({ client, assert }) => {
+  test("should delete tax operation", async ({ client, assert }) => {
     const { user, operation } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
-    const response = await client
-      .delete(`/tax-operations/${operation.id}`)
-      .bearerToken(token);
+    const response = await client.delete(`/tax-operations/${operation.id}`).bearerToken(token);
 
     assert.equal(204, response.status());
   });

@@ -5,19 +5,19 @@ import {
   BelongsTo,
   belongsTo,
   column,
-} from '@ioc:Adonis/Lucid/Orm';
-import Patient from 'App/Models/Patient';
-import User from 'App/Models/User';
-import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
-import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
+} from "@ioc:Adonis/Lucid/Orm";
+import Patient from "App/Models/Patient";
+import User from "App/Models/User";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import { DateTime } from "luxon";
+import { v4 } from "uuid";
 
 export default class PatientExamAttachment extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
 
   @column({
-    columnName: 'realized_at',
+    columnName: "realized_at",
   })
   public realizedAt: DateTime = DateTime.now();
 
@@ -52,7 +52,7 @@ export default class PatientExamAttachment extends BaseModel {
   public user_id: string;
 
   @belongsTo(() => User, {
-    foreignKey: 'user_id',
+    foreignKey: "user_id",
   })
   public user: BelongsTo<typeof User>;
 
@@ -60,7 +60,7 @@ export default class PatientExamAttachment extends BaseModel {
   public patient_id: string;
 
   @belongsTo(() => Patient, {
-    foreignKey: 'patient_id',
+    foreignKey: "patient_id",
   })
   public patient: BelongsTo<typeof Patient>;
 }

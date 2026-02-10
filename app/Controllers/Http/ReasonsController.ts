@@ -1,9 +1,9 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import ReasonService from 'App/Services/ReasonService';
-import SharedService from 'App/Services/SharedService';
-import CreateReasonValidator from 'App/Validators/Reason/CreateReasonValidator';
-import UpdateReasonValidator from 'App/Validators/Reason/UpdateReasonValidator';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import ReasonService from "App/Services/ReasonService";
+import SharedService from "App/Services/SharedService";
+import CreateReasonValidator from "App/Validators/Reason/CreateReasonValidator";
+import UpdateReasonValidator from "App/Validators/Reason/UpdateReasonValidator";
 
 @inject()
 export default class ReasonsController {
@@ -33,10 +33,7 @@ export default class ReasonsController {
   public async store({ auth, request, response }: HttpContextContract) {
     const data = await request.validate(CreateReasonValidator);
 
-    const reason = await this.service.store(
-      await this.sharedService.getAuthContext(auth),
-      data,
-    );
+    const reason = await this.service.store(await this.sharedService.getAuthContext(auth), data);
 
     return response.created(reason);
   }
@@ -57,10 +54,7 @@ export default class ReasonsController {
   public async destroy({ auth, request, response }: HttpContextContract) {
     const { id } = request.params();
 
-    await this.service.destroy(
-      await this.sharedService.getAuthContext(auth),
-      id,
-    );
+    await this.service.destroy(await this.sharedService.getAuthContext(auth), id);
 
     return response.noContent();
   }

@@ -1,8 +1,8 @@
-declare module '@ioc:Adonis/Addons/Mail' {
-  import { MailDrivers } from '@ioc:Adonis/Addons/Mail';
+declare module "@ioc:Adonis/Addons/Mail" {
+  import { MailDrivers } from "@ioc:Adonis/Addons/Mail";
 
   interface MailersList {
-    mailgun: MailDrivers['mailgun'];
-    ses: MailDrivers['ses'];
+    mailgun: MailDrivers["mailgun"];
+    ses: MailDrivers["ses"];
   }
 }

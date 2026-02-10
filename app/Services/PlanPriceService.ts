@@ -1,7 +1,7 @@
-import { inject } from '@adonisjs/fold';
-import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
-import PlanPrice from 'App/Models/PlanPrice';
-import IPlanPriceData from 'Contracts/interfaces/IPlanPriceData';
+import { inject } from "@adonisjs/fold";
+import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
+import PlanPrice from "App/Models/PlanPrice";
+import IPlanPriceData from "Contracts/interfaces/IPlanPriceData";
 
 @inject()
 export default class PlanPriceService {
@@ -24,11 +24,7 @@ export default class PlanPriceService {
     const plan = await PlanPrice.find(id);
 
     if (!plan) {
-      throw new ResourceNotFoundException(
-        'Preço não encontrado',
-        404,
-        'E_NOT_FOUND',
-      );
+      throw new ResourceNotFoundException("Preço não encontrado", 404, "E_NOT_FOUND");
     }
 
     return plan;

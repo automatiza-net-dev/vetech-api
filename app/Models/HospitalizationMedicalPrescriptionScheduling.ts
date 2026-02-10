@@ -5,26 +5,26 @@ import {
   BelongsTo,
   belongsTo,
   column,
-} from '@ioc:Adonis/Lucid/Orm';
-import Hospitalization from 'App/Models/Hospitalization';
-import HospitalizationMedicalPrescription from 'App/Models/HospitalizationMedicalPrescription';
+} from "@ioc:Adonis/Lucid/Orm";
+import Hospitalization from "App/Models/Hospitalization";
+import HospitalizationMedicalPrescription from "App/Models/HospitalizationMedicalPrescription";
 import {
   MedicalPrescriptionFrequency,
   MedicalPrescriptionType,
-} from 'App/Models/MedicalPrescription';
-import User from 'App/Models/User';
-import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
-import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
+} from "App/Models/MedicalPrescription";
+import User from "App/Models/User";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import { DateTime } from "luxon";
+import { v4 } from "uuid";
 
 export const HospitalizationMedicalPrescriptionSchedulingStatus = [
-  'Aberto',
-  'Cancelado',
-  'Interrompido',
-  'Executado',
+  "Aberto",
+  "Cancelado",
+  "Interrompido",
+  "Executado",
 ] as const;
 export type THospitalizationMedicalPrescriptionSchedulingStatus =
-  typeof HospitalizationMedicalPrescriptionSchedulingStatus[number];
+  (typeof HospitalizationMedicalPrescriptionSchedulingStatus)[number];
 
 export default class HospitalizationMedicalPrescriptionScheduling extends BaseModel {
   @column({ isPrimary: true })
@@ -37,22 +37,22 @@ export default class HospitalizationMedicalPrescriptionScheduling extends BaseMo
   public frequency: MedicalPrescriptionFrequency;
 
   @column.dateTime({
-    columnName: 'scheduled_at',
+    columnName: "scheduled_at",
   })
   public scheduledAt: DateTime;
 
   @column.dateTime({
-    columnName: 'executed_at',
+    columnName: "executed_at",
   })
   public executedAt: DateTime;
 
   @column.dateTime({
-    columnName: 'prescribed_at',
+    columnName: "prescribed_at",
   })
   public prescribedAt: DateTime;
 
   @column.dateTime({
-    columnName: 'excluded_at',
+    columnName: "excluded_at",
   })
   public excludedAt: DateTime;
 
@@ -90,7 +90,7 @@ export default class HospitalizationMedicalPrescriptionScheduling extends BaseMo
   public hospitalization_medical_prescription_id: string;
 
   @belongsTo(() => HospitalizationMedicalPrescription, {
-    foreignKey: 'hospitalization_medical_prescription_id',
+    foreignKey: "hospitalization_medical_prescription_id",
   })
   public prescription: BelongsTo<typeof HospitalizationMedicalPrescription>;
 
@@ -100,7 +100,7 @@ export default class HospitalizationMedicalPrescriptionScheduling extends BaseMo
   public hospitalization_id: string;
 
   @belongsTo(() => Hospitalization, {
-    foreignKey: 'hospitalization_id',
+    foreignKey: "hospitalization_id",
   })
   public hospitalization: BelongsTo<typeof Hospitalization>;
 
@@ -115,12 +115,12 @@ export default class HospitalizationMedicalPrescriptionScheduling extends BaseMo
   public execution_user_id: string;
 
   @belongsTo(() => User, {
-    foreignKey: 'execution_user_id',
+    foreignKey: "execution_user_id",
   })
   public executionUser: BelongsTo<typeof User>;
 
   @belongsTo(() => User, {
-    foreignKey: 'user_id',
+    foreignKey: "user_id",
   })
   public technician: BelongsTo<typeof User>;
 

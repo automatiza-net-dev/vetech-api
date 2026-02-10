@@ -1,7 +1,7 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import ScheduleStatusService from 'App/Services/ScheduleStatusService';
-import SharedService from 'App/Services/SharedService';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import ScheduleStatusService from "App/Services/ScheduleStatusService";
+import SharedService from "App/Services/SharedService";
 
 @inject()
 export default class ScheduleStatusesController {
@@ -12,12 +12,9 @@ export default class ScheduleStatusesController {
 
   public async index({ auth, request, response }: HttpContextContract) {
     const qs = request.qs();
-    const result = await this.service.index(
-      await this.sharedService.getAuthContext(auth),
-      {
-        description: qs.description,
-      },
-    );
+    const result = await this.service.index(await this.sharedService.getAuthContext(auth), {
+      description: qs.description,
+    });
 
     return response.ok(result);
   }

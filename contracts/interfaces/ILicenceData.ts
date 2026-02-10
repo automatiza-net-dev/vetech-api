@@ -1,5 +1,5 @@
-import { LicenceType } from 'App/Models/Licence';
-import { DateTime } from 'luxon';
+import { LicenceType } from "App/Models/Licence";
+import { DateTime } from "luxon";
 
 export default interface ILicenceData {
   business_unit_id: string;

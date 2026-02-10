@@ -1,8 +1,8 @@
-import { AssetsConfig } from '@ioc:Adonis/Core/Static';
+import { AssetsConfig } from "@ioc:Adonis/Core/Static";
 
 const staticConfig: AssetsConfig = {
   enabled: true,
-  dotFiles: 'ignore',
+  dotFiles: "ignore",
   etag: true,
   lastModified: true,
 };

@@ -1,4 +1,4 @@
-import { OccurrenceType } from 'App/Models/Occurrence';
+import { OccurrenceType } from "App/Models/Occurrence";
 
 export default interface IOccurrenceData {
   description: string;

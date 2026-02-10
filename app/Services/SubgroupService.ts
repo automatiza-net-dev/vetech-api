@@ -1,8 +1,8 @@
-import { inject } from '@adonisjs/fold';
-import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
-import Subgroup from 'App/Models/Subgroup';
-import SharedService, { AuthContext } from 'App/Services/SharedService';
-import ISubgroupData from 'Contracts/interfaces/ISubgroupData';
+import { inject } from "@adonisjs/fold";
+import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
+import Subgroup from "App/Models/Subgroup";
+import SharedService, { AuthContext } from "App/Services/SharedService";
+import ISubgroupData from "Contracts/interfaces/ISubgroupData";
 
 interface ISearch {
   description?: string;
@@ -14,14 +14,12 @@ export default class SubgroupService {
 
   public async index(authCtx: AuthContext, data: ISearch) {
     const qb = Subgroup.query()
-      .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
-        authCtx.group.id,
-      ])
-      .where('system_id', authCtx.system.id)
-      .preload('parent');
+      .whereRaw("(economic_group_id = ? or economic_group_id is null)", [authCtx.group.id])
+      .where("system_id", authCtx.system.id)
+      .preload("parent");
 
     if (data.description) {
-      qb.where('description', 'like', `%${data.description}%`);
+      qb.where("description", "like", `%${data.description}%`);
     }
 
     return qb;
@@ -29,41 +27,27 @@ export default class SubgroupService {
 
   public async show(authCtx: AuthContext, id: string): Promise<Subgroup> {
     const subgroup = await Subgroup.query()
-      .where('id', id)
-      .where('system_id', authCtx.system.id)
-      .preload('variationGroup')
-      .preload('parent')
+      .where("id", id)
+      .where("system_id", authCtx.system.id)
+      .preload("variationGroup")
+      .preload("parent")
       .first();
 
     if (!subgroup) {
-      throw new ResourceNotFoundException(
-        'Recurso não encontrado',
-        404,
-        'E_NOT_FOUND',
-      );
+      throw new ResourceNotFoundException("Recurso não encontrado", 404, "E_NOT_FOUND");
     }
 
-    if (
-      subgroup.economic_group_id &&
-      subgroup.economic_group_id !== authCtx.group.id
-    ) {
-      throw new ResourceNotFoundException(
-        'Recurso não encontrado',
-        404,
-        'E_NOT_FOUND',
-      );
+    if (subgroup.economic_group_id && subgroup.economic_group_id !== authCtx.group.id) {
+      throw new ResourceNotFoundException("Recurso não encontrado", 404, "E_NOT_FOUND");
     }
 
     return subgroup;
   }
 
-  public async store(
-    authCtx: AuthContext,
-    data: Omit<ISubgroupData, 'active'>,
-  ) {
+  public async store(authCtx: AuthContext, data: Omit<ISubgroupData, "active">) {
     const tree = await this.getTree(authCtx.system.id, data.parent);
 
-    return authCtx.group.related('subgroups').create({
+    return authCtx.group.related("subgroups").create({
       system_id: authCtx.system.id,
       parent_id: data.parent,
       tree,
@@ -111,10 +95,7 @@ export default class SubgroupService {
       return tree;
     }
 
-    const parentModel = await Subgroup.query()
-      .where('id', parent)
-      .where('system_id', sID)
-      .first();
+    const parentModel = await Subgroup.query().where("id", parent).where("system_id", sID).first();
     if (!parentModel) {
       return this.getTree(sID, undefined, tree);
     }

@@ -1,9 +1,9 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import RaceService from 'App/Services/RaceService';
-import SharedService from 'App/Services/SharedService';
-import CreateRaceValidator from 'App/Validators/Race/CreateRaceValidator';
-import UpdateRaceValidator from 'App/Validators/Race/UpdateRaceValidator';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import RaceService from "App/Services/RaceService";
+import SharedService from "App/Services/SharedService";
+import CreateRaceValidator from "App/Validators/Race/CreateRaceValidator";
+import UpdateRaceValidator from "App/Validators/Race/UpdateRaceValidator";
 
 @inject()
 export default class RacesController {
@@ -14,14 +14,11 @@ export default class RacesController {
 
   public async index({ auth, request, response }: HttpContextContract) {
     const qs = request.qs();
-    const result = await this.service.index(
-      await this.sharedService.getAuthContext(auth),
-      {
-        description: qs.description,
-        specie: qs.specie,
-        fur: qs.fur,
-      },
-    );
+    const result = await this.service.index(await this.sharedService.getAuthContext(auth), {
+      description: qs.description,
+      specie: qs.specie,
+      fur: qs.fur,
+    });
 
     return response.ok(result);
   }
@@ -38,20 +35,12 @@ export default class RacesController {
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateRaceValidator);
 
-    const result = await this.service.store(
-      await this.sharedService.getAuthContext(auth),
-      payload,
-    );
+    const result = await this.service.store(await this.sharedService.getAuthContext(auth), payload);
 
     return response.created(result);
   }
 
-  public async update({
-    auth,
-    params,
-    request,
-    response,
-  }: HttpContextContract) {
+  public async update({ auth, params, request, response }: HttpContextContract) {
     const payload = await request.validate(UpdateRaceValidator);
 
     const result = await this.service.update(
@@ -64,10 +53,7 @@ export default class RacesController {
   }
 
   public async destroy({ auth, params, response }: HttpContextContract) {
-    await this.service.destroy(
-      await this.sharedService.getAuthContext(auth),
-      params.id,
-    );
+    await this.service.destroy(await this.sharedService.getAuthContext(auth), params.id);
 
     return response.noContent();
   }

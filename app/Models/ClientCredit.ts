@@ -1,10 +1,5 @@
 import { DateTime } from "luxon";
-import {
-  BaseModel,
-  beforeFetch,
-  beforeFind,
-  column,
-} from "@ioc:Adonis/Lucid/Orm";
+import { BaseModel, beforeFetch, beforeFind, column } from "@ioc:Adonis/Lucid/Orm";
 import { softDeleteQuery } from "App/Services/SoftDelete";
 import Decimal from "decimal.js";
 
@@ -13,8 +8,8 @@ export default class ClientCredit extends BaseModel {
   public id: number;
 
   @column({
-    serializeAs: 'originalValue',
-    columnName: 'original_value',
+    serializeAs: "originalValue",
+    columnName: "original_value",
     consume: (value) => (value ? new Decimal(value) : null),
     prepare: (value) => value.toString(),
     serialize: (value: Decimal) => (value ? value.toNumber() : 0),
@@ -22,8 +17,8 @@ export default class ClientCredit extends BaseModel {
   public originalValue: Decimal;
 
   @column({
-    serializeAs: 'usedValue',
-    columnName: 'used_value',
+    serializeAs: "usedValue",
+    columnName: "used_value",
     consume: (value) => (value ? new Decimal(value) : null),
     prepare: (value) => value.toString(),
     serialize: (value: Decimal) => (value ? value.toNumber() : 0),

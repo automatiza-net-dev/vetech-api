@@ -5,13 +5,13 @@ import {
   BelongsTo,
   belongsTo,
   column,
-} from '@ioc:Adonis/Lucid/Orm';
-import Reason from 'App/Models/Reason';
-import Schedule from 'App/Models/Schedule';
-import User from 'App/Models/User';
-import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
-import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
+} from "@ioc:Adonis/Lucid/Orm";
+import Reason from "App/Models/Reason";
+import Schedule from "App/Models/Schedule";
+import User from "App/Models/User";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import { DateTime } from "luxon";
+import { v4 } from "uuid";
 
 export default class Rescheduling extends BaseModel {
   @column({ isPrimary: true })
@@ -21,7 +21,7 @@ export default class Rescheduling extends BaseModel {
   public observation: string;
 
   @column({
-    columnName: 'original_date',
+    columnName: "original_date",
     serializeAs: null,
   })
   public originalDate: DateTime;
@@ -56,7 +56,7 @@ export default class Rescheduling extends BaseModel {
   public schedule_id: string;
 
   @belongsTo(() => Schedule, {
-    foreignKey: 'schedule_id',
+    foreignKey: "schedule_id",
   })
   public schedule: BelongsTo<typeof Schedule>;
 
@@ -66,7 +66,7 @@ export default class Rescheduling extends BaseModel {
   public user_id: string;
 
   @belongsTo(() => User, {
-    foreignKey: 'user_id',
+    foreignKey: "user_id",
   })
   public user: BelongsTo<typeof User>;
 
@@ -76,7 +76,7 @@ export default class Rescheduling extends BaseModel {
   public reason_id: string;
 
   @belongsTo(() => Reason, {
-    foreignKey: 'reason_id',
+    foreignKey: "reason_id",
   })
   public reason: BelongsTo<typeof Reason>;
 }

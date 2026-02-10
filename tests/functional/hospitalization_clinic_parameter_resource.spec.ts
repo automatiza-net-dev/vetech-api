@@ -1,12 +1,12 @@
-import Database from '@ioc:Adonis/Lucid/Database';
-import { test } from '@japa/runner';
-import ClinicParameter from 'App/Models/ClinicParameter';
-import Hospitalization from 'App/Models/Hospitalization';
-import PatientFactory from 'Database/factories/PatientFactory';
+import Database from "@ioc:Adonis/Lucid/Database";
+import { test } from "@japa/runner";
+import ClinicParameter from "App/Models/ClinicParameter";
+import Hospitalization from "App/Models/Hospitalization";
+import PatientFactory from "Database/factories/PatientFactory";
 
-import { generateJwtToken, userBootstrap } from '../utils';
+import { generateJwtToken, userBootstrap } from "../utils";
 
-test.group('Hospitalization clinic parameter resource', group => {
+test.group("Hospitalization clinic parameter resource", (group) => {
   group.each.setup(async () => {
     await Database.beginGlobalTransaction();
     return () => Database.rollbackGlobalTransaction();
@@ -25,39 +25,34 @@ test.group('Hospitalization clinic parameter resource', group => {
     });
 
     const parameter = await ClinicParameter.create({
-      name: 'some name',
-      tag: 'some tag',
+      name: "some name",
+      tag: "some tag",
       economic_group_id: group.id,
     });
 
-    const hospClinicParameter = await hospitalization
-      .related('parameters')
-      .create({
-        clinic_parameter_id: parameter.id,
-        value: 'some value',
-      });
+    const hospClinicParameter = await hospitalization.related("parameters").create({
+      clinic_parameter_id: parameter.id,
+      value: "some value",
+    });
 
     return { user, hospitalization, parameter, hospClinicParameter };
   };
 
-  test('should create new hospitalization clinic parameter', async ({
-    assert,
-    client,
-  }) => {
+  test("should create new hospitalization clinic parameter", async ({ assert, client }) => {
     const { user, hospitalization, parameter } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
-      .post('/hospitalization-parameters')
+      .post("/hospitalization-parameters")
       .json({
         executedAt: new Date(),
         releasedAt: new Date(),
-        value: 'some value',
-        resume: 'some resume',
-        status: 'some status',
+        value: "some value",
+        resume: "some resume",
+        status: "some status",
         userId: user.id,
         hospitalizationId: hospitalization.id,
         clinicParameterId: parameter.id,
@@ -67,15 +62,11 @@ test.group('Hospitalization clinic parameter resource', group => {
     assert.equal(201, response.status());
   });
 
-  test('should update hospitalization clinic parameter', async ({
-    assert,
-    client,
-  }) => {
-    const { user, hospitalization, parameter, hospClinicParameter } =
-      await createData();
+  test("should update hospitalization clinic parameter", async ({ assert, client }) => {
+    const { user, hospitalization, parameter, hospClinicParameter } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
@@ -83,9 +74,9 @@ test.group('Hospitalization clinic parameter resource', group => {
       .json({
         executedAt: new Date(),
         releasedAt: new Date(),
-        value: 'some new value',
-        resume: 'some resume',
-        status: 'some status',
+        value: "some new value",
+        resume: "some resume",
+        status: "some status",
         userId: user.id,
         hospitalizationId: hospitalization.id,
         clinicParameterId: parameter.id,
@@ -97,14 +88,11 @@ test.group('Hospitalization clinic parameter resource', group => {
     assert.notEqual(hospClinicParameter.value, response.body().value);
   });
 
-  test('should soft delete hospitalization clinic parameter', async ({
-    assert,
-    client,
-  }) => {
+  test("should soft delete hospitalization clinic parameter", async ({ assert, client }) => {
     const { user, hospClinicParameter } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client

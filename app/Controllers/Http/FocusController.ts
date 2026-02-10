@@ -5,52 +5,41 @@ import BusinessUnitFiscalDocumentService from "App/Services/BusinessUnitFiscalDo
 
 @inject()
 export default class FocusController {
-	constructor(
-		private sharedService: SharedService,
-		private service: BusinessUnitFiscalDocumentService,
-	) {}
+  constructor(
+    private sharedService: SharedService,
+    private service: BusinessUnitFiscalDocumentService,
+  ) {}
 
-	public async search({ request, response, auth }: HttpContextContract) {
-		const authCtx = await this.sharedService.getAuthContext(auth);
+  public async search({ request, response, auth }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
 
-		return response.ok({
-			url: await this.service.getPeriodXmls(authCtx, {
-				periodo: request.qs().periodo,
-				businessUnitId: request.qs().businessUnitId,
-			}),
-		});
-	}
+    return response.ok({
+      url: await this.service.getPeriodXmls(authCtx, {
+        periodo: request.qs().periodo,
+        businessUnitId: request.qs().businessUnitId,
+      }),
+    });
+  }
 
-	public async listReceived({ response, auth }: HttpContextContract) {
-		const authCtx = await this.sharedService.getAuthContext(auth);
+  public async listReceived({ response, auth }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
 
-		return response.ok(await this.service.listReceived(authCtx));
-	}
+    return response.ok(await this.service.listReceived(authCtx));
+  }
 
-	public async searchReceived({
-		request,
-		response,
-		auth,
-	}: HttpContextContract) {
-		const authCtx = await this.sharedService.getAuthContext(auth);
+  public async searchReceived({ request, response, auth }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
 
-		const result = await this.service.searchReceived(
-			authCtx,
-			request.param("ref"),
-		);
+    const result = await this.service.searchReceived(authCtx, request.param("ref"));
 
-		return response.ok(Buffer.from(result));
-	}
+    return response.ok(Buffer.from(result));
+  }
 
-	public async importReceived({
-		request,
-		response,
-		auth,
-	}: HttpContextContract) {
-		const authCtx = await this.sharedService.getAuthContext(auth);
+  public async importReceived({ request, response, auth }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
 
-		await this.service.importReceived(authCtx, request.param("ref"));
+    await this.service.importReceived(authCtx, request.param("ref"));
 
-		return response.ok(null);
-	}
+    return response.ok(null);
+  }
 }

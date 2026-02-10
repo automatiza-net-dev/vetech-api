@@ -7,15 +7,15 @@ import Env from "@ioc:Adonis/Core/Env";
 
 @inject()
 export default class AssetsController {
-	public async download({ request, response }: HttpContextContract) {
-		const data = await request.validate(CreateLinkValidator);
+  public async download({ request, response }: HttpContextContract) {
+    const data = await request.validate(CreateLinkValidator);
 
-		const localFilePath = await Drive.use("local").getUrl(data.key);
-		const fullPath = `${Env.get(
-			"LOCAL_DISK_ROOT",
-			Application.tmpPath(),
-		)}${localFilePath}`.replace("/uploads", "");
+    const localFilePath = await Drive.use("local").getUrl(data.key);
+    const fullPath = `${Env.get("LOCAL_DISK_ROOT", Application.tmpPath())}${localFilePath}`.replace(
+      "/uploads",
+      "",
+    );
 
-		return response.download(fullPath);
-	}
+    return response.download(fullPath);
+  }
 }

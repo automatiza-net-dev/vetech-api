@@ -1,22 +1,16 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
-import {
-  FinanceAccept,
-  FinanceOriginFlag,
-  FinanceType,
-} from 'App/Models/Finance';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
+import { FinanceAccept, FinanceOriginFlag, FinanceType } from "App/Models/Finance";
 
 export default class UpsertFinanceValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   public schema = schema.create({
     type: schema.enum(Object.values(FinanceType)),
-    accountPlanId: schema.string([
-      rules.exists({ table: 'account_plans', column: 'id' }),
-    ]),
+    accountPlanId: schema.string([rules.exists({ table: "account_plans", column: "id" })]),
     paymentMethodId: schema.string([
       rules.uuid(),
-      rules.exists({ table: 'payment_methods', column: 'id' }),
+      rules.exists({ table: "payment_methods", column: "id" }),
     ]),
     document: schema.string(),
     historic: schema.string.optional(),
@@ -30,13 +24,13 @@ export default class UpsertFinanceValidator {
 
     clientId: schema.string.optional([
       rules.uuid(),
-      rules.exists({ table: 'patients', column: 'id' }),
+      rules.exists({ table: "patients", column: "id" }),
     ]),
     checkingAccountId: schema.string.optional([
       rules.uuid({
-        version: '4',
+        version: "4",
       }),
-      rules.exists({ table: 'checking_accounts', column: 'id' }),
+      rules.exists({ table: "checking_accounts", column: "id" }),
     ]),
     paymentDate: schema.date.optional(),
     downDate: schema.date.optional(),
@@ -60,11 +54,11 @@ export default class UpsertFinanceValidator {
     account: schema.string.optional({ trim: true }),
     tefAcquirerId: schema.string.optional({ trim: true }, [
       rules.uuid(),
-      rules.exists({ table: 'tef_acquirers', column: 'id' }),
+      rules.exists({ table: "tef_acquirers", column: "id" }),
     ]),
     tefFlagId: schema.string.optional({ trim: true }, [
       rules.uuid(),
-      rules.exists({ table: 'tef_flags', column: 'id' }),
+      rules.exists({ table: "tef_flags", column: "id" }),
     ]),
   });
 

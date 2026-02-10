@@ -1,18 +1,18 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import KitService from 'App/Services/KitService';
-import SharedService from 'App/Services/SharedService';
-import CreateKitItemValidator from 'App/Validators/Kit/CreateKitItemValidator';
-import CreateKitValidator from 'App/Validators/Kit/CreateKitValidator';
-import UpdateKitItemValidator from 'App/Validators/Kit/UpdateKitItemValidator';
-import UpdateKitValidator from 'App/Validators/Kit/UpdateKitValidator';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import KitService from "App/Services/KitService";
+import SharedService from "App/Services/SharedService";
+import CreateKitItemValidator from "App/Validators/Kit/CreateKitItemValidator";
+import CreateKitValidator from "App/Validators/Kit/CreateKitValidator";
+import UpdateKitItemValidator from "App/Validators/Kit/UpdateKitItemValidator";
+import UpdateKitValidator from "App/Validators/Kit/UpdateKitValidator";
 
 @inject()
 export default class KitsController {
   constructor(
     private sharedService: SharedService,
     private service: KitService,
-  ) { }
+  ) {}
 
   public async index({ auth, request, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
@@ -39,12 +39,7 @@ export default class KitsController {
     return response.json(model);
   }
 
-  public async update({
-    auth,
-    params,
-    request,
-    response,
-  }: HttpContextContract) {
+  public async update({ auth, params, request, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
     const payload = await request.validate(UpdateKitValidator);
 
@@ -70,12 +65,7 @@ export default class KitsController {
     return response.noContent();
   }
 
-  public async updateKitItem({
-    auth,
-    params,
-    request,
-    response,
-  }: HttpContextContract) {
+  public async updateKitItem({ auth, params, request, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
     const payload = await request.validate(UpdateKitItemValidator);
 
@@ -85,10 +75,7 @@ export default class KitsController {
   }
 
   public async deleteKitItem({ auth, params, response }: HttpContextContract) {
-    await this.service.deleteItemToKit(
-      await this.sharedService.getAuthContext(auth),
-      params.id,
-    );
+    await this.service.deleteItemToKit(await this.sharedService.getAuthContext(auth), params.id);
     return response.noContent();
   }
 }

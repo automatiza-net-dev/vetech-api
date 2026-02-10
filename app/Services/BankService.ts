@@ -1,5 +1,5 @@
-import { inject } from '@adonisjs/fold';
-import Bank from 'App/Models/Bank';
+import { inject } from "@adonisjs/fold";
+import Bank from "App/Models/Bank";
 
 interface ISearch {
   name?: string;
@@ -13,15 +13,15 @@ export default class BankService {
     const qb = Bank.query();
 
     if (data.name) {
-      qb.where('name', 'ilike', `%${data.name}%`);
+      qb.where("name", "ilike", `%${data.name}%`);
     }
 
     if (data.code) {
-      qb.where('code', 'ilike', `%${data.code}%`);
+      qb.where("code", "ilike", `%${data.code}%`);
     }
 
     if (data.active) {
-      qb.where('active', data.active === 'true');
+      qb.where("active", data.active === "true");
     }
 
     return qb;

@@ -5,12 +5,12 @@ import {
   BelongsTo,
   belongsTo,
   column,
-} from '@ioc:Adonis/Lucid/Orm';
-import EconomicGroup from 'App/Models/EconomicGroup';
-import TimelineType from 'App/Models/TimelineType';
-import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
-import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
+} from "@ioc:Adonis/Lucid/Orm";
+import EconomicGroup from "App/Models/EconomicGroup";
+import TimelineType from "App/Models/TimelineType";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import { DateTime } from "luxon";
+import { v4 } from "uuid";
 
 export default class Pathology extends BaseModel {
   @column({ isPrimary: true })
@@ -56,8 +56,8 @@ export default class Pathology extends BaseModel {
   public timeline_type_id: string;
 
   @belongsTo(() => TimelineType, {
-    foreignKey: 'timeline_type_id',
-    localKey: 'id',
+    foreignKey: "timeline_type_id",
+    localKey: "id",
   })
   public timelineType: BelongsTo<typeof TimelineType>;
 
@@ -65,8 +65,8 @@ export default class Pathology extends BaseModel {
   public economic_group_id: string;
 
   @belongsTo(() => EconomicGroup, {
-    foreignKey: 'economic_group_id',
-    localKey: 'id',
+    foreignKey: "economic_group_id",
+    localKey: "id",
   })
   public group: BelongsTo<typeof EconomicGroup>;
 }

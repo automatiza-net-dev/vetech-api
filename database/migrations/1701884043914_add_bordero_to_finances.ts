@@ -1,21 +1,17 @@
 import BaseSchema from "@ioc:Adonis/Lucid/Schema";
 
 export default class extends BaseSchema {
-	protected tableName = "finances";
+  protected tableName = "finances";
 
-	public async up() {
-		this.schema.table(this.tableName, (table) => {
-			table
-				.uuid("bordero_id")
-				.references("id")
-				.inTable("borderos")
-				.onDelete("SET NULL");
-		});
-	}
+  public async up() {
+    this.schema.table(this.tableName, (table) => {
+      table.uuid("bordero_id").references("id").inTable("borderos").onDelete("SET NULL");
+    });
+  }
 
-	public async down() {
-		this.schema.table(this.tableName, (table) => {
-			table.dropColumn("bordero_id");
-		});
-	}
+  public async down() {
+    this.schema.table(this.tableName, (table) => {
+      table.dropColumn("bordero_id");
+    });
+  }
 }

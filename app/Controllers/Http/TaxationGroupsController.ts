@@ -1,9 +1,9 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import SharedService from 'App/Services/SharedService';
-import TaxationGroupService from 'App/Services/TaxationGroupService';
-import CreateTaxationGroupValidator from 'App/Validators/TaxationGroup/CreateTaxationGroupValidator';
-import UpdateTaxationGroupValidator from 'App/Validators/TaxationGroup/UpdateTaxationGroupValidator';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import SharedService from "App/Services/SharedService";
+import TaxationGroupService from "App/Services/TaxationGroupService";
+import CreateTaxationGroupValidator from "App/Validators/TaxationGroup/CreateTaxationGroupValidator";
+import UpdateTaxationGroupValidator from "App/Validators/TaxationGroup/UpdateTaxationGroupValidator";
 
 @inject()
 export default class TaxationGroupsController {
@@ -15,7 +15,7 @@ export default class TaxationGroupsController {
   public async index({ request, response, auth }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
 
-    const data = request.only(['name', 'active']);
+    const data = request.only(["name", "active"]);
 
     const result = await this.taxationGroupService.index(unit_id, data);
 

@@ -20,22 +20,22 @@ import { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import Env from "@ioc:Adonis/Core/Env";
 
 export default class ExceptionHandler extends HttpExceptionHandler {
-	constructor() {
-		super(Logger);
-	}
+  constructor() {
+    super(Logger);
+  }
 
-	public async handle(error: Error, ctx: HttpContextContract) {
-		axiom.ingest(Env.get("AXIOM_DATASET"), [
-			{
-				_type: "$error",
-				name: error.name ?? "-",
-				message: error.message,
-				stack: error.stack,
-				url: ctx.request.url,
-			},
-		]);
-		await axiom.flush();
+  public async handle(error: Error, ctx: HttpContextContract) {
+    axiom.ingest(Env.get("AXIOM_DATASET"), [
+      {
+        _type: "$error",
+        name: error.name ?? "-",
+        message: error.message,
+        stack: error.stack,
+        url: ctx.request.url,
+      },
+    ]);
+    await axiom.flush();
 
-		return super.handle(error, ctx);
-	}
+    return super.handle(error, ctx);
+  }
 }

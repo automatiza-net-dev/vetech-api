@@ -1,6 +1,6 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, schema } from '@ioc:Adonis/Core/Validator';
-import WeekDay from 'App/Models/shared/WeekDay';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, schema } from "@ioc:Adonis/Core/Validator";
+import WeekDay from "App/Models/shared/WeekDay";
 
 export default class UpdateWorkingDayValidator {
   constructor(protected ctx: HttpContextContract) {}

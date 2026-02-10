@@ -7,23 +7,23 @@ import {
   column,
   HasMany,
   hasMany,
-} from '@ioc:Adonis/Lucid/Orm';
-import PaymentMethod from 'App/Models/PaymentMethod';
-import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
-import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
-import BusinessUnit from './BusinessUnit';
+} from "@ioc:Adonis/Lucid/Orm";
+import PaymentMethod from "App/Models/PaymentMethod";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import { DateTime } from "luxon";
+import { v4 } from "uuid";
+import BusinessUnit from "./BusinessUnit";
 
 export enum CheckingAccountOperation {
-  C = 'CREDITO',
-  D = 'DEBITO',
+  C = "CREDITO",
+  D = "DEBITO",
 }
 
 export enum CheckingAccountType {
-  CC = 'CONTA_CORRENTE',
-  CP = 'CONTA_POUPANCA',
-  CI = 'CONTA_INVESTIMENTO',
-  CX = 'CONTA_CAIXA_UNIDADE_NEGOCIO',
+  CC = "CONTA_CORRENTE",
+  CP = "CONTA_POUPANCA",
+  CI = "CONTA_INVESTIMENTO",
+  CX = "CONTA_CAIXA_UNIDADE_NEGOCIO",
 }
 
 export default class CheckingAccount extends BaseModel {
@@ -34,17 +34,17 @@ export default class CheckingAccount extends BaseModel {
   public description: string;
 
   @column({
-    columnName: 'account_number',
+    columnName: "account_number",
   })
   public accountNumber: string;
 
   @column({
-    columnName: 'bank_code',
+    columnName: "bank_code",
   })
   public bankCode: string;
 
   @column({
-    columnName: 'bank_name',
+    columnName: "bank_name",
   })
   public bankName: string;
 
@@ -52,22 +52,22 @@ export default class CheckingAccount extends BaseModel {
   public agency: string;
 
   @column({
-    columnName: 'agency_phone',
+    columnName: "agency_phone",
   })
   public agencyPhone: string;
 
   @column({
-    columnName: 'manager_name',
+    columnName: "manager_name",
   })
   public managerName: string;
 
   @column({
-    columnName: 'manager_phone',
+    columnName: "manager_phone",
   })
   public managerPhone: string;
 
   @column({
-    columnName: 'manager_email',
+    columnName: "manager_email",
   })
   public managerEmail: string;
 
@@ -119,12 +119,12 @@ export default class CheckingAccount extends BaseModel {
   public business_unit_id: string | null;
 
   @belongsTo(() => BusinessUnit, {
-    foreignKey: 'business_unit_id',
+    foreignKey: "business_unit_id",
   })
   public unit: BelongsTo<typeof BusinessUnit>;
 
   @hasMany(() => PaymentMethod, {
-    foreignKey: 'checking_account_id',
+    foreignKey: "checking_account_id",
   })
   public paymentMethods: HasMany<typeof PaymentMethod>;
 }

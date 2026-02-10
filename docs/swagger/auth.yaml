@@ -12,7 +12,7 @@
           properties:
             phone:
               type: string
-              example: '1234567890'
+              example: "1234567890"
               required: true
     produces:
       - application/json

@@ -1,13 +1,13 @@
-import { BaseModel, belongsTo, BelongsTo, column } from '@ioc:Adonis/Lucid/Orm';
-import BusinessUnit from 'App/Models/BusinessUnit';
-import PlanPrice from 'App/Models/PlanPrice';
-import { DateTime } from 'luxon';
+import { BaseModel, belongsTo, BelongsTo, column } from "@ioc:Adonis/Lucid/Orm";
+import BusinessUnit from "App/Models/BusinessUnit";
+import PlanPrice from "App/Models/PlanPrice";
+import { DateTime } from "luxon";
 
 export enum LicenceType {
-  TRIAL = 'trial',
-  ADDITIONAL_TRIAL = 'additional_trial',
-  PAY = 'pay',
-  MANUAL = 'manual',
+  TRIAL = "trial",
+  ADDITIONAL_TRIAL = "additional_trial",
+  PAY = "pay",
+  MANUAL = "manual",
 }
 
 export default class Licence extends BaseModel {
@@ -18,7 +18,7 @@ export default class Licence extends BaseModel {
   public businessUnit: BelongsTo<typeof BusinessUnit>;
 
   @column({
-    columnName: 'expiration_date',
+    columnName: "expiration_date",
   })
   public expirationDate: Date;
 
@@ -32,7 +32,7 @@ export default class Licence extends BaseModel {
   public planPrice: BelongsTo<typeof PlanPrice>;
 
   @column({
-    columnName: 'licence_value',
+    columnName: "licence_value",
     serialize: (data: string) => parseFloat(data),
   })
   public licenceValue?: number;

@@ -3,18 +3,14 @@ import { MultipartFileContract } from "@ioc:Adonis/Core/BodyParser";
 import Drive from "@ioc:Adonis/Core/Drive";
 import Hash from "@ioc:Adonis/Core/Hash";
 import Logger from "@ioc:Adonis/Core/Logger";
-import Database, {
-  TransactionClientContract,
-} from "@ioc:Adonis/Lucid/Database";
+import Database, { TransactionClientContract } from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import Bill from "App/Models/Bill";
 import BusinessUnit from "App/Models/BusinessUnit";
 import BusinessUnitCheckingAccountPaymentMethod from "App/Models/BusinessUnitCheckingAccountPaymentMethod";
 import { BusinessUnitFiscalDocumentMovementType } from "App/Models/BusinessUnitFiscalDocument";
-import BusinessUnitProduct, {
-  BusinessUnitProductMetaType,
-} from "App/Models/BusinessUnitProduct";
+import BusinessUnitProduct, { BusinessUnitProductMetaType } from "App/Models/BusinessUnitProduct";
 import DailyMovement, { DailyMovementStatus } from "App/Models/DailyMovement";
 import Finance, {
   FinanceAccept,
@@ -27,24 +23,12 @@ import IssuedFiscalDocument, {
 } from "App/Models/IssuedFiscalDocument";
 import Patient, { PatientType } from "App/Models/Patient";
 import PatientTutor from "App/Models/PatientTutor";
-import PaymentMethod, {
-  PaymentMethodTef,
-  PaymentMethodUsage,
-} from "App/Models/PaymentMethod";
-import Product, {
-  ProductIcmsOrigin,
-  ProductPurpose,
-  ProductType,
-} from "App/Models/Product";
+import PaymentMethod, { PaymentMethodTef, PaymentMethodUsage } from "App/Models/PaymentMethod";
+import Product, { ProductIcmsOrigin, ProductPurpose, ProductType } from "App/Models/Product";
 import ProductVariation from "App/Models/ProductVariation";
 import Receipt, { TReceiptStatus } from "App/Models/Receipt";
-import ReceiptItem, {
-  ReceiptItemStatus,
-  TReceiptItemStatus,
-} from "App/Models/ReceiptItem";
-import ReceiptPayment, {
-  TReceiptPaymentStatus,
-} from "App/Models/ReceiptPayment";
+import ReceiptItem, { ReceiptItemStatus, TReceiptItemStatus } from "App/Models/ReceiptItem";
+import ReceiptPayment, { TReceiptPaymentStatus } from "App/Models/ReceiptPayment";
 import ReceiptXml from "App/Models/ReceiptXml";
 import SupplierProduct from "App/Models/SupplierProduct";
 import TaxationGroup from "App/Models/TaxationGroup";
@@ -276,15 +260,9 @@ const detSchema = z.object({
           PISNT: z.optional(
             z.object({
               CST: z.string(),
-              vBC: z.optional(
-                z.string().refine((val) => Number.parseFloat(val)),
-              ),
-              pPIS: z.optional(
-                z.string().refine((val) => Number.parseFloat(val)),
-              ),
-              vPIS: z.optional(
-                z.string().refine((val) => Number.parseFloat(val)),
-              ),
+              vBC: z.optional(z.string().refine((val) => Number.parseFloat(val))),
+              pPIS: z.optional(z.string().refine((val) => Number.parseFloat(val))),
+              vPIS: z.optional(z.string().refine((val) => Number.parseFloat(val))),
             }),
           ),
           PISOutr: z.optional(
@@ -318,15 +296,9 @@ const detSchema = z.object({
           COFINSNT: z.optional(
             z.object({
               CST: z.string(),
-              vBC: z.optional(
-                z.string().refine((val) => Number.parseFloat(val)),
-              ),
-              pCOFINS: z.optional(
-                z.string().refine((val) => Number.parseFloat(val)),
-              ),
-              vCOFINS: z.optional(
-                z.string().refine((val) => Number.parseFloat(val)),
-              ),
+              vBC: z.optional(z.string().refine((val) => Number.parseFloat(val))),
+              pCOFINS: z.optional(z.string().refine((val) => Number.parseFloat(val))),
+              vCOFINS: z.optional(z.string().refine((val) => Number.parseFloat(val))),
             }),
           ),
           COFINSOutr: z.optional(
@@ -492,9 +464,7 @@ const schema = z.object({
             SignatureMethod: z.object({ _Algorithm: z.optional(z.string()) }),
             Reference: z.object({
               Transforms: z.object({
-                Transform: z.array(
-                  z.object({ _Algorithm: z.optional(z.string()) }),
-                ),
+                Transform: z.array(z.object({ _Algorithm: z.optional(z.string()) })),
               }),
               DigestMethod: z.object({ _Algorithm: z.optional(z.string()) }),
               DigestValue: z.optional(z.string()),
@@ -530,7 +500,7 @@ const schema = z.object({
 
 @inject()
 export default class ReceiptService {
-  constructor(private sharedService: SharedService) { }
+  constructor(private sharedService: SharedService) {}
 
   async index(
     authCtx: AuthContext,
@@ -586,9 +556,7 @@ export default class ReceiptService {
       .joinRaw(
         "left join business_units originUnit on receipts.origin_business_unit_id = originUnit.id",
       )
-      .joinRaw(
-        "left join bills relatedBill on receipts.related_bill_id = relatedBill.id",
-      )
+      .joinRaw("left join bills relatedBill on receipts.related_bill_id = relatedBill.id")
       .joinRaw(`left join issued_fiscal_documents issuedDocuments
                    on issuedDocuments.bill_id = receipts.id and issuedDocuments.movement_type = 'ENTRADA'`)
       .whereRaw("receipts.economic_group_id = ?", [authCtx.group.id])
@@ -600,9 +568,7 @@ export default class ReceiptService {
     }
 
     if (data.fiscalDocumentSequence) {
-      qb.whereRaw("issuedDocuments.sequence ilike ?", [
-        `%${data.fiscalDocumentSequence}%`,
-      ]);
+      qb.whereRaw("issuedDocuments.sequence ilike ?", [`%${data.fiscalDocumentSequence}%`]);
     }
 
     if (!data.tag && !data.fiscalDocumentSequence) {
@@ -611,10 +577,7 @@ export default class ReceiptService {
       }
 
       if (data.from && data.to) {
-        qb.whereRaw("receipts.receipt_date::date between ? and ?", [
-          data.from,
-          data.to,
-        ]);
+        qb.whereRaw("receipts.receipt_date::date between ? and ?", [data.from, data.to]);
       }
 
       if (data.supplier) {
@@ -622,19 +585,16 @@ export default class ReceiptService {
       }
 
       if (data.supplierName) {
-        qb.whereRaw(
-          "(supplier.name ilike ? or patient_tutors.corporate_name ilike ?)",
-          [
-            `%${data.supplierName
-              .split(" ")
-              .map((s) => s.trim())
-              .join("%")}%`,
-            `%${data.supplierName
-              .split(" ")
-              .map((s) => s.trim())
-              .join("%")}%`,
-          ],
-        );
+        qb.whereRaw("(supplier.name ilike ? or patient_tutors.corporate_name ilike ?)", [
+          `%${data.supplierName
+            .split(" ")
+            .map((s) => s.trim())
+            .join("%")}%`,
+          `%${data.supplierName
+            .split(" ")
+            .map((s) => s.trim())
+            .join("%")}%`,
+        ]);
       }
 
       if (data.seller) {
@@ -664,9 +624,7 @@ export default class ReceiptService {
       origin_unit: { id: string; identification: string };
       related_bill: { id: string; tag: string };
       raw_fiscal_document_sequence: string | null;
-    }[] = await qb.orderByRaw(
-      "receipt_date::date desc, receipts.created_at desc",
-    );
+    }[] = await qb.orderByRaw("receipt_date::date desc, receipts.created_at desc");
 
     return result.map((r) => ({
       id: r.id,
@@ -702,12 +660,7 @@ export default class ReceiptService {
           });
         });
 
-        query.select(
-          "id",
-          "quantity",
-          "fraction_value",
-          "product_variation_id",
-        );
+        query.select("id", "quantity", "fraction_value", "product_variation_id");
 
         query.preload("productVariation", (query) => {
           query.preload("product", (query) => {
@@ -770,10 +723,7 @@ export default class ReceiptService {
       throw new BadRequestException("Nenhum ID informado", 400, "E_NO_IDS");
     }
 
-    if (
-      data.status &&
-      !ReceiptItemStatus.includes(data.status as TReceiptItemStatus)
-    ) {
+    if (data.status && !ReceiptItemStatus.includes(data.status as TReceiptItemStatus)) {
       throw new BadRequestException(
         `Status inválido. Valores possíveis: ${ReceiptItemStatus.join(", ")}`,
         400,
@@ -836,8 +786,8 @@ export default class ReceiptService {
         });
 
         query.whereHas("productVariation", (query) => {
-          query.whereHas("product", q => {
-            q.whereNull('deleted_at')
+          query.whereHas("product", (q) => {
+            q.whereNull("deleted_at");
           });
         });
       });
@@ -1011,28 +961,16 @@ export default class ReceiptService {
 
     const fileContents = await Drive.get(`receipts/${key}`);
 
-    return await this.processReceipt(
-      authCtx,
-      fileContents.toString(),
-      receiptXml,
-    );
+    return await this.processReceipt(authCtx, fileContents.toString(), receiptXml);
   }
 
-  async processReceipt(
-    authCtx: AuthContext,
-    contents: string,
-    receiptXml: ReceiptXml,
-  ) {
+  async processReceipt(authCtx: AuthContext, contents: string, receiptXml: ReceiptXml) {
     let result = {};
     try {
       result = xmlParser.toJson(contents, { object: true });
     } catch (e) {
       Logger.error(e);
-      throw new BadRequestException(
-        "Não foi possível ler o arquivo",
-        400,
-        "E_INTERNAL",
-      );
+      throw new BadRequestException("Não foi possível ler o arquivo", 400, "E_INTERNAL");
     }
 
     const parsed = schema.safeParse(result);
@@ -1062,8 +1000,8 @@ export default class ReceiptService {
         .first();
       if (issuedAlready) {
         throw new BadRequestException(
-          `Esta nota já foi importada na unidade '${issuedAlready.bill?.businessUnit?.identification ??
-          "Não identificado"
+          `Esta nota já foi importada na unidade '${
+            issuedAlready.bill?.businessUnit?.identification ?? "Não identificado"
           }' no dia ${format(
             issuedAlready.authorizationDate.toJSDate(),
             "dd/MM/yyyy",
@@ -1097,16 +1035,9 @@ export default class ReceiptService {
         }
       }
 
-      const dailyMovementId = await this.getDailyMovementForImport(
-        trx,
-        authCtx,
-      );
+      const dailyMovementId = await this.getDailyMovementForImport(trx, authCtx);
 
-      const supplierId = await this.getSupplierForImport(
-        trx,
-        parsed.data,
-        authCtx,
-      );
+      const supplierId = await this.getSupplierForImport(trx, parsed.data, authCtx);
 
       // const products = await Product.query()
       // 	.useTransaction(trx)
@@ -1163,8 +1094,7 @@ export default class ReceiptService {
           ipiBase: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vProd,
           ipiValue: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vIPI,
           icmsFcpValue: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vFCP,
-          icmsUfDestinationValue:
-            parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vICMSUFDest,
+          icmsUfDestinationValue: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vICMSUFDest,
           otherValue: parsed.data.nfeProc.NFe.infNFe.total.ICMSTot.vOutro,
           additionalInformation: [
             parsed.data.nfeProc.NFe.infNFe?.infAdic?.infCpl,
@@ -1177,15 +1107,9 @@ export default class ReceiptService {
         { client: trx },
       );
 
-      await receiptXml
-        .merge({ receipt_id: newReceipt.id })
-        .useTransaction(trx)
-        .save();
+      await receiptXml.merge({ receipt_id: newReceipt.id }).useTransaction(trx).save();
 
-      const items = SharedService.ArrayUnion(
-        parsed.data.nfeProc.NFe.infNFe.det,
-        (val) => val,
-      );
+      const items = SharedService.ArrayUnion(parsed.data.nfeProc.NFe.infNFe.det, (val) => val);
       const itemData: Array<Partial<ReceiptItem>> = [];
 
       // eslint-disable-next-line no-restricted-syntax
@@ -1197,10 +1121,7 @@ export default class ReceiptService {
           (sp) => sp.productVariation.barcode === barcode,
         )?.productVariation.product;
 
-        const cofins = this.getCofins(
-          parsed.data,
-          Number.parseInt(itemIdx, 10),
-        );
+        const cofins = this.getCofins(parsed.data, Number.parseInt(itemIdx, 10));
         const pis = this.getPis(parsed.data, Number.parseInt(itemIdx, 10));
         const icms = this.getIcms(parsed.data, Number.parseInt(itemIdx, 10));
 
@@ -1235,27 +1156,11 @@ export default class ReceiptService {
                 : undefined
             : undefined,
           icmsBase: icms ? ("vBC" in icms ? icms.vBC : undefined) : undefined,
-          icmsPercentage: icms
-            ? "pICMS" in icms
-              ? icms.pICMS
-              : undefined
-            : undefined,
-          icmsValue: icms
-            ? "vICMS" in icms
-              ? icms.vICMS
-              : undefined
-            : undefined,
-          icmsDeferredValue: icms
-            ? "vICMSDif" in icms
-              ? icms.vICMSDif
-              : undefined
-            : undefined,
+          icmsPercentage: icms ? ("pICMS" in icms ? icms.pICMS : undefined) : undefined,
+          icmsValue: icms ? ("vICMS" in icms ? icms.vICMS : undefined) : undefined,
+          icmsDeferredValue: icms ? ("vICMSDif" in icms ? icms.vICMSDif : undefined) : undefined,
           // icmsPercentageRedAliquot: rule?.icmsPercRedAliquota,
-          icmsPercentageRedBase: icms
-            ? "pRedBC" in icms
-              ? icms.pRedBC
-              : undefined
-            : undefined,
+          icmsPercentageRedBase: icms ? ("pRedBC" in icms ? icms.pRedBC : undefined) : undefined,
           icmsStBase: icms
             ? "vBCSTRet" in icms
               ? icms.vBCSTRet
@@ -1268,15 +1173,11 @@ export default class ReceiptService {
               ? icms.pRedBCST
               : undefined
             : undefined,
-          icmsStIva: icms
-            ? "pMVAST" in icms
-              ? icms.pMVAST
-              : undefined
-            : undefined,
+          icmsStIva: icms ? ("pMVAST" in icms ? icms.pMVAST : undefined) : undefined,
           icmsStPercentageUfDestination: icms
             ? "pICMSSTRet" in icms
               ? // @ts-ignore check if things will work
-              icms.pICMSSTRet
+                icms.pICMSSTRet
               : "pICMSST" in icms
                 ? icms.pICMSST
                 : undefined
@@ -1299,16 +1200,8 @@ export default class ReceiptService {
               ? icms.vICMSDeson
               : undefined
             : undefined,
-          icmsOperationValue: icms
-            ? "vICMSOp" in icms
-              ? icms.vICMSOp
-              : undefined
-            : undefined,
-          icmsPercentageDeferred: icms
-            ? "pDif" in icms
-              ? icms.pDif
-              : undefined
-            : undefined,
+          icmsOperationValue: icms ? ("vICMSOp" in icms ? icms.vICMSOp : undefined) : undefined,
+          icmsPercentageDeferred: icms ? ("pDif" in icms ? icms.pDif : undefined) : undefined,
           // icmsCreditValue: "vCredICMSSN" in icms ? icms.vCredICMSSN : undefined,
           // icmsCreditPercentage: "pCredSN" in icms ? icms.pCredSN : undefined,
 
@@ -1319,24 +1212,16 @@ export default class ReceiptService {
 
           pisCst: pis.CST,
           pisBase: pis.vBC ? Number.parseFloat(pis.vBC.toString()) : undefined,
-          pisPercentage: pis.pPIS
-            ? Number.parseFloat(pis.pPIS.toString())
-            : undefined,
-          pisValue: pis.vPIS
-            ? Number.parseFloat(pis.vPIS.toString())
-            : undefined,
+          pisPercentage: pis.pPIS ? Number.parseFloat(pis.pPIS.toString()) : undefined,
+          pisValue: pis.vPIS ? Number.parseFloat(pis.vPIS.toString()) : undefined,
           pisRetentionValue: 0,
 
           cofinsCst: cofins.CST,
-          cofinsBase: cofins.vBC
-            ? Number.parseFloat(cofins.vBC.toString())
-            : undefined,
+          cofinsBase: cofins.vBC ? Number.parseFloat(cofins.vBC.toString()) : undefined,
           cofinsPercentage: cofins.pCOFINS
             ? Number.parseFloat(cofins.pCOFINS.toString())
             : undefined,
-          cofinsValue: cofins.vCOFINS
-            ? Number.parseFloat(cofins.vCOFINS.toString())
-            : undefined,
+          cofinsValue: cofins.vCOFINS ? Number.parseFloat(cofins.vCOFINS.toString()) : undefined,
           cofinsRetentionValue: 0,
 
           // ipiCst: rule?.ipiCst,
@@ -1362,12 +1247,8 @@ export default class ReceiptService {
           sequence: parsed.data.nfeProc.NFe.infNFe.ide.nNF,
           purpose: "Importação XML",
           accessKey: parsed.data.nfeProc.protNFe.infProt.chNFe,
-          authorizationDate: DateTime.fromISO(
-            parsed.data.nfeProc.NFe.infNFe.ide.dhEmi,
-          ),
-          authorizationReceiptDate: DateTime.fromISO(
-            parsed.data.nfeProc.protNFe.infProt.dhRecbto,
-          ),
+          authorizationDate: DateTime.fromISO(parsed.data.nfeProc.NFe.infNFe.ide.dhEmi),
+          authorizationReceiptDate: DateTime.fromISO(parsed.data.nfeProc.protNFe.infProt.dhRecbto),
           authorizationReceipt: parsed.data.nfeProc.protNFe.infProt.nProt,
           contingency: IssuedFiscalDocumentContingency.N,
           active: true,
@@ -1501,16 +1382,16 @@ export default class ReceiptService {
   ): Promise<string> {
     const dailyMovement = authCtx.unit.unitConfig.lockedDailyMovementDate
       ? await DailyMovement.query()
-        .useTransaction(trx)
-        .where("business_unit_id", authCtx.unit.id)
-        .whereRaw("opening_date::date = ?", [new Date()])
-        .where("status", DailyMovementStatus.A)
-        .first()
+          .useTransaction(trx)
+          .where("business_unit_id", authCtx.unit.id)
+          .whereRaw("opening_date::date = ?", [new Date()])
+          .where("status", DailyMovementStatus.A)
+          .first()
       : await DailyMovement.query()
-        .useTransaction(trx)
-        .where("business_unit_id", authCtx.unit.id)
-        .where("status", DailyMovementStatus.A)
-        .first();
+          .useTransaction(trx)
+          .where("business_unit_id", authCtx.unit.id)
+          .where("status", DailyMovementStatus.A)
+          .first();
 
     if (!dailyMovement) {
       throw new BadRequestException(
@@ -1656,9 +1537,7 @@ export default class ReceiptService {
         .joinRaw(
           "left join patient_economic_groups on economic_groups.id = patient_economic_groups.economic_group_id",
         )
-        .joinRaw(
-          "left join patients on patient_economic_groups.patient_id = patients.id",
-        )
+        .joinRaw("left join patients on patient_economic_groups.patient_id = patients.id")
         .where("economic_groups.id", authCtx.group.id);
 
       const newSupplier = await Patient.create(
@@ -1702,9 +1581,7 @@ export default class ReceiptService {
 
     // se não tiver, criar relação
     if (!tmpPatient) {
-      await authCtx.group
-        .related("patients")
-        .attach([existingTutor.patient_id], trx);
+      await authCtx.group.related("patients").attach([existingTutor.patient_id], trx);
     }
 
     return existingTutor.patient_id;
@@ -1740,16 +1617,8 @@ export default class ReceiptService {
         .where("economic_group_id", authCtx.group.id)
         .where("business_unit_id", authCtx.unit.id);
 
-      const dailyCashier = await this.sharedService.getContextCashier(
-        authCtx,
-        trx,
-        true,
-      );
-      const dailyMovement = await this.sharedService.getContextMovement(
-        authCtx,
-        trx,
-        true,
-      );
+      const dailyCashier = await this.sharedService.getContextCashier(authCtx, trx, true);
+      const dailyMovement = await this.sharedService.getContextMovement(authCtx, trx, true);
 
       const receipt = await Receipt.create(
         {
@@ -1762,8 +1631,7 @@ export default class ReceiptService {
           daily_movement_id: dailyMovement?.id,
           reversal_user_id: data.reversalUserId,
           reversal_reason_id: data.reversalReasonId,
-          origin_business_unit_id:
-            data.receiptType === "E" ? undefined : data.originBusinessUnitId,
+          origin_business_unit_id: data.receiptType === "E" ? undefined : data.originBusinessUnitId,
 
           origin: "Manual",
           receiptType: data.receiptType,
@@ -1885,9 +1753,7 @@ export default class ReceiptService {
       .where("toUf", authCtx.unit.state ?? "-")
       .where(
         "fromUf",
-        data.receiptType === "T"
-          ? (supplier?.tutor?.state ?? "-")
-          : (authCtx.unit.state ?? "-"),
+        data.receiptType === "T" ? (supplier?.tutor?.state ?? "-") : (authCtx.unit.state ?? "-"),
       )
       .preload("taxationGroup")
       .preload("taxOperation")
@@ -2014,9 +1880,7 @@ export default class ReceiptService {
         throw this.sharedService.ResourceNotFound();
       }
 
-      const sum = this.sharedService.sum(
-        data.items.map((i) => i.installmentValue),
-      );
+      const sum = this.sharedService.sum(data.items.map((i) => i.installmentValue));
 
       const decimalTotal = new Decimal(receipt.totalValue.toString());
       const decimalSum = new Decimal(sum);
@@ -2039,36 +1903,33 @@ export default class ReceiptService {
 
       const tasks = data.items.map((elem, index) => {
         return ReceiptPayment.createMany(
-          Array.from<number, Partial<ReceiptPayment>>(
-            { length: elem.installments },
-            (_, idx) => {
-              const paymentMethod = paymentMethods.find(
-                (p) => p.id === elem.paymentMethodId,
-              ) as PaymentMethod;
+          Array.from<number, Partial<ReceiptPayment>>({ length: elem.installments }, (_, idx) => {
+            const paymentMethod = paymentMethods.find(
+              (p) => p.id === elem.paymentMethodId,
+            ) as PaymentMethod;
 
-              return {
-                economic_group_id: authCtx.group.id,
-                business_unit_id: authCtx.unit.id,
-                receipt_id: data.receiptId,
-                payment_method_id: elem.paymentMethodId,
-                tef_acquirer_id: elem.tefAcquirerId,
-                tef_flag_id: elem.tefFlagId,
+            return {
+              economic_group_id: authCtx.group.id,
+              business_unit_id: authCtx.unit.id,
+              receipt_id: data.receiptId,
+              payment_method_id: elem.paymentMethodId,
+              tef_acquirer_id: elem.tefAcquirerId,
+              tef_flag_id: elem.tefFlagId,
 
-                installment: idx + 1,
-                block: index + 1 + receipt.payments.length,
-                blockInstallments: elem.installments,
-                installmentValue: elem.installmentValue / elem.installments,
-                issueDate: elem.issueDate,
-                expirationDate: SharedService.CalculateDateOffset(
-                  idx,
-                  elem.expirationDate,
-                  paymentMethod,
-                ),
-                nsuDocument: elem.nsuDocument,
-                status: "Ativo",
-              };
-            },
-          ),
+              installment: idx + 1,
+              block: index + 1 + receipt.payments.length,
+              blockInstallments: elem.installments,
+              installmentValue: elem.installmentValue / elem.installments,
+              issueDate: elem.issueDate,
+              expirationDate: SharedService.CalculateDateOffset(
+                idx,
+                elem.expirationDate,
+                paymentMethod,
+              ),
+              nsuDocument: elem.nsuDocument,
+              status: "Ativo",
+            };
+          }),
 
           { client: trx },
         );
@@ -2101,8 +1962,7 @@ export default class ReceiptService {
       await receipt
         .merge({
           paidValue:
-            receipt.paidValue +
-            this.sharedService.sum(data.items.map((i) => i.installmentValue)),
+            receipt.paidValue + this.sharedService.sum(data.items.map((i) => i.installmentValue)),
         })
         .useTransaction(trx)
         .save();
@@ -2182,9 +2042,7 @@ export default class ReceiptService {
 
         await elem
           .merge({
-            paidValue: this.sharedService.sum(
-              receiptPayments.map((p) => p.installmentValue),
-            ),
+            paidValue: this.sharedService.sum(receiptPayments.map((p) => p.installmentValue)),
           })
           .useTransaction(trx)
           .save();
@@ -2208,20 +2066,17 @@ export default class ReceiptService {
       await Promise.all(checkTasks);
 
       const financesTasks = updatedPayments.map(async (elem) => {
-        return Finance.query()
-          .useTransaction(trx)
-          .where("origin_id", elem.id)
-          .update({
-            payment_method_id: elem.payment_method_id,
-            acquirer_id: elem.tef_acquirer_id,
-            tef_flag_id: elem.tef_flag_id,
-            // installment: elem.installmentValue,
-            expirationDate: elem.expirationDate,
-            nsuDocument: elem.nsuDocument,
-            originalValue: elem.installmentValue,
-            value: elem.installmentValue,
-            totalValue: elem.installmentValue,
-          });
+        return Finance.query().useTransaction(trx).where("origin_id", elem.id).update({
+          payment_method_id: elem.payment_method_id,
+          acquirer_id: elem.tef_acquirer_id,
+          tef_flag_id: elem.tef_flag_id,
+          // installment: elem.installmentValue,
+          expirationDate: elem.expirationDate,
+          nsuDocument: elem.nsuDocument,
+          originalValue: elem.installmentValue,
+          value: elem.installmentValue,
+          totalValue: elem.installmentValue,
+        });
       });
       await Promise.all(financesTasks);
     });
@@ -2252,11 +2107,7 @@ export default class ReceiptService {
       }
 
       if (receipt.status === "Baixada") {
-        throw new BadRequestException(
-          "Esta Nota já está baixada",
-          400,
-          "E_NOTA_FINALIZADA",
-        );
+        throw new BadRequestException("Esta Nota já está baixada", 400, "E_NOTA_FINALIZADA");
       }
 
       if (receipt.status === "PendenteXml") {
@@ -2267,9 +2118,7 @@ export default class ReceiptService {
             "E_NO_VARIATION",
           );
         }
-        if (
-          receipt.items.some((i) => !i.productVariation.product.subgroup_id)
-        ) {
+        if (receipt.items.some((i) => !i.productVariation.product.subgroup_id)) {
           throw new BadRequestException(
             "Existem produtos que não estão com seus cadastros completos: subgrupo | Acesse a tela de produtos pendentes para completar esse cadastro",
             400,
@@ -2277,11 +2126,7 @@ export default class ReceiptService {
           );
         }
 
-        if (
-          receipt.items.some(
-            (i) => !i.productVariation.product.taxation_group_id,
-          )
-        ) {
+        if (receipt.items.some((i) => !i.productVariation.product.taxation_group_id)) {
           throw new BadRequestException(
             "Existem produtos que não estão com seus cadastros completos: grupo de imposto | Acesse a tela de produtos pendentes para completar esse cadastro",
             400,
@@ -2440,11 +2285,7 @@ WHERE business_unit_products.id = cc.id
       }
 
       if (receipt.status !== "Baixada") {
-        throw new BadRequestException(
-          "Esta Nota não está baixada",
-          400,
-          "E_NOTA_FINALIZADA",
-        );
+        throw new BadRequestException("Esta Nota não está baixada", 400, "E_NOTA_FINALIZADA");
       }
 
       const rows = await Database.from("finances")
@@ -2665,8 +2506,7 @@ where deposit_id = ?
       await row
         .merge({
           paidValue:
-            row.paidValue -
-            this.sharedService.sum(payments.map((p) => p.installmentValue)),
+            row.paidValue - this.sharedService.sum(payments.map((p) => p.installmentValue)),
         })
         .useTransaction(trx)
         .save();
@@ -2741,13 +2581,11 @@ where deposit_id = ?
       fractionValue: elem.product.fractionValue,
       fractionUnit: elem.product.fractionUnit,
       stock:
-        elem.businessUnitProducts.find(
-          (p) => p.businness_unit_id === authCtx.unit.id,
-        )?.stock ?? null,
+        elem.businessUnitProducts.find((p) => p.businness_unit_id === authCtx.unit.id)?.stock ??
+        null,
       costPrice:
-        elem.businessUnitProducts.find(
-          (p) => p.businness_unit_id === authCtx.unit.id,
-        )?.costPrice ?? null,
+        elem.businessUnitProducts.find((p) => p.businness_unit_id === authCtx.unit.id)?.costPrice ??
+        null,
       referenceCode: elem.product.referenceCode,
       barcode: elem.barcode,
       variationOptions: elem.variationOptions,
@@ -2917,9 +2755,7 @@ where deposit_id = ?
 
       const newProductVariations = await ProductVariation.createMany(
         rowItems.map((elem) => ({
-          product_id: newProducts.find(
-            (p) => p.description === elem.descriptionXml,
-          )?.id,
+          product_id: newProducts.find((p) => p.description === elem.descriptionXml)?.id,
           barcode: elem.barcodeXml,
         })),
         { client: trx },
@@ -2928,9 +2764,8 @@ where deposit_id = ?
       const tasks = rowItems.map((elem) => {
         return elem
           .merge({
-            product_variation_id: newProductVariations.find(
-              (p) => p.barcode === elem.barcodeXml,
-            )?.id,
+            product_variation_id: newProductVariations.find((p) => p.barcode === elem.barcodeXml)
+              ?.id,
           })
           .useTransaction(trx)
           .save();
@@ -2942,9 +2777,8 @@ where deposit_id = ?
         for (const elem of rowItems) {
           buProductData.push({
             businness_unit_id: unit.id,
-            product_variation_id: newProductVariations.find(
-              (p) => p.barcode === elem.barcodeXml,
-            )?.id,
+            product_variation_id: newProductVariations.find((p) => p.barcode === elem.barcodeXml)
+              ?.id,
             stock: 0,
             maximumStock: 0,
             minimumStock: 0,
@@ -2990,18 +2824,11 @@ where deposit_id = ?
       // await Promise.all(supplierTasks);
 
       await SupplierProduct.fetchOrCreateMany(
-        [
-          "economic_group_id",
-          "supplier_id",
-          "product_variation_id",
-          "product_supplier_id",
-        ],
+        ["economic_group_id", "supplier_id", "product_variation_id", "product_supplier_id"],
         rowItems.map((elem) => ({
           economic_group_id: authCtx.group.id,
           supplier_id: row.supplier_id,
-          product_variation_id: newProductVariations.find(
-            (p) => p.barcode === elem.barcodeXml,
-          )?.id,
+          product_variation_id: newProductVariations.find((p) => p.barcode === elem.barcodeXml)?.id,
           product_supplier_id: elem.productSupplierXml,
         })),
         { client: trx },
@@ -3096,11 +2923,7 @@ where deposit_id = ?
         .firstOrFail();
 
       if (receipt.status === "Baixada") {
-        throw new BadRequestException(
-          "Notas baixada não podem ser excluídas",
-          400,
-          "E_ERR",
-        );
+        throw new BadRequestException("Notas baixada não podem ser excluídas", 400, "E_ERR");
       }
 
       if (receipt.receiptType === "T") {
@@ -3119,11 +2942,7 @@ where deposit_id = ?
         )
         .whereNull("exclusion_user_id");
       if (invalidFinances.some((p) => p.status !== FinanceStatus.A)) {
-        throw new BadRequestException(
-          "Registros financeiros precisam estar abertos",
-          400,
-          "E_ERR",
-        );
+        throw new BadRequestException("Registros financeiros precisam estar abertos", 400, "E_ERR");
       }
 
       await receipt
@@ -3193,9 +3012,7 @@ where deposit_id = ?
        receipts.receipt_date`),
       )
       .joinRaw("join receipts on receipts.related_bill_id = bills.id")
-      .joinRaw(
-        "join business_units on bills.business_unit_id = business_units.id",
-      )
+      .joinRaw("join business_units on bills.business_unit_id = business_units.id")
       .whereRaw("bills.transfer_confirmation_date is null")
       .whereRaw("bills.bill_type = 'T'")
       .whereRaw("bills.business_unit_id = ?", [authCtx.unit.id])
@@ -3214,9 +3031,7 @@ where deposit_id = ?
        receipts.receipt_date`),
       )
       .joinRaw("join bills on receipts.related_bill_id = bills.id")
-      .joinRaw(
-        "join business_units on receipts.business_unit_id = business_units.id",
-      )
+      .joinRaw("join business_units on receipts.business_unit_id = business_units.id")
       .whereRaw("receipts.transfer_confirmation_date is null")
       .whereRaw("receipts.receipt_type = 'T'")
       .whereRaw("receipts.business_unit_id = ?", [authCtx.unit.id])
@@ -3265,19 +3080,11 @@ where deposit_id = ?
         .first();
 
       if (!user) {
-        throw new BadRequestException(
-          "Credenciais inválidas",
-          400,
-          "E_BAD_CREDENTIALS",
-        );
+        throw new BadRequestException("Credenciais inválidas", 400, "E_BAD_CREDENTIALS");
       }
 
       if (!(await Hash.verify(user.password, data.confirmationUserPwd))) {
-        throw new BadRequestException(
-          "Credenciais inválidas",
-          400,
-          "E_BAD_CREDENTIALS",
-        );
+        throw new BadRequestException("Credenciais inválidas", 400, "E_BAD_CREDENTIALS");
       }
 
       const hasPermissions = await this.sharedService.userHasPermission(
@@ -3285,11 +3092,7 @@ where deposit_id = ?
         "ENT12",
       );
       if (!hasPermissions) {
-        throw new UnauthorizedException(
-          "Usuário sem permissão de fazer a operação",
-          400,
-          "E_ERR",
-        );
+        throw new UnauthorizedException("Usuário sem permissão de fazer a operação", 400, "E_ERR");
       }
 
       const bill = await Bill.query()
@@ -3369,18 +3172,13 @@ where deposit_id = ?
         .whereHas("taxationGroup", (query) => {
           query.whereIn(
             "id",
-            bill.items.map(
-              (item) => item.productVariation.product.taxation_group_id,
-            ),
+            bill.items.map((item) => item.productVariation.product.taxation_group_id),
           );
         })
         .where("movement_type", MovementType.E)
         .where("movement_category", MovementCategory.TE)
         .where("fromUf", authCtx.unit.state ?? "")
-        .where(
-          "company_type",
-          authCtx.unit.simple ? CompanyType.S : CompanyType.N,
-        )
+        .where("company_type", authCtx.unit.simple ? CompanyType.S : CompanyType.N)
         .preload("taxationGroup")
         .preload("taxOperation");
 
@@ -3399,9 +3197,7 @@ where deposit_id = ?
       await newReceipt.related("items").createMany(
         bill.items.map((item) => {
           const rule = taxRules.find(
-            (rule) =>
-              rule.taxationGroup.id ===
-              item.productVariation.product.taxation_group_id,
+            (rule) => rule.taxationGroup.id === item.productVariation.product.taxation_group_id,
           );
           if (!rule) {
             throw new BadRequestException(
@@ -3416,15 +3212,11 @@ where deposit_id = ?
           );
 
           const ufIcmsRule = ufIcms.find(
-            (ufIcms) =>
-              ufIcms.originUf === rule?.toUf &&
-              ufIcms.destinationUf === rule?.toUf,
+            (ufIcms) => ufIcms.originUf === rule?.toUf && ufIcms.destinationUf === rule?.toUf,
           );
 
-          const totalValue =
-            item.unitaryValue * item.quantity.toNumber() - item.discountValue;
-          const icmsBase =
-            totalValue * ((100 - (rule?.icmsPercRedBaseCalculo ?? 0)) / 100);
+          const totalValue = item.unitaryValue * item.quantity.toNumber() - item.discountValue;
+          const icmsBase = totalValue * ((100 - (rule?.icmsPercRedBaseCalculo ?? 0)) / 100);
           const icmsValue = (icmsBase * (rule?.icmsPerc ?? 0)) / 100;
           const icmsStBase_1 = this.isValidNumber(rule?.ivaIcmsSt)
             ? icmsBase + (icmsBase * rule.ivaIcmsSt) / 100
@@ -3433,8 +3225,7 @@ where deposit_id = ?
             ? rule.icmsPercRedBaseCalculoST
             : undefined;
           const icmsStBase_2 = this.isValidNumber(rule?.ivaIcmsSt)
-            ? icmsStBase_1 -
-            (icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
+            ? icmsStBase_1 - (icmsStBase_1 * (icmsStPercentageRedBase ?? 0)) / 100
             : 0;
 
           return {
@@ -3465,22 +3256,16 @@ where deposit_id = ?
                 ? rule?.icmsCst
                 : undefined,
             icmsBase:
-              item.productVariation.product.type === ProductType.PRODUCT
-                ? icmsBase
-                : undefined,
+              item.productVariation.product.type === ProductType.PRODUCT ? icmsBase : undefined,
             icmsPercentage:
               item.productVariation.product.type === ProductType.PRODUCT
                 ? rule?.icmsPerc
                 : undefined,
             icmsValue:
-              item.productVariation.product.type === ProductType.PRODUCT
-                ? icmsValue
-                : undefined,
+              item.productVariation.product.type === ProductType.PRODUCT ? icmsValue : undefined,
             icmsPercentageRedAliquot: rule?.icmsPercRedAliquota,
             icmsPercentageRedBase: rule?.icmsPercRedBaseCalculo,
-            icmsStBase: this.isValidNumber(rule?.ivaIcmsSt)
-              ? icmsStBase_2
-              : undefined,
+            icmsStBase: this.isValidNumber(rule?.ivaIcmsSt) ? icmsStBase_2 : undefined,
             icmsStPercentageRedBase: this.isValidNumber(rule?.ivaIcmsSt)
               ? rule?.icmsPercRedBaseCalculoST
               : undefined,
@@ -3489,17 +3274,14 @@ where deposit_id = ?
               ? ufIcmsRule?.icmsPercentage
               : undefined,
             icmsStValue: this.isValidNumber(rule?.ivaIcmsSt)
-              ? icmsStBase_2 * ((ufIcmsRule?.icmsPercentage ?? 100) / 100) -
-              icmsValue
+              ? icmsStBase_2 * ((ufIcmsRule?.icmsPercentage ?? 100) / 100) - icmsValue
               : undefined,
             issCst:
               item.productVariation.product.type === ProductType.SERVICE
                 ? rule?.icmsCst
                 : undefined,
             issBase:
-              item.productVariation.product.type === ProductType.SERVICE
-                ? icmsBase
-                : undefined,
+              item.productVariation.product.type === ProductType.SERVICE ? icmsBase : undefined,
             issPercentage:
               item.productVariation.product.type === ProductType.SERVICE
                 ? rule?.icmsPerc
@@ -3592,19 +3374,14 @@ where deposit_id = ?
       .first();
 
     if (!supplier) {
-      throw new BadRequestException(
-        "Fornecedor não encontrado",
-        400,
-        "E_NOT_FOUND",
-      );
+      throw new BadRequestException("Fornecedor não encontrado", 400, "E_NOT_FOUND");
     }
 
-    const $checkingAccountMeta =
-      await BusinessUnitCheckingAccountPaymentMethod.query()
-        .useTransaction(trx)
-        .where("business_unit_id", authCtx.unit.id)
-        .where("payment_method_id", data.paymentMethodId)
-        .first();
+    const $checkingAccountMeta = await BusinessUnitCheckingAccountPaymentMethod.query()
+      .useTransaction(trx)
+      .where("business_unit_id", authCtx.unit.id)
+      .where("payment_method_id", data.paymentMethodId)
+      .first();
 
     return await Finance.create(
       {
@@ -3661,16 +3438,10 @@ where deposit_id = ?
 
     await receipt
       .merge({
-        productValue: this.sharedService.sum(
-          items.map((elem) => elem.totalValue),
-        ),
+        productValue: this.sharedService.sum(items.map((elem) => elem.totalValue)),
         serviceValue: 0,
-        discountValue: this.sharedService.sum(
-          items.map((elem) => elem.discountValue),
-        ),
-        totalValue: this.sharedService.sum(
-          items.map((elem) => elem.totalValue),
-        ),
+        discountValue: this.sharedService.sum(items.map((elem) => elem.discountValue)),
+        totalValue: this.sharedService.sum(items.map((elem) => elem.totalValue)),
         deliveryValue: 0,
 
         // icmsBase: this.sharedService.sum(items.map((elem) => elem.icmsBase)),

@@ -1,6 +1,6 @@
-import type { ApplicationContract } from '@ioc:Adonis/Core/Application';
-import Env from '@ioc:Adonis/Core/Env';
-import mongoose from 'mongoose';
+import type { ApplicationContract } from "@ioc:Adonis/Core/Application";
+import Env from "@ioc:Adonis/Core/Env";
+import mongoose from "mongoose";
 
 /*
 |--------------------------------------------------------------------------
@@ -25,9 +25,9 @@ export default class MongoProvider {
   constructor(protected app: ApplicationContract) {}
 
   public register() {
-    mongoose.connect(Env.get('MONGO_URI'));
+    mongoose.connect(Env.get("MONGO_URI"));
 
-    this.app.container.singleton('Mongoose', () => mongoose);
+    this.app.container.singleton("Mongoose", () => mongoose);
   }
 
   public async boot() {
@@ -39,6 +39,6 @@ export default class MongoProvider {
   }
 
   public async shutdown() {
-    await this.app.container.use('Mongoose').disconnect();
+    await this.app.container.use("Mongoose").disconnect();
   }
 }

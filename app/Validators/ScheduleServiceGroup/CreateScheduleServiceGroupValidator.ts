@@ -1,6 +1,6 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, schema } from '@ioc:Adonis/Core/Validator';
-import { ScheduleServiceGroupType } from 'App/Models/ScheduleServiceGroup';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, schema } from "@ioc:Adonis/Core/Validator";
+import { ScheduleServiceGroupType } from "App/Models/ScheduleServiceGroup";
 
 export default class CreateScheduleServiceGroupValidator {
   constructor(protected ctx: HttpContextContract) {}

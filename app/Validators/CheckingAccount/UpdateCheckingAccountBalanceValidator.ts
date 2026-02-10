@@ -1,6 +1,6 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, schema } from '@ioc:Adonis/Core/Validator';
-import { CheckingAccountOperation } from 'App/Models/CheckingAccount';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, schema } from "@ioc:Adonis/Core/Validator";
+import { CheckingAccountOperation } from "App/Models/CheckingAccount";
 
 export default class UpdateCheckingAccountBalanceValidator {
   constructor(protected ctx: HttpContextContract) {}

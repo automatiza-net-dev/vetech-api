@@ -1,9 +1,9 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import ExamService from 'App/Services/ExamService';
-import SharedService from 'App/Services/SharedService';
-import CreateExamValidator from 'App/Validators/Exam/CreateExamValidator';
-import UpdateExamValidator from 'App/Validators/Exam/UpdateExamValidator';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import ExamService from "App/Services/ExamService";
+import SharedService from "App/Services/SharedService";
+import CreateExamValidator from "App/Validators/Exam/CreateExamValidator";
+import UpdateExamValidator from "App/Validators/Exam/UpdateExamValidator";
 
 @inject()
 export default class ExamsController {
@@ -14,15 +14,12 @@ export default class ExamsController {
 
   public async index({ auth, request, response }: HttpContextContract) {
     const qs = request.qs();
-    const result = await this.service.index(
-      await this.sharedService.getAuthContext(auth),
-      {
-        name: qs.name,
-        description: qs.description,
-        type: qs.type,
-        active: qs.active,
-      },
-    );
+    const result = await this.service.index(await this.sharedService.getAuthContext(auth), {
+      name: qs.name,
+      description: qs.description,
+      type: qs.type,
+      active: qs.active,
+    });
 
     return response.ok(result);
   }
@@ -39,20 +36,12 @@ export default class ExamsController {
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateExamValidator);
 
-    const result = await this.service.store(
-      await this.sharedService.getAuthContext(auth),
-      payload,
-    );
+    const result = await this.service.store(await this.sharedService.getAuthContext(auth), payload);
 
     return response.created(result);
   }
 
-  public async update({
-    auth,
-    params,
-    request,
-    response,
-  }: HttpContextContract) {
+  public async update({ auth, params, request, response }: HttpContextContract) {
     const payload = await request.validate(UpdateExamValidator);
 
     const result = await this.service.update(
@@ -65,10 +54,7 @@ export default class ExamsController {
   }
 
   public async destroy({ auth, params, response }: HttpContextContract) {
-    await this.service.destroy(
-      await this.sharedService.getAuthContext(auth),
-      params.id,
-    );
+    await this.service.destroy(await this.sharedService.getAuthContext(auth), params.id);
 
     return response.noContent();
   }

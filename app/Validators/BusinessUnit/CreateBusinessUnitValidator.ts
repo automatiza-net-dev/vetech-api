@@ -1,5 +1,5 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
 
 export default class CreateBusinessUnitValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -7,8 +7,8 @@ export default class CreateBusinessUnitValidator {
   public schema = schema.create({
     economic_group_id: schema.string({}, [
       rules.exists({
-        column: 'id',
-        table: 'economic_groups',
+        column: "id",
+        table: "economic_groups",
       }),
     ]),
     document: schema.string({}),

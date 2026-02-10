@@ -1,5 +1,5 @@
-import { schema, CustomMessages, rules } from '@ioc:Adonis/Core/Validator';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
+import { schema, CustomMessages, rules } from "@ioc:Adonis/Core/Validator";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 
 export default class AuthenticateThirdPartyValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -24,9 +24,7 @@ export default class AuthenticateThirdPartyValidator {
    *    ```
    */
   public schema = schema.create({
-    key: schema.string([
-      rules.exists({ table: 'third_party_user_permissions', column: 'key' }),
-    ]),
+    key: schema.string([rules.exists({ table: "third_party_user_permissions", column: "key" })]),
     password: schema.string(),
   });
 

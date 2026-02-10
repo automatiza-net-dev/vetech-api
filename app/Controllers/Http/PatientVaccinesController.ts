@@ -1,9 +1,9 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import PatientVaccineService from 'App/Services/PatientVaccineService';
-import SharedService from 'App/Services/SharedService';
-import CreatePatientVaccineValidator from 'App/Validators/PatientVaccine/CreatePatientVaccineValidator';
-import UpdatePatientVaccineValidator from 'App/Validators/PatientVaccine/UpdatePatientVaccineValidator';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import PatientVaccineService from "App/Services/PatientVaccineService";
+import SharedService from "App/Services/SharedService";
+import CreatePatientVaccineValidator from "App/Validators/PatientVaccine/CreatePatientVaccineValidator";
+import UpdatePatientVaccineValidator from "App/Validators/PatientVaccine/UpdatePatientVaccineValidator";
 
 @inject()
 export default class PatientVaccinesController {
@@ -36,20 +36,12 @@ export default class PatientVaccinesController {
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreatePatientVaccineValidator);
 
-    const result = await this.service.store(
-      await this.sharedService.getAuthContext(auth),
-      payload,
-    );
+    const result = await this.service.store(await this.sharedService.getAuthContext(auth), payload);
 
     return response.created(result);
   }
 
-  public async update({
-    auth,
-    params,
-    request,
-    response,
-  }: HttpContextContract) {
+  public async update({ auth, params, request, response }: HttpContextContract) {
     const payload = await request.validate(UpdatePatientVaccineValidator);
     const { unit_id, user } = this.sharedService.extractUser(auth);
 

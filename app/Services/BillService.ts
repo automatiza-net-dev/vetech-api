@@ -102,7 +102,7 @@ export default class BillService {
     private sharedService: SharedService,
     private depositService: DepositService,
     private scheduleMovementService: ScheduleMovementsService,
-  ) { }
+  ) {}
 
   isValidNumber(data: number | undefined) {
     if (!data) {
@@ -621,93 +621,93 @@ export default class BillService {
 
       const tasks = data.items
         ? data.items.map(async (elem) => {
-          const productVariation = await ProductVariation.query()
-            .useTransaction(trx)
-            .where("id", elem.productVariationId)
-            .whereHas("businessUnitProducts", (query) => {
-              query.where("businness_unit_id", authCtx.unit.id);
-            })
-            .preload("product")
-            .preload("businessUnitProducts", (query) => {
-              query.where("businness_unit_id", authCtx.unit.id);
-            })
-            .first();
-
-          if (!productVariation) {
-            throw new BadRequestException(
-              "Não foi possível encontrar um preço para esse produto",
-              400,
-              "E_NO_VARIATION",
-            );
-          }
-
-          if (elem.courtesy && !productVariation.product.courtesy) {
-            throw new BadRequestException(
-              `Produto '${productVariation.product.description}' não pode ser usado com cortesia`,
-              400,
-              "E_ERR",
-            );
-          }
-
-          if (elem.billItemId) {
-            await BillItem.query()
+            const productVariation = await ProductVariation.query()
               .useTransaction(trx)
-              .where("bill_id", bill.id)
-              .where("id", elem.billItemId)
-              .update({
-                courtesy_issued_user_id: elem.courtesy ? authCtx.user.id : undefined, // mantém valor anterior
+              .where("id", elem.productVariationId)
+              .whereHas("businessUnitProducts", (query) => {
+                query.where("businness_unit_id", authCtx.unit.id);
+              })
+              .preload("product")
+              .preload("businessUnitProducts", (query) => {
+                query.where("businness_unit_id", authCtx.unit.id);
+              })
+              .first();
 
+            if (!productVariation) {
+              throw new BadRequestException(
+                "Não foi possível encontrar um preço para esse produto",
+                400,
+                "E_NO_VARIATION",
+              );
+            }
+
+            if (elem.courtesy && !productVariation.product.courtesy) {
+              throw new BadRequestException(
+                `Produto '${productVariation.product.description}' não pode ser usado com cortesia`,
+                400,
+                "E_ERR",
+              );
+            }
+
+            if (elem.billItemId) {
+              await BillItem.query()
+                .useTransaction(trx)
+                .where("bill_id", bill.id)
+                .where("id", elem.billItemId)
+                .update({
+                  courtesy_issued_user_id: elem.courtesy ? authCtx.user.id : undefined, // mantém valor anterior
+
+                  courtesy: elem.courtesy,
+                  max_discount: elem.maxDiscount,
+                  // saleValue: new Decimal(elem.saleValue ?? 0).toNumber(),
+                  unitaryValue: elem.courtesy ? 0 : elem.unitaryValue,
+                  discountValue: elem.courtesy ? 0 : elem.discountValue,
+                  quantity: new Decimal(elem.quantity).toNumber(),
+                  totalValue: elem.courtesy
+                    ? 0
+                    : elem.quantity * elem.unitaryValue - elem.discountValue,
+                } as Partial<Omit<BillItem, "quantity"> & { quantity: number }>);
+            } else {
+              // Usar createBillItemWithTrx para calcular impostos automaticamente
+              await this.createBillItemWithTrx(trx, authCtx, {
+                billId: bill.id,
+                productVariationId: elem.productVariationId,
+                quantity: elem.quantity,
+                unitaryValue: elem.unitaryValue,
+                discountValue: elem.discountValue,
                 courtesy: elem.courtesy,
-                max_discount: elem.maxDiscount,
-                // saleValue: new Decimal(elem.saleValue ?? 0).toNumber(),
-                unitaryValue: elem.courtesy ? 0 : elem.unitaryValue,
-                discountValue: elem.courtesy ? 0 : elem.discountValue,
-                quantity: new Decimal(elem.quantity).toNumber(),
-                totalValue: elem.courtesy
-                  ? 0
-                  : elem.quantity * elem.unitaryValue - elem.discountValue,
-              } as Partial<Omit<BillItem, "quantity"> & { quantity: number }>);
-          } else {
-            // Usar createBillItemWithTrx para calcular impostos automaticamente
-            await this.createBillItemWithTrx(trx, authCtx, {
-              billId: bill.id,
-              productVariationId: elem.productVariationId,
-              quantity: elem.quantity,
-              unitaryValue: elem.unitaryValue,
-              discountValue: elem.discountValue,
-              courtesy: elem.courtesy,
-              maxDiscount: elem.maxDiscount,
-            });
-          }
-
-          if (elem.departmentId && elem.departmentItemId && elem.billItemDepartmentId) {
-            await BillItemDepartment.query()
-              .useTransaction(trx)
-              .where("id", elem.billItemDepartmentId)
-              .where("bill_id", data.billId)
-              .where("bill_item_id", elem.billItemId ? elem.billItemId : v4())
-              .where("department_id", elem.departmentId)
-              .where("department_item_id", elem.departmentItemId)
-              .update({
-                observations: elem.observation,
-                updated_user_id: authCtx.user.id,
+                maxDiscount: elem.maxDiscount,
               });
-            // } else {
-            // 	await BillItemDepartment.create(
-            // 		{
-            // 			bill_id: data.billId,
-            // 			bill_item_id: Array.isArray(bi)
-            // 				? (elem.billItemId ?? v4())
-            // 				: bi.id,
-            // 			department_id: elem.departmentItemId,
-            // 			department_item_id: elem.departmentItemId,
-            // 			creation_user_id: authCtx.user.id,
-            // 			observation: elem.observation,
-            // 		},
-            // 		{ client: trx },
-            // 	);
-          }
-        })
+            }
+
+            if (elem.departmentId && elem.departmentItemId && elem.billItemDepartmentId) {
+              await BillItemDepartment.query()
+                .useTransaction(trx)
+                .where("id", elem.billItemDepartmentId)
+                .where("bill_id", data.billId)
+                .where("bill_item_id", elem.billItemId ? elem.billItemId : v4())
+                .where("department_id", elem.departmentId)
+                .where("department_item_id", elem.departmentItemId)
+                .update({
+                  observations: elem.observation,
+                  updated_user_id: authCtx.user.id,
+                });
+              // } else {
+              // 	await BillItemDepartment.create(
+              // 		{
+              // 			bill_id: data.billId,
+              // 			bill_item_id: Array.isArray(bi)
+              // 				? (elem.billItemId ?? v4())
+              // 				: bi.id,
+              // 			department_id: elem.departmentItemId,
+              // 			department_item_id: elem.departmentItemId,
+              // 			creation_user_id: authCtx.user.id,
+              // 			observation: elem.observation,
+              // 		},
+              // 		{ client: trx },
+              // 	);
+            }
+          })
         : [];
       await Promise.all(tasks);
 
@@ -1188,18 +1188,18 @@ where deposit_id = ?
       const dailyCashier =
         authCtx.unit.unitConfig.dailyCashierType === "usuario"
           ? await DailyCashier.query()
-            .useTransaction(trx)
-            .where("business_unit_id", authCtx.unit.id)
-            .where("user_who_opened_id", authCtx.user.id)
-            .where("status", DailyCashierStatus.A)
-            .whereRaw("opening_date::date = now()::date")
-            .first()
+              .useTransaction(trx)
+              .where("business_unit_id", authCtx.unit.id)
+              .where("user_who_opened_id", authCtx.user.id)
+              .where("status", DailyCashierStatus.A)
+              .whereRaw("opening_date::date = now()::date")
+              .first()
           : await DailyCashier.query()
-            .useTransaction(trx)
-            .where("business_unit_id", authCtx.unit.id)
-            .where("status", DailyCashierStatus.A)
-            .whereRaw("opening_date::date = now()::date")
-            .first();
+              .useTransaction(trx)
+              .where("business_unit_id", authCtx.unit.id)
+              .where("status", DailyCashierStatus.A)
+              .whereRaw("opening_date::date = now()::date")
+              .first();
 
       if (!dailyCashier) {
         throw new BadRequestException(
@@ -1247,9 +1247,9 @@ where deposit_id = ?
 
       const paymentMethod = data.paymentMethodId
         ? await PaymentMethod.query()
-          .useTransaction(trx)
-          .where("id", data.paymentMethodId)
-          .firstOrFail()
+            .useTransaction(trx)
+            .where("id", data.paymentMethodId)
+            .firstOrFail()
         : null;
 
       const flagsQb = PaymentMethodFlag.query()
@@ -1298,9 +1298,9 @@ where deposit_id = ?
 
       const installmentFee = data.paymentMethodFlagInstallmentId
         ? await PaymentMethodFlagInstallment.query()
-          .useTransaction(trx)
-          .where("id", data.paymentMethodFlagInstallmentId)
-          .firstOrFail()
+            .useTransaction(trx)
+            .where("id", data.paymentMethodFlagInstallmentId)
+            .firstOrFail()
         : { fee: paymentMethod?.fee ?? 0, installment: data.installments ?? 1 };
 
       let overflowPaymentMethod: PaymentMethod | null = null;
@@ -1397,8 +1397,8 @@ where deposit_id = ?
           let valorAPagarPorVenda = data.creditOverflow
             ? new Decimal(bill.totalValue).minus(bill.paidValue)
             : new Decimal(valorDescontarVendas)
-              .times(percentagePerBill[bill.id])
-              .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+                .times(percentagePerBill[bill.id])
+                .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
 
           const valorRelativoCreditoUso = creditToUse
             .times(percentagePerBill[bill.id])
@@ -1447,9 +1447,9 @@ where deposit_id = ?
                 paymentMethodDiscountPercentage: overflowPaymentMethod?.fee,
                 paymentMethodDiscountValue: overflowPaymentMethod
                   ? valorRelativoCreditoUso
-                    .times(new Decimal(overflowPaymentMethod.fee))
-                    .div(100)
-                    .toNumber()
+                      .times(new Decimal(overflowPaymentMethod.fee))
+                      .div(100)
+                      .toNumber()
                   : 0,
                 qtyInstallments: installmentFee.installment,
               },
@@ -1521,15 +1521,15 @@ where deposit_id = ?
             const feeCtx = paymentMethod
               ? shouldUseFlag
                 ? flags.reduce((acc, cur) => {
-                  const ctx = cur.installments.find(
-                    (f) => f.installment === installmentFee.installment,
-                  );
-                  if (ctx) {
-                    return ctx.fee;
-                  }
+                    const ctx = cur.installments.find(
+                      (f) => f.installment === installmentFee.installment,
+                    );
+                    if (ctx) {
+                      return ctx.fee;
+                    }
 
-                  return acc;
-                }, paymentMethod.fee)
+                    return acc;
+                  }, paymentMethod.fee)
                 : paymentMethod.fee
               : 0;
 
@@ -1665,18 +1665,18 @@ where deposit_id = ?
       const dailyCashier =
         authCtx.unit.unitConfig.dailyCashierType === "usuario"
           ? await DailyCashier.query()
-            .useTransaction(trx)
-            .where("business_unit_id", authCtx.unit.id)
-            .where("user_who_opened_id", authCtx.user.id)
-            .where("status", DailyCashierStatus.A)
-            .whereRaw("opening_date::date = now()::date")
-            .first()
+              .useTransaction(trx)
+              .where("business_unit_id", authCtx.unit.id)
+              .where("user_who_opened_id", authCtx.user.id)
+              .where("status", DailyCashierStatus.A)
+              .whereRaw("opening_date::date = now()::date")
+              .first()
           : await DailyCashier.query()
-            .useTransaction(trx)
-            .where("business_unit_id", authCtx.unit.id)
-            .where("status", DailyCashierStatus.A)
-            .whereRaw("opening_date::date = now()::date")
-            .first();
+              .useTransaction(trx)
+              .where("business_unit_id", authCtx.unit.id)
+              .where("status", DailyCashierStatus.A)
+              .whereRaw("opening_date::date = now()::date")
+              .first();
 
       if (!dailyCashier) {
         throw new BadRequestException(
@@ -1700,9 +1700,9 @@ where deposit_id = ?
 
       const installment = data.paymentMethodFlagInstallmentId
         ? await PaymentMethodFlagInstallment.query()
-          .useTransaction(trx)
-          .where("id", data.paymentMethodFlagInstallmentId)
-          .firstOrFail()
+            .useTransaction(trx)
+            .where("id", data.paymentMethodFlagInstallmentId)
+            .firstOrFail()
         : { fee: paymentMethod.fee, installment: data.installments ?? 1 };
 
       const existingPayments = await BillPayment.query().where("bill_id", bill.id);
@@ -1805,13 +1805,13 @@ where deposit_id = ?
 
           const feeCtx = shouldUseFlag
             ? flags.reduce((acc, cur) => {
-              const ctx = cur.installments.find((f) => f.installment === installment.installment);
-              if (ctx) {
-                return ctx.fee;
-              }
+                const ctx = cur.installments.find((f) => f.installment === installment.installment);
+                if (ctx) {
+                  return ctx.fee;
+                }
 
-              return acc;
-            }, paymentMethod.fee)
+                return acc;
+              }, paymentMethod.fee)
             : paymentMethod.fee;
 
           return {
@@ -4428,10 +4428,10 @@ where deposit_id = ?
             (acc, curr) =>
               curr.productVariation.product.type === ProductType.PRODUCT
                 ? acc.plus(
-                  new Decimal(curr.totalValue)
-                    .div(curr.quantity)
-                    .times(new Decimal(curr.cancelledQuantity ?? 1)),
-                )
+                    new Decimal(curr.totalValue)
+                      .div(curr.quantity)
+                      .times(new Decimal(curr.cancelledQuantity ?? 1)),
+                  )
                 : acc,
             new Decimal(0),
           ),
@@ -4439,10 +4439,10 @@ where deposit_id = ?
             (acc, curr) =>
               curr.productVariation.product.type === ProductType.SERVICE
                 ? acc.plus(
-                  new Decimal(curr.totalValue)
-                    .div(curr.quantity)
-                    .times(new Decimal(curr.cancelledQuantity ?? 1)),
-                )
+                    new Decimal(curr.totalValue)
+                      .div(curr.quantity)
+                      .times(new Decimal(curr.cancelledQuantity ?? 1)),
+                  )
                 : acc,
             new Decimal(0),
           ),
@@ -4547,11 +4547,11 @@ where deposit_id = ?
               cancelled: data.billItems.find((i) => i.id === elem.id)?.cancelled ? "S" : "N",
               reviewCancelNotes: note
                 ? [
-                  elem.reviewCancelNotes,
-                  `${format(addHours(new Date(), -3), "dd/MM/yyyy HH:mm:ss")} - ${authCtx.user.name}\n${note}`,
-                ]
-                  .filter(Boolean)
-                  .join("\n")
+                    elem.reviewCancelNotes,
+                    `${format(addHours(new Date(), -3), "dd/MM/yyyy HH:mm:ss")} - ${authCtx.user.name}\n${note}`,
+                  ]
+                    .filter(Boolean)
+                    .join("\n")
                 : elem.reviewCancelNotes,
             })
             .save();
@@ -4613,11 +4613,11 @@ where deposit_id = ?
               cancelled: data.billPayments.find((i) => i.id === elem.id)?.cancelled ? "S" : "N",
               reviewCancelNotes: note
                 ? [
-                  elem.reviewCancelNotes,
-                  `${format(addHours(new Date(), -3), "dd/MM/yyyy HH:mm:ss")} - ${authCtx.user.name}\n${note}`,
-                ]
-                  .filter(Boolean)
-                  .join("\n")
+                    elem.reviewCancelNotes,
+                    `${format(addHours(new Date(), -3), "dd/MM/yyyy HH:mm:ss")} - ${authCtx.user.name}\n${note}`,
+                  ]
+                    .filter(Boolean)
+                    .join("\n")
                 : elem.reviewCancelNotes,
             })
             .save();
@@ -5133,10 +5133,10 @@ where id = ?`,
               : undefined,
             icmsStValue: this.isValidNumber(rule?.ivaIcmsSt)
               ? icmsStBase_2
-                .times(ufIcmsRule?.icmsPercentage ?? 100)
-                .div(100)
-                .minus(icmsValue)
-                .toNumber()
+                  .times(ufIcmsRule?.icmsPercentage ?? 100)
+                  .div(100)
+                  .minus(icmsValue)
+                  .toNumber()
               : undefined,
 
             issCst:
@@ -5154,9 +5154,9 @@ where id = ?`,
             issValue:
               item.productVariation.product.type === ProductType.SERVICE
                 ? icmsBase
-                  .times(rule.icmsPerc ?? 0)
-                  .div(100)
-                  .toNumber()
+                    .times(rule.icmsPerc ?? 0)
+                    .div(100)
+                    .toNumber()
                 : undefined,
 
             pisCst: rule.pisCst,

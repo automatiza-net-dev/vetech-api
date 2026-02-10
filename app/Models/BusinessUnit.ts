@@ -1,12 +1,12 @@
 import {
-	BaseModel,
-	BelongsTo,
-	belongsTo,
-	column,
-	HasMany,
-	hasMany,
-	HasOne,
-	hasOne,
+  BaseModel,
+  BelongsTo,
+  belongsTo,
+  column,
+  HasMany,
+  hasMany,
+  HasOne,
+  hasOne,
 } from "@ioc:Adonis/Lucid/Orm";
 import Attendance from "App/Models/Attendance";
 import BusinessUnitAcquirer from "App/Models/BusinessUnitAcquirer";

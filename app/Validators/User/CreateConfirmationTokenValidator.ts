@@ -2,19 +2,19 @@ import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
 
 export default class CreateConfirmationTokenValidator {
-	constructor(protected ctx: HttpContextContract) {}
+  constructor(protected ctx: HttpContextContract) {}
 
-	public schema = schema.create({
-		systemId: schema.number([rules.exists({ table: "systems", column: "id" })]),
-		name: schema.string(),
-		phone: schema.string(),
-		email: schema.string([
-			rules.unique({
-				table: "users",
-				column: "email",
-			}),
-		]),
-	});
+  public schema = schema.create({
+    systemId: schema.number([rules.exists({ table: "systems", column: "id" })]),
+    name: schema.string(),
+    phone: schema.string(),
+    email: schema.string([
+      rules.unique({
+        table: "users",
+        column: "email",
+      }),
+    ]),
+  });
 
-	public messages: CustomMessages = {};
+  public messages: CustomMessages = {};
 }

@@ -1,13 +1,13 @@
-import Database from '@ioc:Adonis/Lucid/Database';
-import { test } from '@japa/runner';
-import EconomicGroup from 'App/Models/EconomicGroup';
-import Specie from 'App/Models/Specie';
-import User from 'App/Models/User';
-import { v4 } from 'uuid';
+import Database from "@ioc:Adonis/Lucid/Database";
+import { test } from "@japa/runner";
+import EconomicGroup from "App/Models/EconomicGroup";
+import Specie from "App/Models/Specie";
+import User from "App/Models/User";
+import { v4 } from "uuid";
 
-import { generateJwtToken, userBootstrap } from '../utils';
+import { generateJwtToken, userBootstrap } from "../utils";
 
-test.group('Specie resource', group => {
+test.group("Specie resource", (group) => {
   group.each.setup(async () => {
     await Database.beginGlobalTransaction();
     return () => Database.rollbackGlobalTransaction();
@@ -16,63 +16,60 @@ test.group('Specie resource', group => {
   const createData = async (): Promise<[User, EconomicGroup, Specie]> => {
     const { user, group, system } = await userBootstrap();
 
-    const specie = await group.related('species').create({
+    const specie = await group.related("species").create({
       id: v4(),
-      description: 'some specie',
+      description: "some specie",
       system_id: system.id,
     });
 
     return [user, group, specie];
   };
 
-  test('should create specie', async ({ assert, client }) => {
+  test("should create specie", async ({ assert, client }) => {
     const [user] = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
-      .post('/species')
+      .post("/species")
       .json({
-        description: 'some specie',
+        description: "some specie",
       })
       .bearerToken(token);
 
     const body = response.body();
 
     assert.equal(201, response.status());
-    assert.equal('some specie', body.description);
+    assert.equal("some specie", body.description);
   });
 
-  test('should return all species from group', async ({ assert, client }) => {
+  test("should return all species from group", async ({ assert, client }) => {
     const [user, _, specie1] = await createData();
     const [__, ___, specie2] = await createData();
 
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
-    const response = await client.get('/species').bearerToken(token);
+    const response = await client.get("/species").bearerToken(token);
 
     const body = response.body();
 
     assert.equal(200, response.status());
     assert.isArray(body);
-    assert.isTrue(Boolean(body.find(b => b.id === specie1.id)));
-    assert.isFalse(Boolean(body.find(b => b.id === specie2.id)));
+    assert.isTrue(Boolean(body.find((b) => b.id === specie1.id)));
+    assert.isFalse(Boolean(body.find((b) => b.id === specie2.id)));
   });
 
-  test('should throw NotFoundException if no specie is found', async ({
-    assert,
-    client,
-  }) => {
+  test("should throw NotFoundException if no specie is found", async ({ assert, client }) => {
     const [user] = await createData();
 
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client.get(`/species/${v4()}`).bearerToken(token);
@@ -80,20 +77,18 @@ test.group('Specie resource', group => {
     const body = response.body();
 
     assert.equal(404, response.status());
-    assert.equal('E_NOT_FOUND: Espécie não foi encontrada', body.message);
+    assert.equal("E_NOT_FOUND: Espécie não foi encontrada", body.message);
   });
 
-  test('should return species', async ({ assert, client }) => {
+  test("should return species", async ({ assert, client }) => {
     const [user, _, species] = await createData();
 
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
-    const response = await client
-      .get(`/species/${species.id}`)
-      .bearerToken(token);
+    const response = await client.get(`/species/${species.id}`).bearerToken(token);
 
     const body = response.body();
 
@@ -101,18 +96,18 @@ test.group('Specie resource', group => {
     assert.equal(species.id, body.id);
   });
 
-  test('should update a  specie', async ({ assert, client }) => {
+  test("should update a  specie", async ({ assert, client }) => {
     const [user, _, species] = await createData();
 
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
       .put(`/species/${species.id}`)
       .json({
-        description: 'updated specie',
+        description: "updated specie",
       })
       .bearerToken(token);
 
@@ -123,17 +118,15 @@ test.group('Specie resource', group => {
     assert.notEqual(species.description, body.description);
   });
 
-  test('should soft delete a  specie', async ({ assert, client }) => {
+  test("should soft delete a  specie", async ({ assert, client }) => {
     const [user, _, species] = await createData();
 
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
-    const response = await client
-      .delete(`/species/${species.id}`)
-      .bearerToken(token);
+    const response = await client.delete(`/species/${species.id}`).bearerToken(token);
 
     assert.equal(204, response.status());
   });

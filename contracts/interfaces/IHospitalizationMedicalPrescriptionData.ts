@@ -1,9 +1,9 @@
-import { THospitalizationMedicalPrescriptionSchedulingStatus } from 'App/Models/HospitalizationMedicalPrescriptionScheduling';
+import { THospitalizationMedicalPrescriptionSchedulingStatus } from "App/Models/HospitalizationMedicalPrescriptionScheduling";
 import {
   MedicalPrescriptionFrequency,
   MedicalPrescriptionType,
-} from 'App/Models/MedicalPrescription';
-import { DateTime } from 'luxon';
+} from "App/Models/MedicalPrescription";
+import { DateTime } from "luxon";
 
 export default interface IHospitalizationMedicalPrescriptionData {
   hospitalizationId: string;

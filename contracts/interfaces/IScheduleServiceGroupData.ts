@@ -1,4 +1,4 @@
-import { ScheduleServiceGroupType } from 'App/Models/ScheduleServiceGroup';
+import { ScheduleServiceGroupType } from "App/Models/ScheduleServiceGroup";
 
 export default interface IScheduleServiceGroupData {
   description: string;

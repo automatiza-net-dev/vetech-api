@@ -1,6 +1,6 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import ProfessionService from 'App/Services/ProfessionService';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import ProfessionService from "App/Services/ProfessionService";
 
 @inject()
 export default class ProfessionsController {

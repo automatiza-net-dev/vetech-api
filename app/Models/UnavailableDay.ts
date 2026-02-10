@@ -1,9 +1,9 @@
-import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
-import BusinessUnit from 'App/Models/BusinessUnit';
-import WeekDay from 'App/Models/shared/WeekDay';
-import User from 'App/Models/User';
-import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
+import { BaseModel, BelongsTo, belongsTo, column } from "@ioc:Adonis/Lucid/Orm";
+import BusinessUnit from "App/Models/BusinessUnit";
+import WeekDay from "App/Models/shared/WeekDay";
+import User from "App/Models/User";
+import { DateTime } from "luxon";
+import { v4 } from "uuid";
 
 export default class UnavailableDay extends BaseModel {
   @column({ isPrimary: true })
@@ -13,31 +13,31 @@ export default class UnavailableDay extends BaseModel {
   public title: string;
 
   @column({
-    columnName: 'start_date',
+    columnName: "start_date",
   })
   public startDate: DateTime | null;
 
   @column({
-    columnName: 'end_date',
+    columnName: "end_date",
   })
   public endDate: DateTime | null;
 
   @column({
-    columnName: 'start_hour',
+    columnName: "start_hour",
   })
   public startHour: string;
 
   @column({
-    columnName: 'end_hour',
+    columnName: "end_hour",
   })
   public endHour: string;
 
   @column({
     prepare(value) {
-      return value.join(',');
+      return value.join(",");
     },
     consume(value) {
-      return value.split(',');
+      return value.split(",");
     },
   })
   public frequency: Array<WeekDay>;
@@ -60,8 +60,8 @@ export default class UnavailableDay extends BaseModel {
   public business_unit_id: string;
 
   @belongsTo(() => User, {
-    localKey: 'id',
-    foreignKey: 'user_id',
+    localKey: "id",
+    foreignKey: "user_id",
   })
   public user: BelongsTo<typeof User>;
 

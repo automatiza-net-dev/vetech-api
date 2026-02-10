@@ -1,5 +1,5 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
 
 export default class CreateHospitalizationOccurrenceAttachmentValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -7,7 +7,7 @@ export default class CreateHospitalizationOccurrenceAttachmentValidator {
   public schema = schema.create({
     occurrenceId: schema.string({ trim: true }, [
       rules.uuid(),
-      rules.exists({ table: 'hospitalization_occurrences', column: 'id' }),
+      rules.exists({ table: "hospitalization_occurrences", column: "id" }),
     ]),
     attachments: schema.array().members(schema.file()),
   });

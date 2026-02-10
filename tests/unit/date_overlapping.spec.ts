@@ -1,11 +1,11 @@
-import { test } from '@japa/runner';
-import SharedService, { DateSet } from 'App/Services/SharedService';
-import { addMinutes } from 'date-fns';
+import { test } from "@japa/runner";
+import SharedService, { DateSet } from "App/Services/SharedService";
+import { addMinutes } from "date-fns";
 
-test.group('Date overlapping', () => {
+test.group("Date overlapping", () => {
   const service = new SharedService();
 
-  test('should return false for not overlapping dates', ({ assert }) => {
+  test("should return false for not overlapping dates", ({ assert }) => {
     const ASet: DateSet = {
       start: new Date(),
       end: addMinutes(new Date(), 1),
@@ -18,7 +18,7 @@ test.group('Date overlapping', () => {
     assert.isFalse(service.checkOverlapping(ASet, BSet));
   });
 
-  test('should return false for end for sequential', ({ assert }) => {
+  test("should return false for end for sequential", ({ assert }) => {
     const ASet: DateSet = {
       start: new Date(),
       end: addMinutes(new Date(), 1),
@@ -31,7 +31,7 @@ test.group('Date overlapping', () => {
     assert.isFalse(service.checkOverlapping(ASet, BSet));
   });
 
-  test('should return true for overlapping', ({ assert }) => {
+  test("should return true for overlapping", ({ assert }) => {
     const ASet: DateSet = {
       start: new Date(),
       end: addMinutes(new Date(), 2),

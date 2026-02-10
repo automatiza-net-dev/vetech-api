@@ -1,17 +1,17 @@
 import BaseSchema from "@ioc:Adonis/Lucid/Schema";
 
 export default class extends BaseSchema {
-	protected tableName = "whatsapp_messages";
+  protected tableName = "whatsapp_messages";
 
-	public async up() {
-		this.schema.alterTable(this.tableName, (table) => {
-			table.string("message").notNullable().defaultTo("-");
-		});
-	}
+  public async up() {
+    this.schema.alterTable(this.tableName, (table) => {
+      table.string("message").notNullable().defaultTo("-");
+    });
+  }
 
-	public async down() {
-		this.schema.alterTable(this.tableName, (table) => {
-			table.dropColumn("message");
-		});
-	}
+  public async down() {
+    this.schema.alterTable(this.tableName, (table) => {
+      table.dropColumn("message");
+    });
+  }
 }

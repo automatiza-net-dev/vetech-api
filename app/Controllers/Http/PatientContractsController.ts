@@ -8,69 +8,62 @@ import UpdateContractValidator from "App/Validators/PatientContracts/UpdateContr
 
 @inject()
 export default class PatientContractsController {
-	constructor(
-		private sharedService: SharedService,
-		private service: ContractService,
-	) {}
+  constructor(
+    private sharedService: SharedService,
+    private service: ContractService,
+  ) {}
 
-	public async index({ auth, request, response }: HttpContextContract) {
-		const result = await this.service.index(
-			await this.sharedService.getAuthContext(auth),
-			request.qs(),
-		);
+  public async index({ auth, request, response }: HttpContextContract) {
+    const result = await this.service.index(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
 
-		return response.ok(result);
-	}
+    return response.ok(result);
+  }
 
-	public async forPatient({ auth, request, response }: HttpContextContract) {
-		const result = await this.service.forPatient(
-			await this.sharedService.getAuthContext(auth),
-			request.param("patientID", "-"),
-		);
+  public async forPatient({ auth, request, response }: HttpContextContract) {
+    const result = await this.service.forPatient(
+      await this.sharedService.getAuthContext(auth),
+      request.param("patientID", "-"),
+    );
 
-		return response.ok(result);
-	}
+    return response.ok(result);
+  }
 
-	public async clientContract({
-		auth,
-		request,
-		response,
-	}: HttpContextContract) {
-		const payload = await request.validate(CreateClientContractValidator);
+  public async clientContract({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(CreateClientContractValidator);
 
-		const result = await this.service.storeClientContract(
-			await this.sharedService.getAuthContext(auth),
-			payload,
-		);
+    const result = await this.service.storeClientContract(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
 
-		return response.ok(result);
-	}
+    return response.ok(result);
+  }
 
-	public async store({ auth, request, response }: HttpContextContract) {
-		const payload = await request.validate(CreateContractValidator);
-		const result = await this.service.store(
-			await this.sharedService.getAuthContext(auth),
-			payload,
-		);
+  public async store({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(CreateContractValidator);
+    const result = await this.service.store(await this.sharedService.getAuthContext(auth), payload);
 
-		return response.ok(result);
-	}
+    return response.ok(result);
+  }
 
-	public async update({ auth, request, response }: HttpContextContract) {
-		const payload = await request.validate(UpdateContractValidator);
-		const result = await this.service.update(
-			await this.sharedService.getAuthContext(auth),
-			payload,
-		);
+  public async update({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(UpdateContractValidator);
+    const result = await this.service.update(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
 
-		return response.ok(result);
-	}
+    return response.ok(result);
+  }
 
-	public async delete({ auth, request, response }: HttpContextContract) {
-		await this.service.delete(await this.sharedService.getAuthContext(auth), {
-			id: request.param("id", "-1"),
-		});
+  public async delete({ auth, request, response }: HttpContextContract) {
+    await this.service.delete(await this.sharedService.getAuthContext(auth), {
+      id: request.param("id", "-1"),
+    });
 
-		return response.ok(null);
-	}
+    return response.ok(null);
+  }
 }

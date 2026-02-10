@@ -1,5 +1,5 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
 
 export default class CreateProductVariationValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -9,16 +9,16 @@ export default class CreateProductVariationValidator {
     productId: schema.string({}, [
       rules.uuid(),
       rules.exists({
-        table: 'products',
-        column: 'id',
+        table: "products",
+        column: "id",
       }),
     ]),
     options: schema.array().members(
       schema.string({}, [
         rules.uuid(),
         rules.exists({
-          table: 'variation_options',
-          column: 'id',
+          table: "variation_options",
+          column: "id",
         }),
       ]),
     ),

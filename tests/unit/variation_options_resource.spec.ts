@@ -1,14 +1,14 @@
-import Database from '@ioc:Adonis/Lucid/Database';
-import { test } from '@japa/runner';
-import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
-import SharedService from 'App/Services/SharedService';
-import VariationOptionService from 'App/Services/VariationOptionService';
-import VariationService from 'App/Services/VariationService';
-import { v4 } from 'uuid';
+import Database from "@ioc:Adonis/Lucid/Database";
+import { test } from "@japa/runner";
+import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
+import SharedService from "App/Services/SharedService";
+import VariationOptionService from "App/Services/VariationOptionService";
+import VariationService from "App/Services/VariationService";
+import { v4 } from "uuid";
 
-import { userBootstrap } from '../utils';
+import { userBootstrap } from "../utils";
 
-test.group('Variation options resource', group => {
+test.group("Variation options resource", (group) => {
   const sharedService = new SharedService();
   const variationService = new VariationService(sharedService);
   let service: VariationOptionService;
@@ -23,27 +23,27 @@ test.group('Variation options resource', group => {
   const createData = async () => {
     const { user, group, business } = await userBootstrap();
 
-    const variation = await group.related('variations').create({
-      description: 'some description',
+    const variation = await group.related("variations").create({
+      description: "some description",
     });
 
-    const option = await variation.related('options').create({
-      description: 'some option',
+    const option = await variation.related("options").create({
+      description: "some option",
     });
 
     return { user, unit: business, variation, option };
   };
 
-  test('should return all variations', async ({ assert }) => {
+  test("should return all variations", async ({ assert }) => {
     const { unit, option } = await createData();
 
     const result = await service.index(unit.id);
 
     assert.isArray(result);
-    assert.isTrue(Boolean(result.find(f => f.id === option.id)));
+    assert.isTrue(Boolean(result.find((f) => f.id === option.id)));
   });
 
-  test('should throw ResourceNotFoundException if no variation option was found', async ({
+  test("should throw ResourceNotFoundException if no variation option was found", async ({
     assert,
   }) => {
     const { unit } = await createData();
@@ -55,7 +55,7 @@ test.group('Variation options resource', group => {
     }
   });
 
-  test('should return variation option', async ({ assert }) => {
+  test("should return variation option", async ({ assert }) => {
     const { unit, option } = await createData();
 
     const result = await service.show(unit.id, option.id);
@@ -63,30 +63,30 @@ test.group('Variation options resource', group => {
     assert.equal(option.id, result.id);
   });
 
-  test('should store a new variation option', async ({ assert }) => {
+  test("should store a new variation option", async ({ assert }) => {
     const { unit, variation } = await createData();
 
     const result = await service.store(unit.id, {
-      description: 'test option',
+      description: "test option",
       variationId: variation.id,
     });
 
-    assert.equal('test option', result.description);
+    assert.equal("test option", result.description);
   });
 
-  test('should update a variation option', async ({ assert }) => {
+  test("should update a variation option", async ({ assert }) => {
     const { unit, option } = await createData();
 
     const result = await service.update(unit.id, option.id, {
-      description: 'updated option',
+      description: "updated option",
       active: true,
     });
 
     assert.notEqual(option.description, result.description);
-    assert.equal('updated option', result.description);
+    assert.equal("updated option", result.description);
   });
 
-  test('should soft delete a variation', async ({ assert }) => {
+  test("should soft delete a variation", async ({ assert }) => {
     const { unit, option } = await createData();
 
     await service.destroy(unit.id, option.id);

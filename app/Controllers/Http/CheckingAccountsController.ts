@@ -1,10 +1,10 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import CheckingAccountService from 'App/Services/CheckingAccountService';
-import SharedService from 'App/Services/SharedService';
-import OpenCheckingAccountValidator from 'App/Validators/CheckingAccount/OpenCheckingAccountValidator';
-import UpdateCheckingAccountBalanceValidator from 'App/Validators/CheckingAccount/UpdateCheckingAccountBalanceValidator';
-import UpdateCheckingAccountValidator from 'App/Validators/CheckingAccount/UpdateCheckingAccountValidator';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import CheckingAccountService from "App/Services/CheckingAccountService";
+import SharedService from "App/Services/SharedService";
+import OpenCheckingAccountValidator from "App/Validators/CheckingAccount/OpenCheckingAccountValidator";
+import UpdateCheckingAccountBalanceValidator from "App/Validators/CheckingAccount/UpdateCheckingAccountBalanceValidator";
+import UpdateCheckingAccountValidator from "App/Validators/CheckingAccount/UpdateCheckingAccountValidator";
 
 @inject()
 export default class CheckingAccountsController {
@@ -50,12 +50,7 @@ export default class CheckingAccountsController {
     return response.created(account);
   }
 
-  public async updateAccount({
-    auth,
-    params,
-    request,
-    response,
-  }: HttpContextContract) {
+  public async updateAccount({ auth, params, request, response }: HttpContextContract) {
     const data = await request.validate(UpdateCheckingAccountValidator);
     const account = await this.service.updateAccount(
       await this.sharedService.getAuthContext(auth),
@@ -66,12 +61,7 @@ export default class CheckingAccountsController {
     return response.ok(account);
   }
 
-  public async updateAccountBalance({
-    auth,
-    params,
-    request,
-    response,
-  }: HttpContextContract) {
+  public async updateAccountBalance({ auth, params, request, response }: HttpContextContract) {
     const data = await request.validate(UpdateCheckingAccountBalanceValidator);
     const account = await this.service.updateBalance(
       await this.sharedService.getAuthContext(auth),
@@ -83,10 +73,7 @@ export default class CheckingAccountsController {
   }
 
   public async deleteAccount({ auth, params, response }: HttpContextContract) {
-    await this.service.deleteAccount(
-      await this.sharedService.getAuthContext(auth),
-      params.id,
-    );
+    await this.service.deleteAccount(await this.sharedService.getAuthContext(auth), params.id);
 
     return response.noContent();
   }

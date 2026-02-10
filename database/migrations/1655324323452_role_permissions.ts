@@ -1,19 +1,19 @@
-import BaseSchema from '@ioc:Adonis/Lucid/Schema';
+import BaseSchema from "@ioc:Adonis/Lucid/Schema";
 
 export default class extends BaseSchema {
-  protected tableName = 'role_permissions';
+  protected tableName = "role_permissions";
 
   public async up() {
-    this.schema.createTable(this.tableName, table => {
-      table.increments('id');
+    this.schema.createTable(this.tableName, (table) => {
+      table.increments("id");
 
-      table.integer('role_id').unsigned().references('roles.id');
-      table.integer('permission_id').unsigned().references('permissions.id');
+      table.integer("role_id").unsigned().references("roles.id");
+      table.integer("permission_id").unsigned().references("permissions.id");
 
-      table.unique(['role_id', 'permission_id']);
+      table.unique(["role_id", "permission_id"]);
 
-      table.timestamp('created_at', { useTz: true });
-      table.timestamp('updated_at', { useTz: true });
+      table.timestamp("created_at", { useTz: true });
+      table.timestamp("updated_at", { useTz: true });
     });
   }
 

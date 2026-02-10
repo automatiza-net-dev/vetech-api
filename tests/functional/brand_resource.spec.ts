@@ -1,9 +1,9 @@
-import Database from '@ioc:Adonis/Lucid/Database';
-import { test } from '@japa/runner';
+import Database from "@ioc:Adonis/Lucid/Database";
+import { test } from "@japa/runner";
 
-import { generateJwtToken, userBootstrap } from '../utils';
+import { generateJwtToken, userBootstrap } from "../utils";
 
-test.group('Brand resource', group => {
+test.group("Brand resource", (group) => {
   group.each.setup(async () => {
     await Database.beginGlobalTransaction();
     return () => Database.rollbackGlobalTransaction();
@@ -17,11 +17,11 @@ test.group('Brand resource', group => {
     };
   };
 
-  test('should search for brands', async ({ assert, client }) => {
+  test("should search for brands", async ({ assert, client }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client.get(`/brands`).bearerToken(token);

@@ -1,11 +1,11 @@
-import { inject } from '@adonisjs/fold';
-import Logger from '@ioc:Adonis/Core/Logger';
-import Database from '@ioc:Adonis/Lucid/Database';
-import InternalErrorException from 'App/Exceptions/InternalErrorException';
-import ProductVariation from 'App/Models/ProductVariation';
-import ProductService from 'App/Services/ProductService';
-import SharedService from 'App/Services/SharedService';
-import IProductVariationData from 'Contracts/interfaces/IProductVariationData';
+import { inject } from "@adonisjs/fold";
+import Logger from "@ioc:Adonis/Core/Logger";
+import Database from "@ioc:Adonis/Lucid/Database";
+import InternalErrorException from "App/Exceptions/InternalErrorException";
+import ProductVariation from "App/Models/ProductVariation";
+import ProductService from "App/Services/ProductService";
+import SharedService from "App/Services/SharedService";
+import IProductVariationData from "Contracts/interfaces/IProductVariationData";
 
 @inject()
 export default class ProductVariationService {
@@ -17,26 +17,23 @@ export default class ProductVariationService {
   public async index(unitId: string) {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    const products = await group
-      .related('products')
-      .query()
-      .preload('variations');
+    const products = await group.related("products").query().preload("variations");
 
-    return products.map(p => p.variations).flat();
+    return products.map((p) => p.variations).flat();
   }
 
   public async show(unitId: string, id: string): Promise<ProductVariation> {
     const group = await this.sharedService.getUserGroup(unitId);
 
-    const products = await group.related('products').query();
+    const products = await group.related("products").query();
 
     const variation = await ProductVariation.query()
-      .where('id', id)
+      .where("id", id)
       .andWhereIn(
-        'product_id',
-        products.map(p => p.id),
+        "product_id",
+        products.map((p) => p.id),
       )
-      .preload('businessUnitProducts')
+      .preload("businessUnitProducts")
       .first();
 
     if (!variation) {
@@ -48,19 +45,19 @@ export default class ProductVariationService {
 
   public async store(
     unitId: string,
-    data: Omit<IProductVariationData, 'active'> & { options: Array<string> },
+    data: Omit<IProductVariationData, "active"> & { options: Array<string> },
   ) {
     const product = await this.productService.show(unitId, data.productId);
 
     const firstVariation = await ProductVariation.query()
-      .where('product_id', product.id)
-      .preload('businessUnitProducts')
+      .where("product_id", product.id)
+      .preload("businessUnitProducts")
       .first();
 
     const trx = await Database.transaction();
 
     try {
-      const newVariation = await product.related('variations').create(
+      const newVariation = await product.related("variations").create(
         {
           barcode: data.barcode,
         },
@@ -69,12 +66,10 @@ export default class ProductVariationService {
         },
       );
 
-      await newVariation
-        .related('variationOptions')
-        .sync(data.options, false, trx);
+      await newVariation.related("variationOptions").sync(data.options, false, trx);
 
       if (firstVariation) {
-        const data = firstVariation.businessUnitProducts.map(bup => ({
+        const data = firstVariation.businessUnitProducts.map((bup) => ({
           businness_unit_id: bup.businness_unit_id,
           stock: 0,
           price: bup.price,
@@ -90,9 +85,7 @@ export default class ProductVariationService {
           metaType: bup.metaType,
         }));
 
-        await newVariation
-          .related('businessUnitProducts')
-          .createMany(data, trx);
+        await newVariation.related("businessUnitProducts").createMany(data, trx);
       }
 
       await trx.commit();
@@ -101,11 +94,7 @@ export default class ProductVariationService {
     } catch (error) {
       await trx.rollback();
       Logger.error(error.message);
-      throw new InternalErrorException(
-        'Erro na execução',
-        500,
-        'E_INTERNAL_ERROR',
-      );
+      throw new InternalErrorException("Erro na execução", 500, "E_INTERNAL_ERROR");
     }
   }
 

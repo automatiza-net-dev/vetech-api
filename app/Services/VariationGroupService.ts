@@ -10,110 +10,99 @@ import IVariationGroupData from "Contracts/interfaces/IVariationGroupData";
 
 @inject()
 export default class VariationGroupService {
-	constructor(
-		private readonly sharedService: SharedService,
-		private readonly variationService: VariationService,
-	) {}
+  constructor(
+    private readonly sharedService: SharedService,
+    private readonly variationService: VariationService,
+  ) {}
 
-	public async index(unitId: string) {
-		const group = await this.sharedService.getUserGroup(unitId);
+  public async index(unitId: string) {
+    const group = await this.sharedService.getUserGroup(unitId);
 
-		return group
-			.related("variationGroups")
-			.query()
-			.preload("variations", (query) => {
-				query.preload("options");
-			});
-	}
+    return group
+      .related("variationGroups")
+      .query()
+      .preload("variations", (query) => {
+        query.preload("options");
+      });
+  }
 
-	public async show(unitId: string, id: string): Promise<VariationGroup> {
-		const group = await this.sharedService.getUserGroup(unitId);
+  public async show(unitId: string, id: string): Promise<VariationGroup> {
+    const group = await this.sharedService.getUserGroup(unitId);
 
-		const variation = await group
-			.related("variationGroups")
-			.query()
-			.where("id", id)
-			.preload("variations")
-			.first();
+    const variation = await group
+      .related("variationGroups")
+      .query()
+      .where("id", id)
+      .preload("variations")
+      .first();
 
-		if (!variation) {
-			throw new ResourceNotFoundException(
-				"Recurso não encontrado",
-				404,
-				"E_NOT_FOUND",
-			);
-		}
+    if (!variation) {
+      throw new ResourceNotFoundException("Recurso não encontrado", 404, "E_NOT_FOUND");
+    }
 
-		return variation;
-	}
+    return variation;
+  }
 
-	public async store(
-		authCtx: AuthContext,
-		data: Omit<IVariationGroupData, "active"> & { options: string[] },
-	) {
-		return Database.transaction(async (trx) => {
-			const variationGroup = await authCtx.group
-				.related("variationGroups")
-				.create(
-					{
-						description: data.description,
-					},
-					{
-						client: trx,
-					},
-				);
+  public async store(
+    authCtx: AuthContext,
+    data: Omit<IVariationGroupData, "active"> & { options: string[] },
+  ) {
+    return Database.transaction(async (trx) => {
+      const variationGroup = await authCtx.group.related("variationGroups").create(
+        {
+          description: data.description,
+        },
+        {
+          client: trx,
+        },
+      );
 
-			await variationGroup.related("variations").sync(data.options, true, trx);
+      await variationGroup.related("variations").sync(data.options, true, trx);
 
-			return variationGroup;
-		});
-	}
+      return variationGroup;
+    });
+  }
 
-	public async assignVariation(unitId: string, data: IAssignGroupVariation) {
-		const variation = await this.variationService.show(
-			unitId,
-			data.variation_id,
-		);
+  public async assignVariation(unitId: string, data: IAssignGroupVariation) {
+    const variation = await this.variationService.show(unitId, data.variation_id);
 
-		const alreadyRelated = await variation.related("variationGroups").query();
-		const idList = alreadyRelated.map((r) => r.id);
-		const newIdList = Array.from(new Set([...idList, data.group_variation_id]));
-		await variation.related("variationGroups").sync(newIdList);
-	}
+    const alreadyRelated = await variation.related("variationGroups").query();
+    const idList = alreadyRelated.map((r) => r.id);
+    const newIdList = Array.from(new Set([...idList, data.group_variation_id]));
+    await variation.related("variationGroups").sync(newIdList);
+  }
 
-	public async update(
-		authCtx: AuthContext,
-		id: string,
-		data: IVariationGroupData & { options: string[] },
-	) {
-		const variation = await this.show(authCtx.unit.id, id);
+  public async update(
+    authCtx: AuthContext,
+    id: string,
+    data: IVariationGroupData & { options: string[] },
+  ) {
+    const variation = await this.show(authCtx.unit.id, id);
 
-		return Database.transaction(async (trx) => {
-			const updatedVariation = await variation
-				.merge({
-					description: data.description,
-					active: data.active,
-				})
-				.useTransaction(trx)
-				.save();
+    return Database.transaction(async (trx) => {
+      const updatedVariation = await variation
+        .merge({
+          description: data.description,
+          active: data.active,
+        })
+        .useTransaction(trx)
+        .save();
 
-			await updatedVariation
-				.related("variations")
-				.sync(data.options, true, trx);
+      await updatedVariation.related("variations").sync(data.options, true, trx);
 
-			return updatedVariation;
-		});
-	}
+      return updatedVariation;
+    });
+  }
 
-	public async destroy(unitId: string, id: string) {
-		const group = await this.show(unitId, id);
+  public async destroy(unitId: string, id: string) {
+    const group = await this.show(unitId, id);
 
-		await group.softDelete();
-	}
+    await group.softDelete();
+  }
 
-	public async detach(unitId: string, group: string, variation: string) {
-		const entity = await this.show(unitId, group);
+  public async detach(unitId: string, group: string, variation: string) {
+    const entity = await this.show(unitId, group);
 
-		await entity.related("variations").detach([variation]);
-	}
+    await entity.related("variations").detach([variation]);
+  }
 }

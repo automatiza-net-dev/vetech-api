@@ -1,6 +1,6 @@
-import { schema, CustomMessages, rules } from '@ioc:Adonis/Core/Validator';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { AddressTypes } from 'App/Models/Address';
+import { schema, CustomMessages, rules } from "@ioc:Adonis/Core/Validator";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { AddressTypes } from "App/Models/Address";
 
 export default class CreateAddressValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -25,10 +25,7 @@ export default class CreateAddressValidator {
    *    ```
    */
   public schema = schema.create({
-    userId: schema.string({}, [
-      rules.uuid(),
-      rules.exists({ table: 'users', column: 'id' }),
-    ]),
+    userId: schema.string({}, [rules.uuid(), rules.exists({ table: "users", column: "id" })]),
     code: schema.number(),
     main: schema.boolean(),
     type: schema.enum(Object.values(AddressTypes)),

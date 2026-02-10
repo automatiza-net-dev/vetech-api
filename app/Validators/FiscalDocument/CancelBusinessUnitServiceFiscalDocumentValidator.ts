@@ -1,5 +1,5 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
 
 export default class CancelBusinessUnitServiceFiscalDocumentValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -8,8 +8,8 @@ export default class CancelBusinessUnitServiceFiscalDocumentValidator {
     issuedDocumentId: schema.string([
       rules.uuid(),
       rules.exists({
-        table: 'service_issued_fiscal_documents',
-        column: 'id',
+        table: "service_issued_fiscal_documents",
+        column: "id",
       }),
     ]),
     reason: schema.string(),

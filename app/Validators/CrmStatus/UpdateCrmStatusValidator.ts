@@ -1,6 +1,6 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { schema, CustomMessages } from '@ioc:Adonis/Core/Validator';
-import { CrmStatusTypes } from 'App/Models/CrmStatus';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { schema, CustomMessages } from "@ioc:Adonis/Core/Validator";
+import { CrmStatusTypes } from "App/Models/CrmStatus";
 
 export default class UpdateCrmStatusValidator {
   constructor(protected ctx: HttpContextContract) {}

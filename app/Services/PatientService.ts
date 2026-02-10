@@ -1,8 +1,6 @@
 import { inject } from "@adonisjs/fold";
 import { MultipartFileContract } from "@ioc:Adonis/Core/BodyParser";
-import Database, {
-  TransactionClientContract,
-} from "@ioc:Adonis/Lucid/Database";
+import Database, { TransactionClientContract } from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
@@ -10,9 +8,7 @@ import Attendance from "App/Models/Attendance";
 import Bill, { BillStatus } from "App/Models/Bill";
 import Budget, { BudgetStatus } from "App/Models/Budget";
 import HolderDependentLog from "App/Models/HolderDependentLog";
-import Hospitalization, {
-  HospitalizationType,
-} from "App/Models/Hospitalization";
+import Hospitalization, { HospitalizationType } from "App/Models/Hospitalization";
 import AnimalTimeline from "App/Models/mongoose/AnimalTimeline";
 import HospitalizationTimeline from "App/Models/mongoose/HospitalizationTimeline";
 import Patient, { PatientType } from "App/Models/Patient";
@@ -26,9 +22,7 @@ import User from "App/Models/User";
 import VaccineCalendar from "App/Models/VaccineCalendar";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import IAssignPatientTutor from "Contracts/interfaces/IAssignPatientTutor";
-import IPatientData, {
-  IFastStorePatient,
-} from "Contracts/interfaces/IPatientData";
+import IPatientData, { IFastStorePatient } from "Contracts/interfaces/IPatientData";
 import IPatientSupplierData from "Contracts/interfaces/IPatientSupplierData";
 import IPatientTutorData from "Contracts/interfaces/IPatientTutorData";
 import ISearchPatient from "Contracts/interfaces/ISearchPatient";
@@ -78,7 +72,7 @@ interface ISearchSupplier {
 
 @inject()
 export default class PatientService {
-  constructor(private readonly sharedService: SharedService) { }
+  constructor(private readonly sharedService: SharedService) {}
 
   static MESES = [
     "Janeiro",
@@ -96,10 +90,7 @@ export default class PatientService {
   ];
 
   public async index(authCtx: AuthContext, data: ISearch) {
-    const qb = authCtx.group
-      .related("patients")
-      .query()
-      .preload("patientAnimal");
+    const qb = authCtx.group.related("patients").query().preload("patientAnimal");
 
     if (data.id) {
       qb.where("id", data.id);
@@ -235,13 +226,10 @@ export default class PatientService {
           id: patient.id,
           name: patient.name,
           tag: patient.tag,
-          race: this.sharedService.captureGroup(
-            patient?.patientAnimal?.race,
-            (v) => ({
-              id: v.id,
-              description: v.description,
-            }),
-          ),
+          race: this.sharedService.captureGroup(patient?.patientAnimal?.race, (v) => ({
+            id: v.id,
+            description: v.description,
+          })),
         })),
       }));
   }
@@ -283,25 +271,13 @@ export default class PatientService {
       )
       .orderByRaw("patients.name asc")
       .groupByRaw("patients.id, patient_tutors.id")
-      .joinRaw(
-        "join patients on patient_economic_groups.patient_id = patients.id",
-      )
+      .joinRaw("join patients on patient_economic_groups.patient_id = patients.id")
       .joinRaw("join patient_tutors on patients.id = patient_tutors.patient_id")
-      .joinRaw(
-        "left join client_origins on patient_tutors.client_origin_id = client_origins.id",
-      )
-      .joinRaw(
-        "left join professions on patient_tutors.profession_id = professions.id",
-      )
-      .joinRaw(
-        "left join holder_dependents on patients.id = holder_dependents.holder_id",
-      )
-      .joinRaw(
-        "left join patients dep on holder_dependents.dependent_id = dep.id",
-      )
-      .whereRaw("patient_economic_groups.economic_group_id = ?", [
-        authCtx.group.id,
-      ])
+      .joinRaw("left join client_origins on patient_tutors.client_origin_id = client_origins.id")
+      .joinRaw("left join professions on patient_tutors.profession_id = professions.id")
+      .joinRaw("left join holder_dependents on patients.id = holder_dependents.holder_id")
+      .joinRaw("left join patients dep on holder_dependents.dependent_id = dep.id")
+      .whereRaw("patient_economic_groups.economic_group_id = ?", [authCtx.group.id])
       .whereRaw("patients.type <> ?", [PatientType.ANIMAL])
       .whereRaw("patients.deleted_at is null", []);
 
@@ -316,9 +292,7 @@ export default class PatientService {
     }
 
     if (data.document) {
-      qb.whereRaw("patient_tutors.document ilike ?", [
-        `%${data.document?.replace(/\D/g, "")}%`,
-      ]);
+      qb.whereRaw("patient_tutors.document ilike ?", [`%${data.document?.replace(/\D/g, "")}%`]);
     }
 
     if (data.phone) {
@@ -352,14 +326,7 @@ export default class PatientService {
                                  ? end
                          ))
                 and ("patients"."id" = "patient_contacts"."patient_id"))`,
-        [
-          clearPhone,
-          `%${clearPhone}%`,
-          clearPhone,
-          clearPhone,
-          clearPhone,
-          `%${clearPhone}%`,
-        ],
+        [clearPhone, `%${clearPhone}%`, clearPhone, clearPhone, clearPhone, `%${clearPhone}%`],
       );
     }
 
@@ -417,25 +384,13 @@ export default class PatientService {
       )
       .orderByRaw("patients.name asc")
       .groupByRaw("patients.id, patient_tutors.id")
-      .joinRaw(
-        "join patients on patient_economic_groups.patient_id = patients.id",
-      )
+      .joinRaw("join patients on patient_economic_groups.patient_id = patients.id")
       .joinRaw("join patient_tutors on patients.id = patient_tutors.patient_id")
-      .joinRaw(
-        "left join client_origins on patient_tutors.client_origin_id = client_origins.id",
-      )
-      .joinRaw(
-        "left join professions on patient_tutors.profession_id = professions.id",
-      )
-      .joinRaw(
-        "left join holder_dependents on patients.id = holder_dependents.holder_id",
-      )
-      .joinRaw(
-        "left join patients dep on holder_dependents.dependent_id = dep.id",
-      )
-      .whereRaw("patient_economic_groups.economic_group_id = ?", [
-        authCtx.group.id,
-      ])
+      .joinRaw("left join client_origins on patient_tutors.client_origin_id = client_origins.id")
+      .joinRaw("left join professions on patient_tutors.profession_id = professions.id")
+      .joinRaw("left join holder_dependents on patients.id = holder_dependents.holder_id")
+      .joinRaw("left join patients dep on holder_dependents.dependent_id = dep.id")
+      .whereRaw("patient_economic_groups.economic_group_id = ?", [authCtx.group.id])
       .whereRaw("patients.type = ?", [PatientType.TUTOR])
       .whereRaw("patients.deleted_at is null", []);
 
@@ -450,9 +405,7 @@ export default class PatientService {
     }
 
     if (data.document) {
-      qb.whereRaw("patient_tutors.document ilike ?", [
-        `%${data.document?.replace(/\D/g, "")}%`,
-      ]);
+      qb.whereRaw("patient_tutors.document ilike ?", [`%${data.document?.replace(/\D/g, "")}%`]);
     }
 
     if (data.phone) {
@@ -486,14 +439,7 @@ export default class PatientService {
                                  ? end
                          ))
                 and ("patients"."id" = "patient_contacts"."patient_id"))`,
-        [
-          clearPhone,
-          `%${clearPhone}%`,
-          clearPhone,
-          clearPhone,
-          clearPhone,
-          `%${clearPhone}%`,
-        ],
+        [clearPhone, `%${clearPhone}%`, clearPhone, clearPhone, clearPhone, `%${clearPhone}%`],
       );
     }
 
@@ -554,13 +500,10 @@ export default class PatientService {
       tag: elem.tag,
       telephone: elem.tutor.telephone,
       cellphone: elem.tutor.cellphone,
-      accountPlan: this.sharedService.captureGroup(
-        elem.tutor.accountPlan,
-        (v) => ({
-          id: v.id,
-          description: v.description,
-        }),
-      ),
+      accountPlan: this.sharedService.captureGroup(elem.tutor.accountPlan, (v) => ({
+        id: v.id,
+        description: v.description,
+      })),
     }));
   }
 
@@ -593,21 +536,13 @@ export default class PatientService {
       )
       .orderByRaw("patients.name asc")
       .groupByRaw("patients.id, patient_animals.id, races.id, species.id")
-      .joinRaw(
-        "join patients on patient_economic_groups.patient_id = patients.id",
-      )
-      .joinRaw(
-        "join patient_animals on patients.id = patient_animals.patient_id",
-      )
+      .joinRaw("join patients on patient_economic_groups.patient_id = patients.id")
+      .joinRaw("join patient_animals on patients.id = patient_animals.patient_id")
       .joinRaw("left join races on patient_animals.race_id = races.id")
       .joinRaw("left join species on races.specie_id = species.id")
-      .joinRaw(
-        "left join holder_dependents on patients.id = holder_dependents.dependent_id",
-      )
+      .joinRaw("left join holder_dependents on patients.id = holder_dependents.dependent_id")
       .joinRaw("left join patients tut on holder_dependents.holder_id = tut.id")
-      .whereRaw("patient_economic_groups.economic_group_id = ?", [
-        authCtx.group.id,
-      ])
+      .whereRaw("patient_economic_groups.economic_group_id = ?", [authCtx.group.id])
       .whereRaw("patients.type = ?", [PatientType.ANIMAL])
       .whereRaw("patients.deleted_at is null", []);
 
@@ -638,9 +573,7 @@ export default class PatientService {
     }
 
     if (data.tutor) {
-      qb.whereRaw(`unaccent(tut.name) ilike '%' || unaccent(?) || '%'`, [
-        data.tutor,
-      ]);
+      qb.whereRaw(`unaccent(tut.name) ilike '%' || unaccent(?) || '%'`, [data.tutor]);
     }
 
     // tem nome de tutor ou documento
@@ -697,14 +630,7 @@ export default class PatientService {
                                  ? end
                          ))
                 and ("tut"."id" = "patient_contacts"."patient_id"))`,
-        [
-          clearPhone,
-          `%${clearPhone}%`,
-          clearPhone,
-          clearPhone,
-          clearPhone,
-          `%${clearPhone}%`,
-        ],
+        [clearPhone, `%${clearPhone}%`, clearPhone, clearPhone, clearPhone, `%${clearPhone}%`],
       );
     }
 
@@ -735,14 +661,9 @@ export default class PatientService {
         "join patient_economic_groups peg on patients.id = peg.patient_id and peg.economic_group_id = ?",
         [authCtx.group.id],
       )
-      .joinRaw(
-        "join patient_tutors on patient_tutors.patient_id = patients.id",
-        [],
-      )
+      .joinRaw("join patient_tutors on patient_tutors.patient_id = patients.id", [])
       .where("type", PatientType.TUTOR)
-      .whereRaw(
-        "not exists (select * from holder_dependents hd where patients.id = hd.holder_id)",
-      )
+      .whereRaw("not exists (select * from holder_dependents hd where patients.id = hd.holder_id)")
       .whereRaw(
         data.tutor
           ? `(unaccent(patients.name) ilike '%' || unaccent(?) || '%')`
@@ -764,11 +685,7 @@ export default class PatientService {
 
   public async uniqueOrigins(authCtx: AuthContext) {
     const rows = await Database.from("patients")
-      .select(
-        Database.raw(
-          "distinct(patients.client_origin_item_description) as desc",
-        ),
-      )
+      .select(Database.raw("distinct(patients.client_origin_item_description) as desc"))
       .joinRaw(
         "left join patient_economic_groups on patient_economic_groups.patient_id = patients.id",
       )
@@ -795,17 +712,10 @@ export default class PatientService {
   }
 
   public async tutorNonPatients(authCtx: AuthContext, id: string) {
-    const tutor = await Patient.query()
-      .where("id", id)
-      .preload("dependents")
-      .first();
+    const tutor = await Patient.query().where("id", id).preload("dependents").first();
 
     if (!tutor) {
-      throw new ResourceNotFoundException(
-        "Tutor não encontrado",
-        404,
-        "E_NOT_FOUND",
-      );
+      throw new ResourceNotFoundException("Tutor não encontrado", 404, "E_NOT_FOUND");
     }
 
     const animalsIndex = await this.animalsIndex(authCtx, {});
@@ -826,11 +736,7 @@ export default class PatientService {
       .first();
 
     if (!patient) {
-      throw new ResourceNotFoundException(
-        "Paciente não encontrado",
-        404,
-        "E_NOT_FOUND",
-      );
+      throw new ResourceNotFoundException("Paciente não encontrado", 404, "E_NOT_FOUND");
     }
 
     const openHospitalizations = await Hospitalization.query()
@@ -885,11 +791,7 @@ export default class PatientService {
     };
   }
 
-  public async display(
-    authCtx: AuthContext,
-    patientId: string,
-    params: { scheduleId?: string },
-  ) {
+  public async display(authCtx: AuthContext, patientId: string, params: { scheduleId?: string }) {
     const patient = await authCtx.group
       .related("patients")
       .query()
@@ -908,11 +810,7 @@ export default class PatientService {
       .first();
 
     if (!patient) {
-      throw new ResourceNotFoundException(
-        "Paciente não encontrado",
-        404,
-        "E_NOT_FOUND",
-      );
+      throw new ResourceNotFoundException("Paciente não encontrado", 404, "E_NOT_FOUND");
     }
 
     const openHospitalizations = await Hospitalization.query()
@@ -920,17 +818,12 @@ export default class PatientService {
       .where("status", HospitalizationStatus.ACTIVE);
 
     const patientSales = await Bill.query()
-      .where(
-        authCtx.system.type !== "Vet" ? "client_id" : "patient_id",
-        patient.id,
-      )
+      .where(authCtx.system.type !== "Vet" ? "client_id" : "patient_id", patient.id)
       .where("status", BillStatus.A);
 
     const mainTutor = patient.tutors.find((t) => t.$extras.pivot_is_main);
     const tutorSales = mainTutor
-      ? await Bill.query()
-        .where("client_id", mainTutor.id)
-        .where("status", BillStatus.A)
+      ? await Bill.query().where("client_id", mainTutor.id).where("status", BillStatus.A)
       : [];
 
     const attendances = await Attendance.query()
@@ -943,55 +836,40 @@ export default class PatientService {
       started_at: string;
       aid: string | null;
     } | null = params.scheduleId
-        ? await Database.from("schedules")
-          .select(
-            Database.raw(
-              "schedules.id, schedules.started_at, attendances.id as aid",
-            ),
-          )
+      ? await Database.from("schedules")
+          .select(Database.raw("schedules.id, schedules.started_at, attendances.id as aid"))
           .whereRaw("schedules.id = ?", [params.scheduleId])
-          .joinRaw(
-            "left join attendances on attendances.schedule_id = schedules.id",
-          )
+          .joinRaw("left join attendances on attendances.schedule_id = schedules.id")
           .first()
-        : await Database.from("schedules")
-          .select(
-            Database.raw(
-              "schedules.id, schedules.started_at, attendances.id as aid",
-            ),
-          )
+      : await Database.from("schedules")
+          .select(Database.raw("schedules.id, schedules.started_at, attendances.id as aid"))
           .whereRaw("schedules.patient_id = ?", [patient.id])
           .whereRaw("start_hour::date = now()::date")
-          .joinRaw(
-            "left join attendances on attendances.schedule_id = schedules.id",
-          )
+          .joinRaw("left join attendances on attendances.schedule_id = schedules.id")
           .orderByRaw("schedules.created_at desc")
           .first();
 
-    const s3Urls = await SharedService.ComputePublicS3Link(
-      patient.photo ? [patient.photo] : [],
-    );
+    const s3Urls = await SharedService.ComputePublicS3Link(patient.photo ? [patient.photo] : []);
 
-    const tutorCredits = await ClientCredit.query().where('client_id', mainTutor?.id ?? patient.id).whereRaw('used_value < original_value')
-    const missingClientTotal = patientSales
-      .reduce((acc, curr) => {
-        if (!curr.totalValue) {
-          return acc;
-        }
-        return acc.plus(curr.totalValue).minus(curr.paidValue);
-      }, new Decimal(0))
-    const missingTutorTotal =
-      tutorSales
-        .reduce((acc, curr) => {
-          if (!curr.totalValue) {
-            return acc;
-          }
-          return acc.plus(curr.totalValue).minus(curr.paidValue);
-        }, new Decimal(0))
+    const tutorCredits = await ClientCredit.query()
+      .where("client_id", mainTutor?.id ?? patient.id)
+      .whereRaw("used_value < original_value");
+    const missingClientTotal = patientSales.reduce((acc, curr) => {
+      if (!curr.totalValue) {
+        return acc;
+      }
+      return acc.plus(curr.totalValue).minus(curr.paidValue);
+    }, new Decimal(0));
+    const missingTutorTotal = tutorSales.reduce((acc, curr) => {
+      if (!curr.totalValue) {
+        return acc;
+      }
+      return acc.plus(curr.totalValue).minus(curr.paidValue);
+    }, new Decimal(0));
 
     const tutorCreditsTotal = tutorCredits.reduce((acc, curr) => {
       return acc.plus(curr.originalValue).minus(curr.usedValue);
-    }, new Decimal(0))
+    }, new Decimal(0));
 
     const displayData = {
       id: patient.id,
@@ -1005,17 +883,14 @@ export default class PatientService {
       birth_date: patient.birthDate,
       age: patient.birthDate
         ? patient.patientAnimal?.deathDate
-          ? this.dateDiff(
-            patient.birthDate,
-            patient.patientAnimal?.deathDate.toJSDate(),
-          )
+          ? this.dateDiff(patient.birthDate, patient.patientAnimal?.deathDate.toJSDate())
           : this.dateDiff(patient.birthDate, new Date())
         : "-",
       birth_date_text: patient.birthDate
         ? new Intl.DateTimeFormat("pt-BR", {
-          day: "numeric",
-          month: "long",
-        }).format(patient.birthDate)
+            day: "numeric",
+            month: "long",
+          }).format(patient.birthDate)
         : "-",
       active: patient.active,
       tag: patient.tag,
@@ -1173,16 +1048,10 @@ export default class PatientService {
       .first();
 
     if (!patient) {
-      throw new ResourceNotFoundException(
-        "Paciente não encontrado",
-        404,
-        "E_NOT_FOUND",
-      );
+      throw new ResourceNotFoundException("Paciente não encontrado", 404, "E_NOT_FOUND");
     }
 
-    const s3Urls = await SharedService.ComputePublicS3Link(
-      patient.photo ? [patient.photo] : [],
-    );
+    const s3Urls = await SharedService.ComputePublicS3Link(patient.photo ? [patient.photo] : []);
 
     return {
       id: patient.id,
@@ -1193,9 +1062,7 @@ export default class PatientService {
       photo: s3Urls.at(0)?.view ?? null,
       gender: patient.gender,
       tags: patient.tags,
-      birthDate: patient.birthDate
-        ? DateTime.fromJSDate(patient.birthDate)
-        : null,
+      birthDate: patient.birthDate ? DateTime.fromJSDate(patient.birthDate) : null,
       active: patient.active,
       document: patient.tutor.document,
       inscription: patient.tutor.inscription,
@@ -1248,17 +1115,11 @@ export default class PatientService {
       .first();
 
     if (!patient) {
-      throw new ResourceNotFoundException(
-        "Paciente não encontrado",
-        404,
-        "E_NOT_FOUND",
-      );
+      throw new ResourceNotFoundException("Paciente não encontrado", 404, "E_NOT_FOUND");
     }
 
     const key = authCtx.system.type !== "Vet" ? "client_id" : "patient_id";
-    const sales = await Bill.query()
-      .where(key, patient.id)
-      .where("status", BillStatus.A);
+    const sales = await Bill.query().where(key, patient.id).where("status", BillStatus.A);
 
     const missing = sales
       .reduce((acc, curr) => {
@@ -1301,11 +1162,7 @@ export default class PatientService {
       .first();
 
     if (!patient) {
-      throw new ResourceNotFoundException(
-        "Paciente não encontrado",
-        404,
-        "E_NOT_FOUND",
-      );
+      throw new ResourceNotFoundException("Paciente não encontrado", 404, "E_NOT_FOUND");
     }
 
     const salesQb = Bill.query()
@@ -1322,16 +1179,11 @@ export default class PatientService {
 
     if (data.onlyOpen) {
       // salesQb.whereRaw("(total_value - paid_value) > 0");
-      salesQb
-        .where("status", BillStatus.A)
-        .whereRaw("(total_value - paid_value) > 0");
+      salesQb.where("status", BillStatus.A).whereRaw("(total_value - paid_value) > 0");
     }
 
     if (authCtx.system.type === "Vet") {
-      if (
-        (data.tutor && validate(data.tutor)) ||
-        (data.tutorID && validate(data.tutorID))
-      ) {
+      if ((data.tutor && validate(data.tutor)) || (data.tutorID && validate(data.tutorID))) {
         salesQb.whereRaw("(client_id = ? or client_id = ? or patient_id = ?)", [
           patient.id,
           data.tutor ?? data.tutorID ?? v4(),
@@ -1349,17 +1201,16 @@ export default class PatientService {
     const budgets = data.onlyOpen
       ? []
       : await Budget.query()
-        .where(key, patient.id)
-        .where("status", BudgetStatus.A)
-        .preload("seller")
-        .preload(key === "patient_id" ? "client" : "user")
-        .orderByRaw("budget_date desc, tag desc");
+          .where(key, patient.id)
+          .where("status", BudgetStatus.A)
+          .preload("seller")
+          .preload(key === "patient_id" ? "client" : "user")
+          .orderByRaw("budget_date desc, tag desc");
 
-    const budgetStatuses: { id: string; status: string }[] =
-      await Database.from("budgets")
-        .select(
-          Database.raw(
-            `id,
+    const budgetStatuses: { id: string; status: string }[] = await Database.from("budgets")
+      .select(
+        Database.raw(
+          `id,
        case
            when
                (select true
@@ -1370,17 +1221,15 @@ export default class PatientService {
                   and budget_items.budget_id = budgets.id
                 group by budget_id) = true then 'Nao Aprovada'
            else budgets.status end as status`,
-          ),
-        )
-        .whereIn(
-          "id",
-          budgets.map((b) => b.id),
-        )
-        .orderByRaw("created_at desc");
+        ),
+      )
+      .whereIn(
+        "id",
+        budgets.map((b) => b.id),
+      )
+      .orderByRaw("created_at desc");
 
-    const billStatuses: { id: string; status: string }[] = await Database.from(
-      "bills",
-    )
+    const billStatuses: { id: string; status: string }[] = await Database.from("bills")
       .select(
         Database.raw(
           `id,
@@ -1448,9 +1297,7 @@ export default class PatientService {
         missing_value: sale.totalValue
           ? sale.totalValue.minus(sale.paidValue ?? 0)
           : new Decimal(0),
-        status:
-          billStatuses.find((s) => s.id === sale.id)?.status ??
-          getStrStatus(sale),
+        status: billStatuses.find((s) => s.id === sale.id)?.status ?? getStrStatus(sale),
         items: sale.items,
       });
     }
@@ -1470,9 +1317,7 @@ export default class PatientService {
         pending: budget.pending,
         missing_value: null,
         // status: "Orçamento em aberto",
-        status:
-          budgetStatuses.find((s) => s.id === budget.id)?.status ??
-          "Orçamento em aberto",
+        status: budgetStatuses.find((s) => s.id === budget.id)?.status ?? "Orçamento em aberto",
         items: [],
       });
     }
@@ -1507,9 +1352,7 @@ export default class PatientService {
         .joinRaw(
           "left join patient_economic_groups on economic_groups.id = patient_economic_groups.economic_group_id",
         )
-        .joinRaw(
-          "left join patients on patient_economic_groups.patient_id = patients.id",
-        )
+        .joinRaw("left join patients on patient_economic_groups.patient_id = patients.id")
         .where("economic_groups.id", authCtx.group.id);
 
       const tutor = await Patient.create(
@@ -1605,9 +1448,7 @@ export default class PatientService {
         .joinRaw(
           "left join patient_economic_groups on economic_groups.id = patient_economic_groups.economic_group_id",
         )
-        .joinRaw(
-          "left join patients on patient_economic_groups.patient_id = patients.id",
-        )
+        .joinRaw("left join patients on patient_economic_groups.patient_id = patients.id")
         .where("economic_groups.id", authCtx.group.id)
         .limit(1);
 
@@ -1617,19 +1458,19 @@ export default class PatientService {
         // não tem nenhuma informação de data relativa?
         !data.birthYears && !data.birthMonths && !data.birthDays
           ? // verifica se tem data
-          data.birthDate
+            data.birthDate
             ? typeof data.birthDate === "string"
               ? DateTime.fromISO(data.birthDate).toJSDate()
               : data.birthDate.toJSDate()
             : // se não tiver, usa null
-            null
+              null
           : DateTime.now()
-            .minus({
-              years: data.birthYears ?? 0,
-              months: data.birthMonths ?? 0,
-              days: data.birthDays ?? 0,
-            })
-            .toJSDate();
+              .minus({
+                years: data.birthYears ?? 0,
+                months: data.birthMonths ?? 0,
+                days: data.birthDays ?? 0,
+              })
+              .toJSDate();
 
       const patient = await Patient.create(
         {
@@ -1659,16 +1500,10 @@ export default class PatientService {
           });
 
           if (holder.type !== PatientType.TUTOR) {
-            throw new BadRequestException(
-              "Tutor inválido",
-              400,
-              "E_BAD_REQUEST",
-            );
+            throw new BadRequestException("Tutor inválido", 400, "E_BAD_REQUEST");
           }
 
-          await holder
-            .related("dependents")
-            .attach({ [patient.id]: { is_main: elem.main } }, trx);
+          await holder.related("dependents").attach({ [patient.id]: { is_main: elem.main } }, trx);
         }) ?? [];
       await Promise.all(tasks);
 
@@ -1722,11 +1557,7 @@ export default class PatientService {
     return Database.transaction(async (trx) => {
       if (data.document) {
         if (!this.sharedService.validDocument(data.document)) {
-          throw new BadRequestException(
-            "CPF/CNPJ inválido",
-            400,
-            "E_INVALID_DOCUMENT",
-          );
+          throw new BadRequestException("CPF/CNPJ inválido", 400, "E_INVALID_DOCUMENT");
         }
 
         const document = await authCtx.group
@@ -1753,9 +1584,7 @@ export default class PatientService {
         .joinRaw(
           "left join patient_economic_groups on economic_groups.id = patient_economic_groups.economic_group_id",
         )
-        .joinRaw(
-          "left join patients on patient_economic_groups.patient_id = patients.id",
-        )
+        .joinRaw("left join patients on patient_economic_groups.patient_id = patients.id")
         .where("economic_groups.id", authCtx.group.id);
 
       const patient = await Patient.create(
@@ -1885,10 +1714,7 @@ export default class PatientService {
     });
   }
 
-  public async assignPatientTutor(
-    _authCtx: AuthContext,
-    data: IAssignPatientTutor,
-  ) {
+  public async assignPatientTutor(_authCtx: AuthContext, data: IAssignPatientTutor) {
     const tutor = await Patient.query()
       .where("id", data.holder)
       .where("type", PatientType.TUTOR)
@@ -1900,9 +1726,7 @@ export default class PatientService {
     }
 
     const dependents = tutor.dependents.map((d) => d.id);
-    const updatedDependents = Array.from(
-      new Set([...dependents, data.patient]),
-    );
+    const updatedDependents = Array.from(new Set([...dependents, data.patient]));
 
     await tutor.related("dependents").sync(updatedDependents);
   }
@@ -1945,9 +1769,7 @@ export default class PatientService {
         .joinRaw(
           "left join patient_economic_groups on economic_groups.id = patient_economic_groups.economic_group_id",
         )
-        .joinRaw(
-          "left join patients on patient_economic_groups.patient_id = patients.id",
-        )
+        .joinRaw("left join patients on patient_economic_groups.patient_id = patients.id")
         .where("economic_groups.id", authCtx.group.id);
 
       const patient = await Patient.create(
@@ -2008,19 +1830,19 @@ export default class PatientService {
         // não tem nenhuma informação de data relativa?
         !data.birthYears && !data.birthMonths && !data.birthDays
           ? // verifica se tem data
-          data.birthDate
+            data.birthDate
             ? typeof data.birthDate === "string"
               ? DateTime.fromISO(data.birthDate).toJSDate()
               : data.birthDate.toJSDate()
             : // se não tiver, usa null
-            null
+              null
           : DateTime.now()
-            .minus({
-              years: data.birthYears ?? 0,
-              months: data.birthMonths ?? 0,
-              days: data.birthDays ?? 0,
-            })
-            .toJSDate();
+              .minus({
+                years: data.birthYears ?? 0,
+                months: data.birthMonths ?? 0,
+                days: data.birthDays ?? 0,
+              })
+              .toJSDate();
 
       const patient = await authCtx.group
         .related("patients")
@@ -2031,11 +1853,7 @@ export default class PatientService {
         .first();
 
       if (!patient) {
-        throw new ResourceNotFoundException(
-          "Paciente não encontrado",
-          404,
-          "E_NOT_FOUND",
-        );
+        throw new ResourceNotFoundException("Paciente não encontrado", 404, "E_NOT_FOUND");
       }
 
       if (data.tag && data.tag !== patient.tag) {
@@ -2047,16 +1865,10 @@ export default class PatientService {
           .whereRaw("patients.type = ?", [patient.type])
           .whereRaw("patients.tag = ?", [data.tag])
           .whereRaw("patients.deleted_at is null", [])
-          .whereRaw("patient_economic_groups.economic_group_id = ?", [
-            authCtx.group.id,
-          ])
+          .whereRaw("patient_economic_groups.economic_group_id = ?", [authCtx.group.id])
           .first();
         if (row) {
-          throw new BadRequestException(
-            "Nova tag já está em uso",
-            400,
-            "E_ERR",
-          );
+          throw new BadRequestException("Nova tag já está em uso", 400, "E_ERR");
         }
       }
 
@@ -2068,9 +1880,7 @@ export default class PatientService {
         });
       }
 
-      const photo = data.photo
-        ? await this.uploadPhoto(data.photo)
-        : patient.photo;
+      const photo = data.photo ? await this.uploadPhoto(data.photo) : patient.photo;
 
       await patient
         .merge({
@@ -2112,11 +1922,7 @@ export default class PatientService {
           });
 
           if (holder.type !== PatientType.TUTOR) {
-            throw new BadRequestException(
-              "Tutor inválido",
-              400,
-              "E_BAD_REQUEST",
-            );
+            throw new BadRequestException("Tutor inválido", 400, "E_BAD_REQUEST");
           }
 
           await holder
@@ -2168,19 +1974,11 @@ export default class PatientService {
         .first();
 
       if (!patient) {
-        throw new ResourceNotFoundException(
-          "Paciente não encontrado",
-          404,
-          "E_NOT_FOUND",
-        );
+        throw new ResourceNotFoundException("Paciente não encontrado", 404, "E_NOT_FOUND");
       }
 
       if (patient.patientAnimal.death) {
-        throw new BadRequestException(
-          "Paciente já declarado como morto",
-          400,
-          "E_BAD_REQUEST",
-        );
+        throw new BadRequestException("Paciente já declarado como morto", 400, "E_BAD_REQUEST");
       }
 
       await this.$declareDeath(trx, authCtx, patient, data);
@@ -2324,26 +2122,16 @@ export default class PatientService {
           .whereRaw("patients.type = ?", [tutor.type])
           .whereRaw("patients.tag = ?", [data.tag])
           .whereRaw("patients.deleted_at is null", [])
-          .whereRaw("patient_economic_groups.economic_group_id = ?", [
-            authCtx.group.id,
-          ])
+          .whereRaw("patient_economic_groups.economic_group_id = ?", [authCtx.group.id])
           .first();
         if (row) {
-          throw new BadRequestException(
-            "Nova tag já está em uso",
-            400,
-            "E_ERR",
-          );
+          throw new BadRequestException("Nova tag já está em uso", 400, "E_ERR");
         }
       }
 
       if (data.document && data.document !== tutor.tutor.document) {
         if (!this.sharedService.validDocument(data.document)) {
-          throw new BadRequestException(
-            "Documento inválido",
-            400,
-            "E_INVALID_DOCUMENT",
-          );
+          throw new BadRequestException("Documento inválido", 400, "E_INVALID_DOCUMENT");
         }
 
         const document = await authCtx.group
@@ -2364,9 +2152,7 @@ export default class PatientService {
         }
       }
 
-      const photo = data.photo
-        ? await this.uploadPhoto(data.photo)
-        : tutor.photo;
+      const photo = data.photo ? await this.uploadPhoto(data.photo) : tutor.photo;
       await tutor.related("contacts").query().useTransaction(trx).delete();
 
       const result = await tutor.related("contacts").createMany(
@@ -2489,11 +2275,7 @@ export default class PatientService {
         .first();
 
       if (!supplier) {
-        throw new BadRequestException(
-          "Fornecedor inválido",
-          400,
-          "E_BAD_REQUEST",
-        );
+        throw new BadRequestException("Fornecedor inválido", 400, "E_BAD_REQUEST");
       }
 
       if (data.document && data.document !== supplier.tutor.document) {
@@ -2522,9 +2304,7 @@ export default class PatientService {
         }
       }
 
-      const photo = data.photo
-        ? await this.uploadPhoto(data.photo)
-        : supplier.photo;
+      const photo = data.photo ? await this.uploadPhoto(data.photo) : supplier.photo;
 
       await supplier.tutor
         .merge({
@@ -2599,10 +2379,7 @@ export default class PatientService {
         .where("patient_id", patientId)
         .useTransaction(trx);
 
-      await Database.from("patients")
-        .delete()
-        .where("id", patientId)
-        .useTransaction(trx);
+      await Database.from("patients").delete().where("id", patientId).useTransaction(trx);
 
       valid = true;
     } catch (e) {
@@ -2638,10 +2415,7 @@ export default class PatientService {
       .save();
   }
 
-  public async destroySupplier(
-    authCtx: AuthContext,
-    supplierID: string,
-  ): Promise<void> {
+  public async destroySupplier(authCtx: AuthContext, supplierID: string): Promise<void> {
     const patient = await Patient.query().where("id", supplierID).first();
 
     if (!patient) {
@@ -2695,11 +2469,7 @@ export default class PatientService {
       .save();
   }
 
-  public async setMainTutor(
-    authCtx: AuthContext,
-    patient: string,
-    tutor: string,
-  ) {
+  public async setMainTutor(authCtx: AuthContext, patient: string, tutor: string) {
     await Database.transaction(async (trx) => {
       const db_patient = await Patient.query()
         .useTransaction(trx)
@@ -2708,11 +2478,7 @@ export default class PatientService {
         .first();
 
       if (!db_patient) {
-        throw new BadRequestException(
-          "Paciente inválido",
-          400,
-          "E_BAD_REQUEST",
-        );
+        throw new BadRequestException("Paciente inválido", 400, "E_BAD_REQUEST");
       }
 
       const db_tutor = await Patient.query()
@@ -2733,9 +2499,7 @@ export default class PatientService {
         .where("dependent_id", patient);
 
       // console.log(patientTutors.map(t => t.$extras));
-      const oldMainTutor = patientTutors.find(
-        (t) => t.id !== tutor && t.$extras.pivot_is_main,
-      );
+      const oldMainTutor = patientTutors.find((t) => t.id !== tutor && t.$extras.pivot_is_main);
 
       const client = Database.connection();
 
@@ -2800,11 +2564,7 @@ export default class PatientService {
     },
   ) {
     if (!authCtx.hasPermission("PET04")) {
-      throw new UnauthorizedException(
-        "Usuário sem permissão para fazer a atividade",
-        400,
-        "E_ERR",
-      );
+      throw new UnauthorizedException("Usuário sem permissão para fazer a atividade", 400, "E_ERR");
     }
 
     await Database.transaction(async (trx) => {
@@ -2815,11 +2575,7 @@ export default class PatientService {
         .first();
 
       if (!db_patient) {
-        throw new BadRequestException(
-          "Paciente inválido",
-          400,
-          "E_BAD_REQUEST",
-        );
+        throw new BadRequestException("Paciente inválido", 400, "E_BAD_REQUEST");
       }
 
       const db_tutor = await Patient.query()
@@ -2834,16 +2590,9 @@ export default class PatientService {
 
       const rows = await Database.from("holder_dependents")
         .select("id")
-        .whereRaw("holder_id = ? and dependent_id = ?", [
-          data.tutorId,
-          data.patientId,
-        ]);
+        .whereRaw("holder_id = ? and dependent_id = ?", [data.tutorId, data.patientId]);
       if (rows.length === 0) {
-        throw new BadRequestException(
-          "Não existe relação entre tutor e paciente",
-          400,
-          "E_ERR",
-        );
+        throw new BadRequestException("Não existe relação entre tutor e paciente", 400, "E_ERR");
       }
 
       await db_tutor.related("dependents").detach([db_patient.id], trx);

@@ -1,4 +1,4 @@
-import { PlanPriceRecurrence } from 'App/Models/PlanPrice';
+import { PlanPriceRecurrence } from "App/Models/PlanPrice";
 
 export default interface IPlanPriceData {
   plan_id: string;

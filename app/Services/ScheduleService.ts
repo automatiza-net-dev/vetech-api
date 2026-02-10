@@ -8,10 +8,7 @@ import Patient from "App/Models/Patient";
 import Reason from "App/Models/Reason";
 import Schedule from "App/Models/Schedule";
 import ScheduleServiceType from "App/Models/ScheduleServiceType";
-import ScheduleStatus, {
-	ScheduleStatusType,
-	VALID_CHANGES,
-} from "App/Models/ScheduleStatus";
+import ScheduleStatus, { ScheduleStatusType, VALID_CHANGES } from "App/Models/ScheduleStatus";
 import ScheduleStatusChange from "App/Models/ScheduleStatusChange";
 import WeekDay from "App/Models/shared/WeekDay";
 import TreatmentExecution from "App/Models/TreatmentExecution";
@@ -30,66 +27,64 @@ import type IViewDailyServicesRequest from "Contracts/interfaces/IViewDailyServi
 import type IViewDisponibilityRequest from "Contracts/interfaces/IViewDisponibilityRequest";
 import { inject } from "@adonisjs/fold";
 import Hash from "@ioc:Adonis/Core/Hash";
-import Database, {
-	TransactionClientContract,
-} from "@ioc:Adonis/Lucid/Database";
+import Database, { TransactionClientContract } from "@ioc:Adonis/Lucid/Database";
 import type { ModelObject } from "@ioc:Adonis/Lucid/Orm";
 import {
-	addDays,
-	differenceInDays,
-	differenceInMinutes,
-	endOfDay,
-	format,
-	intervalToDuration,
-	isAfter,
-	isSameDay,
-	startOfDay,
+  addDays,
+  differenceInDays,
+  differenceInMinutes,
+  endOfDay,
+  format,
+  intervalToDuration,
+  isAfter,
+  isSameDay,
+  startOfDay,
 } from "date-fns";
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 import { v4, validate } from "uuid";
 
 interface ISearch {
-	pid?: string;
-	patient?: string;
-	complaint?: string;
+  pid?: string;
+  patient?: string;
+  complaint?: string;
 }
 
 interface IHomeSearch {
-	confirmed?: string;
-	unit?: string;
-	page?: number;
-	per_page?: number;
+  confirmed?: string;
+  unit?: string;
+  page?: number;
+  per_page?: number;
 }
 
 @inject()
 export default class ScheduleService {
-	private timeOffset = 0;
+  private timeOffset = 0;
 
-	constructor(
-		private readonly sharedService: SharedService,
-		private opportunityService: OpportunityService,
-	) {
-		if (platform() === "win32") {
-			this.timeOffset = 3;
-		}
-	}
+  constructor(
+    private readonly sharedService: SharedService,
+    private opportunityService: OpportunityService,
+  ) {
+    if (platform() === "win32") {
+      this.timeOffset = 3;
+    }
+  }
 
-	public async searchScheduleEvents(
-		authCtx: AuthContext,
-		data: {
-			scheduleId?: string;
-			businessUnitId?: string;
-			type?: string;
-		},
-	) {
-		if (!data.scheduleId || !validate(data.scheduleId)) {
-			throw new BadRequestException("ID de agenda inválido", 400, "E_ERR");
-		}
+  public async searchScheduleEvents(
+    authCtx: AuthContext,
+    data: {
+      scheduleId?: string;
+      businessUnitId?: string;
+      type?: string;
+    },
+  ) {
+    if (!data.scheduleId || !validate(data.scheduleId)) {
+      throw new BadRequestException("ID de agenda inválido", 400, "E_ERR");
+    }
 
-		const result = await Database.from("schedules")
-			.select(
-				Database.raw(`schedules.id as id_agenda,
+    const result = await Database.from("schedules")
+      .select(
+        Database.raw(`schedules.id as id_agenda,
        COALESCE(
                        json_agg(
                        DISTINCT jsonb_build_object(
@@ -126,165 +121,144 @@ export default class ScheduleService {
                                ) FILTER (WHERE ssc.id IS NOT NULL),
                        '[]'::json
        )            as status_changes`),
-			)
-			.joinRaw("left join reschedulings rs on schedules.id = rs.schedule_id")
-			.joinRaw("left join reasons rsr on rs.reason_id = rsr.id")
-			.joinRaw(
-				"left join schedule_contacts sc on schedules.id = sc.schedule_id",
-			)
-			.joinRaw(
-				`left join (schedule_status_changes ssc join schedule_statuses ss on ssc.schedule_status_id = ss.id)
+      )
+      .joinRaw("left join reschedulings rs on schedules.id = rs.schedule_id")
+      .joinRaw("left join reasons rsr on rs.reason_id = rsr.id")
+      .joinRaw("left join schedule_contacts sc on schedules.id = sc.schedule_id")
+      .joinRaw(
+        `left join (schedule_status_changes ssc join schedule_statuses ss on ssc.schedule_status_id = ss.id)
                    on ssc.schedule_id = schedules.id`,
-			)
-			.joinRaw("left join reasons r on schedules.reason_id = r.id")
-			.where(
-				"schedules.business_unit_id",
-				data.businessUnitId ?? authCtx.unit.id,
-			)
-			.where("schedules.id", data.scheduleId)
-			.whereRaw("schedules.deleted_at is null")
-			.groupByRaw("schedules.id");
+      )
+      .joinRaw("left join reasons r on schedules.reason_id = r.id")
+      .where("schedules.business_unit_id", data.businessUnitId ?? authCtx.unit.id)
+      .where("schedules.id", data.scheduleId)
+      .whereRaw("schedules.deleted_at is null")
+      .groupByRaw("schedules.id");
 
-		return {
-			events: result.map((r) => ({ event: r })),
-		};
-	}
+    return {
+      events: result.map((r) => ({ event: r })),
+    };
+  }
 
-	public async searchSchedulesToAddToMovement(
-		authCtx: AuthContext,
-		data: {
-			patientId?: string;
-			businessUnitId?: string;
-			type?: string;
-		},
-	) {
-		if (!data.patientId || !validate(data.patientId)) {
-			throw new BadRequestException("ID de paciente inválido", 400, "E_ERR");
-		}
+  public async searchSchedulesToAddToMovement(
+    authCtx: AuthContext,
+    data: {
+      patientId?: string;
+      businessUnitId?: string;
+      type?: string;
+    },
+  ) {
+    if (!data.patientId || !validate(data.patientId)) {
+      throw new BadRequestException("ID de paciente inválido", 400, "E_ERR");
+    }
 
-		const pastSchedules: {
-			id: string;
-			start_hour: string;
-			description: string;
-			tipo: "agendas_passadas";
-		}[] = await Database.from("schedules")
-			.select(
-				Database.raw(
-					`schedules.id, schedules.start_hour, schedule_service_types.description, 'agendas_passadas' as tipo`,
-				),
-			)
-			.joinRaw(
-				"join schedule_service_types on schedules.schedule_service_type_id = schedule_service_types.id",
-			)
-			.whereRaw("business_unit_id = ?", [
-				data.businessUnitId ?? authCtx.unit.id,
-			])
-			.whereRaw(
-				"(schedules.start_hour::date > now()::date - 7 and schedules.start_hour::date < now()::date)",
-			)
-			.where("schedules.patient_id", data.patientId)
-			.orderBy("schedules.start_hour", "desc")
-			.limit(1);
+    const pastSchedules: {
+      id: string;
+      start_hour: string;
+      description: string;
+      tipo: "agendas_passadas";
+    }[] = await Database.from("schedules")
+      .select(
+        Database.raw(
+          `schedules.id, schedules.start_hour, schedule_service_types.description, 'agendas_passadas' as tipo`,
+        ),
+      )
+      .joinRaw(
+        "join schedule_service_types on schedules.schedule_service_type_id = schedule_service_types.id",
+      )
+      .whereRaw("business_unit_id = ?", [data.businessUnitId ?? authCtx.unit.id])
+      .whereRaw(
+        "(schedules.start_hour::date > now()::date - 7 and schedules.start_hour::date < now()::date)",
+      )
+      .where("schedules.patient_id", data.patientId)
+      .orderBy("schedules.start_hour", "desc")
+      .limit(1);
 
-		const futureSchedules: {
-			id: string;
-			start_hour: string;
-			description: string;
-			tipo: "agendas_futuras";
-		}[] = await Database.from("schedules")
-			.select(
-				Database.raw(
-					`schedules.id, schedules.start_hour, schedule_service_types.description, 'agendas_futuras' as tipo`,
-				),
-			)
-			.joinRaw(
-				"join schedule_service_types on schedules.schedule_service_type_id = schedule_service_types.id",
-			)
-			.whereRaw("business_unit_id = ?", [
-				data.businessUnitId ?? authCtx.unit.id,
-			])
-			.whereRaw("schedules.start_hour::date >= now()::date")
-			.where("schedules.patient_id", data.patientId)
-			.orderBy("schedules.start_hour", "desc");
+    const futureSchedules: {
+      id: string;
+      start_hour: string;
+      description: string;
+      tipo: "agendas_futuras";
+    }[] = await Database.from("schedules")
+      .select(
+        Database.raw(
+          `schedules.id, schedules.start_hour, schedule_service_types.description, 'agendas_futuras' as tipo`,
+        ),
+      )
+      .joinRaw(
+        "join schedule_service_types on schedules.schedule_service_type_id = schedule_service_types.id",
+      )
+      .whereRaw("business_unit_id = ?", [data.businessUnitId ?? authCtx.unit.id])
+      .whereRaw("schedules.start_hour::date >= now()::date")
+      .where("schedules.patient_id", data.patientId)
+      .orderBy("schedules.start_hour", "desc");
 
-		return [...pastSchedules, ...futureSchedules].sort(
-			(a, b) =>
-				new Date(a.start_hour).getTime() - new Date(b.start_hour).getTime(),
-		);
-	}
+    return [...pastSchedules, ...futureSchedules].sort(
+      (a, b) => new Date(a.start_hour).getTime() - new Date(b.start_hour).getTime(),
+    );
+  }
 
-	public async schedulesAttendances(authCtx: AuthContext, patientID: string) {
-		if (!validate(patientID)) {
-			throw new BadRequestException("ID inválido", 400, "E_ERR");
-		}
+  public async schedulesAttendances(authCtx: AuthContext, patientID: string) {
+    if (!validate(patientID)) {
+      throw new BadRequestException("ID inválido", 400, "E_ERR");
+    }
 
-		return Database.from("schedules")
-			.select(
-				Database.raw(
-					"schedules.id, users.name, schedules.start_hour, schedules.finished_at",
-				),
-			)
-			.joinRaw("join users on schedules.user_id = users.id")
-			.whereNull("schedules.deleted_at")
-			.where("schedules.business_unit_id", authCtx.unit.id)
-			.where("schedules.patient_id", patientID)
-			.whereRaw("schedules.start_hour::date >= now()::date - 1")
-			.whereRaw(
-				"schedules.id not in (select schedule_id from attendances where attendances.business_unit_id = schedules.business_unit_id and attendances.deleted_at is null and attendances.patient_id = schedules.patient_id)",
-			);
-	}
+    return Database.from("schedules")
+      .select(Database.raw("schedules.id, users.name, schedules.start_hour, schedules.finished_at"))
+      .joinRaw("join users on schedules.user_id = users.id")
+      .whereNull("schedules.deleted_at")
+      .where("schedules.business_unit_id", authCtx.unit.id)
+      .where("schedules.patient_id", patientID)
+      .whereRaw("schedules.start_hour::date >= now()::date - 1")
+      .whereRaw(
+        "schedules.id not in (select schedule_id from attendances where attendances.business_unit_id = schedules.business_unit_id and attendances.deleted_at is null and attendances.patient_id = schedules.patient_id)",
+      );
+  }
 
-	public async homeContent(authCtx: AuthContext, data: IHomeSearch) {
-		const qb = Schedule.query()
-			.where("business_unit_id", data.unit ?? authCtx.unit.id)
-			.preload("patient", (query) => {
-				query.preload("patientAnimal", (query) => {
-					query.preload("race", (query) => {
-						query.preload("specie");
-					});
-				});
-			})
-			.preload("holder", (query) => {
-				query.preload("tutor");
-			})
-			.preload("serviceType")
-			.preload("serviceStatus")
-			.preload("user")
-			.orderBy("start_hour", "asc");
+  public async homeContent(authCtx: AuthContext, data: IHomeSearch) {
+    const qb = Schedule.query()
+      .where("business_unit_id", data.unit ?? authCtx.unit.id)
+      .preload("patient", (query) => {
+        query.preload("patientAnimal", (query) => {
+          query.preload("race", (query) => {
+            query.preload("specie");
+          });
+        });
+      })
+      .preload("holder", (query) => {
+        query.preload("tutor");
+      })
+      .preload("serviceType")
+      .preload("serviceStatus")
+      .preload("user")
+      .orderBy("start_hour", "asc");
 
-		if (data.confirmed === "false") {
-			qb.whereHas("serviceStatus", (query) => {
-				query.where("type", "AN");
-			});
-		} else {
-			qb.whereHas("serviceStatus", (query) => {
-				query.whereIn("type", ["AC", "REC", "ATEND", "ATR", "CIR"]);
-			});
-		}
+    if (data.confirmed === "false") {
+      qb.whereHas("serviceStatus", (query) => {
+        query.where("type", "AN");
+      });
+    } else {
+      qb.whereHas("serviceStatus", (query) => {
+        query.whereIn("type", ["AC", "REC", "ATEND", "ATR", "CIR"]);
+      });
+    }
 
-		if (!authCtx.unit.unitConfig.dashboardListsRetroactiveSchedules) {
-			qb.whereRaw("schedules.start_hour::date >= now()::date", []);
-		}
+    if (!authCtx.unit.unitConfig.dashboardListsRetroactiveSchedules) {
+      qb.whereRaw("schedules.start_hour::date >= now()::date", []);
+    }
 
-		const result = await qb.paginate(data.page ?? 1, data.per_page ?? 10);
+    const result = await qb.paginate(data.page ?? 1, data.per_page ?? 10);
 
-		return result;
-	}
+    return result;
+  }
 
-	public async homeContent_2(
-		authCtx: AuthContext,
-		data: Pick<IHomeSearch, "unit">,
-	) {
-		const hasPermissionNotConfirmed =
-			await this.sharedService.userHasPermission(authCtx, "PRI01");
-		const hasPermissionConfirmed = await this.sharedService.userHasPermission(
-			authCtx,
-			"PRI02",
-		);
+  public async homeContent_2(authCtx: AuthContext, data: Pick<IHomeSearch, "unit">) {
+    const hasPermissionNotConfirmed = await this.sharedService.userHasPermission(authCtx, "PRI01");
+    const hasPermissionConfirmed = await this.sharedService.userHasPermission(authCtx, "PRI02");
 
-		const confirmedQb = Schedule.query()
-			.select(
-				Database.raw(`patient_id,
+    const confirmedQb = Schedule.query()
+      .select(
+        Database.raw(`patient_id,
 				holder_id,
 				schedule_service_type_id,
 				schedule_status_id,
@@ -301,48 +275,48 @@ export default class ScheduleService {
 				confirmation_conference_date,
 				confirmation_date,
 				confirmation_origin`),
-			)
-			.where("business_unit_id", data.unit ?? authCtx.unit.id)
-			.whereHas("serviceStatus", (query) => {
-				query.whereIn("type", ["AC", "REC", "ATEND", "ATR", "CIR"]);
-			})
-			.preload("patient", (query) => {
-				query.preload("patientAnimal", (query) => {
-					query.select("race_id", "id", "death", "death_date");
+      )
+      .where("business_unit_id", data.unit ?? authCtx.unit.id)
+      .whereHas("serviceStatus", (query) => {
+        query.whereIn("type", ["AC", "REC", "ATEND", "ATR", "CIR"]);
+      })
+      .preload("patient", (query) => {
+        query.preload("patientAnimal", (query) => {
+          query.select("race_id", "id", "death", "death_date");
 
-					query.preload("race", (query) => {
-						query.select("specie_id", "id", "description");
-						query.preload("specie", (query) => {
-							query.select("id", "description");
-						});
-					});
-				});
+          query.preload("race", (query) => {
+            query.select("specie_id", "id", "description");
+            query.preload("specie", (query) => {
+              query.select("id", "description");
+            });
+          });
+        });
 
-				query.select(["id", "name", "type", "photo", "gender", "tag"]);
-			})
-			.preload("user", (query) => {
-				query.select(["id", "name"]);
-			})
-			.preload("confirmationUser", (query) => {
-				query.select(["id", "name"]);
-			})
-			.preload("holder", (query) => {
-				query.preload("tutor", (query) => {
-					query.select(["id", "cellphone", "telephone"]);
-				});
-				query.select(["id", "name", "type", "photo"]);
-			})
-			.preload("serviceType", (query) => {
-				query.select(["id", "description", "reserved_minutes", "type"]);
-			})
-			.preload("serviceStatus", (query) => {
-				query.select(["id", "description", "color", "type"]);
-			})
-			.orderBy("start_hour", "asc");
+        query.select(["id", "name", "type", "photo", "gender", "tag"]);
+      })
+      .preload("user", (query) => {
+        query.select(["id", "name"]);
+      })
+      .preload("confirmationUser", (query) => {
+        query.select(["id", "name"]);
+      })
+      .preload("holder", (query) => {
+        query.preload("tutor", (query) => {
+          query.select(["id", "cellphone", "telephone"]);
+        });
+        query.select(["id", "name", "type", "photo"]);
+      })
+      .preload("serviceType", (query) => {
+        query.select(["id", "description", "reserved_minutes", "type"]);
+      })
+      .preload("serviceStatus", (query) => {
+        query.select(["id", "description", "color", "type"]);
+      })
+      .orderBy("start_hour", "asc");
 
-		const nonConfirmedQb = Schedule.query()
-			.select(
-				Database.raw(`patient_id,
+    const nonConfirmedQb = Schedule.query()
+      .select(
+        Database.raw(`patient_id,
 				holder_id,
 				schedule_service_type_id,
 				schedule_status_id,
@@ -359,82 +333,85 @@ export default class ScheduleService {
 				confirmation_conference_date,
 				confirmation_date,
 				confirmation_origin`),
-			)
-			.where("business_unit_id", data.unit ?? authCtx.unit.id)
-			.whereHas("serviceStatus", (query) => {
-				query.where("type", "AN");
-			})
-			.preload("patient", (query) => {
-				query.preload("patientAnimal", (query) => {
-					query.select("race_id", "id", "death", "death_date");
+      )
+      .where("business_unit_id", data.unit ?? authCtx.unit.id)
+      .whereHas("serviceStatus", (query) => {
+        query.where("type", "AN");
+      })
+      .preload("patient", (query) => {
+        query.preload("patientAnimal", (query) => {
+          query.select("race_id", "id", "death", "death_date");
 
-					query.preload("race", (query) => {
-						query.select("specie_id", "id", "description");
-						query.preload("specie", (query) => {
-							query.select("id", "description");
-						});
-					});
-				});
+          query.preload("race", (query) => {
+            query.select("specie_id", "id", "description");
+            query.preload("specie", (query) => {
+              query.select("id", "description");
+            });
+          });
+        });
 
-				query.select(["id", "name", "type", "photo", "gender", "tag"]);
-			})
-			.preload("user", (query) => {
-				query.select(["id", "name"]);
-			})
-			.preload("confirmationUser", (query) => {
-				query.select(["id", "name"]);
-			})
-			.preload("holder", (query) => {
-				query.preload("tutor", (query) => {
-					query.select(["id", "cellphone", "telephone"]);
-				});
-				query.select(["id", "name", "type", "photo"]);
-			})
-			.preload("serviceType", (query) => {
-				query.select(["id", "description", "reserved_minutes", "type"]);
-			})
-			.preload("serviceStatus", (query) => {
-				query.select(["id", "description", "color", "type"]);
-			})
-			.orderBy("start_hour", "asc");
+        query.select(["id", "name", "type", "photo", "gender", "tag"]);
+      })
+      .preload("user", (query) => {
+        query.select(["id", "name"]);
+      })
+      .preload("confirmationUser", (query) => {
+        query.select(["id", "name"]);
+      })
+      .preload("holder", (query) => {
+        query.preload("tutor", (query) => {
+          query.select(["id", "cellphone", "telephone"]);
+        });
+        query.select(["id", "name", "type", "photo"]);
+      })
+      .preload("serviceType", (query) => {
+        query.select(["id", "description", "reserved_minutes", "type"]);
+      })
+      .preload("serviceStatus", (query) => {
+        query.select(["id", "description", "color", "type"]);
+      })
+      .orderBy("start_hour", "asc");
 
-		if (!hasPermissionConfirmed) {
-			confirmedQb.whereRaw("0 = 1");
-		}
-		if (!hasPermissionNotConfirmed) {
-			nonConfirmedQb.whereRaw("0 = 1");
-		}
+    if (!hasPermissionConfirmed) {
+      confirmedQb.whereRaw("0 = 1");
+    }
+    if (!hasPermissionNotConfirmed) {
+      nonConfirmedQb.whereRaw("0 = 1");
+    }
 
-		if (!authCtx.unit.unitConfig.dashboardListsRetroactiveSchedules) {
-			confirmedQb.whereRaw("schedules.start_hour::date >= now()::date", []);
-			nonConfirmedQb.whereRaw("schedules.start_hour::date >= now()::date", []);
-		}
+    if (!authCtx.unit.unitConfig.dashboardListsRetroactiveSchedules) {
+      confirmedQb.whereRaw("schedules.start_hour::date >= now()::date", []);
+      nonConfirmedQb.whereRaw("schedules.start_hour::date >= now()::date", []);
+    }
 
-		const missingQb = Database.from("finances")
-			.select(Database.raw("client_id, coalesce(sum(total_value), 0) as total"))
-			.whereRaw("type = 'CREDITO'")
-			.whereNull("deleted_at")
-			.whereRaw("business_unit_id = ?", [data.unit ?? authCtx.unit.id])
-			.whereRaw("payment_date is null")
-			.whereRaw("expiration_date < now()")
-			.groupByRaw("client_id");
+    const missingQb = Database.from("finances")
+      .select(Database.raw("client_id, coalesce(sum(total_value), 0) as total"))
+      .whereRaw("type = 'CREDITO'")
+      .whereNull("deleted_at")
+      .whereRaw("business_unit_id = ?", [data.unit ?? authCtx.unit.id])
+      .whereRaw("payment_date is null")
+      .whereRaw("expiration_date < now()")
+      .groupByRaw("client_id");
 
-		const [confirmedSchedules, nonConfirmedSchedules, missing] =
-			await Promise.all([confirmedQb, nonConfirmedQb, missingQb]);
+    const [confirmedSchedules, nonConfirmedSchedules, missing] = await Promise.all([
+      confirmedQb,
+      nonConfirmedQb,
+      missingQb,
+    ]);
 
-		const executions: {
-			tipo_registro: string;
-			description: string;
-			label: string;
-			reserved_minutes: number;
-			treatment_id: number;
-			treatment_item_id: number;
-			treatment_execution_id: number;
-			schedule_id: string;
-		}[] = await Database.from("treatment_executions")
-			.select(
-				Database.raw(
-					`
+    const executions: {
+      tipo_registro: string;
+      description: string;
+      label: string;
+      reserved_minutes: number;
+      treatment_id: number;
+      treatment_item_id: number;
+      treatment_execution_id: number;
+      schedule_id: string;
+    }[] = await Database.from("treatment_executions")
+      .select(
+        Database.raw(
+          `
                 'Tratamento'                                             as tipo_registro,
        'Tratamentos - Execuções'                                as description,
        products.description || ' - ' || productivity_items.description as label,
@@ -444,246 +421,223 @@ export default class ScheduleService {
        treatment_executions.id                                  as treatment_execution_id,
        treatment_executions.schedule_id
        `,
-					[],
-				),
-			)
-			.joinRaw(
-				"join productivity_items on treatment_executions.productivity_item_id = productivity_items.id",
-			)
-			.joinRaw(
-				`join (treatment_items join product_variations on product_variations.id = treatment_items.product_variation_id join products
+          [],
+        ),
+      )
+      .joinRaw(
+        "join productivity_items on treatment_executions.productivity_item_id = productivity_items.id",
+      )
+      .joinRaw(
+        `join (treatment_items join product_variations on product_variations.id = treatment_items.product_variation_id join products
                on product_variations.product_id = products.id)
               on treatment_executions.treatment_item_id = treatment_items.id and
                  treatment_executions.treatment_id = treatment_items.treatment_id`,
-			)
-			.joinRaw(
-				"join treatments on treatment_executions.treatment_id = treatments.id",
-			)
-			.where("treatments.economic_group_id", authCtx.group.id)
-			.where("treatments.business_unit_id", authCtx.unit.id)
-			.whereNotNull("treatment_executions.schedule_id")
-			.orderByRaw("1, 4, 3, 7");
+      )
+      .joinRaw("join treatments on treatment_executions.treatment_id = treatments.id")
+      .where("treatments.economic_group_id", authCtx.group.id)
+      .where("treatments.business_unit_id", authCtx.unit.id)
+      .whereNotNull("treatment_executions.schedule_id")
+      .orderByRaw("1, 4, 3, 7");
 
-		return {
-			confirmed: confirmedSchedules
-				.map((day) => {
-					Object.assign(day, {
-						executions: executions.filter((ex) => ex.schedule_id === day.id),
-					});
+    return {
+      confirmed: confirmedSchedules
+        .map((day) => {
+          Object.assign(day, {
+            executions: executions.filter((ex) => ex.schedule_id === day.id),
+          });
 
-					return day;
-				})
-				.map((day) => ({
-					start: day.startHour.plus({ hours: this.timeOffset }).toString(),
-					end: day.endHour.plus({ hours: this.timeOffset }).toString(),
-					event: {
-						...day.toJSON(),
-						financesExpired:
-							missing.find(
-								(r) => r.client_id === (day.holder_id ?? day.patient_id),
-							)?.total ?? 0,
-					},
-					name: day.user?.name ?? "-",
-					date: day.startHour
-						.plus({ hours: this.timeOffset })
-						.setLocale("pt-BR")
-						.toFormat("dd/MM/yy - HH:mm"),
-					late:
-						isAfter(
-							new Date(),
-							day.startHour.plus({ hours: this.timeOffset }).toJSDate(),
-						) && ["AN", "AC", "ATR"].includes(day.serviceStatus.type)
-							? differenceInMinutes(
-									new Date(),
-									day.startHour.plus({ hours: 3 }).toJSDate(),
-								)
-							: null,
-					type: this.getEventLabel(day),
-				})),
+          return day;
+        })
+        .map((day) => ({
+          start: day.startHour.plus({ hours: this.timeOffset }).toString(),
+          end: day.endHour.plus({ hours: this.timeOffset }).toString(),
+          event: {
+            ...day.toJSON(),
+            financesExpired:
+              missing.find((r) => r.client_id === (day.holder_id ?? day.patient_id))?.total ?? 0,
+          },
+          name: day.user?.name ?? "-",
+          date: day.startHour
+            .plus({ hours: this.timeOffset })
+            .setLocale("pt-BR")
+            .toFormat("dd/MM/yy - HH:mm"),
+          late:
+            isAfter(new Date(), day.startHour.plus({ hours: this.timeOffset }).toJSDate()) &&
+            ["AN", "AC", "ATR"].includes(day.serviceStatus.type)
+              ? differenceInMinutes(new Date(), day.startHour.plus({ hours: 3 }).toJSDate())
+              : null,
+          type: this.getEventLabel(day),
+        })),
 
-			nonConfirmed: nonConfirmedSchedules
-				.map((day) => {
-					Object.assign(day, {
-						executions: executions.filter((ex) => ex.schedule_id === day.id),
-					});
+      nonConfirmed: nonConfirmedSchedules
+        .map((day) => {
+          Object.assign(day, {
+            executions: executions.filter((ex) => ex.schedule_id === day.id),
+          });
 
-					return day;
-				})
-				.map((day) => ({
-					start: day.startHour.plus({ hours: this.timeOffset }).toString(),
-					end: day.endHour.plus({ hours: this.timeOffset }).toString(),
-					event: {
-						...day.toJSON(),
-						financesExpired:
-							missing.find(
-								(r) => r.client_id === (day.holder_id ?? day.patient_id),
-							)?.total ?? 0,
-					},
-					name: day.user?.name ?? "-",
-					date: day.startHour
-						.plus({ hours: this.timeOffset })
-						.setLocale("pt-BR")
-						.toFormat("dd/MM/yy - HH:mm"),
-					late:
-						isAfter(
-							new Date(),
-							day.startHour.plus({ hours: this.timeOffset }).toJSDate(),
-						) && ["AN", "AC", "ATR"].includes(day.serviceStatus.type)
-							? differenceInMinutes(
-									new Date(),
-									day.startHour.plus({ hours: this.timeOffset }).toJSDate(),
-								)
-							: null,
-					type: this.getEventLabel(day),
-				})),
-		};
-	}
+          return day;
+        })
+        .map((day) => ({
+          start: day.startHour.plus({ hours: this.timeOffset }).toString(),
+          end: day.endHour.plus({ hours: this.timeOffset }).toString(),
+          event: {
+            ...day.toJSON(),
+            financesExpired:
+              missing.find((r) => r.client_id === (day.holder_id ?? day.patient_id))?.total ?? 0,
+          },
+          name: day.user?.name ?? "-",
+          date: day.startHour
+            .plus({ hours: this.timeOffset })
+            .setLocale("pt-BR")
+            .toFormat("dd/MM/yy - HH:mm"),
+          late:
+            isAfter(new Date(), day.startHour.plus({ hours: this.timeOffset }).toJSDate()) &&
+            ["AN", "AC", "ATR"].includes(day.serviceStatus.type)
+              ? differenceInMinutes(
+                  new Date(),
+                  day.startHour.plus({ hours: this.timeOffset }).toJSDate(),
+                )
+              : null,
+          type: this.getEventLabel(day),
+        })),
+    };
+  }
 
-	public async index(unitId: string, data: ISearch): Promise<Array<Schedule>> {
-		const qb = Schedule.query()
-			.where("business_unit_id", unitId)
-			.preload("serviceType", (query) => {
-				query.select(["id", "description", "type"]);
-			})
-			.preload("serviceStatus", (query) => {
-				query.select(["id", "description", "color", "type"]);
-			})
-			.preload("patient", (query) => {
-				query.select(["id", "name", "gender"]);
-			})
-			.preload("holder", (query) => {
-				query.select(["id", "name"]);
-				query.preload("tutor", (query) => {
-					query.select(["cellphone", "telephone"]);
-				});
-			})
-			.preload("reschedules", (query) => {
-				query.preload("reason");
-				query.preload("user", (query) => query.select(["id", "name", "email"]));
-			})
-			.preload("scheduleOrigin")
-			.preload("scheduleReturn");
+  public async index(unitId: string, data: ISearch): Promise<Array<Schedule>> {
+    const qb = Schedule.query()
+      .where("business_unit_id", unitId)
+      .preload("serviceType", (query) => {
+        query.select(["id", "description", "type"]);
+      })
+      .preload("serviceStatus", (query) => {
+        query.select(["id", "description", "color", "type"]);
+      })
+      .preload("patient", (query) => {
+        query.select(["id", "name", "gender"]);
+      })
+      .preload("holder", (query) => {
+        query.select(["id", "name"]);
+        query.preload("tutor", (query) => {
+          query.select(["cellphone", "telephone"]);
+        });
+      })
+      .preload("reschedules", (query) => {
+        query.preload("reason");
+        query.preload("user", (query) => query.select(["id", "name", "email"]));
+      })
+      .preload("scheduleOrigin")
+      .preload("scheduleReturn");
 
-		if (data.pid) {
-			qb.where("patient_id", data.pid);
-		}
+    if (data.pid) {
+      qb.where("patient_id", data.pid);
+    }
 
-		if (data.patient) {
-			qb.where("patient_name", "ilike", `%${data.patient}%`);
-		}
+    if (data.patient) {
+      qb.where("patient_name", "ilike", `%${data.patient}%`);
+    }
 
-		if (data.complaint) {
-			qb.where("major_complaint", "ilike", `%${data.complaint}%`);
-		}
+    if (data.complaint) {
+      qb.where("major_complaint", "ilike", `%${data.complaint}%`);
+    }
 
-		return qb;
-	}
+    return qb;
+  }
 
-	public async usersWithSchedule(authCtx: AuthContext) {
-		const qb = Database.from("users")
-			.select(Database.raw("distinct users.id, users.name, users.on_duty"))
-			.joinRaw(
-				"join user_unit_roles on users.id = user_unit_roles.user_id and user_unit_roles.active is true",
-			)
-			.joinRaw(
-				`left join working_days
+  public async usersWithSchedule(authCtx: AuthContext) {
+    const qb = Database.from("users")
+      .select(Database.raw("distinct users.id, users.name, users.on_duty"))
+      .joinRaw(
+        "join user_unit_roles on users.id = user_unit_roles.user_id and user_unit_roles.active is true",
+      )
+      .joinRaw(
+        `left join working_days
                    on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id`,
-				[],
-			)
-			.joinRaw(
-				"left join schedules on schedules.user_id = users.id and schedules.business_unit_id = user_unit_roles.unit_id",
-			)
-			.where("user_unit_roles.unit_id", authCtx.unit.id)
-			.where("users.type", "user")
-			.whereRaw(
-				"((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))",
-			);
+        [],
+      )
+      .joinRaw(
+        "left join schedules on schedules.user_id = users.id and schedules.business_unit_id = user_unit_roles.unit_id",
+      )
+      .where("user_unit_roles.unit_id", authCtx.unit.id)
+      .where("users.type", "user")
+      .whereRaw(
+        "((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))",
+      );
 
-		const hasPermission = await this.sharedService.userHasPermission(
-			authCtx,
-			"AGE10",
-		);
+    const hasPermission = await this.sharedService.userHasPermission(authCtx, "AGE10");
 
-		if (!hasPermission) {
-			qb.where("users.id", authCtx.user.id);
-		}
+    if (!hasPermission) {
+      qb.where("users.id", authCtx.user.id);
+    }
 
-		return qb;
-	}
+    return qb;
+  }
 
-	public async returnableSchedules(authCtx: AuthContext, patientId: string) {
-		return Database.from("schedules")
-			.select(
-				Database.raw(
-					"schedules.id, schedules.schedule_service_type_id, schedule_service_types.description, schedules.start_hour",
-				),
-			)
-			.joinRaw(
-				"join business_unit_configs on schedules.business_unit_id = business_unit_configs.business_unit_id",
-			)
-			.joinRaw(
-				"join schedule_service_types on schedules.schedule_service_type_id = schedule_service_types.id",
-			)
-			.where("schedules.business_unit_id", authCtx.unit.id)
-			.where("schedules.patient_id", patientId)
-			.whereNull("schedules.deleted_at")
-			.whereNull("schedules.schedule_origin_id")
-			.whereRaw(
-				"now()::date - start_hour::date <= business_unit_configs.return_interval",
-				[],
-			)
-			.whereRaw(`business_unit_configs.allowed_return_qty >
+  public async returnableSchedules(authCtx: AuthContext, patientId: string) {
+    return Database.from("schedules")
+      .select(
+        Database.raw(
+          "schedules.id, schedules.schedule_service_type_id, schedule_service_types.description, schedules.start_hour",
+        ),
+      )
+      .joinRaw(
+        "join business_unit_configs on schedules.business_unit_id = business_unit_configs.business_unit_id",
+      )
+      .joinRaw(
+        "join schedule_service_types on schedules.schedule_service_type_id = schedule_service_types.id",
+      )
+      .where("schedules.business_unit_id", authCtx.unit.id)
+      .where("schedules.patient_id", patientId)
+      .whereNull("schedules.deleted_at")
+      .whereNull("schedules.schedule_origin_id")
+      .whereRaw("now()::date - start_hour::date <= business_unit_configs.return_interval", [])
+      .whereRaw(`business_unit_configs.allowed_return_qty >
       (select count(s1.id) from schedules s1 where s1.schedule_origin_id = schedules.id)
   and exists (select id
               from "schedule_service_types"
               where ("allow_return" = true)
                 and ("schedule_service_types"."id" = "schedules"."schedule_service_type_id"))`);
-	}
+  }
 
-	public async store(authCtx: AuthContext, data: IScheduleData) {
-		if (data.userId) {
-			const scheduleUser = await User.findOrFail(data.userId);
+  public async store(authCtx: AuthContext, data: IScheduleData) {
+    if (data.userId) {
+      const scheduleUser = await User.findOrFail(data.userId);
 
-			if (!scheduleUser.onDuty) {
-				// AGE12 é a permissão para agendar em horários bloqueados
-				// const hasPermission = await this.sharedService.userHasPermission(
-				//   scheduleUser,
-				//   'AGE12',
-				// );
+      if (!scheduleUser.onDuty) {
+        // AGE12 é a permissão para agendar em horários bloqueados
+        // const hasPermission = await this.sharedService.userHasPermission(
+        //   scheduleUser,
+        //   'AGE12',
+        // );
 
-				const result = await ScheduleService.checkDisponibility(
-					data.userId ?? authCtx.user.id,
-					authCtx.unit.id,
-					{
-						start: data.startHour.plus({ hours: this.timeOffset }),
-						end: data.endHour.plus({ hours: this.timeOffset }),
-					},
-				);
+        const result = await ScheduleService.checkDisponibility(
+          data.userId ?? authCtx.user.id,
+          authCtx.unit.id,
+          {
+            start: data.startHour.plus({ hours: this.timeOffset }),
+            end: data.endHour.plus({ hours: this.timeOffset }),
+          },
+        );
 
-				if (result.invalidWorkingDay) {
-					throw new BadRequestException(
-						"Pessoa não trabalha neste horário",
-						400,
-						"E_BAD_REQUEST",
-					);
-				}
+        if (result.invalidWorkingDay) {
+          throw new BadRequestException("Pessoa não trabalha neste horário", 400, "E_BAD_REQUEST");
+        }
 
-				// if (result.invalidUnavailableDay && !hasPermission) {
-				if (result.invalidUnavailableDay && !data.ignoreBlocking) {
-					throw new BadRequestException(
-						"Pessoa não está disponível neste horário",
-						400,
-						"E_BAD_REQUEST",
-					);
-				}
-			}
+        // if (result.invalidUnavailableDay && !hasPermission) {
+        if (result.invalidUnavailableDay && !data.ignoreBlocking) {
+          throw new BadRequestException(
+            "Pessoa não está disponível neste horário",
+            400,
+            "E_BAD_REQUEST",
+          );
+        }
+      }
 
-			if (!data.ignoreOverlapping) {
-				const overlapping = await Schedule.query()
-					.where("user_id", data.userId ?? authCtx.user.id)
-					.andWhere("business_unit_id", authCtx.unit.id)
-					.andWhereRaw(
-						`
+      if (!data.ignoreOverlapping) {
+        const overlapping = await Schedule.query()
+          .where("user_id", data.userId ?? authCtx.user.id)
+          .andWhere("business_unit_id", authCtx.unit.id)
+          .andWhereRaw(
+            `
             (
               (
                 (? BETWEEN start_hour AND end_hour) OR
@@ -697,39 +651,35 @@ export default class ScheduleService {
               )
             )
             `,
-						[
-							data.startHour.toJSDate(),
-							data.endHour.minus({ minutes: 1 }).toJSDate(),
-							data.startHour.toJSDate(),
-							data.endHour.minus({ minutes: 1 }).toJSDate(),
-							data.startHour.toJSDate(),
-							data.endHour.minus({ minutes: 1 }).toJSDate(),
-						],
-					)
-					.andWhereHas("serviceStatus", (query) => {
-						query.whereNotIn("type", ["CANC"]);
-					})
-					.first();
+            [
+              data.startHour.toJSDate(),
+              data.endHour.minus({ minutes: 1 }).toJSDate(),
+              data.startHour.toJSDate(),
+              data.endHour.minus({ minutes: 1 }).toJSDate(),
+              data.startHour.toJSDate(),
+              data.endHour.minus({ minutes: 1 }).toJSDate(),
+            ],
+          )
+          .andWhereHas("serviceStatus", (query) => {
+            query.whereNotIn("type", ["CANC"]);
+          })
+          .first();
 
-				if (overlapping) {
-					throw new BadRequestException(
-						"Horário já está ocupado",
-						400,
-						"E_BAD_REQUEST",
-					);
-				}
-			}
-		}
+        if (overlapping) {
+          throw new BadRequestException("Horário já está ocupado", 400, "E_BAD_REQUEST");
+        }
+      }
+    }
 
-		return Database.transaction(async (trx) => {
-			let pendingApprover: string | null = null;
+    return Database.transaction(async (trx) => {
+      let pendingApprover: string | null = null;
 
-			if (authCtx.unit.unitConfig.config.schedules?.block_finance_pending) {
-				const pendingPayments = await Database.from("patients as p")
-					.where("p.id", data.holderId ?? v4())
-					.select(
-						Database.raw(
-							`
+      if (authCtx.unit.unitConfig.config.schedules?.block_finance_pending) {
+        const pendingPayments = await Database.from("patients as p")
+          .where("p.id", data.holderId ?? v4())
+          .select(
+            Database.raw(
+              `
       coalesce((
         select sum(f.total_value)
         from finances f
@@ -755,267 +705,250 @@ export default class ScheduleService {
       ), 0)
       as total
     `,
-							[authCtx.group.id, authCtx.unit.id, authCtx.unit.id],
-						),
-					)
-					.first();
+              [authCtx.group.id, authCtx.unit.id, authCtx.unit.id],
+            ),
+          )
+          .first();
 
-				if (pendingPayments?.total !== 0) {
-					if (!data.userEmail || !data.userPwd) {
-						throw new BadRequestException(
-							"É preciso enviar valores de email e senha para autenticar",
-							401,
-							"E_ERR",
-						);
-					}
-					const user = await User.query()
-						.useTransaction(trx)
-						.where("email", data.userEmail)
-						.where("system_id", authCtx.system.id)
-						.first();
+        if (pendingPayments?.total !== 0) {
+          if (!data.userEmail || !data.userPwd) {
+            throw new BadRequestException(
+              "É preciso enviar valores de email e senha para autenticar",
+              401,
+              "E_ERR",
+            );
+          }
+          const user = await User.query()
+            .useTransaction(trx)
+            .where("email", data.userEmail)
+            .where("system_id", authCtx.system.id)
+            .first();
 
-					if (!user) {
-						throw new BadRequestException(
-							"Credenciais inválidas",
-							401,
-							"E_ERR",
-						);
-					}
+          if (!user) {
+            throw new BadRequestException("Credenciais inválidas", 401, "E_ERR");
+          }
 
-					if (!(await Hash.verify(user.password, data.userPwd))) {
-						throw new BadRequestException(
-							"Credenciais inválidas",
-							401,
-							"E_ERR",
-						);
-					}
+          if (!(await Hash.verify(user.password, data.userPwd))) {
+            throw new BadRequestException("Credenciais inválidas", 401, "E_ERR");
+          }
 
-					if (
-						!SharedService.UserHasPermission(
-							user.id,
-							authCtx.unit.id,
-							authCtx.system.id.toString(),
-							"AGE17",
-						)
-					) {
-						throw new BadRequestException(
-							"Usuario autenticado não possui permissão para liberar agendamento com pendencia financeira",
-							401,
-							"E_ERR",
-						);
-					}
+          if (
+            !SharedService.UserHasPermission(
+              user.id,
+              authCtx.unit.id,
+              authCtx.system.id.toString(),
+              "AGE17",
+            )
+          ) {
+            throw new BadRequestException(
+              "Usuario autenticado não possui permissão para liberar agendamento com pendencia financeira",
+              401,
+              "E_ERR",
+            );
+          }
 
-					pendingApprover = user.id;
-				}
-			}
+          pendingApprover = user.id;
+        }
+      }
 
-			const status = await ScheduleStatus.firstOrCreate(
-				{
-					description: "Agendado (Não confirmado)",
-					system_id: authCtx.system.id,
-					type: "AN",
-				},
-				{
-					color: "#000000",
-				},
-				{
-					client: trx,
-				},
-			);
+      const status = await ScheduleStatus.firstOrCreate(
+        {
+          description: "Agendado (Não confirmado)",
+          system_id: authCtx.system.id,
+          type: "AN",
+        },
+        {
+          color: "#000000",
+        },
+        {
+          client: trx,
+        },
+      );
 
-			const scheduleType = await ScheduleServiceType.findOrFail(
-				data.scheduleServiceTypeId,
-				{
-					client: trx,
-				},
-			);
+      const scheduleType = await ScheduleServiceType.findOrFail(data.scheduleServiceTypeId, {
+        client: trx,
+      });
 
-			const result = await Schedule.create(
-				{
-					business_unit_id: authCtx.unit.id,
-					schedule_status_id: status.id,
-					holder_id: data.holderId,
-					user_id: data.userId ?? authCtx.user.id,
-					patient_id: data.patientId,
-					race_id: data.raceId,
-					schedule_service_type_id: data.scheduleServiceTypeId,
-					creation_user_id: authCtx.user.id,
-					// treatment_id: data.treatmentId,
-					// treatment_item_id: data.treatmentItemId,
-					// treatment_execution_id: data.treatmentExecutionId,
+      const result = await Schedule.create(
+        {
+          business_unit_id: authCtx.unit.id,
+          schedule_status_id: status.id,
+          holder_id: data.holderId,
+          user_id: data.userId ?? authCtx.user.id,
+          patient_id: data.patientId,
+          race_id: data.raceId,
+          schedule_service_type_id: data.scheduleServiceTypeId,
+          creation_user_id: authCtx.user.id,
+          // treatment_id: data.treatmentId,
+          // treatment_item_id: data.treatmentItemId,
+          // treatment_execution_id: data.treatmentExecutionId,
 
-					patientName: data.patientName,
-					patientPhone: data.patientPhone,
-					age: data.age,
-					startHour: data.startHour,
-					endHour: data.endHour.minus({ minutes: 1 }),
-					majorComplaint: data.majorComplaint,
-					scheduleOriginId: data.scheduleOriginId,
-					onDuty: data.onDuty,
-				},
-				{
-					client: trx,
-				},
-			);
+          patientName: data.patientName,
+          patientPhone: data.patientPhone,
+          age: data.age,
+          startHour: data.startHour,
+          endHour: data.endHour.minus({ minutes: 1 }),
+          majorComplaint: data.majorComplaint,
+          scheduleOriginId: data.scheduleOriginId,
+          onDuty: data.onDuty,
+        },
+        {
+          client: trx,
+        },
+      );
 
-			const tasks =
-				data.executions?.map(async (exec) => {
-					return TreatmentExecution.query()
-						.useTransaction(trx)
-						.where("business_unit_id", authCtx.unit.id)
-						.where("treatment_id", exec.treatmentId)
-						.where("treatment_item_id", exec.treatmentItemId)
-						.where("id", exec.treatmentExecutionId)
-						.update({
-							schedule_id: result.id,
-							schedule_date: data.startHour,
-							schedule_user_id: authCtx.user.id,
-						});
-				}) ?? [];
-			await Promise.all(tasks);
+      const tasks =
+        data.executions?.map(async (exec) => {
+          return TreatmentExecution.query()
+            .useTransaction(trx)
+            .where("business_unit_id", authCtx.unit.id)
+            .where("treatment_id", exec.treatmentId)
+            .where("treatment_item_id", exec.treatmentItemId)
+            .where("id", exec.treatmentExecutionId)
+            .update({
+              schedule_id: result.id,
+              schedule_date: data.startHour,
+              schedule_user_id: authCtx.user.id,
+            });
+        }) ?? [];
+      await Promise.all(tasks);
 
-			await result.related("statusChanges").create(
-				{
-					user_id: authCtx.user.id,
-					schedule_status_id: status.id,
-					finance_pending_authorization_user_id: pendingApprover,
-					financePendingAuthorizedAt: pendingApprover ? DateTime.now() : null,
-					observation: "",
-				},
-				{
-					client: trx,
-				},
-			);
+      await result.related("statusChanges").create(
+        {
+          user_id: authCtx.user.id,
+          schedule_status_id: status.id,
+          finance_pending_authorization_user_id: pendingApprover,
+          financePendingAuthorizedAt: pendingApprover ? DateTime.now() : null,
+          observation: "",
+        },
+        {
+          client: trx,
+        },
+      );
 
-			if (data.scheduleOriginId) {
-				const origin = await Schedule.findOrFail(data.scheduleOriginId, {
-					client: trx,
-				});
-				origin.scheduleReturnId = result.id;
-				await origin.useTransaction(trx).save();
-			}
-			return {
-				id: result.id,
-				patientName: result.patientName,
-				patientPhone: result.patientPhone,
-				holder_id: result.holder_id,
-				age: result.age,
-				startHour: result.startHour,
-				endHour: result.endHour,
-				majorComplaint: result.majorComplaint,
-				business_unit_id: authCtx.unit.id,
-				user_id: result.user_id,
-				patient_id: result.patient_id,
-				race_id: result.race_id,
-				schedule_service_type_id: result.schedule_service_type_id,
-				schedule_service_type_type: scheduleType.type,
-				schedule_status_id: status.id,
-				scheduleOriginId: result.scheduleOriginId,
-				onDuty: result.onDuty,
-			};
-		});
-	}
+      if (data.scheduleOriginId) {
+        const origin = await Schedule.findOrFail(data.scheduleOriginId, {
+          client: trx,
+        });
+        origin.scheduleReturnId = result.id;
+        await origin.useTransaction(trx).save();
+      }
+      return {
+        id: result.id,
+        patientName: result.patientName,
+        patientPhone: result.patientPhone,
+        holder_id: result.holder_id,
+        age: result.age,
+        startHour: result.startHour,
+        endHour: result.endHour,
+        majorComplaint: result.majorComplaint,
+        business_unit_id: authCtx.unit.id,
+        user_id: result.user_id,
+        patient_id: result.patient_id,
+        race_id: result.race_id,
+        schedule_service_type_id: result.schedule_service_type_id,
+        schedule_service_type_type: scheduleType.type,
+        schedule_status_id: status.id,
+        scheduleOriginId: result.scheduleOriginId,
+        onDuty: result.onDuty,
+      };
+    });
+  }
 
-	public async show(unitId: string, id: string): Promise<Schedule> {
-		const schedule = await Schedule.query()
-			.where("id", id)
-			.andWhere("business_unit_id", unitId)
-			.preload("serviceType", (query) => {
-				query.select(["id", "description", "type"]);
-			})
-			.preload("serviceStatus", (query) => {
-				query.select(["id", "description", "color", "type"]);
-			})
-			.preload("patient", (query) => {
-				query.select(["id", "name", "gender", "tag"]);
-			})
-			.preload("holder", (query) => {
-				query.select(["id", "name"]);
-				query.preload("tutor", (query) => {
-					query.select(["document", "cellphone", "telephone"]);
-				});
-			})
-			.preload("reschedules", (query) => {
-				query.preload("reason", (query) => query.select(["id", "reason"]));
-				query.preload("user", (query) => query.select(["id", "name", "email"]));
-			})
-			.preload("statusChanges", (query) => {
-				query.preload("reason", (query) => query.select(["id", "reason"]));
-				query.preload("user", (query) => query.select(["id", "name", "email"]));
-				query.preload("status", (query) => query.select(["id", "description"]));
-			})
-			.preload("reason", (query) => query.select(["id", "reason"]))
-			.preload("contacts", (query) => {
-				query.preload("user", (query) => query.select(["id", "name", "email"]));
-				query.preload("status", (query) =>
-					query.select(["id", "description", "color", "type"]),
-				);
-			})
-			.preload("scheduleOrigin")
-			.preload("scheduleReturn")
-			.first();
+  public async show(unitId: string, id: string): Promise<Schedule> {
+    const schedule = await Schedule.query()
+      .where("id", id)
+      .andWhere("business_unit_id", unitId)
+      .preload("serviceType", (query) => {
+        query.select(["id", "description", "type"]);
+      })
+      .preload("serviceStatus", (query) => {
+        query.select(["id", "description", "color", "type"]);
+      })
+      .preload("patient", (query) => {
+        query.select(["id", "name", "gender", "tag"]);
+      })
+      .preload("holder", (query) => {
+        query.select(["id", "name"]);
+        query.preload("tutor", (query) => {
+          query.select(["document", "cellphone", "telephone"]);
+        });
+      })
+      .preload("reschedules", (query) => {
+        query.preload("reason", (query) => query.select(["id", "reason"]));
+        query.preload("user", (query) => query.select(["id", "name", "email"]));
+      })
+      .preload("statusChanges", (query) => {
+        query.preload("reason", (query) => query.select(["id", "reason"]));
+        query.preload("user", (query) => query.select(["id", "name", "email"]));
+        query.preload("status", (query) => query.select(["id", "description"]));
+      })
+      .preload("reason", (query) => query.select(["id", "reason"]))
+      .preload("contacts", (query) => {
+        query.preload("user", (query) => query.select(["id", "name", "email"]));
+        query.preload("status", (query) => query.select(["id", "description", "color", "type"]));
+      })
+      .preload("scheduleOrigin")
+      .preload("scheduleReturn")
+      .first();
 
-		if (!schedule) {
-			throw new ResourceNotFoundException(
-				"Recurso não encontrado",
-				400,
-				"E_NOT_FOUND",
-			);
-		}
+    if (!schedule) {
+      throw new ResourceNotFoundException("Recurso não encontrado", 400, "E_NOT_FOUND");
+    }
 
-		return schedule;
-	}
+    return schedule;
+  }
 
-	public async update(
-		authCtx: AuthContext,
-		id: string,
-		data: IScheduleData & {
-			scheduleOriginId?: string;
-			ignoreBlocking?: boolean;
-		},
-	): Promise<Schedule> {
-		const schedule = await this.show(authCtx.unit.id, id);
+  public async update(
+    authCtx: AuthContext,
+    id: string,
+    data: IScheduleData & {
+      scheduleOriginId?: string;
+      ignoreBlocking?: boolean;
+    },
+  ): Promise<Schedule> {
+    const schedule = await this.show(authCtx.unit.id, id);
 
-		return Database.transaction(async (trx) => {
-			const _user = data.userId
-				? await User.findOrFail(data.userId, { client: trx })
-				: authCtx.user;
-			if (_user.id !== schedule.user_id) {
-				if (!_user.onDuty) {
-					const result = await ScheduleService.checkDisponibility(
-						data.userId ?? authCtx.user.id,
-						authCtx.unit.id,
-						{
-							start: data.startHour.plus({ hours: this.timeOffset }),
-							end: data.endHour.plus({ hours: this.timeOffset }),
-						},
-					);
+    return Database.transaction(async (trx) => {
+      const _user = data.userId
+        ? await User.findOrFail(data.userId, { client: trx })
+        : authCtx.user;
+      if (_user.id !== schedule.user_id) {
+        if (!_user.onDuty) {
+          const result = await ScheduleService.checkDisponibility(
+            data.userId ?? authCtx.user.id,
+            authCtx.unit.id,
+            {
+              start: data.startHour.plus({ hours: this.timeOffset }),
+              end: data.endHour.plus({ hours: this.timeOffset }),
+            },
+          );
 
-					if (result.invalidWorkingDay) {
-						throw new BadRequestException(
-							"Pessoa não trabalha neste horário",
-							400,
-							"E_BAD_REQUEST",
-						);
-					}
+          if (result.invalidWorkingDay) {
+            throw new BadRequestException(
+              "Pessoa não trabalha neste horário",
+              400,
+              "E_BAD_REQUEST",
+            );
+          }
 
-					// if (result.invalidUnavailableDay && !hasPermission) {
-					if (result.invalidUnavailableDay && !data.ignoreBlocking) {
-						throw new BadRequestException(
-							"Pessoa não está disponível neste horário",
-							400,
-							"E_BAD_REQUEST",
-						);
-					}
-				}
+          // if (result.invalidUnavailableDay && !hasPermission) {
+          if (result.invalidUnavailableDay && !data.ignoreBlocking) {
+            throw new BadRequestException(
+              "Pessoa não está disponível neste horário",
+              400,
+              "E_BAD_REQUEST",
+            );
+          }
+        }
 
-				if (!data.ignoreOverlapping) {
-					const overlapping = await Schedule.query()
-						.useTransaction(trx)
-						.where("user_id", data.userId ?? authCtx.user.id)
-						.andWhere("business_unit_id", authCtx.unit.id)
-						.andWhereRaw(
-							`
+        if (!data.ignoreOverlapping) {
+          const overlapping = await Schedule.query()
+            .useTransaction(trx)
+            .where("user_id", data.userId ?? authCtx.user.id)
+            .andWhere("business_unit_id", authCtx.unit.id)
+            .andWhereRaw(
+              `
             (
               (
                 (? BETWEEN start_hour AND end_hour) OR
@@ -1029,856 +962,753 @@ export default class ScheduleService {
               )
             )
             `,
-							[
-								data.startHour.toJSDate(),
-								data.endHour.minus({ minutes: 1 }).toJSDate(),
-								data.startHour.toJSDate(),
-								data.endHour.minus({ minutes: 1 }).toJSDate(),
-								data.startHour.toJSDate(),
-								data.endHour.minus({ minutes: 1 }).toJSDate(),
-							],
-						)
-						.andWhereHas("serviceStatus", (query) => {
-							query.whereNotIn("type", ["CANC"]);
-						})
-						.first();
-
-					if (overlapping) {
-						throw new BadRequestException(
-							"Horário já está ocupado",
-							400,
-							"E_BAD_REQUEST",
-						);
-					}
-				}
-			}
-
-			if (data.executions) {
-				const tasks = data.executions.map(async (exec) => {
-					if (exec.checked) {
-						return TreatmentExecution.query()
-							.useTransaction(trx)
-							.update({
-								schedule_id: schedule.id,
-								schedule_user_id: authCtx.user.id,
-								schedule_date: schedule.startedAt,
-							})
-							.whereRaw(
-								"treatment_id = ? and treatment_item_id = ? and id = ? and schedule_id is null",
-								[
-									exec.treatmentId,
-									exec.treatmentItemId,
-									exec.treatmentExecutionId,
-								],
-							);
-					}
-
-					const relatedExecutions = await TreatmentExecution.query()
-						.useTransaction(trx)
-						.whereRaw(
-							"treatment_id = ? and treatment_item_id = ? and id = ? and schedule_id = ?",
-							[
-								exec.treatmentId,
-								exec.treatmentItemId,
-								exec.treatmentExecutionId,
-								schedule.id,
-							],
-						);
-
-					await TreatmentExecutionReschedule.createMany(
-						relatedExecutions.map((re) => ({
-							economic_group_id: re.economic_group_id,
-							business_unit_id: re.business_unit_id,
-							treatment_id: re.treatment_id,
-							treatment_item_id: re.treatment_item_id,
-							id: re.id,
-							schedule_user_id: re.schedule_user_id,
-							reschedule_user_id: re.schedule_user_id,
-							schedule_id: re.schedule_id,
-							schedule_date: re.scheduleDate,
-						})),
-						{ client: trx },
-					);
-
-					return await TreatmentExecution.query()
-						.useTransaction(trx)
-						.update({
-							schedule_id: null,
-							schedule_user_id: null,
-							schedule_date: null,
-						})
-						.whereRaw(
-							"treatment_id = ? and treatment_item_id = ? and id = ? and schedule_id = ?",
-							[
-								exec.treatmentId,
-								exec.treatmentItemId,
-								exec.treatmentExecutionId,
-								schedule.id,
-							],
-						);
-				});
-
-				await Promise.all(tasks);
-			}
-
-			return schedule
-				.merge({
-					patientName: data.patientName,
-					patientPhone: data.patientPhone,
-					holder_id: data.holderId,
-					age: data.age,
-					majorComplaint: data.majorComplaint,
-					business_unit_id: authCtx.unit.id,
-					user_id: _user.id,
-					patient_id: data.patientId,
-					race_id: data.raceId,
-					schedule_service_type_id: data.scheduleServiceTypeId,
-					onDuty: data.onDuty,
-					startHour: data.startHour,
-					endHour: data.endHour.minus({ minutes: 1 }),
-				})
-				.useTransaction(trx)
-				.save();
-		});
-	}
-
-	public async reschedule(
-		authCtx: AuthContext,
-		id: string,
-		data: IRescheduleData,
-	) {
-		const schedule = await this.show(authCtx.unit.id, id);
-
-		return Database.transaction(async (trx) => {
-			const technician = data.userId
-				? await User.findOrFail(data.userId, { client: trx })
-				: authCtx.user;
-
-			if (!technician.onDuty) {
-				const result = await ScheduleService.checkDisponibility(
-					technician.id,
-					authCtx.unit.id,
-					{
-						start: data.startHour.plus({ hours: this.timeOffset }),
-						end: data.endHour.plus({ hours: this.timeOffset }),
-					},
-				);
-
-				if (result.invalidWorkingDay) {
-					throw new BadRequestException(
-						"Pessoa não trabalha neste horário",
-						400,
-						"E_BAD_REQUEST",
-					);
-				}
-
-				if (result.invalidUnavailableDay && !data.ignoreBlocking) {
-					throw new BadRequestException(
-						"Pessoa não está disponível neste horário",
-						400,
-						"E_BAD_REQUEST",
-					);
-				}
-			}
-
-			if (data.reasonId) {
-				const reason = await Reason.findOrFail(data.reasonId);
-				if (reason.requiresObservation && !data.observation) {
-					// throw new BadRequestException(
-					// 	"É preciso informar observação",
-					// 	400,
-					// 	"E_MISSING",
-					// );
-					return {
-						data: null,
-						message: null,
-						status: 422,
-						title: "É preciso informar a observação",
-						validationErrors: {
-							observation: {
-								errors: ["É preciso informar a observação"],
-							},
-						},
-					};
-				}
-			}
-
-			await schedule.related("reschedules").create(
-				{
-					update_user_id: authCtx.user.id,
-					user_id: schedule.user_id,
-					originalDate: schedule.startHour,
-					reason_id: data.reasonId,
-					observation: data.observation,
-				},
-				{ client: trx },
-			);
-
-			const status = await ScheduleStatus.query()
-				.useTransaction(trx)
-				.where("system_id", authCtx.system.id)
-				.where("type", "AN" as ScheduleStatusType)
-				.first();
-
-			if (!status) {
-				throw new BadRequestException(
-					"Não foi possível encontrar um status do tipo 'Não confirmado'",
-					400,
-					"E_ERR",
-				);
-			}
-
-			await schedule.related("statusChanges").create(
-				{
-					user_id: authCtx.user.id,
-					schedule_status_id: status.id,
-					reason_id: data.reasonId,
-					observation: data.observation,
-				},
-				{
-					client: trx,
-				},
-			);
-
-			return schedule
-				.merge({
-					schedule_status_id: status.id,
-					user_id: technician.id,
-					startHour: data.startHour,
-					endHour: data.endHour,
-				})
-				.useTransaction(trx)
-				.save();
-		});
-	}
-
-	public async reopenSchedule(
-		authCtx: AuthContext,
-		id: string,
-		data: { reasonId: string; statusId: string; observation: string },
-	): Promise<Schedule> {
-		const hasPermission = await this.sharedService.userHasPermission(
-			authCtx,
-			"AGE14",
-		);
-		if (!hasPermission) {
-			throw new UnauthorizedException(
-				"Usuário não tem permissão",
-				400,
-				"E_ERR",
-			);
-		}
-
-		const schedule = await this.show(authCtx.unit.id, id);
-
-		if (schedule.serviceStatus.type !== "CANC") {
-			throw new BadRequestException(
-				"Apenas agendas canceladas podem ser reabertas",
-				400,
-				"E_ERR",
-			);
-		}
-
-		return Database.transaction(async (trx) => {
-			await schedule.related("statusChanges").create(
-				{
-					user_id: authCtx.user.id,
-					// schedule_status_id: schedule.schedule_status_id, // status antigo da agenda
-					schedule_status_id: data.statusId, // novo status
-					reason_id: data.reasonId,
-					observation: data.observation,
-				},
-				{
-					client: trx,
-				},
-			);
-
-			return schedule
-				.merge({
-					schedule_status_id: data.statusId,
-				})
-				.useTransaction(trx)
-				.save();
-		});
-	}
-
-	public async upsertStatus(
-		authCtx: AuthContext,
-		id: string,
-		data: {
-			reasonId: string;
-			statusId: string;
-			observation: string;
-			ignoreConflict?: boolean;
-			userEmail?: string;
-			userPwd?: string;
-		},
-	): Promise<Schedule> {
-		const hasPermission = await this.sharedService.userHasPermission(
-			authCtx,
-			"AGE15",
-		);
-		if (!hasPermission) {
-			throw new UnauthorizedException(
-				"Usuário não tem permissão",
-				400,
-				"E_ERR",
-			);
-		}
-
-		const schedule = await this.show(authCtx.unit.id, id);
-
-		if (schedule.serviceStatus.type === "CANC") {
-			throw new BadRequestException(
-				"Não é possível fazer essa ação com agendas canceladas",
-				400,
-				"E_ERR",
-			);
-		}
-
-		return Database.transaction(async (trx) => {
-			const toStatus = await ScheduleStatus.findOrFail(data.statusId, {
-				client: trx,
-			});
-
-			let pendingApprover: string | null = null;
-
-			if (
-				authCtx.unit.unitConfig.config.schedules?.block_finance_pending &&
-				["AC", "REC"].includes(toStatus.type)
-			) {
-				const pendingPayments: { total: number } | null = await Database.from(
-					"finances",
-				)
-					.select(Database.raw("coalesce(sum(total_value)::int, 0) as total"))
-					.whereRaw("type = 'CREDITO'")
-					.whereRaw("deleted_at is null")
-					.whereRaw("business_unit_id = ?", [authCtx.unit.id])
-					.whereRaw("client_id = ?", [
-						authCtx.system.type === "Vet"
-							? (schedule.holder_id ?? v4())
-							: (schedule.patient_id ?? v4()),
-					])
-					.whereRaw("payment_date is null")
-					.whereRaw("expiration_date < now()")
-					.first();
-
-				if (pendingPayments?.total !== 0) {
-					if (!data.userEmail || !data.userPwd) {
-						throw new BadRequestException(
-							"Cliente com pagamentos atrasados, é preciso enviar email e senha para autenticar",
-							401,
-							"E_ERR",
-						);
-					}
-					const user = await User.query()
-						.useTransaction(trx)
-						.where("email", data.userEmail)
-						.where("system_id", authCtx.system.id)
-						.first();
-
-					if (!user) {
-						throw new BadRequestException(
-							"Credenciais inválidas",
-							401,
-							"E_ERR",
-						);
-					}
-
-					if (!(await Hash.verify(user.password, data.userPwd))) {
-						throw new BadRequestException(
-							"Credenciais inválidas",
-							401,
-							"E_ERR",
-						);
-					}
-
-					if (
-						!SharedService.UserHasPermission(
-							user.id,
-							authCtx.unit.id,
-							authCtx.system.id.toString(),
-							"AGE17",
-						)
-					) {
-						throw new BadRequestException(
-							"Usuario autenticado não possui permissão para liberar agendamento com pendencia financeira",
-							401,
-							"E_ERR",
-						);
-					}
-
-					pendingApprover = user.id;
-				}
-			}
-
-			if (toStatus.type === "CANC") {
-				await this.validateScheduleChange(trx, {
-					scheduleId: id,
-					ignoreConflict: data.ignoreConflict,
-				});
-
-				await Database.from("treatment_executions")
-					.useTransaction(trx)
-					.where("schedule_id", id)
-					.update({
-						schedule_user_id: null,
-						schedule_id: null,
-						schedule_date: null,
-					});
-			}
-
-			if (schedule.serviceStatus.type === "AC" && toStatus.type === "AN") {
-				await schedule
-					.merge({
-						confirmation_user_id: null,
-						confirmationConferenceDate: null,
-						confirmationDate: null,
-						confirmationOrigin: null,
-					})
-					.useTransaction(trx)
-					.save();
-			}
-
-			if (schedule.serviceStatus.type === "CANC") {
-				await schedule
-					.merge({
-						confirmation_user_id: null,
-						confirmationConferenceDate: null,
-						confirmationDate: null,
-						confirmationOrigin: null,
-					})
-					.useTransaction(trx)
-					.save();
-			}
-
-			await schedule.related("statusChanges").create(
-				{
-					user_id: authCtx.user.id,
-					// schedule_status_id: schedule.schedule_status_id, // status antigo da agenda
-					schedule_status_id: data.statusId, // status novo da agenda
-					reason_id: data.reasonId,
-					observation: data.observation,
-					finance_pending_authorization_user_id: pendingApprover,
-					confirmation_user_id:
-						toStatus.type === "AC" || toStatus.type === "CANC"
-							? authCtx.user.id
-							: undefined,
-					confirmationConferenceDate:
-						toStatus.type === "AC" || toStatus.type === "CANC"
-							? DateTime.now()
-							: undefined,
-					confirmationDate:
-						toStatus.type === "AC" || toStatus.type === "CANC"
-							? DateTime.now()
-							: undefined,
-					confirmationOrigin:
-						toStatus.type === "AC" || toStatus.type === "CANC"
-							? "usuario"
-							: undefined,
-					financePendingAuthorizedAt: pendingApprover ? DateTime.now() : null,
-				},
-				{
-					client: trx,
-				},
-			);
-
-			return schedule
-				.merge({
-					schedule_status_id: data.statusId,
-					confirmation_user_id:
-						toStatus.type === "AC" || toStatus.type === "CANC"
-							? authCtx.user.id
-							: undefined,
-					confirmationConferenceDate:
-						toStatus.type === "AC" || toStatus.type === "CANC"
-							? DateTime.now()
-							: undefined,
-					confirmationDate:
-						toStatus.type === "AC" || toStatus.type === "CANC"
-							? DateTime.now()
-							: undefined,
-					confirmationOrigin:
-						toStatus.type === "AC" || toStatus.type === "CANC"
-							? "usuario"
-							: undefined,
-				})
-				.useTransaction(trx)
-				.save();
-		});
-	}
-
-	public async destroy(
-		authCtx: AuthContext,
-		data: {
-			id: string;
-			ignoreConflict: boolean;
-		},
-	): Promise<void> {
-		return Database.transaction(async (trx) => {
-			const hasPermission = await this.sharedService.userHasPermission(
-				authCtx,
-				"AGE13",
-			);
-			if (!hasPermission) {
-				throw new UnauthorizedException(
-					"Usuário não tem permissão",
-					400,
-					"E_ERR",
-				);
-			}
-
-			const schedule = await Schedule.query()
-				.useTransaction(trx)
-				.where("id", data.id)
-				.andWhere("business_unit_id", authCtx.unit.id)
-				.first();
-
-			if (!schedule) {
-				throw new BadRequestException("Agenda não encontrada", 400, "E_ERR");
-			}
-
-			await this.validateScheduleChange(trx, {
-				scheduleId: data.id,
-				ignoreConflict: data.ignoreConflict,
-			});
-
-			await Database.from("treatment_executions")
-				.useTransaction(trx)
-				.where("schedule_id", data.id)
-				.update({
-					schedule_user_id: null,
-					schedule_id: null,
-					schedule_date: null,
-				});
-
-			await schedule
-				.merge({
-					deletedAt: DateTime.now(),
-					exclusion_user_id: authCtx.user.id,
-				})
-				.useTransaction(trx)
-				.save();
-
-			await Opportunity.query()
-				.useTransaction(trx)
-				.where("schedule_id", schedule.id)
-				.update({ schedule_id: null });
-		});
-	}
-
-	public async searchDisponibility(data: IViewDisponibilityRequest) {
-		const startDate = new Date(data.start);
-		const endDate = new Date(data.end);
-
-		const { days } = intervalToDuration({
-			start: startDate,
-			end: endDate,
-		});
-
-		const keys = Array.from({ length: (days ?? 0) + 1 }, (_, k) => {
-			const tmpDate = addDays(startDate, k);
-
-			return format(tmpDate, "yyyy-MM-dd");
-		});
-
-		const [wDays, uDays, schedules] = data.user
-			? await this.getUserGeneralSchedules(
-					data.user,
-					data.business,
-					startDate,
-					endDate,
-				)
-			: await this.getGeneralSchedules(
-					data.business,
-					startOfDay(startDate),
-					endOfDay(endDate),
-				);
-
-		return this.mapSchedulesToDays(keys, wDays, uDays, schedules);
-	}
-
-	public async searchServices(unitId: string, data: IViewDailyServicesRequest) {
-		const group = await this.sharedService.getUserGroup(unitId);
-		const startDate = new Date(data.start);
-		const endDate = new Date(data.end);
-
-		const { days } = intervalToDuration({
-			start: startDate,
-			end: endDate,
-		});
-
-		const keys = Array.from({ length: (days ?? 0) + 1 }, (_, k) => {
-			const tmpDate = addDays(startDate, k);
-
-			return format(tmpDate, "yyyy-MM-dd");
-		});
-
-		const services = await ScheduleServiceType.query()
-			// .has('schedules', '>', 0)
-			.where("active", true)
-			.where("economic_group_id", group.id)
-			.preload("schedules", (query) => {
-				query.whereBetween("start_hour", [startDate, endDate]);
-
-				query.preload("patient");
-				query.preload("race");
-				query.preload("holder");
-				query.preload("user");
-			});
-
-		return keys.map((key) => ({
-			[key]: services.map((service) => ({
-				[service.description]: service.schedules
-					.filter((schedule) => {
-						const scheduleDate = schedule.startHour.toJSDate();
-
-						const keyDate = DateTime.fromFormat(key, "yyyy-MM-dd").toJSDate();
-
-						return isSameDay(scheduleDate, keyDate);
-					})
-					.map((schedule) => ({
-						id: schedule.id,
-						startHour: schedule.startHour,
-						endHour: schedule.endHour,
-						age: schedule.age,
-						majorComplaint: schedule.majorComplaint,
-						holder: {
-							id: schedule.holder?.id,
-							name: schedule.holder?.name,
-						},
-						patient: {
-							id: schedule.patient.id,
-							name: schedule.patient.name,
-						},
-						race: {
-							id: schedule.race?.id,
-							description: schedule.race?.description,
-						},
-						user: {
-							id: schedule.user.id,
-							name: schedule.user.name,
-						},
-					})),
-			})),
-		}));
-	}
-
-	private isScheduleInsideWorkingHour(
-		startTime: Date | string,
-		endTime: Date | string,
-		start: string,
-		end: string,
-	): boolean {
-		const fmt = (d: Date | string) =>
-			typeof d === "string"
-				? DateTime.fromISO(d)
-						.plus({ hours: this.timeOffset })
-						.toFormat("HH:mm:ss")
-				: DateTime.fromJSDate(d)
-						.plus({ hours: this.timeOffset })
-						.toFormat("HH:mm:ss");
-
-		const scheduleStart = fmt(startTime);
-		const scheduleEnd = fmt(endTime);
-
-		// intervalo precisa caber 100% dentro do workingDay
-		return scheduleStart >= start && scheduleEnd <= end;
-	}
-
-	private mapSchedulesToDays(
-		keys: string[],
-		wDays: WorkingDay[],
-		uDays: UnavailableDay[],
-		schedules: Schedule[],
-	) {
-		return keys.map((k) => {
-			const filteredWorkingDays = wDays.filter((day) =>
-				ScheduleService.dayOfWeekMatches(new Date(k), [day.weekDay]),
-			);
-
-			const filteredUnavailableDays = uDays.filter((day) =>
-				ScheduleService.dayOfWeekMatches(new Date(k), day.frequency),
-			);
-
-			const filteredSchedules = schedules.filter(
-				(day) => k === format(day.startHour.toJSDate(), "yyyy-MM-dd"),
-			);
-
-			const users = [
-				filteredUnavailableDays.map((s) => s.user),
-				filteredWorkingDays.map((s) => s.user),
-				filteredSchedules.map((s) => s.user),
-			].flat();
-			const uniqueIds = Array.from(new Set(users.map((u) => u.id)));
-			const uniqueUsers = uniqueIds.map(
-				(id) => users.find((u) => u.id === id)!,
-			);
-
-			const allEvents = [
-				...filteredWorkingDays,
-				...filteredUnavailableDays,
-				...filteredSchedules,
-			];
-
-			return {
-				date: k,
-				users: uniqueUsers.map((u) => ({
-					id: u.id,
-					name: u.name,
-					events: allEvents
-						.filter((e) => e.user.id === u.id)
-						.map((day) => ({
-							start: day.startHour.toString(),
-							end: day.endHour.toString(),
-							type: this.getEventLabel(day),
-							event: day,
-						})),
-				})),
-			};
-		});
-	}
-
-	public async userDailySchedule(
-		authCtx: AuthContext,
-		data: {
-			user?: string;
-			to?: string;
-			from?: string;
-			lista_cancelados?: string;
-			status?: string[];
-			working?: string;
-			unavailable?: string;
-			patient?: string;
-		},
-	) {
-		// if (!data.from || !data.to) {
-		// 	throw new BadRequestException("Data não informada", 400, "E_BAD_REQUEST");
-		// }
-		const refStart = data.from
-			? DateTime.fromISO(data.from, { zone: "America/Sao_Paulo" })
-			: DateTime.now();
-		const refEnd = data.to
-			? DateTime.fromISO(data.to, { zone: "America/Sao_Paulo" })
-			: DateTime.now();
-
-		const usersQb = Database.from("users")
-			.select(
-				Database.raw(
-					"distinct users.id, users.name, users.on_duty, users.schedule_sequence",
-				),
-			)
-			.joinRaw(
-				"join user_unit_roles on users.id = user_unit_roles.user_id and user_unit_roles.active is true",
-			)
-			.joinRaw(
-				`left join working_days
+              [
+                data.startHour.toJSDate(),
+                data.endHour.minus({ minutes: 1 }).toJSDate(),
+                data.startHour.toJSDate(),
+                data.endHour.minus({ minutes: 1 }).toJSDate(),
+                data.startHour.toJSDate(),
+                data.endHour.minus({ minutes: 1 }).toJSDate(),
+              ],
+            )
+            .andWhereHas("serviceStatus", (query) => {
+              query.whereNotIn("type", ["CANC"]);
+            })
+            .first();
+
+          if (overlapping) {
+            throw new BadRequestException("Horário já está ocupado", 400, "E_BAD_REQUEST");
+          }
+        }
+      }
+
+      if (data.executions) {
+        const tasks = data.executions.map(async (exec) => {
+          if (exec.checked) {
+            return TreatmentExecution.query()
+              .useTransaction(trx)
+              .update({
+                schedule_id: schedule.id,
+                schedule_user_id: authCtx.user.id,
+                schedule_date: schedule.startedAt,
+              })
+              .whereRaw(
+                "treatment_id = ? and treatment_item_id = ? and id = ? and schedule_id is null",
+                [exec.treatmentId, exec.treatmentItemId, exec.treatmentExecutionId],
+              );
+          }
+
+          const relatedExecutions = await TreatmentExecution.query()
+            .useTransaction(trx)
+            .whereRaw("treatment_id = ? and treatment_item_id = ? and id = ? and schedule_id = ?", [
+              exec.treatmentId,
+              exec.treatmentItemId,
+              exec.treatmentExecutionId,
+              schedule.id,
+            ]);
+
+          await TreatmentExecutionReschedule.createMany(
+            relatedExecutions.map((re) => ({
+              economic_group_id: re.economic_group_id,
+              business_unit_id: re.business_unit_id,
+              treatment_id: re.treatment_id,
+              treatment_item_id: re.treatment_item_id,
+              id: re.id,
+              schedule_user_id: re.schedule_user_id,
+              reschedule_user_id: re.schedule_user_id,
+              schedule_id: re.schedule_id,
+              schedule_date: re.scheduleDate,
+            })),
+            { client: trx },
+          );
+
+          return await TreatmentExecution.query()
+            .useTransaction(trx)
+            .update({
+              schedule_id: null,
+              schedule_user_id: null,
+              schedule_date: null,
+            })
+            .whereRaw("treatment_id = ? and treatment_item_id = ? and id = ? and schedule_id = ?", [
+              exec.treatmentId,
+              exec.treatmentItemId,
+              exec.treatmentExecutionId,
+              schedule.id,
+            ]);
+        });
+
+        await Promise.all(tasks);
+      }
+
+      return schedule
+        .merge({
+          patientName: data.patientName,
+          patientPhone: data.patientPhone,
+          holder_id: data.holderId,
+          age: data.age,
+          majorComplaint: data.majorComplaint,
+          business_unit_id: authCtx.unit.id,
+          user_id: _user.id,
+          patient_id: data.patientId,
+          race_id: data.raceId,
+          schedule_service_type_id: data.scheduleServiceTypeId,
+          onDuty: data.onDuty,
+          startHour: data.startHour,
+          endHour: data.endHour.minus({ minutes: 1 }),
+        })
+        .useTransaction(trx)
+        .save();
+    });
+  }
+
+  public async reschedule(authCtx: AuthContext, id: string, data: IRescheduleData) {
+    const schedule = await this.show(authCtx.unit.id, id);
+
+    return Database.transaction(async (trx) => {
+      const technician = data.userId
+        ? await User.findOrFail(data.userId, { client: trx })
+        : authCtx.user;
+
+      if (!technician.onDuty) {
+        const result = await ScheduleService.checkDisponibility(technician.id, authCtx.unit.id, {
+          start: data.startHour.plus({ hours: this.timeOffset }),
+          end: data.endHour.plus({ hours: this.timeOffset }),
+        });
+
+        if (result.invalidWorkingDay) {
+          throw new BadRequestException("Pessoa não trabalha neste horário", 400, "E_BAD_REQUEST");
+        }
+
+        if (result.invalidUnavailableDay && !data.ignoreBlocking) {
+          throw new BadRequestException(
+            "Pessoa não está disponível neste horário",
+            400,
+            "E_BAD_REQUEST",
+          );
+        }
+      }
+
+      if (data.reasonId) {
+        const reason = await Reason.findOrFail(data.reasonId);
+        if (reason.requiresObservation && !data.observation) {
+          // throw new BadRequestException(
+          // 	"É preciso informar observação",
+          // 	400,
+          // 	"E_MISSING",
+          // );
+          return {
+            data: null,
+            message: null,
+            status: 422,
+            title: "É preciso informar a observação",
+            validationErrors: {
+              observation: {
+                errors: ["É preciso informar a observação"],
+              },
+            },
+          };
+        }
+      }
+
+      await schedule.related("reschedules").create(
+        {
+          update_user_id: authCtx.user.id,
+          user_id: schedule.user_id,
+          originalDate: schedule.startHour,
+          reason_id: data.reasonId,
+          observation: data.observation,
+        },
+        { client: trx },
+      );
+
+      const status = await ScheduleStatus.query()
+        .useTransaction(trx)
+        .where("system_id", authCtx.system.id)
+        .where("type", "AN" as ScheduleStatusType)
+        .first();
+
+      if (!status) {
+        throw new BadRequestException(
+          "Não foi possível encontrar um status do tipo 'Não confirmado'",
+          400,
+          "E_ERR",
+        );
+      }
+
+      await schedule.related("statusChanges").create(
+        {
+          user_id: authCtx.user.id,
+          schedule_status_id: status.id,
+          reason_id: data.reasonId,
+          observation: data.observation,
+        },
+        {
+          client: trx,
+        },
+      );
+
+      return schedule
+        .merge({
+          schedule_status_id: status.id,
+          user_id: technician.id,
+          startHour: data.startHour,
+          endHour: data.endHour,
+        })
+        .useTransaction(trx)
+        .save();
+    });
+  }
+
+  public async reopenSchedule(
+    authCtx: AuthContext,
+    id: string,
+    data: { reasonId: string; statusId: string; observation: string },
+  ): Promise<Schedule> {
+    const hasPermission = await this.sharedService.userHasPermission(authCtx, "AGE14");
+    if (!hasPermission) {
+      throw new UnauthorizedException("Usuário não tem permissão", 400, "E_ERR");
+    }
+
+    const schedule = await this.show(authCtx.unit.id, id);
+
+    if (schedule.serviceStatus.type !== "CANC") {
+      throw new BadRequestException("Apenas agendas canceladas podem ser reabertas", 400, "E_ERR");
+    }
+
+    return Database.transaction(async (trx) => {
+      await schedule.related("statusChanges").create(
+        {
+          user_id: authCtx.user.id,
+          // schedule_status_id: schedule.schedule_status_id, // status antigo da agenda
+          schedule_status_id: data.statusId, // novo status
+          reason_id: data.reasonId,
+          observation: data.observation,
+        },
+        {
+          client: trx,
+        },
+      );
+
+      return schedule
+        .merge({
+          schedule_status_id: data.statusId,
+        })
+        .useTransaction(trx)
+        .save();
+    });
+  }
+
+  public async upsertStatus(
+    authCtx: AuthContext,
+    id: string,
+    data: {
+      reasonId: string;
+      statusId: string;
+      observation: string;
+      ignoreConflict?: boolean;
+      userEmail?: string;
+      userPwd?: string;
+    },
+  ): Promise<Schedule> {
+    const hasPermission = await this.sharedService.userHasPermission(authCtx, "AGE15");
+    if (!hasPermission) {
+      throw new UnauthorizedException("Usuário não tem permissão", 400, "E_ERR");
+    }
+
+    const schedule = await this.show(authCtx.unit.id, id);
+
+    if (schedule.serviceStatus.type === "CANC") {
+      throw new BadRequestException(
+        "Não é possível fazer essa ação com agendas canceladas",
+        400,
+        "E_ERR",
+      );
+    }
+
+    return Database.transaction(async (trx) => {
+      const toStatus = await ScheduleStatus.findOrFail(data.statusId, {
+        client: trx,
+      });
+
+      let pendingApprover: string | null = null;
+
+      if (
+        authCtx.unit.unitConfig.config.schedules?.block_finance_pending &&
+        ["AC", "REC"].includes(toStatus.type)
+      ) {
+        const pendingPayments: { total: number } | null = await Database.from("finances")
+          .select(Database.raw("coalesce(sum(total_value)::int, 0) as total"))
+          .whereRaw("type = 'CREDITO'")
+          .whereRaw("deleted_at is null")
+          .whereRaw("business_unit_id = ?", [authCtx.unit.id])
+          .whereRaw("client_id = ?", [
+            authCtx.system.type === "Vet"
+              ? (schedule.holder_id ?? v4())
+              : (schedule.patient_id ?? v4()),
+          ])
+          .whereRaw("payment_date is null")
+          .whereRaw("expiration_date < now()")
+          .first();
+
+        if (pendingPayments?.total !== 0) {
+          if (!data.userEmail || !data.userPwd) {
+            throw new BadRequestException(
+              "Cliente com pagamentos atrasados, é preciso enviar email e senha para autenticar",
+              401,
+              "E_ERR",
+            );
+          }
+          const user = await User.query()
+            .useTransaction(trx)
+            .where("email", data.userEmail)
+            .where("system_id", authCtx.system.id)
+            .first();
+
+          if (!user) {
+            throw new BadRequestException("Credenciais inválidas", 401, "E_ERR");
+          }
+
+          if (!(await Hash.verify(user.password, data.userPwd))) {
+            throw new BadRequestException("Credenciais inválidas", 401, "E_ERR");
+          }
+
+          if (
+            !SharedService.UserHasPermission(
+              user.id,
+              authCtx.unit.id,
+              authCtx.system.id.toString(),
+              "AGE17",
+            )
+          ) {
+            throw new BadRequestException(
+              "Usuario autenticado não possui permissão para liberar agendamento com pendencia financeira",
+              401,
+              "E_ERR",
+            );
+          }
+
+          pendingApprover = user.id;
+        }
+      }
+
+      if (toStatus.type === "CANC") {
+        await this.validateScheduleChange(trx, {
+          scheduleId: id,
+          ignoreConflict: data.ignoreConflict,
+        });
+
+        await Database.from("treatment_executions")
+          .useTransaction(trx)
+          .where("schedule_id", id)
+          .update({
+            schedule_user_id: null,
+            schedule_id: null,
+            schedule_date: null,
+          });
+      }
+
+      if (schedule.serviceStatus.type === "AC" && toStatus.type === "AN") {
+        await schedule
+          .merge({
+            confirmation_user_id: null,
+            confirmationConferenceDate: null,
+            confirmationDate: null,
+            confirmationOrigin: null,
+          })
+          .useTransaction(trx)
+          .save();
+      }
+
+      if (schedule.serviceStatus.type === "CANC") {
+        await schedule
+          .merge({
+            confirmation_user_id: null,
+            confirmationConferenceDate: null,
+            confirmationDate: null,
+            confirmationOrigin: null,
+          })
+          .useTransaction(trx)
+          .save();
+      }
+
+      await schedule.related("statusChanges").create(
+        {
+          user_id: authCtx.user.id,
+          // schedule_status_id: schedule.schedule_status_id, // status antigo da agenda
+          schedule_status_id: data.statusId, // status novo da agenda
+          reason_id: data.reasonId,
+          observation: data.observation,
+          finance_pending_authorization_user_id: pendingApprover,
+          confirmation_user_id:
+            toStatus.type === "AC" || toStatus.type === "CANC" ? authCtx.user.id : undefined,
+          confirmationConferenceDate:
+            toStatus.type === "AC" || toStatus.type === "CANC" ? DateTime.now() : undefined,
+          confirmationDate:
+            toStatus.type === "AC" || toStatus.type === "CANC" ? DateTime.now() : undefined,
+          confirmationOrigin:
+            toStatus.type === "AC" || toStatus.type === "CANC" ? "usuario" : undefined,
+          financePendingAuthorizedAt: pendingApprover ? DateTime.now() : null,
+        },
+        {
+          client: trx,
+        },
+      );
+
+      return schedule
+        .merge({
+          schedule_status_id: data.statusId,
+          confirmation_user_id:
+            toStatus.type === "AC" || toStatus.type === "CANC" ? authCtx.user.id : undefined,
+          confirmationConferenceDate:
+            toStatus.type === "AC" || toStatus.type === "CANC" ? DateTime.now() : undefined,
+          confirmationDate:
+            toStatus.type === "AC" || toStatus.type === "CANC" ? DateTime.now() : undefined,
+          confirmationOrigin:
+            toStatus.type === "AC" || toStatus.type === "CANC" ? "usuario" : undefined,
+        })
+        .useTransaction(trx)
+        .save();
+    });
+  }
+
+  public async destroy(
+    authCtx: AuthContext,
+    data: {
+      id: string;
+      ignoreConflict: boolean;
+    },
+  ): Promise<void> {
+    return Database.transaction(async (trx) => {
+      const hasPermission = await this.sharedService.userHasPermission(authCtx, "AGE13");
+      if (!hasPermission) {
+        throw new UnauthorizedException("Usuário não tem permissão", 400, "E_ERR");
+      }
+
+      const schedule = await Schedule.query()
+        .useTransaction(trx)
+        .where("id", data.id)
+        .andWhere("business_unit_id", authCtx.unit.id)
+        .first();
+
+      if (!schedule) {
+        throw new BadRequestException("Agenda não encontrada", 400, "E_ERR");
+      }
+
+      await this.validateScheduleChange(trx, {
+        scheduleId: data.id,
+        ignoreConflict: data.ignoreConflict,
+      });
+
+      await Database.from("treatment_executions")
+        .useTransaction(trx)
+        .where("schedule_id", data.id)
+        .update({
+          schedule_user_id: null,
+          schedule_id: null,
+          schedule_date: null,
+        });
+
+      await schedule
+        .merge({
+          deletedAt: DateTime.now(),
+          exclusion_user_id: authCtx.user.id,
+        })
+        .useTransaction(trx)
+        .save();
+
+      await Opportunity.query()
+        .useTransaction(trx)
+        .where("schedule_id", schedule.id)
+        .update({ schedule_id: null });
+    });
+  }
+
+  public async searchDisponibility(data: IViewDisponibilityRequest) {
+    const startDate = new Date(data.start);
+    const endDate = new Date(data.end);
+
+    const { days } = intervalToDuration({
+      start: startDate,
+      end: endDate,
+    });
+
+    const keys = Array.from({ length: (days ?? 0) + 1 }, (_, k) => {
+      const tmpDate = addDays(startDate, k);
+
+      return format(tmpDate, "yyyy-MM-dd");
+    });
+
+    const [wDays, uDays, schedules] = data.user
+      ? await this.getUserGeneralSchedules(data.user, data.business, startDate, endDate)
+      : await this.getGeneralSchedules(data.business, startOfDay(startDate), endOfDay(endDate));
+
+    return this.mapSchedulesToDays(keys, wDays, uDays, schedules);
+  }
+
+  public async searchServices(unitId: string, data: IViewDailyServicesRequest) {
+    const group = await this.sharedService.getUserGroup(unitId);
+    const startDate = new Date(data.start);
+    const endDate = new Date(data.end);
+
+    const { days } = intervalToDuration({
+      start: startDate,
+      end: endDate,
+    });
+
+    const keys = Array.from({ length: (days ?? 0) + 1 }, (_, k) => {
+      const tmpDate = addDays(startDate, k);
+
+      return format(tmpDate, "yyyy-MM-dd");
+    });
+
+    const services = await ScheduleServiceType.query()
+      // .has('schedules', '>', 0)
+      .where("active", true)
+      .where("economic_group_id", group.id)
+      .preload("schedules", (query) => {
+        query.whereBetween("start_hour", [startDate, endDate]);
+
+        query.preload("patient");
+        query.preload("race");
+        query.preload("holder");
+        query.preload("user");
+      });
+
+    return keys.map((key) => ({
+      [key]: services.map((service) => ({
+        [service.description]: service.schedules
+          .filter((schedule) => {
+            const scheduleDate = schedule.startHour.toJSDate();
+
+            const keyDate = DateTime.fromFormat(key, "yyyy-MM-dd").toJSDate();
+
+            return isSameDay(scheduleDate, keyDate);
+          })
+          .map((schedule) => ({
+            id: schedule.id,
+            startHour: schedule.startHour,
+            endHour: schedule.endHour,
+            age: schedule.age,
+            majorComplaint: schedule.majorComplaint,
+            holder: {
+              id: schedule.holder?.id,
+              name: schedule.holder?.name,
+            },
+            patient: {
+              id: schedule.patient.id,
+              name: schedule.patient.name,
+            },
+            race: {
+              id: schedule.race?.id,
+              description: schedule.race?.description,
+            },
+            user: {
+              id: schedule.user.id,
+              name: schedule.user.name,
+            },
+          })),
+      })),
+    }));
+  }
+
+  private isScheduleInsideWorkingHour(
+    startTime: Date | string,
+    endTime: Date | string,
+    start: string,
+    end: string,
+  ): boolean {
+    const fmt = (d: Date | string) =>
+      typeof d === "string"
+        ? DateTime.fromISO(d).plus({ hours: this.timeOffset }).toFormat("HH:mm:ss")
+        : DateTime.fromJSDate(d).plus({ hours: this.timeOffset }).toFormat("HH:mm:ss");
+
+    const scheduleStart = fmt(startTime);
+    const scheduleEnd = fmt(endTime);
+
+    // intervalo precisa caber 100% dentro do workingDay
+    return scheduleStart >= start && scheduleEnd <= end;
+  }
+
+  private mapSchedulesToDays(
+    keys: string[],
+    wDays: WorkingDay[],
+    uDays: UnavailableDay[],
+    schedules: Schedule[],
+  ) {
+    return keys.map((k) => {
+      const filteredWorkingDays = wDays.filter((day) =>
+        ScheduleService.dayOfWeekMatches(new Date(k), [day.weekDay]),
+      );
+
+      const filteredUnavailableDays = uDays.filter((day) =>
+        ScheduleService.dayOfWeekMatches(new Date(k), day.frequency),
+      );
+
+      const filteredSchedules = schedules.filter(
+        (day) => k === format(day.startHour.toJSDate(), "yyyy-MM-dd"),
+      );
+
+      const users = [
+        filteredUnavailableDays.map((s) => s.user),
+        filteredWorkingDays.map((s) => s.user),
+        filteredSchedules.map((s) => s.user),
+      ].flat();
+      const uniqueIds = Array.from(new Set(users.map((u) => u.id)));
+      const uniqueUsers = uniqueIds.map((id) => users.find((u) => u.id === id)!);
+
+      const allEvents = [...filteredWorkingDays, ...filteredUnavailableDays, ...filteredSchedules];
+
+      return {
+        date: k,
+        users: uniqueUsers.map((u) => ({
+          id: u.id,
+          name: u.name,
+          events: allEvents
+            .filter((e) => e.user.id === u.id)
+            .map((day) => ({
+              start: day.startHour.toString(),
+              end: day.endHour.toString(),
+              type: this.getEventLabel(day),
+              event: day,
+            })),
+        })),
+      };
+    });
+  }
+
+  public async userDailySchedule(
+    authCtx: AuthContext,
+    data: {
+      user?: string;
+      to?: string;
+      from?: string;
+      lista_cancelados?: string;
+      status?: string[];
+      working?: string;
+      unavailable?: string;
+      patient?: string;
+    },
+  ) {
+    // if (!data.from || !data.to) {
+    // 	throw new BadRequestException("Data não informada", 400, "E_BAD_REQUEST");
+    // }
+    const refStart = data.from
+      ? DateTime.fromISO(data.from, { zone: "America/Sao_Paulo" })
+      : DateTime.now();
+    const refEnd = data.to
+      ? DateTime.fromISO(data.to, { zone: "America/Sao_Paulo" })
+      : DateTime.now();
+
+    const usersQb = Database.from("users")
+      .select(Database.raw("distinct users.id, users.name, users.on_duty, users.schedule_sequence"))
+      .joinRaw(
+        "join user_unit_roles on users.id = user_unit_roles.user_id and user_unit_roles.active is true",
+      )
+      .joinRaw(
+        `left join working_days
                    on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id and working_days.weekday_index = ?`,
-				[refStart.toJSDate().getDay().toString()],
-			)
-			.joinRaw(
-				"left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?",
-				[refStart.toJSDate(), refEnd.toJSDate()],
-			)
-			.where("user_unit_roles.unit_id", authCtx.unit.id)
-			.where("users.type", "user")
-			.whereRaw(
-				"((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))",
-			)
-			.orderByRaw("users.schedule_sequence, users.name");
+        [refStart.toJSDate().getDay().toString()],
+      )
+      .joinRaw(
+        "left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?",
+        [refStart.toJSDate(), refEnd.toJSDate()],
+      )
+      .where("user_unit_roles.unit_id", authCtx.unit.id)
+      .where("users.type", "user")
+      .whereRaw(
+        "((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))",
+      )
+      .orderByRaw("users.schedule_sequence, users.name");
 
-		if (data.user) {
-			usersQb.where("users.id", data.user);
-		}
+    if (data.user) {
+      usersQb.where("users.id", data.user);
+    }
 
-		if (!authCtx.hasPermission("AGE10")) {
-			usersQb.where("users.id", authCtx.user.id);
-		}
+    if (!authCtx.hasPermission("AGE10")) {
+      usersQb.where("users.id", authCtx.user.id);
+    }
 
-		const users: {
-			id: string;
-			name: string;
-			on_duty: boolean;
-			schedule_sequence: boolean;
-		}[] = await usersQb;
-		const userIds = Array.from(new Set(users.map((u) => u.id)));
+    const users: {
+      id: string;
+      name: string;
+      on_duty: boolean;
+      schedule_sequence: boolean;
+    }[] = await usersQb;
+    const userIds = Array.from(new Set(users.map((u) => u.id)));
 
-		const days = Math.max(
-			differenceInDays(refStart.toJSDate(), refEnd.toJSDate()),
-			1,
-		);
-		const diffDays = Array.from({ length: days }, (_, k) => {
-			const tmpDate = addDays(refStart.toJSDate(), k);
-			return ScheduleService.GetWD(tmpDate);
-		});
-		const resultData: [
-			{
-				id: string;
-				user_id: string;
-				start_hour: string;
-				end_hour: string;
-				major_complaint: string;
-				service_type: {
-					id: string;
-					description: string;
-					type: string;
-				};
-				service_status: {
-					id: string;
-					description: string;
-					color: string;
-					type: string;
-				};
-				confirmation_user: {
-					userId: string;
-					userName: string;
-					confirmationConferenceDate: string;
-					confirmationDate: string;
-					confirmationOrigin: string;
-				} | null;
-				reason: {
-					id: string;
-					description: string;
-				} | null;
-				attendances: {
-					id: number;
-					scheduleService: {
-						id: string;
-						description: string;
-					};
-				}[];
-				patient: {
-					id: string;
-					name: string;
-					photo: string | null;
-					tag: string;
-					cellphone: string | null;
-				} | null;
-				holder: {
-					id: string;
-					name: string;
-					tutor: {
-						cellphone: string | null;
-						telephone: string | null;
-						fullAddress: string;
-					};
-				};
-				race: {
-					id: string;
-					description: string;
-				} | null;
-				specie: {
-					id: string;
-					description: string;
-				} | null;
-			}[],
-			WorkingDay[],
-			UnavailableDay[],
-		] = [[], [], []];
+    const days = Math.max(differenceInDays(refStart.toJSDate(), refEnd.toJSDate()), 1);
+    const diffDays = Array.from({ length: days }, (_, k) => {
+      const tmpDate = addDays(refStart.toJSDate(), k);
+      return ScheduleService.GetWD(tmpDate);
+    });
+    const resultData: [
+      {
+        id: string;
+        user_id: string;
+        start_hour: string;
+        end_hour: string;
+        major_complaint: string;
+        service_type: {
+          id: string;
+          description: string;
+          type: string;
+        };
+        service_status: {
+          id: string;
+          description: string;
+          color: string;
+          type: string;
+        };
+        confirmation_user: {
+          userId: string;
+          userName: string;
+          confirmationConferenceDate: string;
+          confirmationDate: string;
+          confirmationOrigin: string;
+        } | null;
+        reason: {
+          id: string;
+          description: string;
+        } | null;
+        attendances: {
+          id: number;
+          scheduleService: {
+            id: string;
+            description: string;
+          };
+        }[];
+        patient: {
+          id: string;
+          name: string;
+          photo: string | null;
+          tag: string;
+          cellphone: string | null;
+        } | null;
+        holder: {
+          id: string;
+          name: string;
+          tutor: {
+            cellphone: string | null;
+            telephone: string | null;
+            fullAddress: string;
+          };
+        };
+        race: {
+          id: string;
+          description: string;
+        } | null;
+        specie: {
+          id: string;
+          description: string;
+        } | null;
+      }[],
+      WorkingDay[],
+      UnavailableDay[],
+    ] = [[], [], []];
 
-		const schedulesQb = Database.from("schedules")
-			.select(
-				Database.raw(`schedules.id,
+    const schedulesQb = Database.from("schedules")
+      .select(
+        Database.raw(`schedules.id,
        schedules.user_id,
        schedules.start_hour,
        schedules.end_hour,
@@ -1983,29 +1813,23 @@ export default class ScheduleService {
                  where b.deleted_at isnull
                    and business_unit_id = schedules.business_unit_id
                    and client_id = coalesce(schedules.holder_id, schedules.patient_id)), 0) as finances_expired`),
-			)
-			.joinRaw(
-				"join schedule_service_types sst on schedules.schedule_service_type_id = sst.id",
-			)
-			.joinRaw(
-				"join schedule_statuses ss on schedules.schedule_status_id = ss.id",
-			)
+      )
+      .joinRaw("join schedule_service_types sst on schedules.schedule_service_type_id = sst.id")
+      .joinRaw("join schedule_statuses ss on schedules.schedule_status_id = ss.id")
 
-			.joinRaw("left join reasons r on schedules.reason_id = r.id")
-			.joinRaw("left join attendances at on schedules.id = at.schedule_id")
-			.joinRaw(
-				"left join schedule_service_types ssat on at.schedule_service_id = ssat.id",
-			)
-			.joinRaw("left join patients h on schedules.holder_id = h.id")
-			.joinRaw("left join patient_tutors pt on h.id = pt.patient_id")
-			.joinRaw("left join patients p on schedules.patient_id = p.id")
-			.joinRaw("left join patient_animals pa on p.id = pa.patient_id")
-			.joinRaw("left join patient_tutors pt2 on p.id = pt2.patient_id")
-			.joinRaw("left join races rc on pa.race_id = rc.id")
-			.joinRaw("left join species sp on rc.specie_id = sp.id")
-			.joinRaw("left join users cs on schedules.confirmation_user_id = cs.id")
-			.groupByRaw(
-				`schedules.id,
+      .joinRaw("left join reasons r on schedules.reason_id = r.id")
+      .joinRaw("left join attendances at on schedules.id = at.schedule_id")
+      .joinRaw("left join schedule_service_types ssat on at.schedule_service_id = ssat.id")
+      .joinRaw("left join patients h on schedules.holder_id = h.id")
+      .joinRaw("left join patient_tutors pt on h.id = pt.patient_id")
+      .joinRaw("left join patients p on schedules.patient_id = p.id")
+      .joinRaw("left join patient_animals pa on p.id = pa.patient_id")
+      .joinRaw("left join patient_tutors pt2 on p.id = pt2.patient_id")
+      .joinRaw("left join races rc on pa.race_id = rc.id")
+      .joinRaw("left join species sp on rc.specie_id = sp.id")
+      .joinRaw("left join users cs on schedules.confirmation_user_id = cs.id")
+      .groupByRaw(
+        `schedules.id,
          schedules.user_id,
          schedules.start_hour,
          schedules.end_hour,
@@ -2037,684 +1861,621 @@ export default class ScheduleService {
          h.name,
          pt2.cellphone,
          cs.id`,
-			)
-			.where("schedules.business_unit_id", authCtx.unit.id)
-			.whereRaw("schedules.start_hour::date between ? and ?", [
-				refStart.toJSDate(),
-				refEnd.toJSDate(),
-			])
-			.whereIn("schedules.user_id", userIds)
-			.whereNull("schedules.deleted_at");
+      )
+      .where("schedules.business_unit_id", authCtx.unit.id)
+      .whereRaw("schedules.start_hour::date between ? and ?", [
+        refStart.toJSDate(),
+        refEnd.toJSDate(),
+      ])
+      .whereIn("schedules.user_id", userIds)
+      .whereNull("schedules.deleted_at");
 
-		if (data.status) {
-			schedulesQb.whereRaw("ss.type = ?", [data.status]);
-		}
+    if (data.status) {
+      schedulesQb.whereRaw("ss.type = ?", [data.status]);
+    }
 
-		if (data.lista_cancelados?.toLowerCase() === "false") {
-			schedulesQb.whereRaw("ss.type <> 'CANC'", []);
-		}
+    if (data.lista_cancelados?.toLowerCase() === "false") {
+      schedulesQb.whereRaw("ss.type <> 'CANC'", []);
+    }
 
-		const schedules = await schedulesQb;
-		// @ts-ignore
-		resultData[0] = schedules.map((elem) => ({
-			id: elem.id,
-			userId: elem.user_id,
-			major_complaint: elem.major_complaint,
-			startHour: elem.start_hour,
-			endHour: elem.end_hour,
-			serviceType: elem.service_type,
-			serviceStatus: elem.service_status,
-			reason: elem.reason,
-			attendances: elem.attendances,
-			patient: elem.patient,
-			holder: elem.holder,
-			race: elem.race,
-			specie: elem.specie,
-			financesExpired: elem.finances_expired,
-			reschedules: elem.reschedules.filter((f) => Boolean(f.id)),
-			contacts: elem.contacts.filter((f) => Boolean(f.id)),
-			statusChanges: elem.status_changes.filter((f) => Boolean(f.id)),
-		}));
+    const schedules = await schedulesQb;
+    // @ts-ignore
+    resultData[0] = schedules.map((elem) => ({
+      id: elem.id,
+      userId: elem.user_id,
+      major_complaint: elem.major_complaint,
+      startHour: elem.start_hour,
+      endHour: elem.end_hour,
+      serviceType: elem.service_type,
+      serviceStatus: elem.service_status,
+      reason: elem.reason,
+      attendances: elem.attendances,
+      patient: elem.patient,
+      holder: elem.holder,
+      race: elem.race,
+      specie: elem.specie,
+      financesExpired: elem.finances_expired,
+      reschedules: elem.reschedules.filter((f) => Boolean(f.id)),
+      contacts: elem.contacts.filter((f) => Boolean(f.id)),
+      statusChanges: elem.status_changes.filter((f) => Boolean(f.id)),
+    }));
 
-		if (typeof data.working === "undefined" || data.working === "true") {
-			resultData[1] = await WorkingDay.query()
-				.select("id", "day_of_week", "user_id", "start_hour", "end_hour")
-				.where("business_unit_id", authCtx.unit.id)
-				.whereIn("day_of_week", Array.from(new Set(diffDays))) // add all days
-				.whereIn("user_id", userIds)
-				.orderByRaw("user_id , start_hour");
-		}
+    if (typeof data.working === "undefined" || data.working === "true") {
+      resultData[1] = await WorkingDay.query()
+        .select("id", "day_of_week", "user_id", "start_hour", "end_hour")
+        .where("business_unit_id", authCtx.unit.id)
+        .whereIn("day_of_week", Array.from(new Set(diffDays))) // add all days
+        .whereIn("user_id", userIds)
+        .orderByRaw("user_id , start_hour");
+    }
 
-		if (
-			typeof data.unavailable === "undefined" ||
-			data.unavailable === "true"
-		) {
-			resultData[2] = await UnavailableDay.query()
-				.select(
-					"id",
-					"user_id",
-					"start_hour",
-					"end_hour",
-					"frequency",
-					"start_date",
-					"end_date",
-					"active",
-					"title",
-				)
-				.where("active", true)
-				.where("business_unit_id", authCtx.unit.id)
-				.whereILike(
-					"frequency",
-					`%${ScheduleService.GetWD(refStart.toJSDate())}%`,
-				)
-				.whereRaw("(start_date::date <= ? or start_date::date is null)", [
-					data.from ?? new Date(),
-				])
-				.whereRaw("(end_date::date >= ? or end_date::date is null)", [
-					data.to ?? new Date(),
-				])
-				.whereIn("user_id", userIds);
-		}
-		const allEvents = [...resultData[0], ...resultData[1], ...resultData[2]];
+    if (typeof data.unavailable === "undefined" || data.unavailable === "true") {
+      resultData[2] = await UnavailableDay.query()
+        .select(
+          "id",
+          "user_id",
+          "start_hour",
+          "end_hour",
+          "frequency",
+          "start_date",
+          "end_date",
+          "active",
+          "title",
+        )
+        .where("active", true)
+        .where("business_unit_id", authCtx.unit.id)
+        .whereILike("frequency", `%${ScheduleService.GetWD(refStart.toJSDate())}%`)
+        .whereRaw("(start_date::date <= ? or start_date::date is null)", [data.from ?? new Date()])
+        .whereRaw("(end_date::date >= ? or end_date::date is null)", [data.to ?? new Date()])
+        .whereIn("user_id", userIds);
+    }
+    const allEvents = [...resultData[0], ...resultData[1], ...resultData[2]];
 
-		return users
-			.map((elem) => {
-				return {
-					id: elem.id,
-					name: elem.name,
-					onDuty: elem.on_duty,
-					events: allEvents
-						.filter((e) =>
-							//@ts-ignore
-							"userId" in e ? e.userId === elem.id : e.user_id === elem.id,
-						)
-						.map((day) => ({
-							//@ts-ignore
-							start: day.startHour,
-							//@ts-ignore
-							end: day.endHour,
-							event: day,
-							name: elem.name,
-							type: this.getEventLabel(day),
-							scheduledOutside:
-								this.getEventLabel(day) === "schedule"
-									? !resultData[1]
-											.filter((wd) => wd.user_id === elem.id)
-											.some((wd) =>
-												this.isScheduleInsideWorkingHour(
-													// @ts-ignore
-													day.startHour,
-													// @ts-ignore
-													day.endHour,
-													wd.startHour,
-													wd.endHour,
-												),
-											)
-									: false,
-						})),
-				};
-			})
-			.filter((f) => (f.onDuty ? true : f.events.length > 0));
-	}
+    return users
+      .map((elem) => {
+        return {
+          id: elem.id,
+          name: elem.name,
+          onDuty: elem.on_duty,
+          events: allEvents
+            .filter((e) =>
+              //@ts-ignore
+              "userId" in e ? e.userId === elem.id : e.user_id === elem.id,
+            )
+            .map((day) => ({
+              //@ts-ignore
+              start: day.startHour,
+              //@ts-ignore
+              end: day.endHour,
+              event: day,
+              name: elem.name,
+              type: this.getEventLabel(day),
+              scheduledOutside:
+                this.getEventLabel(day) === "schedule"
+                  ? !resultData[1]
+                      .filter((wd) => wd.user_id === elem.id)
+                      .some((wd) =>
+                        this.isScheduleInsideWorkingHour(
+                          // @ts-ignore
+                          day.startHour,
+                          // @ts-ignore
+                          day.endHour,
+                          wd.startHour,
+                          wd.endHour,
+                        ),
+                      )
+                  : false,
+            })),
+        };
+      })
+      .filter((f) => (f.onDuty ? true : f.events.length > 0));
+  }
 
-	public async simpleUserDailySchedule(
-		authCtx: AuthContext,
-		data: {
-			user?: string;
-			to?: string;
-			from?: string;
-			lista_cancelados?: string;
-		},
-	) {
-		if (!data.from || !data.to) {
-			throw new BadRequestException("Data não informada", 400, "E_BAD_REQUEST");
-		}
+  public async simpleUserDailySchedule(
+    authCtx: AuthContext,
+    data: {
+      user?: string;
+      to?: string;
+      from?: string;
+      lista_cancelados?: string;
+    },
+  ) {
+    if (!data.from || !data.to) {
+      throw new BadRequestException("Data não informada", 400, "E_BAD_REQUEST");
+    }
 
-		const usersQb = Database.from("users")
-			.select(Database.raw("distinct users.id, users.name, users.on_duty"))
-			.joinRaw(
-				"join user_unit_roles on users.id = user_unit_roles.user_id and user_unit_roles.active is true",
-			)
-			.joinRaw(
-				`left join working_days
+    const usersQb = Database.from("users")
+      .select(Database.raw("distinct users.id, users.name, users.on_duty"))
+      .joinRaw(
+        "join user_unit_roles on users.id = user_unit_roles.user_id and user_unit_roles.active is true",
+      )
+      .joinRaw(
+        `left join working_days
                    on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id and working_days.weekday_index = ?`,
-				[new Date(data.from).getDay().toString()],
-			)
-			.joinRaw(
-				"left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?",
-				[data.from, data.to],
-			)
-			.where("user_unit_roles.unit_id", authCtx.unit.id)
-			.where("users.type", "user")
-			.whereRaw(
-				"((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))",
-			);
+        [new Date(data.from).getDay().toString()],
+      )
+      .joinRaw(
+        "left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?",
+        [data.from, data.to],
+      )
+      .where("user_unit_roles.unit_id", authCtx.unit.id)
+      .where("users.type", "user")
+      .whereRaw(
+        "((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))",
+      );
 
-		const hasPermission = await this.sharedService.userHasPermission(
-			authCtx,
-			"AGE10",
-		);
-		if (!hasPermission) {
-			usersQb.where("users.id", authCtx.user.id);
-		}
+    const hasPermission = await this.sharedService.userHasPermission(authCtx, "AGE10");
+    if (!hasPermission) {
+      usersQb.where("users.id", authCtx.user.id);
+    }
 
-		if (data.user) {
-			usersQb.where("users.id", data.user);
-		}
+    if (data.user) {
+      usersQb.where("users.id", data.user);
+    }
 
-		const users = await usersQb;
-		const userIds = Array.from(new Set(users.map((u) => u.id)));
+    const users = await usersQb;
+    const userIds = Array.from(new Set(users.map((u) => u.id)));
 
-		const schedulesQb = Schedule.query()
-			.where("business_unit_id", authCtx.unit.id)
-			.whereRaw("start_hour::date between ? and ?", [data.from, data.to])
-			.whereIn("user_id", userIds)
-			.preload("serviceType", (query) => {
-				query.select(["id", "description", "type"]);
-			})
-			.preload("serviceStatus", (query) => {
-				query.select(["id", "description", "color", "type"]);
-			})
-			.preload("holder", (query) => {
-				query.select(["id", "name"]);
-				query.preload("tutor", (query) => {
-					query.select(["cellphone", "telephone"]);
-				});
-			})
-			.preload("reason", (query) => {
-				query.select(["id", "reason"]);
-			})
-			.preload("attendances", (query) => {
-				query.select("id", "schedule_service_id");
+    const schedulesQb = Schedule.query()
+      .where("business_unit_id", authCtx.unit.id)
+      .whereRaw("start_hour::date between ? and ?", [data.from, data.to])
+      .whereIn("user_id", userIds)
+      .preload("serviceType", (query) => {
+        query.select(["id", "description", "type"]);
+      })
+      .preload("serviceStatus", (query) => {
+        query.select(["id", "description", "color", "type"]);
+      })
+      .preload("holder", (query) => {
+        query.select(["id", "name"]);
+        query.preload("tutor", (query) => {
+          query.select(["cellphone", "telephone"]);
+        });
+      })
+      .preload("reason", (query) => {
+        query.select(["id", "reason"]);
+      })
+      .preload("attendances", (query) => {
+        query.select("id", "schedule_service_id");
 
-				query.preload("scheduleService", (query) => {
-					query.select("id", "description");
-				});
-			})
-			.orderBy("start_hour", "asc");
+        query.preload("scheduleService", (query) => {
+          query.select("id", "description");
+        });
+      })
+      .orderBy("start_hour", "asc");
 
-		if (data.lista_cancelados?.toLowerCase() === "false") {
-			schedulesQb.whereHas("serviceStatus", (query) => {
-				query.whereNot("type", "CANC");
-			});
-		}
+    if (data.lista_cancelados?.toLowerCase() === "false") {
+      schedulesQb.whereHas("serviceStatus", (query) => {
+        query.whereNot("type", "CANC");
+      });
+    }
 
-		const schedules = await schedulesQb;
+    const schedules = await schedulesQb;
 
-		const patients = await Patient.query()
-			.whereIn(
-				"id",
-				schedules.map((s) => s.patient_id).filter(Boolean) as string[],
-			)
-			.preload("tutor");
+    const patients = await Patient.query()
+      .whereIn("id", schedules.map((s) => s.patient_id).filter(Boolean) as string[])
+      .preload("tutor");
 
-		const mappedSchedules = schedules.map((schedule) => {
-			const jsonKinda = schedule.toJSON();
-			const patient = patients.find((p) => p.id === schedule.patient_id);
+    const mappedSchedules = schedules.map((schedule) => {
+      const jsonKinda = schedule.toJSON();
+      const patient = patients.find((p) => p.id === schedule.patient_id);
 
-			jsonKinda.user_id = schedule.user_id;
-			// jsonKinda.startHour = DateTime.fromISO(jsonKinda.start_hour).setZone(
-			//   'America/Fortaleza',
-			// );
-			// jsonKinda.endHour = DateTime.fromISO(jsonKinda.end_hour).setZone(
-			//   'America/Fortaleza',
-			// );
-			jsonKinda.startHour = DateTime.fromISO(jsonKinda.start_hour);
-			jsonKinda.endHour = DateTime.fromISO(jsonKinda.end_hour);
-			jsonKinda.start_hour = undefined;
-			jsonKinda.end_hour = undefined;
-			jsonKinda.start = undefined;
-			jsonKinda.end = undefined;
-			jsonKinda.created_at = undefined;
-			jsonKinda.updated_at = undefined;
+      jsonKinda.user_id = schedule.user_id;
+      // jsonKinda.startHour = DateTime.fromISO(jsonKinda.start_hour).setZone(
+      //   'America/Fortaleza',
+      // );
+      // jsonKinda.endHour = DateTime.fromISO(jsonKinda.end_hour).setZone(
+      //   'America/Fortaleza',
+      // );
+      jsonKinda.startHour = DateTime.fromISO(jsonKinda.start_hour);
+      jsonKinda.endHour = DateTime.fromISO(jsonKinda.end_hour);
+      jsonKinda.start_hour = undefined;
+      jsonKinda.end_hour = undefined;
+      jsonKinda.start = undefined;
+      jsonKinda.end = undefined;
+      jsonKinda.created_at = undefined;
+      jsonKinda.updated_at = undefined;
 
-			jsonKinda.patient = {
-				id: patient?.id,
-				name: patient?.name,
-				photo: patient?.photo,
-				tag: patient?.tag,
-				cellphone: patient?.tutor?.cellphone ?? null,
-			};
+      jsonKinda.patient = {
+        id: patient?.id,
+        name: patient?.name,
+        photo: patient?.photo,
+        tag: patient?.tag,
+        cellphone: patient?.tutor?.cellphone ?? null,
+      };
 
-			return jsonKinda;
-		});
+      return jsonKinda;
+    });
 
-		return users
-			.map((elem) => {
-				return {
-					id: elem.id,
-					name: elem.name,
-					onDuty: elem.on_duty,
-					events: mappedSchedules
-						.filter((e) => e.user_id === elem.id)
-						.map((day) => ({
-							start: day.startHour.toString(),
-							end: day.endHour.toString(),
-							event: day,
-							type: this.getEventLabel(day),
-						})),
-				};
-			})
-			.filter((f) => (f.onDuty ? true : f.events.length > 0));
-	}
+    return users
+      .map((elem) => {
+        return {
+          id: elem.id,
+          name: elem.name,
+          onDuty: elem.on_duty,
+          events: mappedSchedules
+            .filter((e) => e.user_id === elem.id)
+            .map((day) => ({
+              start: day.startHour.toString(),
+              end: day.endHour.toString(),
+              event: day,
+              type: this.getEventLabel(day),
+            })),
+        };
+      })
+      .filter((f) => (f.onDuty ? true : f.events.length > 0));
+  }
 
-	public async usersWeeklySchedule(
-		authCtx: AuthContext,
-		data: {
-			users?: string[];
-			to?: string;
-			from?: string;
-			lista_cancelados?: string;
-		},
-	) {
-		if (!data.from || !data.to) {
-			throw new BadRequestException("Data não informada", 400, "E_BAD_REQUEST");
-		}
+  public async usersWeeklySchedule(
+    authCtx: AuthContext,
+    data: {
+      users?: string[];
+      to?: string;
+      from?: string;
+      lista_cancelados?: string;
+    },
+  ) {
+    if (!data.from || !data.to) {
+      throw new BadRequestException("Data não informada", 400, "E_BAD_REQUEST");
+    }
 
-		if (!data.users || !Array.isArray(data.users) || data.users.length === 0) {
-			throw new BadRequestException(
-				"Usuários não informados",
-				400,
-				"E_BAD_REQUEST",
-			);
-		}
+    if (!data.users || !Array.isArray(data.users) || data.users.length === 0) {
+      throw new BadRequestException("Usuários não informados", 400, "E_BAD_REQUEST");
+    }
 
-		const usersQb = Database.from("users")
-			.select(Database.raw("distinct users.id, users.name, users.on_duty"))
-			.joinRaw(
-				"join user_unit_roles on users.id = user_unit_roles.user_id and user_unit_roles.active is true",
-			)
-			.joinRaw(
-				`left join working_days
+    const usersQb = Database.from("users")
+      .select(Database.raw("distinct users.id, users.name, users.on_duty"))
+      .joinRaw(
+        "join user_unit_roles on users.id = user_unit_roles.user_id and user_unit_roles.active is true",
+      )
+      .joinRaw(
+        `left join working_days
                    on user_unit_roles.unit_id = working_days.business_unit_id and working_days.user_id = users.id and working_days.weekday_index = ?`,
-				[new Date(data.from).getDay().toString()],
-			)
-			.joinRaw(
-				"left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?",
-				[data.from, data.to],
-			)
-			.where("user_unit_roles.unit_id", authCtx.unit.id)
-			.where("users.type", "user")
-			.whereRaw(
-				"((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))",
-			)
-			.whereIn("users.id", data.users);
-		const hasPermission = await this.sharedService.userHasPermission(
-			authCtx,
-			"AGE10",
-		);
-		if (!hasPermission) {
-			usersQb.where("users.id", authCtx.user.id);
-		}
-		const users = await usersQb;
+        [new Date(data.from).getDay().toString()],
+      )
+      .joinRaw(
+        "left join schedules on schedules.user_id = users.id and schedules.start_hour::date between ? and ?",
+        [data.from, data.to],
+      )
+      .where("user_unit_roles.unit_id", authCtx.unit.id)
+      .where("users.type", "user")
+      .whereRaw(
+        "((users.on_duty = true) or (working_days.id is not null) or (schedules.id is not null))",
+      )
+      .whereIn("users.id", data.users);
+    const hasPermission = await this.sharedService.userHasPermission(authCtx, "AGE10");
+    if (!hasPermission) {
+      usersQb.where("users.id", authCtx.user.id);
+    }
+    const users = await usersQb;
 
-		const userIds = Array.from(new Set(users.map((u) => u.id)));
+    const userIds = Array.from(new Set(users.map((u) => u.id)));
 
-		const days: string[] = [];
-		const diff = differenceInDays(new Date(data.to), new Date(data.from));
-		const start = DateTime.fromISO(data.from);
+    const days: string[] = [];
+    const diff = differenceInDays(new Date(data.to), new Date(data.from));
+    const start = DateTime.fromISO(data.from);
 
-		for (let i = 0; i <= diff; i++) {
-			const dt = start.plus({ days: i });
-			days.push(dt.toFormat("dd/MM/yyyy"));
-		}
+    for (let i = 0; i <= diff; i++) {
+      const dt = start.plus({ days: i });
+      days.push(dt.toFormat("dd/MM/yyyy"));
+    }
 
-		const schedulesQb = Schedule.query()
-			.where("business_unit_id", authCtx.unit.id)
-			.whereRaw("start_hour::date between ? and ?", [data.from, data.to])
-			.whereIn("user_id", userIds)
-			.preload("serviceType", (query) => {
-				query.select(["id", "description", "type"]);
-			})
-			.preload("serviceStatus", (query) => {
-				query.select(["id", "description", "color", "type"]);
-			})
-			.preload("reason", (query) => {
-				query.select(["id", "reason"]);
-			})
-			.preload("attendances", (query) => {
-				query.select("id", "schedule_service_id");
+    const schedulesQb = Schedule.query()
+      .where("business_unit_id", authCtx.unit.id)
+      .whereRaw("start_hour::date between ? and ?", [data.from, data.to])
+      .whereIn("user_id", userIds)
+      .preload("serviceType", (query) => {
+        query.select(["id", "description", "type"]);
+      })
+      .preload("serviceStatus", (query) => {
+        query.select(["id", "description", "color", "type"]);
+      })
+      .preload("reason", (query) => {
+        query.select(["id", "reason"]);
+      })
+      .preload("attendances", (query) => {
+        query.select("id", "schedule_service_id");
 
-				query.preload("scheduleService", (query) => {
-					query.select("id", "description");
-				});
-			})
-			.preload("holder", (query) => {
-				query.select(["id", "name"]);
-				query.preload("tutor", (query) => {
-					query.select(["cellphone", "telephone"]);
-				});
-			});
+        query.preload("scheduleService", (query) => {
+          query.select("id", "description");
+        });
+      })
+      .preload("holder", (query) => {
+        query.select(["id", "name"]);
+        query.preload("tutor", (query) => {
+          query.select(["cellphone", "telephone"]);
+        });
+      });
 
-		if (data.lista_cancelados?.toLowerCase() === "false") {
-			schedulesQb.whereHas("serviceStatus", (query) => {
-				query.whereNot("type", "CANC");
-			});
-		}
+    if (data.lista_cancelados?.toLowerCase() === "false") {
+      schedulesQb.whereHas("serviceStatus", (query) => {
+        query.whereNot("type", "CANC");
+      });
+    }
 
-		const schedules = await schedulesQb;
+    const schedules = await schedulesQb;
 
-		const patients = await Patient.query()
-			.whereIn(
-				"id",
-				schedules.map((s) => s.patient_id).filter(Boolean) as string[],
-			)
-			.preload("tutor");
+    const patients = await Patient.query()
+      .whereIn("id", schedules.map((s) => s.patient_id).filter(Boolean) as string[])
+      .preload("tutor");
 
-		const mappedSchedules = schedules.map((schedule) => {
-			const jsonKinda = schedule.toJSON();
-			const patient = patients.find((p) => p.id === schedule.patient_id);
+    const mappedSchedules = schedules.map((schedule) => {
+      const jsonKinda = schedule.toJSON();
+      const patient = patients.find((p) => p.id === schedule.patient_id);
 
-			jsonKinda.user_id = schedule.user_id;
-			// jsonKinda.startHour = DateTime.fromISO(jsonKinda.start_hour).setZone(
-			//   'America/Fortaleza',
-			// );
-			// jsonKinda.endHour = DateTime.fromISO(jsonKinda.end_hour).setZone(
-			//   'America/Fortaleza',
-			// );
-			jsonKinda.startHour = DateTime.fromISO(jsonKinda.start_hour);
-			jsonKinda.endHour = DateTime.fromISO(jsonKinda.end_hour);
-			jsonKinda.start_hour = undefined;
-			jsonKinda.end_hour = undefined;
-			jsonKinda.start = undefined;
-			jsonKinda.end = undefined;
-			jsonKinda.created_at = undefined;
-			jsonKinda.updated_at = undefined;
+      jsonKinda.user_id = schedule.user_id;
+      // jsonKinda.startHour = DateTime.fromISO(jsonKinda.start_hour).setZone(
+      //   'America/Fortaleza',
+      // );
+      // jsonKinda.endHour = DateTime.fromISO(jsonKinda.end_hour).setZone(
+      //   'America/Fortaleza',
+      // );
+      jsonKinda.startHour = DateTime.fromISO(jsonKinda.start_hour);
+      jsonKinda.endHour = DateTime.fromISO(jsonKinda.end_hour);
+      jsonKinda.start_hour = undefined;
+      jsonKinda.end_hour = undefined;
+      jsonKinda.start = undefined;
+      jsonKinda.end = undefined;
+      jsonKinda.created_at = undefined;
+      jsonKinda.updated_at = undefined;
 
-			jsonKinda.patient = {
-				id: patient?.id,
-				name: patient?.name,
-				photo: patient?.photo,
-				tag: patient?.tag,
-				cellphone: patient?.tutor?.cellphone ?? null,
-			};
+      jsonKinda.patient = {
+        id: patient?.id,
+        name: patient?.name,
+        photo: patient?.photo,
+        tag: patient?.tag,
+        cellphone: patient?.tutor?.cellphone ?? null,
+      };
 
-			return jsonKinda;
-		});
+      return jsonKinda;
+    });
 
-		return days.map((elem) => {
-			const daySchedules = mappedSchedules.filter((e) =>
-				isSameDay(
-					e.startHour.toJSDate(),
-					DateTime.fromFormat(elem, "dd/MM/yyyy").toJSDate(),
-				),
-			);
+    return days.map((elem) => {
+      const daySchedules = mappedSchedules.filter((e) =>
+        isSameDay(e.startHour.toJSDate(), DateTime.fromFormat(elem, "dd/MM/yyyy").toJSDate()),
+      );
 
-			const map: Map<User, ModelObject[]> = new Map();
-			for (const user of users) {
-				map.set(
-					user,
-					daySchedules.filter((e) => e.user_id === user.id),
-				);
-			}
+      const map: Map<User, ModelObject[]> = new Map();
+      for (const user of users) {
+        map.set(
+          user,
+          daySchedules.filter((e) => e.user_id === user.id),
+        );
+      }
 
-			return {
-				day: elem,
-				events: users.map((inner) => {
-					return {
-						user: {
-							id: inner.id,
-							name: inner.name,
-							onDuty: inner.on_duty,
-						},
-						events: map.get(inner)?.map((e) => ({
-							type: this.getEventLabel(e),
-							start: e.startHour.toString(),
-							end: e.endHour.toString(),
-							event: e,
-						})),
-					};
-				}),
-			};
-		});
-	}
+      return {
+        day: elem,
+        events: users.map((inner) => {
+          return {
+            user: {
+              id: inner.id,
+              name: inner.name,
+              onDuty: inner.on_duty,
+            },
+            events: map.get(inner)?.map((e) => ({
+              type: this.getEventLabel(e),
+              start: e.startHour.toString(),
+              end: e.endHour.toString(),
+              event: e,
+            })),
+          };
+        }),
+      };
+    });
+  }
 
-	public async userAppointments(unitId: string, uid: string, day: Date) {
-		const group = await this.sharedService.getUserGroup(unitId);
-		const user = await group
-			.related("users")
-			.query()
-			.where("user_id", uid)
-			.firstOrFail();
+  public async userAppointments(unitId: string, uid: string, day: Date) {
+    const group = await this.sharedService.getUserGroup(unitId);
+    const user = await group.related("users").query().where("user_id", uid).firstOrFail();
 
-		return user
-			.related("schedules")
-			.query()
-			.whereBetween("start_hour", [startOfDay(day), endOfDay(day)])
-			.preload("patient")
-			.preload("serviceType")
-			.preload("serviceStatus")
-			.preload("holder")
-			.preload("race");
-	}
+    return user
+      .related("schedules")
+      .query()
+      .whereBetween("start_hour", [startOfDay(day), endOfDay(day)])
+      .preload("patient")
+      .preload("serviceType")
+      .preload("serviceStatus")
+      .preload("holder")
+      .preload("race");
+  }
 
-	private getEventLabel(
-		data: WorkingDay | UnavailableDay | Schedule | unknown,
-	) {
-		if (data instanceof WorkingDay) {
-			return "working";
-		}
+  private getEventLabel(data: WorkingDay | UnavailableDay | Schedule | unknown) {
+    if (data instanceof WorkingDay) {
+      return "working";
+    }
 
-		if (data instanceof UnavailableDay) {
-			return "unavailable";
-		}
+    if (data instanceof UnavailableDay) {
+      return "unavailable";
+    }
 
-		// @ts-ignore
-		if ("tipo_registro" in data) {
-			return "treatment";
-		}
+    // @ts-ignore
+    if ("tipo_registro" in data) {
+      return "treatment";
+    }
 
-		return "schedule";
-	}
+    return "schedule";
+  }
 
-	async getGeneralSchedules(
-		unit: string,
-		start: Date,
-		end: Date,
-	): Promise<[WorkingDay[], UnavailableDay[], Schedule[]]> {
-		const workingDays = await WorkingDay.query()
-			.where("business_unit_id", unit)
-			.andWhereBetween("start_hour", [
-				format(start, "HH:mm"),
-				format(end, "HH:mm"),
-			])
-			.preload("user");
+  async getGeneralSchedules(
+    unit: string,
+    start: Date,
+    end: Date,
+  ): Promise<[WorkingDay[], UnavailableDay[], Schedule[]]> {
+    const workingDays = await WorkingDay.query()
+      .where("business_unit_id", unit)
+      .andWhereBetween("start_hour", [format(start, "HH:mm"), format(end, "HH:mm")])
+      .preload("user");
 
-		const unavailableDays = await UnavailableDay.query()
-			.where("active", true)
-			.where("business_unit_id", unit)
-			.andWhereRaw("(start_date < ? or start_date is null)", [start])
-			.andWhereRaw("(end_date > ? or end_date is null)", [end])
-			.preload("user");
+    const unavailableDays = await UnavailableDay.query()
+      .where("active", true)
+      .where("business_unit_id", unit)
+      .andWhereRaw("(start_date < ? or start_date is null)", [start])
+      .andWhereRaw("(end_date > ? or end_date is null)", [end])
+      .preload("user");
 
-		const schedules = await Schedule.query()
-			.where("business_unit_id", unit)
-			.andWhereBetween("start_hour", [start, end])
-			.preload("serviceType", (query) => {
-				query.select(["id", "description", "type"]);
-			})
-			.preload("serviceStatus", (query) => {
-				query.select(["id", "description", "color", "type"]);
-			})
-			.preload("patient", (query) => {
-				query.select(["id", "name"]);
-			})
-			.preload("holder", (query) => {
-				query.select(["id", "name"]);
-				query.preload("tutor", (query) => {
-					query.select(["cellphone", "telephone"]);
-				});
-			})
-			.preload("user");
+    const schedules = await Schedule.query()
+      .where("business_unit_id", unit)
+      .andWhereBetween("start_hour", [start, end])
+      .preload("serviceType", (query) => {
+        query.select(["id", "description", "type"]);
+      })
+      .preload("serviceStatus", (query) => {
+        query.select(["id", "description", "color", "type"]);
+      })
+      .preload("patient", (query) => {
+        query.select(["id", "name"]);
+      })
+      .preload("holder", (query) => {
+        query.select(["id", "name"]);
+        query.preload("tutor", (query) => {
+          query.select(["cellphone", "telephone"]);
+        });
+      })
+      .preload("user");
 
-		return [workingDays, unavailableDays, schedules];
-	}
+    return [workingDays, unavailableDays, schedules];
+  }
 
-	async getUserGeneralSchedules(
-		user: string,
-		unit: string,
-		start: Date,
-		end: Date,
-	): Promise<[WorkingDay[], UnavailableDay[], Schedule[]]> {
-		const workingDays = await WorkingDay.query()
-			.where("business_unit_id", unit)
-			.andWhere("user_id", user)
-			.andWhere("day_of_week", ScheduleService.GetWD(start))
-			.preload("user");
+  async getUserGeneralSchedules(
+    user: string,
+    unit: string,
+    start: Date,
+    end: Date,
+  ): Promise<[WorkingDay[], UnavailableDay[], Schedule[]]> {
+    const workingDays = await WorkingDay.query()
+      .where("business_unit_id", unit)
+      .andWhere("user_id", user)
+      .andWhere("day_of_week", ScheduleService.GetWD(start))
+      .preload("user");
 
-		const unavailableDays = await UnavailableDay.query()
-			.where("active", true)
-			.where("business_unit_id", unit)
-			.andWhere("user_id", user)
-			.andWhereRaw("(start_date < ? or start_date is null)", [start])
-			.andWhereRaw("(end_date > ? or end_date is null)", [end])
-			.andWhereILike("frequency", `%${ScheduleService.GetWD(start)}%`)
-			.preload("user");
+    const unavailableDays = await UnavailableDay.query()
+      .where("active", true)
+      .where("business_unit_id", unit)
+      .andWhere("user_id", user)
+      .andWhereRaw("(start_date < ? or start_date is null)", [start])
+      .andWhereRaw("(end_date > ? or end_date is null)", [end])
+      .andWhereILike("frequency", `%${ScheduleService.GetWD(start)}%`)
+      .preload("user");
 
-		const schedules = await Schedule.query()
-			.where("business_unit_id", unit)
-			.andWhere("user_id", user)
-			.andWhereBetween("start_hour", [start, end])
-			.preload("serviceType", (query) => {
-				query.select(["id", "description", "type"]);
-			})
-			.preload("serviceStatus", (query) => {
-				query.select(["id", "description", "color", "type"]);
-			})
-			.preload("patient", (query) => {
-				query.select(["id", "name"]);
-			})
-			.preload("user");
+    const schedules = await Schedule.query()
+      .where("business_unit_id", unit)
+      .andWhere("user_id", user)
+      .andWhereBetween("start_hour", [start, end])
+      .preload("serviceType", (query) => {
+        query.select(["id", "description", "type"]);
+      })
+      .preload("serviceStatus", (query) => {
+        query.select(["id", "description", "color", "type"]);
+      })
+      .preload("patient", (query) => {
+        query.select(["id", "name"]);
+      })
+      .preload("user");
 
-		return [workingDays, unavailableDays, schedules];
-	}
+    return [workingDays, unavailableDays, schedules];
+  }
 
-	private static async checkDisponibility(
-		user: string,
-		unitId: string,
-		data: DateSet,
-	) {
-		const scheduleUser = await User.findOrFail(user);
+  private static async checkDisponibility(user: string, unitId: string, data: DateSet) {
+    const scheduleUser = await User.findOrFail(user);
 
-		const workingDays = await WorkingDay.query()
-			.where("user_id", scheduleUser.id)
-			.where("business_unit_id", unitId)
-			.andWhere("day_of_week", ScheduleService.GetWD(data.start.toJSDate()))
-			.andWhereRaw("(start_hour <= ? or start_hour is null)", [
-				data.start.toFormat("HH:mm"),
-			])
-			.andWhereRaw("(end_hour >= ? or end_hour is null)", [
-				data.end.toFormat("HH:mm"),
-			]);
+    const workingDays = await WorkingDay.query()
+      .where("user_id", scheduleUser.id)
+      .where("business_unit_id", unitId)
+      .andWhere("day_of_week", ScheduleService.GetWD(data.start.toJSDate()))
+      .andWhereRaw("(start_hour <= ? or start_hour is null)", [data.start.toFormat("HH:mm")])
+      .andWhereRaw("(end_hour >= ? or end_hour is null)", [data.end.toFormat("HH:mm")]);
 
-		// if (workingDays.length === 0) {
-		//   throw new BadRequestException(
-		//     'Pessoa não trabalha neste horário',
-		//     400,
-		//     'WORKING_DAY',
-		//   );
-		// }
+    // if (workingDays.length === 0) {
+    //   throw new BadRequestException(
+    //     'Pessoa não trabalha neste horário',
+    //     400,
+    //     'WORKING_DAY',
+    //   );
+    // }
 
-		const strStart = data.start.toFormat("HH:mm");
-		const strEnd = data.end.toFormat("HH:mm");
+    const strStart = data.start.toFormat("HH:mm");
+    const strEnd = data.end.toFormat("HH:mm");
 
-		const unavailableDays = await scheduleUser
-			.related("unavailableDays")
-			.query()
-			.where("active", true)
-			.where("business_unit_id", unitId)
-			.whereILike(
-				"frequency",
-				`%${ScheduleService.GetWD(data.start.toJSDate())}%`,
-			)
-			.whereRaw("(start_date <= ? or start_date is null)", [
-				data.start.toJSDate(),
-			])
-			.whereRaw("(end_date >= ? or end_date is null)", [data.end.toJSDate()])
-			.whereRaw(
-				"((? between start_hour and end_hour or ? between start_hour and end_hour) or (? > end_hour and ? < start_hour))",
-				[strStart, strEnd, strEnd, strStart],
-			);
+    const unavailableDays = await scheduleUser
+      .related("unavailableDays")
+      .query()
+      .where("active", true)
+      .where("business_unit_id", unitId)
+      .whereILike("frequency", `%${ScheduleService.GetWD(data.start.toJSDate())}%`)
+      .whereRaw("(start_date <= ? or start_date is null)", [data.start.toJSDate()])
+      .whereRaw("(end_date >= ? or end_date is null)", [data.end.toJSDate()])
+      .whereRaw(
+        "((? between start_hour and end_hour or ? between start_hour and end_hour) or (? > end_hour and ? < start_hour))",
+        [strStart, strEnd, strEnd, strStart],
+      );
 
-		// if (unavailableDays.length !== 0) {
-		//   throw new BadRequestException(
-		//     'Pessoa não está disponível neste horário',
-		//     400,
-		//     'UNAVAILABLE_DAY',
-		//   );
-		// }
+    // if (unavailableDays.length !== 0) {
+    //   throw new BadRequestException(
+    //     'Pessoa não está disponível neste horário',
+    //     400,
+    //     'UNAVAILABLE_DAY',
+    //   );
+    // }
 
-		return {
-			invalidWorkingDay: workingDays.length === 0,
-			invalidUnavailableDay: unavailableDays.length !== 0,
-		};
-	}
+    return {
+      invalidWorkingDay: workingDays.length === 0,
+      invalidUnavailableDay: unavailableDays.length !== 0,
+    };
+  }
 
-	private static dayOfWeekMatches(_date: Date, wd: Array<WeekDay>): boolean {
-		return wd.includes(ScheduleService.GetWD(_date));
-	}
+  private static dayOfWeekMatches(_date: Date, wd: Array<WeekDay>): boolean {
+    return wd.includes(ScheduleService.GetWD(_date));
+  }
 
-	public static GetWD(date: Date) {
-		return Object.values(WeekDay)[date.getDay()];
-	}
+  public static GetWD(date: Date) {
+    return Object.values(WeekDay)[date.getDay()];
+  }
 
-	public async updateScheduleStatusWithStaticValues(
-		authCtx: AuthContext,
-		data: IUpdateScheduleStatus,
-	) {
-		return Database.transaction(async (trx) => {
-			const schedule = await Schedule.query()
-				.useTransaction(trx)
-				.where("id", data.scheduleId)
-				.where("business_unit_id", authCtx.unit.id)
-				.preload("serviceStatus")
-				.first();
+  public async updateScheduleStatusWithStaticValues(
+    authCtx: AuthContext,
+    data: IUpdateScheduleStatus,
+  ) {
+    return Database.transaction(async (trx) => {
+      const schedule = await Schedule.query()
+        .useTransaction(trx)
+        .where("id", data.scheduleId)
+        .where("business_unit_id", authCtx.unit.id)
+        .preload("serviceStatus")
+        .first();
 
-			if (!schedule) {
-				throw new ResourceNotFoundException(
-					"Agendamento não encontrado",
-					400,
-					"E_ERR",
-				);
-			}
+      if (!schedule) {
+        throw new ResourceNotFoundException("Agendamento não encontrado", 400, "E_ERR");
+      }
 
-			if (schedule.schedule_status_id === data.scheduleId) {
-				return schedule;
-			}
+      if (schedule.schedule_status_id === data.scheduleId) {
+        return schedule;
+      }
 
-			if (data.reasonId) {
-				const reason = await Reason.findOrFail(data.reasonId);
-				if (reason.requiresObservation && !data.observation) {
-					throw new BadRequestException(
-						"É preciso informar observação",
-						400,
-						"E_MISSING",
-					);
-				}
-			}
+      if (data.reasonId) {
+        const reason = await Reason.findOrFail(data.reasonId);
+        if (reason.requiresObservation && !data.observation) {
+          throw new BadRequestException("É preciso informar observação", 400, "E_MISSING");
+        }
+      }
 
-			const toStatus = await ScheduleStatus.find(data.statusId, {
-				client: trx,
-			});
-			if (!toStatus) {
-				throw new ResourceNotFoundException(
-					"Agendamento não encontrado",
-					400,
-					"E_ERR",
-				);
-			}
+      const toStatus = await ScheduleStatus.find(data.statusId, {
+        client: trx,
+      });
+      if (!toStatus) {
+        throw new ResourceNotFoundException("Agendamento não encontrado", 400, "E_ERR");
+      }
 
-			let pendingApprover: string | null = null;
+      let pendingApprover: string | null = null;
 
-			if (
-				authCtx.unit.unitConfig.config.schedules?.block_finance_pending &&
-				["AC", "REC"].includes(toStatus.type)
-			) {
-				const pendingPayments = await Database.from("patients as p")
-					.where("p.id", schedule.holder_id ?? v4())
-					.select(
-						Database.raw(
-							`
+      if (
+        authCtx.unit.unitConfig.config.schedules?.block_finance_pending &&
+        ["AC", "REC"].includes(toStatus.type)
+      ) {
+        const pendingPayments = await Database.from("patients as p")
+          .where("p.id", schedule.holder_id ?? v4())
+          .select(
+            Database.raw(
+              `
       coalesce((
         select sum(f.total_value)
         from finances f
@@ -2740,557 +2501,473 @@ export default class ScheduleService {
       ), 0)
       as total
     `,
-							[authCtx.group.id, authCtx.unit.id, authCtx.unit.id],
-						),
-					)
-					.first();
+              [authCtx.group.id, authCtx.unit.id, authCtx.unit.id],
+            ),
+          )
+          .first();
 
-				if (pendingPayments?.total !== 0) {
-					if (!data.userEmail || !data.userPwd) {
-						throw new BadRequestException(
-							"Cliente com pagamentos atrasados, é preciso enviar email e senha para autenticar",
-							401,
-							"E_ERR",
-						);
-					}
-					const user = await User.query()
-						.useTransaction(trx)
-						.where("email", data.userEmail)
-						.where("system_id", authCtx.system.id)
-						.first();
+        if (pendingPayments?.total !== 0) {
+          if (!data.userEmail || !data.userPwd) {
+            throw new BadRequestException(
+              "Cliente com pagamentos atrasados, é preciso enviar email e senha para autenticar",
+              401,
+              "E_ERR",
+            );
+          }
+          const user = await User.query()
+            .useTransaction(trx)
+            .where("email", data.userEmail)
+            .where("system_id", authCtx.system.id)
+            .first();
 
-					if (!user) {
-						throw new BadRequestException(
-							"Credenciais inválidas",
-							401,
-							"E_ERR",
-						);
-					}
+          if (!user) {
+            throw new BadRequestException("Credenciais inválidas", 401, "E_ERR");
+          }
 
-					if (!(await Hash.verify(user.password, data.userPwd))) {
-						throw new BadRequestException(
-							"Credenciais inválidas",
-							401,
-							"E_ERR",
-						);
-					}
+          if (!(await Hash.verify(user.password, data.userPwd))) {
+            throw new BadRequestException("Credenciais inválidas", 401, "E_ERR");
+          }
 
-					if (
-						!SharedService.UserHasPermission(
-							user.id,
-							authCtx.unit.id,
-							authCtx.system.id.toString(),
-							"AGE17",
-						)
-					) {
-						throw new BadRequestException(
-							"Usuario autenticado não possui permissão para liberar agendamento com pendencia financeira",
-							401,
-							"E_ERR",
-						);
-					}
+          if (
+            !SharedService.UserHasPermission(
+              user.id,
+              authCtx.unit.id,
+              authCtx.system.id.toString(),
+              "AGE17",
+            )
+          ) {
+            throw new BadRequestException(
+              "Usuario autenticado não possui permissão para liberar agendamento com pendencia financeira",
+              401,
+              "E_ERR",
+            );
+          }
 
-					pendingApprover = user.id;
-				}
-			}
+          pendingApprover = user.id;
+        }
+      }
 
-			const validChanges = VALID_CHANGES[schedule.serviceStatus.type];
-			// @ts-ignore -
-			if (!validChanges || !validChanges.includes(toStatus.type)) {
-				throw new BadRequestException("Mudança inválida", 400, "E_INVALID");
-			}
+      const validChanges = VALID_CHANGES[schedule.serviceStatus.type];
+      // @ts-ignore -
+      if (!validChanges || !validChanges.includes(toStatus.type)) {
+        throw new BadRequestException("Mudança inválida", 400, "E_INVALID");
+      }
 
-			if (toStatus.type === "REC") {
-				await this.opportunityService.updateOpportunityScheduleAsAttended(
-					authCtx,
-					schedule,
-					trx,
-				);
-			}
+      if (toStatus.type === "REC") {
+        await this.opportunityService.updateOpportunityScheduleAsAttended(authCtx, schedule, trx);
+      }
 
-			if (toStatus.type === "CANC") {
-				await this.validateScheduleChange(trx, {
-					scheduleId: data.scheduleId,
-					ignoreConflict: data.ignoreConflict,
-				});
+      if (toStatus.type === "CANC") {
+        await this.validateScheduleChange(trx, {
+          scheduleId: data.scheduleId,
+          ignoreConflict: data.ignoreConflict,
+        });
 
-				await this.opportunityService.updateOpportunityScheduleAsUnchecked(
-					authCtx,
-					schedule,
-					trx,
-				);
-			}
+        await this.opportunityService.updateOpportunityScheduleAsUnchecked(authCtx, schedule, trx);
+      }
 
-			await schedule.related("statusChanges").create(
-				{
-					user_id: authCtx.user.id,
-					schedule_status_id: data.statusId,
-					reason_id: data.reasonId,
-					finance_pending_authorization_user_id: pendingApprover,
-					confirmation_user_id:
-						toStatus.type === "AC" || toStatus.type === "CANC"
-							? authCtx.user.id
-							: undefined,
-					confirmationConferenceDate:
-						toStatus.type === "AC" || toStatus.type === "CANC"
-							? DateTime.now()
-							: undefined,
-					confirmationDate:
-						toStatus.type === "AC" || toStatus.type === "CANC"
-							? DateTime.now()
-							: undefined,
-					confirmationOrigin:
-						toStatus.type === "AC" || toStatus.type === "CANC"
-							? "usuario"
-							: undefined,
-					financePendingAuthorizedAt: pendingApprover ? DateTime.now() : null,
-					observation: data.observation,
-				},
-				{
-					client: trx,
-				},
-			);
+      await schedule.related("statusChanges").create(
+        {
+          user_id: authCtx.user.id,
+          schedule_status_id: data.statusId,
+          reason_id: data.reasonId,
+          finance_pending_authorization_user_id: pendingApprover,
+          confirmation_user_id:
+            toStatus.type === "AC" || toStatus.type === "CANC" ? authCtx.user.id : undefined,
+          confirmationConferenceDate:
+            toStatus.type === "AC" || toStatus.type === "CANC" ? DateTime.now() : undefined,
+          confirmationDate:
+            toStatus.type === "AC" || toStatus.type === "CANC" ? DateTime.now() : undefined,
+          confirmationOrigin:
+            toStatus.type === "AC" || toStatus.type === "CANC" ? "usuario" : undefined,
+          financePendingAuthorizedAt: pendingApprover ? DateTime.now() : null,
+          observation: data.observation,
+        },
+        {
+          client: trx,
+        },
+      );
 
-			await schedule
-				.merge({
-					schedule_status_id: data.statusId,
-					finishedAt:
-						toStatus.type === "FIN"
-							? DateTime.now().minus({ hours: 3 })
-							: schedule.finishedAt,
-					reason_id: data.reasonId,
-					observation: data.observation,
-					cancellation_user_id:
-						toStatus.type === "CANC"
-							? authCtx.user.id
-							: schedule.cancellation_user_id,
-					startedAt:
-						toStatus.type === "ATEND"
-							? DateTime.now().minus({ hours: 3 })
-							: schedule.startedAt,
-					confirmation_user_id:
-						toStatus.type === "AC" || toStatus.type === "CANC"
-							? authCtx.user.id
-							: undefined,
-					confirmationConferenceDate:
-						toStatus.type === "AC" || toStatus.type === "CANC"
-							? DateTime.now()
-							: undefined,
-					confirmationDate:
-						toStatus.type === "AC" || toStatus.type === "CANC"
-							? DateTime.now()
-							: undefined,
-					confirmationOrigin:
-						toStatus.type === "AC" || toStatus.type === "CANC"
-							? "usuario"
-							: undefined,
-				})
-				.useTransaction(trx)
-				.save();
+      await schedule
+        .merge({
+          schedule_status_id: data.statusId,
+          finishedAt:
+            toStatus.type === "FIN" ? DateTime.now().minus({ hours: 3 }) : schedule.finishedAt,
+          reason_id: data.reasonId,
+          observation: data.observation,
+          cancellation_user_id:
+            toStatus.type === "CANC" ? authCtx.user.id : schedule.cancellation_user_id,
+          startedAt:
+            toStatus.type === "ATEND" ? DateTime.now().minus({ hours: 3 }) : schedule.startedAt,
+          confirmation_user_id:
+            toStatus.type === "AC" || toStatus.type === "CANC" ? authCtx.user.id : undefined,
+          confirmationConferenceDate:
+            toStatus.type === "AC" || toStatus.type === "CANC" ? DateTime.now() : undefined,
+          confirmationDate:
+            toStatus.type === "AC" || toStatus.type === "CANC" ? DateTime.now() : undefined,
+          confirmationOrigin:
+            toStatus.type === "AC" || toStatus.type === "CANC" ? "usuario" : undefined,
+        })
+        .useTransaction(trx)
+        .save();
 
-			return await Schedule.query()
-				.useTransaction(trx)
-				.where("id", data.scheduleId)
-				.where("business_unit_id", authCtx.unit.id)
-				.preload("serviceStatus")
-				.firstOrFail();
-		});
-	}
+      return await Schedule.query()
+        .useTransaction(trx)
+        .where("id", data.scheduleId)
+        .where("business_unit_id", authCtx.unit.id)
+        .preload("serviceStatus")
+        .firstOrFail();
+    });
+  }
 
-	public async updateScheduleStatusFromType(
-		authCtx: AuthContext,
-		data: {
-			scheduleId: string;
-			scheduleStatusType: string;
+  public async updateScheduleStatusFromType(
+    authCtx: AuthContext,
+    data: {
+      scheduleId: string;
+      scheduleStatusType: string;
 
-			reasonId?: string;
-			observation?: string;
-		},
-	) {
-		return Database.transaction(async (trx) => {
-			const schedule = await Schedule.query()
-				.useTransaction(trx)
-				.where("id", data.scheduleId)
-				.where("business_unit_id", authCtx.unit.id)
-				.preload("serviceStatus")
-				.first();
+      reasonId?: string;
+      observation?: string;
+    },
+  ) {
+    return Database.transaction(async (trx) => {
+      const schedule = await Schedule.query()
+        .useTransaction(trx)
+        .where("id", data.scheduleId)
+        .where("business_unit_id", authCtx.unit.id)
+        .preload("serviceStatus")
+        .first();
 
-			if (!schedule) {
-				throw new ResourceNotFoundException(
-					"Agendamento não encontrado",
-					400,
-					"E_ERR",
-				);
-			}
+      if (!schedule) {
+        throw new ResourceNotFoundException("Agendamento não encontrado", 400, "E_ERR");
+      }
 
-			if (data.reasonId) {
-				const reason = await Reason.findOrFail(data.reasonId);
-				if (reason.requiresObservation && !data.observation) {
-					throw new BadRequestException(
-						"É preciso informar observação",
-						400,
-						"E_MISSING",
-					);
-				}
-			}
+      if (data.reasonId) {
+        const reason = await Reason.findOrFail(data.reasonId);
+        if (reason.requiresObservation && !data.observation) {
+          throw new BadRequestException("É preciso informar observação", 400, "E_MISSING");
+        }
+      }
 
-			const toStatus = await ScheduleStatus.query()
-				.useTransaction(trx)
-				.whereRaw("(system_id = ? or system_id is null)", [authCtx.system.id])
-				.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
-					authCtx.group.id,
-				])
-				.where("type", data.scheduleStatusType)
-				.first();
-			if (!toStatus) {
-				throw new ResourceNotFoundException(
-					"Status de agendamento não encontrado",
-					400,
-					"E_ERR",
-				);
-			}
+      const toStatus = await ScheduleStatus.query()
+        .useTransaction(trx)
+        .whereRaw("(system_id = ? or system_id is null)", [authCtx.system.id])
+        .whereRaw("(economic_group_id = ? or economic_group_id is null)", [authCtx.group.id])
+        .where("type", data.scheduleStatusType)
+        .first();
+      if (!toStatus) {
+        throw new ResourceNotFoundException("Status de agendamento não encontrado", 400, "E_ERR");
+      }
 
-			const validChanges = VALID_CHANGES[schedule.serviceStatus.type];
-			// @ts-ignore -
-			if (!validChanges || !validChanges.includes(toStatus.type)) {
-				throw new BadRequestException("Mudança inválida", 400, "E_INVALID");
-			}
+      const validChanges = VALID_CHANGES[schedule.serviceStatus.type];
+      // @ts-ignore -
+      if (!validChanges || !validChanges.includes(toStatus.type)) {
+        throw new BadRequestException("Mudança inválida", 400, "E_INVALID");
+      }
 
-			if (toStatus.type === "REC") {
-				await this.opportunityService.updateOpportunityScheduleAsAttended(
-					authCtx,
-					schedule,
-					trx,
-				);
-			}
+      if (toStatus.type === "REC") {
+        await this.opportunityService.updateOpportunityScheduleAsAttended(authCtx, schedule, trx);
+      }
 
-			if (toStatus.type === "CANC") {
-				await this.opportunityService.updateOpportunityScheduleAsUnchecked(
-					authCtx,
-					schedule,
-					trx,
-				);
-			}
+      if (toStatus.type === "CANC") {
+        await this.opportunityService.updateOpportunityScheduleAsUnchecked(authCtx, schedule, trx);
+      }
 
-			await schedule.related("statusChanges").create(
-				{
-					user_id: authCtx.user.id,
-					schedule_status_id: toStatus.id,
-					reason_id: data.reasonId,
-					observation: data.observation,
-				},
-				{
-					client: trx,
-				},
-			);
+      await schedule.related("statusChanges").create(
+        {
+          user_id: authCtx.user.id,
+          schedule_status_id: toStatus.id,
+          reason_id: data.reasonId,
+          observation: data.observation,
+        },
+        {
+          client: trx,
+        },
+      );
 
-			return schedule
-				.merge({
-					schedule_status_id: toStatus.id,
-					finishedAt:
-						toStatus.type === "FIN"
-							? DateTime.now().minus({ hours: 3 })
-							: schedule.finishedAt,
-					reason_id: data.reasonId,
-					observation: data.observation,
-					cancellation_user_id:
-						toStatus.type === "CANC"
-							? authCtx.user.id
-							: schedule.cancellation_user_id,
-					startedAt:
-						toStatus.type === "ATEND"
-							? DateTime.now().minus({ hours: 3 })
-							: schedule.startedAt,
-				})
-				.useTransaction(trx)
-				.save();
-		});
-	}
+      return schedule
+        .merge({
+          schedule_status_id: toStatus.id,
+          finishedAt:
+            toStatus.type === "FIN" ? DateTime.now().minus({ hours: 3 }) : schedule.finishedAt,
+          reason_id: data.reasonId,
+          observation: data.observation,
+          cancellation_user_id:
+            toStatus.type === "CANC" ? authCtx.user.id : schedule.cancellation_user_id,
+          startedAt:
+            toStatus.type === "ATEND" ? DateTime.now().minus({ hours: 3 }) : schedule.startedAt,
+        })
+        .useTransaction(trx)
+        .save();
+    });
+  }
 
-	private async validateScheduleChange(
-		transaction: TransactionClientContract,
-		data: {
-			scheduleId: string;
-			ignoreConflict?: boolean;
-		},
-	) {
-		const result: {
-			treatment_id: number;
-			executado: "Exec" | "NaoExec";
-		} | null = await Database.from("treatment_executions")
-			.useTransaction(transaction)
-			.select(
-				Database.raw(
-					"treatment_id, case when execution_date is null then 'NaoExec' else 'Exec' end as executado",
-				),
-			)
-			.orderBy("execution_date")
-			.where("schedule_id", data.scheduleId)
-			.first();
+  private async validateScheduleChange(
+    transaction: TransactionClientContract,
+    data: {
+      scheduleId: string;
+      ignoreConflict?: boolean;
+    },
+  ) {
+    const result: {
+      treatment_id: number;
+      executado: "Exec" | "NaoExec";
+    } | null = await Database.from("treatment_executions")
+      .useTransaction(transaction)
+      .select(
+        Database.raw(
+          "treatment_id, case when execution_date is null then 'NaoExec' else 'Exec' end as executado",
+        ),
+      )
+      .orderBy("execution_date")
+      .where("schedule_id", data.scheduleId)
+      .first();
 
-		if (result) {
-			if (result.executado === "Exec") {
-				throw new BadRequestException(
-					`Este agendamento não pode ser excluído, pois já está vinculado ao tratamento ${result.treatment_id} e possui itens já executados`,
-					400,
-					"E_ERR",
-				);
-			}
+    if (result) {
+      if (result.executado === "Exec") {
+        throw new BadRequestException(
+          `Este agendamento não pode ser excluído, pois já está vinculado ao tratamento ${result.treatment_id} e possui itens já executados`,
+          400,
+          "E_ERR",
+        );
+      }
 
-			if (result.executado === "NaoExec" && data.ignoreConflict === false) {
-				throw new BadRequestException(
-					`Este agendamento está vinculado ao tratamento ${result.treatment_id}. Deseja excluir mesmo assim?`,
-					400,
-					"E_ERR",
-				);
-			}
-		}
+      if (result.executado === "NaoExec" && data.ignoreConflict === false) {
+        throw new BadRequestException(
+          `Este agendamento está vinculado ao tratamento ${result.treatment_id}. Deseja excluir mesmo assim?`,
+          400,
+          "E_ERR",
+        );
+      }
+    }
 
-		await Database.from("treatment_executions")
-			.useTransaction(transaction)
-			.where("schedule_id", data.scheduleId)
-			.update({
-				schedule_user_id: null,
-				schedule_id: null,
-				schedule_date: null,
-			});
-	}
+    await Database.from("treatment_executions")
+      .useTransaction(transaction)
+      .where("schedule_id", data.scheduleId)
+      .update({
+        schedule_user_id: null,
+        schedule_id: null,
+        schedule_date: null,
+      });
+  }
 
-	public async getScheduleStatusChanges(authCtx: AuthContext, id: string) {
-		return Database.transaction(async (trx) => {
-			const schedule = await Schedule.query()
-				.useTransaction(trx)
-				.where("id", id)
-				.where("business_unit_id", authCtx.unit.id)
-				.preload("statusChanges", (query) => {
-					query.orderBy("created_at", "desc");
+  public async getScheduleStatusChanges(authCtx: AuthContext, id: string) {
+    return Database.transaction(async (trx) => {
+      const schedule = await Schedule.query()
+        .useTransaction(trx)
+        .where("id", id)
+        .where("business_unit_id", authCtx.unit.id)
+        .preload("statusChanges", (query) => {
+          query.orderBy("created_at", "desc");
 
-					query.preload("user", (query) => {
-						query.select(["id", "name", "email"]);
-					});
-					query.preload("reason", (query) => {
-						query.select(["id", "reason"]);
-					});
-				})
-				.preload("reschedules", (query) => {
-					query.orderBy("created_at", "desc");
+          query.preload("user", (query) => {
+            query.select(["id", "name", "email"]);
+          });
+          query.preload("reason", (query) => {
+            query.select(["id", "reason"]);
+          });
+        })
+        .preload("reschedules", (query) => {
+          query.orderBy("created_at", "desc");
 
-					query.preload("user", (query) => {
-						query.select(["id", "name", "email"]);
-					});
-					query.preload("reason", (query) => {
-						query.select(["id", "reason"]);
-					});
-				})
-				.first();
+          query.preload("user", (query) => {
+            query.select(["id", "name", "email"]);
+          });
+          query.preload("reason", (query) => {
+            query.select(["id", "reason"]);
+          });
+        })
+        .first();
 
-			if (!schedule) {
-				throw new ResourceNotFoundException(
-					"Agendamento não encontrado",
-					400,
-					"E_ERR",
-				);
-			}
+      if (!schedule) {
+        throw new ResourceNotFoundException("Agendamento não encontrado", 400, "E_ERR");
+      }
 
-			const reschedules = schedule.reschedules.map((r) => {
-				return {
-					id: r.id,
-					observation: r.observation,
-					reason: {
-						id: r.reason?.id,
-						reason: r.reason?.reason,
-					},
-					user: {
-						id: r.user.id,
-						name: r.user.name,
-						email: r.user.email,
-					},
-					createdAt: r.createdAt,
-				};
-			});
+      const reschedules = schedule.reschedules.map((r) => {
+        return {
+          id: r.id,
+          observation: r.observation,
+          reason: {
+            id: r.reason?.id,
+            reason: r.reason?.reason,
+          },
+          user: {
+            id: r.user.id,
+            name: r.user.name,
+            email: r.user.email,
+          },
+          createdAt: r.createdAt,
+        };
+      });
 
-			const statusChanges = schedule.statusChanges.map((r) => {
-				return {
-					id: r.id,
-					observation: r.observation,
-					reason: {
-						id: r.reason?.id,
-						reason: r.reason?.reason,
-					},
-					user: {
-						id: r.user.id,
-						name: r.user.name,
-						email: r.user.email,
-					},
-					createdAt: r.createdAt,
-				};
-			});
+      const statusChanges = schedule.statusChanges.map((r) => {
+        return {
+          id: r.id,
+          observation: r.observation,
+          reason: {
+            id: r.reason?.id,
+            reason: r.reason?.reason,
+          },
+          user: {
+            id: r.user.id,
+            name: r.user.name,
+            email: r.user.email,
+          },
+          createdAt: r.createdAt,
+        };
+      });
 
-			return {
-				reschedules,
-				statusChanges,
-			};
-		});
-	}
+      return {
+        reschedules,
+        statusChanges,
+      };
+    });
+  }
 
-	public async createScheduleContact(
-		authCtx: AuthContext,
-		data: IScheduleContactData,
-	) {
-		return Database.transaction(async (trx) => {
-			const schedule = await Schedule.query()
-				.useTransaction(trx)
-				.where("id", data.scheduleId)
-				.where("business_unit_id", authCtx.unit.id)
-				.preload("serviceStatus")
-				.first();
+  public async createScheduleContact(authCtx: AuthContext, data: IScheduleContactData) {
+    return Database.transaction(async (trx) => {
+      const schedule = await Schedule.query()
+        .useTransaction(trx)
+        .where("id", data.scheduleId)
+        .where("business_unit_id", authCtx.unit.id)
+        .preload("serviceStatus")
+        .first();
 
-			if (!schedule) {
-				throw new ResourceNotFoundException(
-					"Agendamento não encontrado",
-					400,
-					"E_ERR",
-				);
-			}
+      if (!schedule) {
+        throw new ResourceNotFoundException("Agendamento não encontrado", 400, "E_ERR");
+      }
 
-			const toStatus = await ScheduleStatus.find(data.statusId, {
-				client: trx,
-			});
-			if (!toStatus) {
-				throw new ResourceNotFoundException(
-					"Status não encontrado",
-					400,
-					"E_ERR",
-				);
-			}
+      const toStatus = await ScheduleStatus.find(data.statusId, {
+        client: trx,
+      });
+      if (!toStatus) {
+        throw new ResourceNotFoundException("Status não encontrado", 400, "E_ERR");
+      }
 
-			await schedule.related("contacts").create(
-				{
-					user_id: authCtx.user.id,
-					schedule_status_id: data.statusId,
-					observation: data.observation ?? "",
-					contactDate: data.contactDate,
-				},
-				{
-					client: trx,
-				},
-			);
+      await schedule.related("contacts").create(
+        {
+          user_id: authCtx.user.id,
+          schedule_status_id: data.statusId,
+          observation: data.observation ?? "",
+          contactDate: data.contactDate,
+        },
+        {
+          client: trx,
+        },
+      );
 
-			return schedule.useTransaction(trx).refresh();
+      return schedule.useTransaction(trx).refresh();
 
-			// return schedule
-			// 	.merge({
-			// 		schedule_status_id: data.statusId,
-			// 	})
-			// 	.useTransaction(trx)
-			// 	.save();
-		});
-	}
+      // return schedule
+      // 	.merge({
+      // 		schedule_status_id: data.statusId,
+      // 	})
+      // 	.useTransaction(trx)
+      // 	.save();
+    });
+  }
 
-	public async getPatientSchedules(authCtx: AuthContext, id: string) {
-		const patient = await Patient.query().where("id", id).first();
+  public async getPatientSchedules(authCtx: AuthContext, id: string) {
+    const patient = await Patient.query().where("id", id).first();
 
-		if (!patient) {
-			throw this.sharedService.ResourceNotFound();
-		}
+    if (!patient) {
+      throw this.sharedService.ResourceNotFound();
+    }
 
-		const schedules = await Schedule.query()
-			.where("patient_id", id)
-			.where("business_unit_id", authCtx.unit.id)
-			.preload("holder")
-			.preload("serviceType")
-			.preload("user")
-			.preload("serviceStatus")
-			.preload("reschedules", (query) => {
-				query.preload("user");
-				query.preload("reason");
-			})
-			.preload("cancellationUser")
-			.preload("reason")
-			.orderBy("start_hour", "desc");
+    const schedules = await Schedule.query()
+      .where("patient_id", id)
+      .where("business_unit_id", authCtx.unit.id)
+      .preload("holder")
+      .preload("serviceType")
+      .preload("user")
+      .preload("serviceStatus")
+      .preload("reschedules", (query) => {
+        query.preload("user");
+        query.preload("reason");
+      })
+      .preload("cancellationUser")
+      .preload("reason")
+      .orderBy("start_hour", "desc");
 
-		return schedules.map((elem) => ({
-			id: elem.id,
-			start: elem.startHour,
-			end: elem.endHour,
-			majorComplaint: elem.majorComplaint,
-			tutor: {
-				id: elem.holder?.id,
-				name: elem.holder?.name,
-			},
-			service: {
-				id: elem.serviceType?.id,
-				description: elem.serviceType?.description,
-			},
-			technician: {
-				id: elem.user?.id,
-				name: elem.user?.name,
-			},
-			status: {
-				id: elem.serviceStatus?.id ?? null,
-				description: elem.serviceStatus?.description ?? null,
-				color: elem.serviceStatus.color ?? null,
-			},
-			cancellation: elem.cancellationUser
-				? {
-						technician: {
-							id: elem.user?.id,
-							name: elem.user?.name,
-						},
-						reason: elem.reason?.reason ?? null,
-						observation: elem.observation,
-						cancelledAt: elem.updatedAt,
-					}
-				: null,
-			reschedules: elem.reschedules.map((r) => ({
-				id: r.id,
-				reason: r.reason?.reason,
-				observation: r.observation,
-				originalDate: r.originalDate,
-				createdAt: r.createdAt,
-				technician: {
-					id: r.user?.id,
-					name: r.user?.name,
-				},
-			})),
-		}));
-	}
+    return schedules.map((elem) => ({
+      id: elem.id,
+      start: elem.startHour,
+      end: elem.endHour,
+      majorComplaint: elem.majorComplaint,
+      tutor: {
+        id: elem.holder?.id,
+        name: elem.holder?.name,
+      },
+      service: {
+        id: elem.serviceType?.id,
+        description: elem.serviceType?.description,
+      },
+      technician: {
+        id: elem.user?.id,
+        name: elem.user?.name,
+      },
+      status: {
+        id: elem.serviceStatus?.id ?? null,
+        description: elem.serviceStatus?.description ?? null,
+        color: elem.serviceStatus.color ?? null,
+      },
+      cancellation: elem.cancellationUser
+        ? {
+            technician: {
+              id: elem.user?.id,
+              name: elem.user?.name,
+            },
+            reason: elem.reason?.reason ?? null,
+            observation: elem.observation,
+            cancelledAt: elem.updatedAt,
+          }
+        : null,
+      reschedules: elem.reschedules.map((r) => ({
+        id: r.id,
+        reason: r.reason?.reason,
+        observation: r.observation,
+        originalDate: r.originalDate,
+        createdAt: r.createdAt,
+        technician: {
+          id: r.user?.id,
+          name: r.user?.name,
+        },
+      })),
+    }));
+  }
 
-	public async finances(authCtx: AuthContext, clientID: string) {
-		if (!validate(clientID)) {
-			throw new BadRequestException("ID inválido", 400, "E_ERR");
-		}
+  public async finances(authCtx: AuthContext, clientID: string) {
+    if (!validate(clientID)) {
+      throw new BadRequestException("ID inválido", 400, "E_ERR");
+    }
 
-		const result: {
-			client_id: string;
-			total: string;
-			tipovencimento:
-				| "Valores Vencimento Hoje"
-				| "Valores em Atraso"
-				| "Valores Futuros";
-		}[] = await Database.from("finances")
-			.select(
-				Database.raw(`client_id, sum(total_value) as total,
+    const result: {
+      client_id: string;
+      total: string;
+      tipovencimento: "Valores Vencimento Hoje" | "Valores em Atraso" | "Valores Futuros";
+    }[] = await Database.from("finances")
+      .select(
+        Database.raw(`client_id, sum(total_value) as total,
 case when expiration_date::date = now()::date then 'Valores Vencimento Hoje'
   when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores Futuros' end as tipoVencimento`),
-			)
-			.whereRaw("type = 'CREDITO'")
-			.whereRaw("deleted_at is null")
-			.whereRaw("economic_group_id = ?", [authCtx.group.id])
-			.whereRaw("business_unit_id = ?", [authCtx.unit.id])
-			.whereRaw("client_id = ?", [clientID])
-			.whereRaw("payment_date is null")
-			.groupByRaw(
-				`client_id, case when expiration_date::date = now()::date then 'Valores Vencimento Hoje'
+      )
+      .whereRaw("type = 'CREDITO'")
+      .whereRaw("deleted_at is null")
+      .whereRaw("economic_group_id = ?", [authCtx.group.id])
+      .whereRaw("business_unit_id = ?", [authCtx.unit.id])
+      .whereRaw("client_id = ?", [clientID])
+      .whereRaw("payment_date is null")
+      .groupByRaw(
+        `client_id, case when expiration_date::date = now()::date then 'Valores Vencimento Hoje'
 when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores Futuros' end`,
-			)
-			.orderByRaw("tipoVencimento");
+      )
+      .orderByRaw("tipoVencimento");
 
-		const lateFees: { total: string }[] = await Database.from("patients as p")
-			.where("p.id", clientID)
-			.select(
-				Database.raw(
-					`
+    const lateFees: { total: string }[] = await Database.from("patients as p")
+      .where("p.id", clientID)
+      .select(
+        Database.raw(
+          `
       coalesce((
         select sum(f.total_value)
         from finances f
@@ -3316,361 +2993,297 @@ when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores 
       ), 0)
       as total
     `,
-					[authCtx.group.id, authCtx.unit.id, authCtx.unit.id],
-				),
-			);
+          [authCtx.group.id, authCtx.unit.id, authCtx.unit.id],
+        ),
+      );
 
-		const starter: Record<string, number> = {
-			"Valores em Atraso": new Decimal(lateFees[0]?.total ?? 0).toNumber(),
-		};
+    const starter: Record<string, number> = {
+      "Valores em Atraso": new Decimal(lateFees[0]?.total ?? 0).toNumber(),
+    };
 
-		return result.reduce((acc, row) => {
-			if (row.tipovencimento === "Valores em Atraso") {
-				return acc;
-			}
+    return result.reduce((acc, row) => {
+      if (row.tipovencimento === "Valores em Atraso") {
+        return acc;
+      }
 
-			acc[row.tipovencimento] = new Decimal(row.total).toNumber();
+      acc[row.tipovencimento] = new Decimal(row.total).toNumber();
 
-			return acc;
-		}, starter);
-	}
+      return acc;
+    }, starter);
+  }
 
-	static async RunSyncLateOrMissingSchedules() {
-		return await Database.transaction(async (trx) => {
-			const scheduleStatuses = await ScheduleStatus.query().useTransaction(trx);
+  static async RunSyncLateOrMissingSchedules() {
+    return await Database.transaction(async (trx) => {
+      const scheduleStatuses = await ScheduleStatus.query().useTransaction(trx);
 
-			const crmStatuses = await CrmStatus.query().useTransaction(trx);
+      const crmStatuses = await CrmStatus.query().useTransaction(trx);
 
-			const missed: string[] = [];
-			const late: string[] = [];
+      const missed: string[] = [];
+      const late: string[] = [];
 
-			const toBeMissedSchedules: {
-				id: string;
-				business_unit_id: string;
-				system_id: number;
-			}[] = await Database.from("schedules")
-				.useTransaction(trx)
-				.select(
-					"schedules.id",
-					"schedules.business_unit_id",
-					"schedule_statuses.system_id",
-				)
-				.join(
-					"schedule_statuses",
-					"schedules.schedule_status_id",
-					"schedule_statuses.id",
-				)
-				.join(
-					"business_units",
-					"schedules.business_unit_id",
-					"business_units.id",
-				)
-				.join(
-					"business_unit_configs",
-					"business_units.id",
-					"business_unit_configs.business_unit_id",
-				)
-				.whereNull("schedules.deleted_at")
-				.whereRaw(
-					"extract(epoch from (now() - interval '3 hours') - schedules.start_hour) / 60 > business_unit_configs.schedule_missed_minutes",
-				)
-				.whereRaw("schedule_statuses.type in ('AC', 'AN', 'ATR')")
-				.whereRaw("business_unit_configs.schedule_missed_minutes > 0")
-				.exec();
+      const toBeMissedSchedules: {
+        id: string;
+        business_unit_id: string;
+        system_id: number;
+      }[] = await Database.from("schedules")
+        .useTransaction(trx)
+        .select("schedules.id", "schedules.business_unit_id", "schedule_statuses.system_id")
+        .join("schedule_statuses", "schedules.schedule_status_id", "schedule_statuses.id")
+        .join("business_units", "schedules.business_unit_id", "business_units.id")
+        .join(
+          "business_unit_configs",
+          "business_units.id",
+          "business_unit_configs.business_unit_id",
+        )
+        .whereNull("schedules.deleted_at")
+        .whereRaw(
+          "extract(epoch from (now() - interval '3 hours') - schedules.start_hour) / 60 > business_unit_configs.schedule_missed_minutes",
+        )
+        .whereRaw("schedule_statuses.type in ('AC', 'AN', 'ATR')")
+        .whereRaw("business_unit_configs.schedule_missed_minutes > 0")
+        .exec();
 
-			if (toBeMissedSchedules.length > 0) {
-				const tasks = toBeMissedSchedules.map(async (elem) => {
-					const newStatus = scheduleStatuses.find(
-						(s) => s.system_id === elem.system_id && s.type === "FAL",
-					);
+      if (toBeMissedSchedules.length > 0) {
+        const tasks = toBeMissedSchedules.map(async (elem) => {
+          const newStatus = scheduleStatuses.find(
+            (s) => s.system_id === elem.system_id && s.type === "FAL",
+          );
 
-					if (!newStatus) {
-						return Promise.resolve(null);
-					}
+          if (!newStatus) {
+            return Promise.resolve(null);
+          }
 
-					missed.push(elem.id);
-					await Schedule.query()
-						.useTransaction(trx)
-						.where("id", elem.id)
-						.update({
-							schedule_status_id: newStatus.id,
-						});
+          missed.push(elem.id);
+          await Schedule.query().useTransaction(trx).where("id", elem.id).update({
+            schedule_status_id: newStatus.id,
+          });
 
-					const updatedOpportunityStatus = crmStatuses.find(
-						(cs) =>
-							cs.system_id === elem.system_id &&
-							cs.type === "OP" &&
-							cs.tag === "F",
-					);
-					if (updatedOpportunityStatus) {
-						await Opportunity.query()
-							.useTransaction(trx)
-							.where("schedule_id", elem.id)
-							.update({
-								status_id: updatedOpportunityStatus.id,
-							});
-					}
-				});
+          const updatedOpportunityStatus = crmStatuses.find(
+            (cs) => cs.system_id === elem.system_id && cs.type === "OP" && cs.tag === "F",
+          );
+          if (updatedOpportunityStatus) {
+            await Opportunity.query().useTransaction(trx).where("schedule_id", elem.id).update({
+              status_id: updatedOpportunityStatus.id,
+            });
+          }
+        });
 
-				await Promise.all(tasks);
-			}
+        await Promise.all(tasks);
+      }
 
-			const lateSchedules: {
-				id: string;
-				business_unit_id: string;
-				system_id: number;
-			}[] = await Database.from("schedules")
-				.useTransaction(trx)
-				.select(
-					"schedules.id",
-					"schedules.business_unit_id",
-					"schedule_statuses.system_id",
-				)
-				.join(
-					"schedule_statuses",
-					"schedules.schedule_status_id",
-					"schedule_statuses.id",
-				)
-				.join(
-					"business_units",
-					"schedules.business_unit_id",
-					"business_units.id",
-				)
-				.join(
-					"business_unit_configs",
-					"business_units.id",
-					"business_unit_configs.business_unit_id",
-				)
-				.whereNull("schedules.deleted_at")
-				.whereRaw(
-					"extract(epoch from (now() - interval '3 hours') - schedules.start_hour) / 60 > business_unit_configs.schedule_late_minutes",
-				)
-				.whereRaw("schedule_statuses.type in ('AC', 'AN')")
-				.whereRaw("business_unit_configs.schedule_late_minutes > 0")
-				.exec();
+      const lateSchedules: {
+        id: string;
+        business_unit_id: string;
+        system_id: number;
+      }[] = await Database.from("schedules")
+        .useTransaction(trx)
+        .select("schedules.id", "schedules.business_unit_id", "schedule_statuses.system_id")
+        .join("schedule_statuses", "schedules.schedule_status_id", "schedule_statuses.id")
+        .join("business_units", "schedules.business_unit_id", "business_units.id")
+        .join(
+          "business_unit_configs",
+          "business_units.id",
+          "business_unit_configs.business_unit_id",
+        )
+        .whereNull("schedules.deleted_at")
+        .whereRaw(
+          "extract(epoch from (now() - interval '3 hours') - schedules.start_hour) / 60 > business_unit_configs.schedule_late_minutes",
+        )
+        .whereRaw("schedule_statuses.type in ('AC', 'AN')")
+        .whereRaw("business_unit_configs.schedule_late_minutes > 0")
+        .exec();
 
-			if (lateSchedules.length > 0) {
-				const tasks = lateSchedules.map(async (elem) => {
-					const newStatus = scheduleStatuses.find(
-						(s) => s.system_id === elem.system_id && s.type === "ATR",
-					);
+      if (lateSchedules.length > 0) {
+        const tasks = lateSchedules.map(async (elem) => {
+          const newStatus = scheduleStatuses.find(
+            (s) => s.system_id === elem.system_id && s.type === "ATR",
+          );
 
-					if (!newStatus) {
-						return Promise.resolve(null);
-					}
+          if (!newStatus) {
+            return Promise.resolve(null);
+          }
 
-					late.push(elem.id);
-					return Schedule.query()
+          late.push(elem.id);
+          return Schedule.query()
 
-						.useTransaction(trx)
-						.where("id", elem.id)
-						.update({
-							schedule_status_id: newStatus.id,
-						});
-				});
+            .useTransaction(trx)
+            .where("id", elem.id)
+            .update({
+              schedule_status_id: newStatus.id,
+            });
+        });
 
-				await Promise.all(tasks);
-			}
+        await Promise.all(tasks);
+      }
 
-			return {
-				missed,
-				late,
-			};
-		});
-	}
+      return {
+        missed,
+        late,
+      };
+    });
+  }
 
-	public async publicConfirmationInfo(scheduleID: string) {
-		if (!validate(scheduleID)) {
-			throw new BadRequestException("ID inválido", 400, "E_ERR");
-		}
+  public async publicConfirmationInfo(scheduleID: string) {
+    if (!validate(scheduleID)) {
+      throw new BadRequestException("ID inválido", 400, "E_ERR");
+    }
 
-		const schedule = await Schedule.query()
-			.where("id", scheduleID)
-			.preload("businessUnit")
-			.preload("user")
-			.preload("serviceStatus")
-			.preload("holder")
-			.preload("patient")
-			.first();
+    const schedule = await Schedule.query()
+      .where("id", scheduleID)
+      .preload("businessUnit")
+      .preload("user")
+      .preload("serviceStatus")
+      .preload("holder")
+      .preload("patient")
+      .first();
 
-		if (!schedule) {
-			throw new ResourceNotFoundException(
-				"Agenda não encontrada",
-				404,
-				"E_ERR",
-			);
-		}
+    if (!schedule) {
+      throw new ResourceNotFoundException("Agenda não encontrada", 404, "E_ERR");
+    }
 
-		const rows: {
-			servicoagenda: string;
-			itemtratamento: string | null;
-			itemprodutividade: string | null;
-		}[] = await Database.from("schedules")
-			.select(
-				Database.raw(
-					"sst.description as servicoAgenda, p.description as itemTratamento, pi2.description as itemProdutividade",
-				),
-			)
-			.joinRaw(
-				"join schedule_service_types sst on schedule_service_type_id = sst.id",
-			)
-			.joinRaw(
-				`left join (treatment_executions te
+    const rows: {
+      servicoagenda: string;
+      itemtratamento: string | null;
+      itemprodutividade: string | null;
+    }[] = await Database.from("schedules")
+      .select(
+        Database.raw(
+          "sst.description as servicoAgenda, p.description as itemTratamento, pi2.description as itemProdutividade",
+        ),
+      )
+      .joinRaw("join schedule_service_types sst on schedule_service_type_id = sst.id")
+      .joinRaw(
+        `left join (treatment_executions te
     join treatment_items ti on te.treatment_item_id = ti.id and te.treatment_id = ti.treatment_id
     join bill_items bi on ti.bill_item_id = bi.id
     join product_variations pv on bi.product_variation_id = pv.id
     join products p on pv.product_id = p.id
     join productivity_items pi2 on te.productivity_item_id = pi2.id
     ) on schedules.id = te.schedule_id`,
-			)
-			.whereRaw('(schedules.id = ? and schedules."deleted_at" is null)', [
-				scheduleID,
-			])
-			.orderByRaw("p.description, pi2.description, ti.id, te.id");
+      )
+      .whereRaw('(schedules.id = ? and schedules."deleted_at" is null)', [scheduleID])
+      .orderByRaw("p.description, pi2.description, ti.id, te.id");
 
-		return {
-			businessUnit: {
-				id: schedule.businessUnit.id,
-				identification: schedule.businessUnit.identification ?? null,
-				address: schedule.businessUnit.address ?? null,
-				number: schedule.businessUnit.number ?? null,
-				complement: schedule.businessUnit.complement ?? null,
-				city: schedule.businessUnit.city ?? null,
-				state: schedule.businessUnit.state ?? null,
-				district: schedule.businessUnit.district ?? null,
-				postalCode: schedule.businessUnit.postalCode ?? null,
-			},
-			user: this.sharedService.captureGroup(schedule.user, (usr) => ({
-				id: usr.id,
-				name: usr.name,
-			})),
-			holder: this.sharedService.captureGroup(schedule.holder, (row) => ({
-				id: row.id,
-				name: row.name,
-			})),
-			patient: this.sharedService.captureGroup(schedule.patient, (row) => ({
-				id: row.id,
-				name: row.name,
-			})),
-			scheduleServiceTypes: rows.map((row) => ({
-				description: row.servicoagenda,
-				treatmentItem: row.itemtratamento,
-				productivityItem: row.itemprodutividade,
-			})),
-			startHour: schedule.startHour,
-			endHour: schedule.endHour,
-			confirmationDate: schedule.confirmationDate,
-			confirmationOrigin: schedule.confirmationOrigin,
+    return {
+      businessUnit: {
+        id: schedule.businessUnit.id,
+        identification: schedule.businessUnit.identification ?? null,
+        address: schedule.businessUnit.address ?? null,
+        number: schedule.businessUnit.number ?? null,
+        complement: schedule.businessUnit.complement ?? null,
+        city: schedule.businessUnit.city ?? null,
+        state: schedule.businessUnit.state ?? null,
+        district: schedule.businessUnit.district ?? null,
+        postalCode: schedule.businessUnit.postalCode ?? null,
+      },
+      user: this.sharedService.captureGroup(schedule.user, (usr) => ({
+        id: usr.id,
+        name: usr.name,
+      })),
+      holder: this.sharedService.captureGroup(schedule.holder, (row) => ({
+        id: row.id,
+        name: row.name,
+      })),
+      patient: this.sharedService.captureGroup(schedule.patient, (row) => ({
+        id: row.id,
+        name: row.name,
+      })),
+      scheduleServiceTypes: rows.map((row) => ({
+        description: row.servicoagenda,
+        treatmentItem: row.itemtratamento,
+        productivityItem: row.itemprodutividade,
+      })),
+      startHour: schedule.startHour,
+      endHour: schedule.endHour,
+      confirmationDate: schedule.confirmationDate,
+      confirmationOrigin: schedule.confirmationOrigin,
 
-			status: this.sharedService.captureGroup(
-				schedule.serviceStatus,
-				(row) => ({
-					id: row.id,
-					description: row.description,
-					type: row.type,
-					color: row.color,
-				}),
-			),
-		};
-	}
+      status: this.sharedService.captureGroup(schedule.serviceStatus, (row) => ({
+        id: row.id,
+        description: row.description,
+        type: row.type,
+        color: row.color,
+      })),
+    };
+  }
 
-	public async publicConfirmationUpdate(data: {
-		scheduleId: string;
-		confirmationType: "AC" | "CANC";
-		observation?: string;
-	}) {
-		if (!validate(data.scheduleId)) {
-			throw new BadRequestException("ID inválido", 400, "E_ERR");
-		}
+  public async publicConfirmationUpdate(data: {
+    scheduleId: string;
+    confirmationType: "AC" | "CANC";
+    observation?: string;
+  }) {
+    if (!validate(data.scheduleId)) {
+      throw new BadRequestException("ID inválido", 400, "E_ERR");
+    }
 
-		await Database.transaction(async (trx) => {
-			const schedule = await Schedule.query()
-				.useTransaction(trx)
-				.where("id", data.scheduleId)
-				.first();
+    await Database.transaction(async (trx) => {
+      const schedule = await Schedule.query()
+        .useTransaction(trx)
+        .where("id", data.scheduleId)
+        .first();
 
-			if (!schedule) {
-				throw new ResourceNotFoundException(
-					"Agenda não encontrada",
-					404,
-					"E_ERR",
-				);
-			}
+      if (!schedule) {
+        throw new ResourceNotFoundException("Agenda não encontrada", 404, "E_ERR");
+      }
 
-			if (schedule.confirmationOrigin) {
-				throw new BadRequestException("Agenda já confirmada", 400, "E_ERR");
-			}
+      if (schedule.confirmationOrigin) {
+        throw new BadRequestException("Agenda já confirmada", 400, "E_ERR");
+      }
 
-			const updatedStatus: { id: string } | null = await Database.from(
-				"schedules",
-			)
-				.useTransaction(trx)
-				.select(Database.raw("schedule_statuses.id as id"))
-				.joinRaw(
-					"join business_units on schedules.business_unit_id = business_units.id",
-				)
-				.joinRaw(
-					"join schedule_statuses on schedule_statuses.system_id = business_units.system_id",
-				)
-				.whereRaw(
-					`(
+      const updatedStatus: { id: string } | null = await Database.from("schedules")
+        .useTransaction(trx)
+        .select(Database.raw("schedule_statuses.id as id"))
+        .joinRaw("join business_units on schedules.business_unit_id = business_units.id")
+        .joinRaw("join schedule_statuses on schedule_statuses.system_id = business_units.system_id")
+        .whereRaw(
+          `(
     schedule_statuses.economic_group_id is null or schedule_statuses.economic_group_id =
                                                    business_units.economic_group_id)`,
-				)
-				.whereRaw("schedule_statuses.type = ?", [data.confirmationType])
-				.whereRaw("schedules.id = ?", [data.scheduleId])
-				.first();
-			if (!updatedStatus) {
-				throw new BadRequestException(
-					"Não tem status novo a ser colocado",
-					400,
-					"E_ERR",
-				);
-			}
+        )
+        .whereRaw("schedule_statuses.type = ?", [data.confirmationType])
+        .whereRaw("schedules.id = ?", [data.scheduleId])
+        .first();
+      if (!updatedStatus) {
+        throw new BadRequestException("Não tem status novo a ser colocado", 400, "E_ERR");
+      }
 
-			await schedule
-				.merge({
-					schedule_status_id: updatedStatus.id,
-					confirmationDate: DateTime.now(),
-					confirmationOrigin: "externa",
-				})
-				.useTransaction(trx)
-				.save();
+      await schedule
+        .merge({
+          schedule_status_id: updatedStatus.id,
+          confirmationDate: DateTime.now(),
+          confirmationOrigin: "externa",
+        })
+        .useTransaction(trx)
+        .save();
 
-			await ScheduleStatusChange.create(
-				{
-					schedule_id: data.scheduleId,
-					schedule_status_id: updatedStatus.id,
-					observation: data.observation,
-					confirmationOrigin: "externa",
-				},
-				{ client: trx },
-			);
-		});
-	}
+      await ScheduleStatusChange.create(
+        {
+          schedule_id: data.scheduleId,
+          schedule_status_id: updatedStatus.id,
+          observation: data.observation,
+          confirmationOrigin: "externa",
+        },
+        { client: trx },
+      );
+    });
+  }
 
-	private snakeToCamelDeep<T extends object>(
-		obj: T,
-	): {
-		[K in keyof T]: T[K] extends object ? { [k in keyof T[K]]: string } : T[K];
-	} {
-		return Object.fromEntries(
-			Object.entries(obj).map(([key, value]) => {
-				const newKey = key.replace(/_([a-z])/g, (_, letter) =>
-					letter.toUpperCase(),
-				);
-				console.log({ newKey, key, value });
-				return [
-					newKey,
-					value && typeof value === "object"
-						? this.snakeToCamelDeep(value as object)
-						: value,
-				];
-			}),
-		) as {
-			[K in keyof T]: T[K] extends object
-				? { [k in keyof T[K]]: string }
-				: T[K];
-		};
-	}
+  private snakeToCamelDeep<T extends object>(
+    obj: T,
+  ): {
+    [K in keyof T]: T[K] extends object ? { [k in keyof T[K]]: string } : T[K];
+  } {
+    return Object.fromEntries(
+      Object.entries(obj).map(([key, value]) => {
+        const newKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+        console.log({ newKey, key, value });
+        return [
+          newKey,
+          value && typeof value === "object" ? this.snakeToCamelDeep(value as object) : value,
+        ];
+      }),
+    ) as {
+      [K in keyof T]: T[K] extends object ? { [k in keyof T[K]]: string } : T[K];
+    };
+  }
 }

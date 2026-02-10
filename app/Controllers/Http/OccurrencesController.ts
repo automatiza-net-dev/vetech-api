@@ -1,9 +1,9 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import OccurrenceService from 'App/Services/OccurrenceService';
-import SharedService from 'App/Services/SharedService';
-import CreateOccurenceValidator from 'App/Validators/Occurence/CreateOccurenceValidator';
-import UpdateOcurrenceValidator from 'App/Validators/Occurence/UpdateOcurrenceValidator';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import OccurrenceService from "App/Services/OccurrenceService";
+import SharedService from "App/Services/SharedService";
+import CreateOccurenceValidator from "App/Validators/Occurence/CreateOccurenceValidator";
+import UpdateOcurrenceValidator from "App/Validators/Occurence/UpdateOcurrenceValidator";
 
 @inject()
 export default class OccurrencesController {
@@ -14,13 +14,10 @@ export default class OccurrencesController {
 
   public async index({ auth, request, response }: HttpContextContract) {
     const qs = request.qs();
-    const result = await this.service.index(
-      await this.sharedService.getAuthContext(auth),
-      {
-        description: qs.description,
-        type: qs.type,
-      },
-    );
+    const result = await this.service.index(await this.sharedService.getAuthContext(auth), {
+      description: qs.description,
+      type: qs.type,
+    });
 
     return response.ok(result);
   }
@@ -37,20 +34,12 @@ export default class OccurrencesController {
   public async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateOccurenceValidator);
 
-    const result = await this.service.store(
-      await this.sharedService.getAuthContext(auth),
-      payload,
-    );
+    const result = await this.service.store(await this.sharedService.getAuthContext(auth), payload);
 
     return response.created(result);
   }
 
-  public async update({
-    auth,
-    params,
-    request,
-    response,
-  }: HttpContextContract) {
+  public async update({ auth, params, request, response }: HttpContextContract) {
     const payload = await request.validate(UpdateOcurrenceValidator);
 
     const result = await this.service.update(
@@ -63,10 +52,7 @@ export default class OccurrencesController {
   }
 
   public async destroy({ auth, params, response }: HttpContextContract) {
-    await this.service.destroy(
-      await this.sharedService.getAuthContext(auth),
-      params.id,
-    );
+    await this.service.destroy(await this.sharedService.getAuthContext(auth), params.id);
 
     return response.noContent();
   }

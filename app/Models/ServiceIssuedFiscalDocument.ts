@@ -1,12 +1,12 @@
 import {
-	BaseModel,
-	beforeFetch,
-	beforeFind,
-	BelongsTo,
-	belongsTo,
-	column,
-	HasMany,
-	hasMany,
+  BaseModel,
+  beforeFetch,
+  beforeFind,
+  BelongsTo,
+  belongsTo,
+  column,
+  HasMany,
+  hasMany,
 } from "@ioc:Adonis/Lucid/Orm";
 import BillItem from "App/Models/BillItem";
 import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";

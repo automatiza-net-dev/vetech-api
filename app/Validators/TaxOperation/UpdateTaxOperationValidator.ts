@@ -1,6 +1,6 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, schema } from '@ioc:Adonis/Core/Validator';
-import { MovementCategory, MovementType } from 'App/Models/TaxationGroupRule';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, schema } from "@ioc:Adonis/Core/Validator";
+import { MovementCategory, MovementType } from "App/Models/TaxationGroupRule";
 
 export default class UpdateTaxOperationValidator {
   constructor(protected ctx: HttpContextContract) {}

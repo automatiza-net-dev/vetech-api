@@ -5,10 +5,10 @@ import {
   column,
   HasMany,
   hasMany,
-} from '@ioc:Adonis/Lucid/Orm';
-import PlanPrice from 'App/Models/PlanPrice';
-import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
-import { DateTime } from 'luxon';
+} from "@ioc:Adonis/Lucid/Orm";
+import PlanPrice from "App/Models/PlanPrice";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import { DateTime } from "luxon";
 
 export default class Plan extends BaseModel {
   @column({ isPrimary: true })
@@ -18,12 +18,12 @@ export default class Plan extends BaseModel {
   public description: string;
 
   @column({
-    columnName: 'trial_days',
+    columnName: "trial_days",
   })
   public trialDays: number;
 
   @column({
-    columnName: 'trial_additional',
+    columnName: "trial_additional",
   })
   public trialAdditional: number;
 
@@ -40,8 +40,8 @@ export default class Plan extends BaseModel {
   public deletedAt: DateTime;
 
   @hasMany(() => PlanPrice, {
-    foreignKey: 'plan_id',
-    localKey: 'id',
+    foreignKey: "plan_id",
+    localKey: "id",
   })
   public planPrices: HasMany<typeof PlanPrice>;
 

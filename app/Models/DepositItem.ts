@@ -9,52 +9,52 @@ export const DepositItemStatus = ["Ativo", "Inativo"] as const;
 export type TDepositItemStatus = (typeof DepositItemStatus)[number];
 
 export default class DepositItem extends BaseModel {
-	@column({ isPrimary: true })
-	public id: number;
+  @column({ isPrimary: true })
+  public id: number;
 
-	@column({
-		consume: (value) => (value ? new Decimal(value) : new Decimal(0)),
-		prepare: (value) => value.toString(),
-		serialize: (value: Decimal) => value.toNumber(),
-	})
-	public quantity: Decimal;
+  @column({
+    consume: (value) => (value ? new Decimal(value) : new Decimal(0)),
+    prepare: (value) => value.toString(),
+    serialize: (value: Decimal) => value.toNumber(),
+  })
+  public quantity: Decimal;
 
-	@column()
-	public status: TDepositItemStatus;
+  @column()
+  public status: TDepositItemStatus;
 
-	@column.dateTime({ autoCreate: true })
-	public createdAt: DateTime;
+  @column.dateTime({ autoCreate: true })
+  public createdAt: DateTime;
 
-	@column.dateTime({ autoCreate: true, autoUpdate: true })
-	public updatedAt: DateTime;
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  public updatedAt: DateTime;
 
-	@column({
-		serializeAs: null,
-	})
-	public deposit_id: number;
+  @column({
+    serializeAs: null,
+  })
+  public deposit_id: number;
 
-	@column({
-		serializeAs: null,
-	})
-	public business_unit_product_id: string;
+  @column({
+    serializeAs: null,
+  })
+  public business_unit_product_id: string;
 
-	@column({
-		serializeAs: null,
-	})
-	public product_variation_id: string;
+  @column({
+    serializeAs: null,
+  })
+  public product_variation_id: string;
 
-	@belongsTo(() => Deposit, {
-		foreignKey: "deposit_id",
-	})
-	public deposit: BelongsTo<typeof Deposit>;
+  @belongsTo(() => Deposit, {
+    foreignKey: "deposit_id",
+  })
+  public deposit: BelongsTo<typeof Deposit>;
 
-	@belongsTo(() => BusinessUnitProduct, {
-		foreignKey: "business_unit_product_id",
-	})
-	public unitProduct: BelongsTo<typeof BusinessUnitProduct>;
+  @belongsTo(() => BusinessUnitProduct, {
+    foreignKey: "business_unit_product_id",
+  })
+  public unitProduct: BelongsTo<typeof BusinessUnitProduct>;
 
-	@belongsTo(() => ProductVariation, {
-		foreignKey: "product_variation_id",
-	})
-	public variation: BelongsTo<typeof ProductVariation>;
+  @belongsTo(() => ProductVariation, {
+    foreignKey: "product_variation_id",
+  })
+  public variation: BelongsTo<typeof ProductVariation>;
 }

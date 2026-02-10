@@ -5,11 +5,11 @@ import {
   belongsTo,
   BelongsTo,
   column,
-} from '@ioc:Adonis/Lucid/Orm';
-import Subgroup from 'App/Models/Subgroup';
-import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
-import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
+} from "@ioc:Adonis/Lucid/Orm";
+import Subgroup from "App/Models/Subgroup";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import { DateTime } from "luxon";
+import { v4 } from "uuid";
 
 export default class Exam extends BaseModel {
   @column({ isPrimary: true })
@@ -25,7 +25,7 @@ export default class Exam extends BaseModel {
   public type: string;
 
   @column({
-    columnName: 'own_laboratory',
+    columnName: "own_laboratory",
   })
   public ownLaboratory: boolean;
 

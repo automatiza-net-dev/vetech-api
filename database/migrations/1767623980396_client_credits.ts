@@ -8,11 +8,7 @@ export default class extends BaseSchema {
       table.increments("id");
 
       table.uuid("user_id").references("id").inTable("users").notNullable();
-      table
-        .uuid("reversed_by_user_id")
-        .references("id")
-        .inTable("users")
-        .nullable();
+      table.uuid("reversed_by_user_id").references("id").inTable("users").nullable();
 
       table.decimal("original_value", 10, 2).notNullable();
       table.decimal("used_value", 10, 2).defaultTo(0);

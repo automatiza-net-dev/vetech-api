@@ -1,17 +1,12 @@
-import {
-  BaseModel,
-  beforeFetch,
-  beforeFind,
-  column,
-} from '@ioc:Adonis/Lucid/Orm';
-import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
-import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
+import { BaseModel, beforeFetch, beforeFind, column } from "@ioc:Adonis/Lucid/Orm";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import { DateTime } from "luxon";
+import { v4 } from "uuid";
 
 export enum UnitType {
-  PRODUCT = 'PRODUCT',
-  MEDICINE = 'MEDICINE',
-  FLUID_VELOCITY = 'FLUID_VELOCITY',
+  PRODUCT = "PRODUCT",
+  MEDICINE = "MEDICINE",
+  FLUID_VELOCITY = "FLUID_VELOCITY",
 }
 
 export default class Unit extends BaseModel {

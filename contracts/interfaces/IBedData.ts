@@ -1,4 +1,4 @@
-import { BedType } from 'App/Models/Bed';
+import { BedType } from "App/Models/Bed";
 
 export default interface IBedData {
   name: string;

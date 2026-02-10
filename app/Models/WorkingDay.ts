@@ -1,16 +1,16 @@
-import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
-import BusinessUnit from 'App/Models/BusinessUnit';
-import WeekDay from 'App/Models/shared/WeekDay';
-import User from 'App/Models/User';
-import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
+import { BaseModel, BelongsTo, belongsTo, column } from "@ioc:Adonis/Lucid/Orm";
+import BusinessUnit from "App/Models/BusinessUnit";
+import WeekDay from "App/Models/shared/WeekDay";
+import User from "App/Models/User";
+import { DateTime } from "luxon";
+import { v4 } from "uuid";
 
 export default class WorkingDay extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
 
   @column({
-    columnName: 'day_of_week',
+    columnName: "day_of_week",
   })
   public weekDay: WeekDay;
 
@@ -20,12 +20,12 @@ export default class WorkingDay extends BaseModel {
   public weekday_index: number;
 
   @column({
-    columnName: 'start_hour',
+    columnName: "start_hour",
   })
   public startHour: string;
 
   @column({
-    columnName: 'end_hour',
+    columnName: "end_hour",
   })
   public endHour: string;
 
@@ -44,14 +44,14 @@ export default class WorkingDay extends BaseModel {
   public business_unit_id: string;
 
   @belongsTo(() => BusinessUnit, {
-    localKey: 'id',
-    foreignKey: 'business_unit_id',
+    localKey: "id",
+    foreignKey: "business_unit_id",
   })
   public businessUnit: BelongsTo<typeof BusinessUnit>;
 
   @belongsTo(() => User, {
-    localKey: 'id',
-    foreignKey: 'user_id',
+    localKey: "id",
+    foreignKey: "user_id",
   })
   public user: BelongsTo<typeof User>;
 }

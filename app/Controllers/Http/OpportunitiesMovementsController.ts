@@ -6,71 +6,67 @@ import OpportunityMovementsService from "App/Services/OpportunityMovementsServic
 
 @inject()
 export default class OpportunityMovementsController {
-	constructor(
-		private sharedService: SharedService,
-		private service: OpportunityMovementsService,
-	) {}
+  constructor(
+    private sharedService: SharedService,
+    private service: OpportunityMovementsService,
+  ) {}
 
-	public async index({ request, response, auth }: HttpContextContract) {
-		return this.sharedService.errorHoc(response, async () => {
-			const result = await this.service.index(
-				await this.sharedService.getAuthContext(auth),
-				request.qs(),
-			);
+  public async index({ request, response, auth }: HttpContextContract) {
+    return this.sharedService.errorHoc(response, async () => {
+      const result = await this.service.index(
+        await this.sharedService.getAuthContext(auth),
+        request.qs(),
+      );
 
-			return response.ok(result);
-		});
-	}
+      return response.ok(result);
+    });
+  }
 
-	public async searchFromClients({
-		request,
-		response,
-		auth,
-	}: HttpContextContract) {
-		return this.sharedService.errorHoc(response, async () => {
-			const result = await this.service.searchFromClients(
-				await this.sharedService.getAuthContext(auth),
-				request.qs(),
-			);
+  public async searchFromClients({ request, response, auth }: HttpContextContract) {
+    return this.sharedService.errorHoc(response, async () => {
+      const result = await this.service.searchFromClients(
+        await this.sharedService.getAuthContext(auth),
+        request.qs(),
+      );
 
-			return response.ok(result);
-		});
-	}
+      return response.ok(result);
+    });
+  }
 
-	public async search({ request, response, auth }: HttpContextContract) {
-		return this.sharedService.errorHoc(response, async () => {
-			const result = await this.service.searchOpportunityMovements(
-				await this.sharedService.getAuthContext(auth),
-				request.qs(),
-			);
+  public async search({ request, response, auth }: HttpContextContract) {
+    return this.sharedService.errorHoc(response, async () => {
+      const result = await this.service.searchOpportunityMovements(
+        await this.sharedService.getAuthContext(auth),
+        request.qs(),
+      );
 
-			return response.ok(result);
-		});
-	}
+      return response.ok(result);
+    });
+  }
 
-	public async store({ request, response, auth }: HttpContextContract) {
-		return this.sharedService.errorHoc(response, async () => {
-			const data = await request.validate(UpsertOpportunityMovementValidator);
+  public async store({ request, response, auth }: HttpContextContract) {
+    return this.sharedService.errorHoc(response, async () => {
+      const data = await request.validate(UpsertOpportunityMovementValidator);
 
-			await this.service.createOpportunityMovements(
-				await this.sharedService.getAuthContext(auth),
-				data.items,
-			);
+      await this.service.createOpportunityMovements(
+        await this.sharedService.getAuthContext(auth),
+        data.items,
+      );
 
-			return response.created();
-		});
-	}
+      return response.created();
+    });
+  }
 
-	public async cancel({ request, response, auth }: HttpContextContract) {
-		return this.sharedService.errorHoc(response, async () => {
-			const data = await request.validate(UpsertOpportunityMovementValidator);
+  public async cancel({ request, response, auth }: HttpContextContract) {
+    return this.sharedService.errorHoc(response, async () => {
+      const data = await request.validate(UpsertOpportunityMovementValidator);
 
-			await this.service.cancelOpportunityMovements(
-				await this.sharedService.getAuthContext(auth),
-				data.items,
-			);
+      await this.service.cancelOpportunityMovements(
+        await this.sharedService.getAuthContext(auth),
+        data.items,
+      );
 
-			return response.noContent();
-		});
-	}
+      return response.noContent();
+    });
+  }
 }

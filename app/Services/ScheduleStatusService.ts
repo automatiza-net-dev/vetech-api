@@ -1,8 +1,8 @@
-import { inject } from '@adonisjs/fold';
-import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
-import ScheduleStatus from 'App/Models/ScheduleStatus';
-import SharedService, { AuthContext } from 'App/Services/SharedService';
-import IScheduleStatusData from 'Contracts/interfaces/IScheduleStatusData';
+import { inject } from "@adonisjs/fold";
+import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
+import ScheduleStatus from "App/Models/ScheduleStatus";
+import SharedService, { AuthContext } from "App/Services/SharedService";
+import IScheduleStatusData from "Contracts/interfaces/IScheduleStatusData";
 
 interface ISearch {
   description?: string;
@@ -12,33 +12,31 @@ interface ISearch {
 export default class ScheduleStatusService {
   constructor(private readonly sharedService: SharedService) {}
 
-  public async index(
-    authCtx: AuthContext,
-    data: ISearch,
-  ): Promise<Array<ScheduleStatus>> {
+  public async index(authCtx: AuthContext, data: ISearch): Promise<Array<ScheduleStatus>> {
     const qb = ScheduleStatus.query();
 
     if (data.description) {
-      qb.where('description', 'ilike', `%${data.description}%`);
+      qb.where("description", "ilike", `%${data.description}%`);
     }
 
-    qb.whereRaw('(economic_group_id = ? or economic_group_id is null)', [
-      authCtx.group.id,
-    ]).where('system_id', authCtx.system.id);
+    qb.whereRaw("(economic_group_id = ? or economic_group_id is null)", [authCtx.group.id]).where(
+      "system_id",
+      authCtx.system.id,
+    );
 
     return qb;
   }
 
   public async show(authCtx: AuthContext, id: string): Promise<ScheduleStatus> {
     const exception = new ResourceNotFoundException(
-      'Recurso não foi encontrado',
+      "Recurso não foi encontrado",
       404,
-      'E_NOT_FOUND',
+      "E_NOT_FOUND",
     );
 
     const status = await ScheduleStatus.query()
-      .where('id', id)
-      .where('system_id', authCtx.system.id)
+      .where("id", id)
+      .where("system_id", authCtx.system.id)
       .first();
 
     if (!status) throw exception;
@@ -52,10 +50,7 @@ export default class ScheduleStatusService {
     return status;
   }
 
-  public async store(
-    authCtx: AuthContext,
-    data: IScheduleStatusData,
-  ): Promise<ScheduleStatus> {
+  public async store(authCtx: AuthContext, data: IScheduleStatusData): Promise<ScheduleStatus> {
     return ScheduleStatus.create({
       color: data.color,
       description: data.description,

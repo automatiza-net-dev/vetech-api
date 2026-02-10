@@ -5,18 +5,18 @@ import {
   BelongsTo,
   belongsTo,
   column,
-} from '@ioc:Adonis/Lucid/Orm';
-import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
-import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
-import User from './User';
+} from "@ioc:Adonis/Lucid/Orm";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import { DateTime } from "luxon";
+import { v4 } from "uuid";
+import User from "./User";
 
 export default class CorrectedFiscalDocument extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
 
   @column.dateTime({
-    columnName: 'corrected_date',
+    columnName: "corrected_date",
   })
   public correctedDate: DateTime;
 
@@ -24,7 +24,7 @@ export default class CorrectedFiscalDocument extends BaseModel {
   public protocol: string;
 
   @column.dateTime({
-    columnName: 'protocol_date',
+    columnName: "protocol_date",
   })
   public protocolDate: DateTime;
 
@@ -36,17 +36,17 @@ export default class CorrectedFiscalDocument extends BaseModel {
 
   //
   @column({
-    columnName: 'correction_number',
+    columnName: "correction_number",
   })
   correctionNumber: string;
 
   @column({
-    columnName: 'correction_xml_path',
+    columnName: "correction_xml_path",
   })
   correctionXmlPath: string;
 
   @column({
-    columnName: 'correction_pdf_path',
+    columnName: "correction_pdf_path",
   })
   correctionPdfPath: string;
 
@@ -86,7 +86,7 @@ export default class CorrectedFiscalDocument extends BaseModel {
   public user_id: string;
 
   @belongsTo(() => User, {
-    foreignKey: 'user_id',
+    foreignKey: "user_id",
   })
   public user: BelongsTo<typeof User>;
 

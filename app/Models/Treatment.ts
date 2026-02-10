@@ -1,33 +1,26 @@
-import {
-  BaseModel,
-  BelongsTo,
-  HasMany,
-  belongsTo,
-  column,
-  hasMany,
-} from '@ioc:Adonis/Lucid/Orm';
-import Bill from 'App/Models/Bill';
-import Patient from 'App/Models/Patient';
-import Reason from 'App/Models/Reason';
-import TreatmentExecution from 'App/Models/TreatmentExecution';
-import TreatmentItem from 'App/Models/TreatmentItem';
-import User from 'App/Models/User';
-import { DateTime } from 'luxon';
+import { BaseModel, BelongsTo, HasMany, belongsTo, column, hasMany } from "@ioc:Adonis/Lucid/Orm";
+import Bill from "App/Models/Bill";
+import Patient from "App/Models/Patient";
+import Reason from "App/Models/Reason";
+import TreatmentExecution from "App/Models/TreatmentExecution";
+import TreatmentItem from "App/Models/TreatmentItem";
+import User from "App/Models/User";
+import { DateTime } from "luxon";
 
-const TreatmentStatus = ['Confirmado', 'Aberto', 'Cancelado'] as const;
-export type TreatmentStatus = typeof TreatmentStatus[number];
+const TreatmentStatus = ["Confirmado", "Aberto", "Cancelado"] as const;
+export type TreatmentStatus = (typeof TreatmentStatus)[number];
 
 export default class Treatment extends BaseModel {
   @column({ isPrimary: true })
   public id: number;
 
   @column.dateTime({
-    columnName: 'emission_date',
+    columnName: "emission_date",
   })
   public emissionDate: DateTime;
 
   @column({
-    columnName: 'cancellation_date',
+    columnName: "cancellation_date",
   })
   public cancellationDate: DateTime | null;
 
@@ -35,7 +28,7 @@ export default class Treatment extends BaseModel {
   public observations: string;
 
   @column({
-    columnName: 'cancellation_observations',
+    columnName: "cancellation_observations",
   })
   public cancellationObservations: string | null;
 
@@ -64,7 +57,7 @@ export default class Treatment extends BaseModel {
   public bill_id: string;
 
   @belongsTo(() => Bill, {
-    foreignKey: 'bill_id',
+    foreignKey: "bill_id",
   })
   public bill: BelongsTo<typeof Bill>;
 
@@ -74,7 +67,7 @@ export default class Treatment extends BaseModel {
   public emission_user_id: string;
 
   @belongsTo(() => User, {
-    foreignKey: 'emission_user_id',
+    foreignKey: "emission_user_id",
   })
   public emissionUser: BelongsTo<typeof User>;
 
@@ -84,7 +77,7 @@ export default class Treatment extends BaseModel {
   public cancellation_user_id: string;
 
   @belongsTo(() => User, {
-    foreignKey: 'cancellation_user_id',
+    foreignKey: "cancellation_user_id",
   })
   public cancellationUser: BelongsTo<typeof User>;
 
@@ -94,7 +87,7 @@ export default class Treatment extends BaseModel {
   public cancellation_reason_id: string;
 
   @belongsTo(() => Reason, {
-    foreignKey: 'cancellation_reason_id',
+    foreignKey: "cancellation_reason_id",
   })
   public cancellationReason: BelongsTo<typeof Reason>;
 
@@ -104,7 +97,7 @@ export default class Treatment extends BaseModel {
   public seller_id: string;
 
   @belongsTo(() => User, {
-    foreignKey: 'seller_id',
+    foreignKey: "seller_id",
   })
   public seller: BelongsTo<typeof User>;
 
@@ -114,17 +107,17 @@ export default class Treatment extends BaseModel {
   public client_id: string;
 
   @belongsTo(() => Patient, {
-    foreignKey: 'client_id',
+    foreignKey: "client_id",
   })
   public client: BelongsTo<typeof Patient>;
 
   @hasMany(() => TreatmentItem, {
-    foreignKey: 'treatment_id',
+    foreignKey: "treatment_id",
   })
   public items: HasMany<typeof TreatmentItem>;
 
   @hasMany(() => TreatmentExecution, {
-    foreignKey: 'treatment_id',
+    foreignKey: "treatment_id",
   })
   public executions: HasMany<typeof TreatmentExecution>;
 }

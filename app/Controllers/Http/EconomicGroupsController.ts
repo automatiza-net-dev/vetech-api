@@ -1,8 +1,8 @@
-import { inject } from '@adonisjs/fold';
-import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import EconomicGroupService from 'App/Services/EconomicGroupService';
-import SharedService from 'App/Services/SharedService';
-import UpdateEconomicGroupValidator from 'App/Validators/EconomicGroup/UpdateEconomicGroupValidator';
+import { inject } from "@adonisjs/fold";
+import { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import EconomicGroupService from "App/Services/EconomicGroupService";
+import SharedService from "App/Services/SharedService";
+import UpdateEconomicGroupValidator from "App/Validators/EconomicGroup/UpdateEconomicGroupValidator";
 
 @inject()
 export default class EconomicGroupsController {

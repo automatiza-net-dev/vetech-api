@@ -16,337 +16,289 @@ import { TDynamicForm } from "App/Models/BusinessUnitConfig";
 
 @inject()
 export default class BusinessUnitsController {
-	constructor(
-		private readonly service: BusinessUnitService,
-		private readonly userRoleService: UserRoleService,
-		private readonly sharedService: SharedService,
-	) {}
+  constructor(
+    private readonly service: BusinessUnitService,
+    private readonly userRoleService: UserRoleService,
+    private readonly sharedService: SharedService,
+  ) {}
 
-	public async states({ response, auth }: HttpContextContract) {
-		return response.ok(
-			await this.service.calculateStates(
-				await this.sharedService.getAuthContext(auth),
-			),
-		);
-	}
+  public async states({ response, auth }: HttpContextContract) {
+    return response.ok(
+      await this.service.calculateStates(await this.sharedService.getAuthContext(auth)),
+    );
+  }
 
-	public async syncConfig({ response, auth }: HttpContextContract) {
-		await this.service.syncConfig(
-			await this.sharedService.getAuthContext(auth),
-		);
+  public async syncConfig({ response, auth }: HttpContextContract) {
+    await this.service.syncConfig(await this.sharedService.getAuthContext(auth));
 
-		return response.noContent();
-	}
+    return response.noContent();
+  }
 
-	public async index({ auth, request, response }: HttpContextContract) {
-		const qs = request.qs();
-		return response.ok(
-			await this.service.index(await this.sharedService.getAuthContext(auth), {
-				email: qs.email,
-				identification: qs.identification,
-			}),
-		);
-	}
+  public async index({ auth, request, response }: HttpContextContract) {
+    const qs = request.qs();
+    return response.ok(
+      await this.service.index(await this.sharedService.getAuthContext(auth), {
+        email: qs.email,
+        identification: qs.identification,
+      }),
+    );
+  }
 
-	public async systemUnits({ auth, response }: HttpContextContract) {
-		const user = auth.use("api").user!;
+  public async systemUnits({ auth, response }: HttpContextContract) {
+    const user = auth.use("api").user!;
 
-		return response.ok(await this.service.systemUnits(user.system_id));
-	}
+    return response.ok(await this.service.systemUnits(user.system_id));
+  }
 
-	public async show({ params, response }: HttpContextContract) {
-		return response.ok(await this.service.show(params.id));
-	}
+  public async show({ params, response }: HttpContextContract) {
+    return response.ok(await this.service.show(params.id));
+  }
 
-	public async store({ auth, request, response }: HttpContextContract) {
-		const payload = await request.validate(CreateBusinessUnitValidator);
+  public async store({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(CreateBusinessUnitValidator);
 
-		const result = await this.service.store(
-			await this.sharedService.getAuthContext(auth),
-			payload,
-		);
+    const result = await this.service.store(await this.sharedService.getAuthContext(auth), payload);
 
-		return response.created(result);
-	}
+    return response.created(result);
+  }
 
-	public async addCollaborator({
-		auth,
-		request,
-		response,
-	}: HttpContextContract) {
-		const payload = await request.validate(
-			AddBusinessUnitCollaboratorValidator,
-		);
-		const { unit_id } = this.sharedService.extractUser(auth);
+  public async addCollaborator({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(AddBusinessUnitCollaboratorValidator);
+    const { unit_id } = this.sharedService.extractUser(auth);
 
-		await this.service.addCollaborator(unit_id, payload);
+    await this.service.addCollaborator(unit_id, payload);
 
-		return response.created();
-	}
+    return response.created();
+  }
 
-	public async createCollaborator({
-		auth,
-		request,
-		response,
-	}: HttpContextContract) {
-		await this.sharedService.errorHoc(response, async () => {
-			const payload = await request.validate(
-				CreateBusinessUnitCollaboratorValidator,
-			);
-			await this.service.createCollaborator(
-				await this.sharedService.getAuthContext(auth),
-				payload,
-			);
+  public async createCollaborator({ auth, request, response }: HttpContextContract) {
+    await this.sharedService.errorHoc(response, async () => {
+      const payload = await request.validate(CreateBusinessUnitCollaboratorValidator);
+      await this.service.createCollaborator(await this.sharedService.getAuthContext(auth), payload);
 
-			return response.created();
-		});
-	}
+      return response.created();
+    });
+  }
 
-	public async update({ params, request, response }: HttpContextContract) {
-		const { id } = params;
-		const payload = await request.validate(UpdateBusinessUnitValidator);
-		const updatedUnit = await this.service.update(id, payload);
+  public async update({ params, request, response }: HttpContextContract) {
+    const { id } = params;
+    const payload = await request.validate(UpdateBusinessUnitValidator);
+    const updatedUnit = await this.service.update(id, payload);
 
-		return response.ok(updatedUnit);
-	}
+    return response.ok(updatedUnit);
+  }
 
-	public async updateAcquirer({
-		params,
-		request,
-		response,
-		auth,
-	}: HttpContextContract) {
-		const { unit_id } = this.sharedService.extractUser(auth);
+  public async updateAcquirer({ params, request, response, auth }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
 
-		const payload = await request.validate(UpdateBusinessUnitAcquirerValidator);
-		await this.service.updateAcquirer(unit_id, params.id, payload);
+    const payload = await request.validate(UpdateBusinessUnitAcquirerValidator);
+    await this.service.updateAcquirer(unit_id, params.id, payload);
 
-		return response.noContent();
-	}
+    return response.noContent();
+  }
 
-	public async deleteAcquirer({ params, response, auth }: HttpContextContract) {
-		const { unit_id } = this.sharedService.extractUser(auth);
+  public async deleteAcquirer({ params, response, auth }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
 
-		await this.service.deleteAcquirer(unit_id, params.id);
+    await this.service.deleteAcquirer(unit_id, params.id);
 
-		return response.noContent();
-	}
+    return response.noContent();
+  }
 
-	public async updateUser({
-		auth,
-		params,
-		request,
-		response,
-	}: HttpContextContract) {
-		const { id } = params;
-		const payload = await request.validate(UpdateUnitUserValidator);
-		const { unit_id, user } = this.sharedService.extractUser(auth);
+  public async updateUser({ auth, params, request, response }: HttpContextContract) {
+    const { id } = params;
+    const payload = await request.validate(UpdateUnitUserValidator);
+    const { unit_id, user } = this.sharedService.extractUser(auth);
 
-		const updatedUnit = await this.service.updateUser(
-			unit_id,
-			user,
-			id,
-			payload,
-		);
+    const updatedUnit = await this.service.updateUser(unit_id, user, id, payload);
 
-		return response.ok(updatedUnit);
-	}
+    return response.ok(updatedUnit);
+  }
 
-	public async users({ auth, request, response }: HttpContextContract) {
-		const { unit_id } = this.sharedService.extractUser(auth);
+  public async users({ auth, request, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
 
-		const qs = request.qs();
-		const users = await this.userRoleService.getUnitUsers(unit_id, {
-			name: qs.name,
-			document: qs.document,
-			phone: qs.phone,
-			role: qs.role,
-		});
+    const qs = request.qs();
+    const users = await this.userRoleService.getUnitUsers(unit_id, {
+      name: qs.name,
+      document: qs.document,
+      phone: qs.phone,
+      role: qs.role,
+    });
 
-		return response.ok(users);
-	}
+    return response.ok(users);
+  }
 
-	public async searchUser({ auth, params, response }: HttpContextContract) {
-		const groups = await this.service.searchUser(
-			await this.sharedService.getAuthContext(auth),
-			params.id,
-		);
+  public async searchUser({ auth, params, response }: HttpContextContract) {
+    const groups = await this.service.searchUser(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
 
-		return response.ok(groups);
-	}
+    return response.ok(groups);
+  }
 
-	public async user({ auth, request, response }: HttpContextContract) {
-		const qs = request.qs();
-		const groups = await this.service.getUserBusinessUnits(
-			await this.sharedService.getAuthContext(auth),
-			qs,
-		);
+  public async user({ auth, request, response }: HttpContextContract) {
+    const qs = request.qs();
+    const groups = await this.service.getUserBusinessUnits(
+      await this.sharedService.getAuthContext(auth),
+      qs,
+    );
 
-		return response.ok(groups);
-	}
+    return response.ok(groups);
+  }
 
-	public async deleteUser({ auth, params, response }: HttpContextContract) {
-		const { unit_id } = this.sharedService.extractUser(auth);
+  public async deleteUser({ auth, params, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
 
-		await this.userRoleService.deleteUserFromBusiness(unit_id, params.id);
+    await this.userRoleService.deleteUserFromBusiness(unit_id, params.id);
 
-		return response.noContent();
-	}
+    return response.noContent();
+  }
 
-	public async updateUsersRole({
-		auth,
-		request,
-		response,
-	}: HttpContextContract) {
-		const { unit_id } = this.sharedService.extractUser(auth);
-		const { data } = await request.validate(UpdateUsersRoleValidator);
+  public async updateUsersRole({ auth, request, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
+    const { data } = await request.validate(UpdateUsersRoleValidator);
 
-		await this.userRoleService.updateUserRoles(unit_id, data);
+    await this.userRoleService.updateUserRoles(unit_id, data);
 
-		return response.noContent();
-	}
+    return response.noContent();
+  }
 
-	public async checkDocument({ params, response }: HttpContextContract) {
-		const { document } = params;
-		const result = await this.service.checkExistingDocument(document);
+  public async checkDocument({ params, response }: HttpContextContract) {
+    const { document } = params;
+    const result = await this.service.checkExistingDocument(document);
 
-		return response.ok(result);
-	}
+    return response.ok(result);
+  }
 
-	public async mergeConfig({ auth, request, response }: HttpContextContract) {
-		const payload = await request.validate(MergeConfigValidator);
+  public async mergeConfig({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(MergeConfigValidator);
 
-		await this.service.mergeConfig(
-			await this.sharedService.getAuthContext(auth),
-			payload,
-		);
+    await this.service.mergeConfig(await this.sharedService.getAuthContext(auth), payload);
 
-		return response.noContent();
-	}
+    return response.noContent();
+  }
 
-	public async testDynamicForm({
-		auth,
-		request,
-		response,
-	}: HttpContextContract) {
-		const authCtx = await this.sharedService.getAuthContext(auth);
+  public async testDynamicForm({ auth, request, response }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
 
-		// const formEntry = authCtx.unit.unitConfig.formFields[request.param("form")];
-		// if (!formEntry) {
-		// 	throw new BadRequestException(
-		// 		`Valores possíveis: ${Object.keys(authCtx.unit.unitConfig.formFields).join(", ")}`,
-		// 		400,
-		// 		"E_ERR",
-		// 	);
-		// }
-		const formEntry: TDynamicForm["cadastro"] = {
-			str: {
-				title: "Teste",
-				type: "string",
-				required: true,
-				error_message: "Campo é inválido",
-			},
-			num: {
-				title: "Teste",
-				type: "number",
-				required: true,
-				error_message: "Campo é inválido",
-			},
-			dt: {
-				title: "Teste",
-				type: "date",
-				required: true,
-				error_message: "Campo é inválido",
-			},
-			obj1: {
-				title: "Teste",
-				type: "object",
-				required: true,
-				error_message: "Campo é inválido",
-				prop: {
-					title: "Teste",
-					type: "string",
-					key: "foo",
-					required: true,
-				},
-			},
-			obj2: {
-				title: "Teste",
-				type: "object",
-				required: true,
-				error_message: "Campo é inválido",
-				prop: [
-					{
-						title: "Teste",
-						type: "string",
-						key: "foo",
-						required: true,
-					},
-					{
-						title: "Teste",
-						type: "number",
-						key: "bar",
-						required: true,
-					},
-				],
-			},
-			strArr: {
-				title: "Teste",
-				type: "array",
-				required: true,
-				error_message: "Campo deve ser uma lista de strings",
-				prop: {
-					title: "Teste",
-					type: "string",
-					required: true,
-				},
-			},
-			strArr2: {
-				title: "Teste",
-				type: "array",
-				required: true,
-				error_message: "Campo deve ser uma lista de strings",
-				prop: [
-					{
-						title: "Teste",
-						type: "string",
-						required: true,
-					},
-				],
-			},
-			objArr: {
-				title: "Teste",
-				type: "array",
-				required: true,
-				error_message: "Campo deve ser uma lista de objetos",
-				prop: {
-					title: "Teste",
-					type: "object",
-					required: true,
-					prop: [
-						{
-							title: "Teste",
-							type: "string",
-							key: "foo",
-							required: true,
-						},
-						{
-							title: "Teste",
-							type: "number",
-							key: "bar",
-							required: true,
-						},
-					],
-				},
-			},
-		};
+    // const formEntry = authCtx.unit.unitConfig.formFields[request.param("form")];
+    // if (!formEntry) {
+    // 	throw new BadRequestException(
+    // 		`Valores possíveis: ${Object.keys(authCtx.unit.unitConfig.formFields).join(", ")}`,
+    // 		400,
+    // 		"E_ERR",
+    // 	);
+    // }
+    const formEntry: TDynamicForm["cadastro"] = {
+      str: {
+        title: "Teste",
+        type: "string",
+        required: true,
+        error_message: "Campo é inválido",
+      },
+      num: {
+        title: "Teste",
+        type: "number",
+        required: true,
+        error_message: "Campo é inválido",
+      },
+      dt: {
+        title: "Teste",
+        type: "date",
+        required: true,
+        error_message: "Campo é inválido",
+      },
+      obj1: {
+        title: "Teste",
+        type: "object",
+        required: true,
+        error_message: "Campo é inválido",
+        prop: {
+          title: "Teste",
+          type: "string",
+          key: "foo",
+          required: true,
+        },
+      },
+      obj2: {
+        title: "Teste",
+        type: "object",
+        required: true,
+        error_message: "Campo é inválido",
+        prop: [
+          {
+            title: "Teste",
+            type: "string",
+            key: "foo",
+            required: true,
+          },
+          {
+            title: "Teste",
+            type: "number",
+            key: "bar",
+            required: true,
+          },
+        ],
+      },
+      strArr: {
+        title: "Teste",
+        type: "array",
+        required: true,
+        error_message: "Campo deve ser uma lista de strings",
+        prop: {
+          title: "Teste",
+          type: "string",
+          required: true,
+        },
+      },
+      strArr2: {
+        title: "Teste",
+        type: "array",
+        required: true,
+        error_message: "Campo deve ser uma lista de strings",
+        prop: [
+          {
+            title: "Teste",
+            type: "string",
+            required: true,
+          },
+        ],
+      },
+      objArr: {
+        title: "Teste",
+        type: "array",
+        required: true,
+        error_message: "Campo deve ser uma lista de objetos",
+        prop: {
+          title: "Teste",
+          type: "object",
+          required: true,
+          prop: [
+            {
+              title: "Teste",
+              type: "string",
+              key: "foo",
+              required: true,
+            },
+            {
+              title: "Teste",
+              type: "number",
+              key: "bar",
+              required: true,
+            },
+          ],
+        },
+      },
+    };
 
-		const result = await validator.validate({
-			schema: schema.create(SharedService.CreateDynamicValidator(formEntry)),
-			messages: SharedService.CreateDynamicErrorMessages(formEntry),
-			data: request.body(),
-		});
+    const result = await validator.validate({
+      schema: schema.create(SharedService.CreateDynamicValidator(formEntry)),
+      messages: SharedService.CreateDynamicErrorMessages(formEntry),
+      data: request.body(),
+    });
 
-		return response.ok(result);
-	}
+    return response.ok(result);
+  }
 }

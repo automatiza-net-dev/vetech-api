@@ -1,8 +1,8 @@
-import { inject } from '@adonisjs/fold';
-import ResourceNotFoundException from 'App/Exceptions/ResourceNotFoundException';
-import Exam from 'App/Models/Exam';
-import SharedService, { AuthContext } from 'App/Services/SharedService';
-import { IExamData } from 'Contracts/interfaces/IExamData';
+import { inject } from "@adonisjs/fold";
+import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
+import Exam from "App/Models/Exam";
+import SharedService, { AuthContext } from "App/Services/SharedService";
+import { IExamData } from "Contracts/interfaces/IExamData";
 
 interface ISearch {
   name?: string;
@@ -17,32 +17,30 @@ export default class ExamService {
 
   public async index(authCtx: AuthContext, data: ISearch) {
     const qb = Exam.query()
-      .whereRaw('(economic_group_id = ? or economic_group_id is null)', [
-        authCtx.group.id,
-      ])
-      .where('system_id', authCtx.system.id);
+      .whereRaw("(economic_group_id = ? or economic_group_id is null)", [authCtx.group.id])
+      .where("system_id", authCtx.system.id);
 
     if (data.name) {
-      qb.where('name', 'ilike', `%${data.name}%`);
+      qb.where("name", "ilike", `%${data.name}%`);
     }
 
     if (data.description) {
-      qb.where('description', 'ilike', `%${data.description}%`);
+      qb.where("description", "ilike", `%${data.description}%`);
     }
 
     if (data.type) {
-      qb.where('type', 'ilike', `%${data.type}%`);
+      qb.where("type", "ilike", `%${data.type}%`);
     }
 
     if (data.active) {
-      qb.where('active', data.active === 'true');
+      qb.where("active", data.active === "true");
     }
 
     // TODO paginate
     return qb;
   }
 
-  public async store(authCtx: AuthContext, data: Omit<IExamData, 'active'>) {
+  public async store(authCtx: AuthContext, data: Omit<IExamData, "active">) {
     return Exam.create({
       name: data.name,
       description: data.description,
@@ -58,11 +56,7 @@ export default class ExamService {
     const exam = await Exam.find(id);
 
     if (!exam || exam.system_id !== authCtx.system.id) {
-      throw new ResourceNotFoundException(
-        'Exame não encontrada',
-        404,
-        'E_NOT_FOUND',
-      );
+      throw new ResourceNotFoundException("Exame não encontrada", 404, "E_NOT_FOUND");
     }
 
     if (!exam.economic_group_id) {
@@ -70,11 +64,7 @@ export default class ExamService {
     }
 
     if (authCtx.group.id !== exam.economic_group_id) {
-      throw new ResourceNotFoundException(
-        'Exame não encontrada',
-        404,
-        'E_NOT_FOUND',
-      );
+      throw new ResourceNotFoundException("Exame não encontrada", 404, "E_NOT_FOUND");
     }
 
     return exam;

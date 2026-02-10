@@ -1,6 +1,6 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, schema } from '@ioc:Adonis/Core/Validator';
-import { REASON_TYPES } from 'App/Models/Reason';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, schema } from "@ioc:Adonis/Core/Validator";
+import { REASON_TYPES } from "App/Models/Reason";
 
 export default class UpdateReasonValidator {
   constructor(protected ctx: HttpContextContract) {}

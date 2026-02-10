@@ -1,23 +1,23 @@
-import Database from '@ioc:Adonis/Lucid/Database';
-import { test } from '@japa/runner';
-import { BusinessUnitProductMetaType } from 'App/Models/BusinessUnitProduct';
-import { DailyCashierStatus } from 'App/Models/DailyCashier';
-import DailyMovement, { DailyMovementStatus } from 'App/Models/DailyMovement';
-import Exam from 'App/Models/Exam';
-import { PatientType } from 'App/Models/Patient';
-import PatientExam from 'App/Models/PatientExam';
-import Product, { ProductType } from 'App/Models/Product';
-import Schedule from 'App/Models/Schedule';
-import Unit, { UnitType } from 'App/Models/Unit';
-import PatientFactory from 'Database/factories/PatientFactory';
-import ScheduleServiceTypeFactory from 'Database/factories/ScheduleServiceTypeFactory';
-import ScheduleStatusFactory from 'Database/factories/ScheduleStatusFactory';
-import { SERVICE_VARIATION_GROUP_ID } from 'Database/seeders/ServiceSeeder';
-import { DateTime } from 'luxon';
+import Database from "@ioc:Adonis/Lucid/Database";
+import { test } from "@japa/runner";
+import { BusinessUnitProductMetaType } from "App/Models/BusinessUnitProduct";
+import { DailyCashierStatus } from "App/Models/DailyCashier";
+import DailyMovement, { DailyMovementStatus } from "App/Models/DailyMovement";
+import Exam from "App/Models/Exam";
+import { PatientType } from "App/Models/Patient";
+import PatientExam from "App/Models/PatientExam";
+import Product, { ProductType } from "App/Models/Product";
+import Schedule from "App/Models/Schedule";
+import Unit, { UnitType } from "App/Models/Unit";
+import PatientFactory from "Database/factories/PatientFactory";
+import ScheduleServiceTypeFactory from "Database/factories/ScheduleServiceTypeFactory";
+import ScheduleStatusFactory from "Database/factories/ScheduleStatusFactory";
+import { SERVICE_VARIATION_GROUP_ID } from "Database/seeders/ServiceSeeder";
+import { DateTime } from "luxon";
 
-import { generateJwtToken, userBootstrap } from '../utils';
+import { generateJwtToken, userBootstrap } from "../utils";
 
-test.group('Patient exam resource', group => {
+test.group("Patient exam resource", (group) => {
   group.each.setup(async () => {
     await Database.beginGlobalTransaction();
     return () => Database.rollbackGlobalTransaction();
@@ -27,46 +27,46 @@ test.group('Patient exam resource', group => {
     const { user, business, group } = await userBootstrap();
 
     const patient = await PatientFactory.create();
-    await patient.related('patientAnimal').create({});
+    await patient.related("patientAnimal").create({});
 
     const holder = await PatientFactory.create();
     await holder.merge({ type: PatientType.TUTOR }).save();
-    await holder.related('tutor').create({
+    await holder.related("tutor").create({
       state: business.state,
     });
 
-    await holder.related('dependents').attach([patient.id]);
-    await group.related('patients').attach([patient.id, holder.id]);
+    await holder.related("dependents").attach([patient.id]);
+    await group.related("patients").attach([patient.id, holder.id]);
 
     const client = Database.connection();
     await client
-      .from('holder_dependents')
-      .where('dependent_id', patient.id)
-      .where('holder_id', holder.id)
+      .from("holder_dependents")
+      .where("dependent_id", patient.id)
+      .where("holder_id", holder.id)
       .update({ is_main: true });
 
     const unit = await Unit.create({
-      name: 'some name',
-      tag: 'some tag',
+      name: "some name",
+      tag: "some tag",
       type: UnitType.PRODUCT,
     });
 
     const service = await Product.create({
-      description: 'some product',
+      description: "some product",
       type: ProductType.SERVICE,
-      referenceCode: 'some reference code',
-      features: 'some features',
+      referenceCode: "some reference code",
+      features: "some features",
       unit_id: unit.id,
       active: true,
       economic_group_id: group.id,
       variation_group_id: SERVICE_VARIATION_GROUP_ID,
-      icmsOrigin: '0',
-      ncm: '00',
+      icmsOrigin: "0",
+      ncm: "00",
     });
-    const serviceVariation = await service.related('variations').create({
-      barcode: '',
+    const serviceVariation = await service.related("variations").create({
+      barcode: "",
     });
-    await serviceVariation.related('businessUnitProducts').create({
+    await serviceVariation.related("businessUnitProducts").create({
       businness_unit_id: business.id,
       price: 10,
       stock: 10,
@@ -95,7 +95,7 @@ test.group('Patient exam resource', group => {
       status: DailyMovementStatus.A,
     });
 
-    await dailyMovement.related('cashiers').create({
+    await dailyMovement.related("cashiers").create({
       business_unit_id: dailyMovement.business_unit_id,
       user_who_opened_id: user.id,
       openingDate: DateTime.now(),
@@ -105,9 +105,9 @@ test.group('Patient exam resource', group => {
 
     const exam = await Exam.create({
       economic_group_id: group.id,
-      type: 'some type',
-      name: 'some name',
-      description: 'some description',
+      type: "some type",
+      name: "some name",
+      description: "some description",
       ownLaboratory: true,
       product_id: service.id,
     });
@@ -125,8 +125,8 @@ test.group('Patient exam resource', group => {
 
     const patientExam = await PatientExam.create({
       realizedAt: DateTime.now(),
-      laboratory: 'some lab',
-      report: 'some report',
+      laboratory: "some lab",
+      report: "some report",
       business_id: business.id,
       exam_id: exam.id,
       patient_id: patient.id,
@@ -137,14 +137,14 @@ test.group('Patient exam resource', group => {
     return { user, patient, schedule, exam, patientExam, service };
   };
 
-  test('should return list of patient exams', async ({ client, assert }) => {
+  test("should return list of patient exams", async ({ client, assert }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
-    const response = await client.get('/patient-exams').bearerToken(token);
+    const response = await client.get("/patient-exams").bearerToken(token);
 
     const body = response.body();
 
@@ -152,16 +152,14 @@ test.group('Patient exam resource', group => {
     assert.isArray(body);
   });
 
-  test('should return a patient exam', async ({ client, assert }) => {
+  test("should return a patient exam", async ({ client, assert }) => {
     const { user, patientExam } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
-    const response = await client
-      .get(`/patient-exams/${patientExam.id}`)
-      .bearerToken(token);
+    const response = await client.get(`/patient-exams/${patientExam.id}`).bearerToken(token);
 
     const body = response.body();
 
@@ -169,19 +167,19 @@ test.group('Patient exam resource', group => {
     assert.equal(patientExam.id, body.id);
   });
 
-  test('should create new patient exam', async ({ client, assert }) => {
+  test("should create new patient exam", async ({ client, assert }) => {
     const { user, exam, patient, schedule } = await createData();
 
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
-      .post('/patient-exams')
+      .post("/patient-exams")
       .json({
-        laboratory: 'some lab',
-        report: 'some report',
+        laboratory: "some lab",
+        report: "some report",
         examId: exam.id,
         patientId: patient.id,
         scheduleId: schedule.id,
@@ -192,22 +190,19 @@ test.group('Patient exam resource', group => {
     assert.equal(201, response.status());
   });
 
-  test('should create new patient exam (no schedule)', async ({
-    client,
-    assert,
-  }) => {
+  test("should create new patient exam (no schedule)", async ({ client, assert }) => {
     const { user, exam, patient } = await createData();
 
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
-      .post('/patient-exams')
+      .post("/patient-exams")
       .json({
-        laboratory: 'some lab',
-        report: 'some report',
+        laboratory: "some lab",
+        report: "some report",
         examId: exam.id,
         patientId: patient.id,
         solicitorId: user.id,
@@ -217,26 +212,26 @@ test.group('Patient exam resource', group => {
     assert.equal(201, response.status());
   });
 
-  test('should update patient exam', async ({ client, assert }) => {
+  test("should update patient exam", async ({ client, assert }) => {
     const { user, exam, patient, schedule, patientExam } = await createData();
 
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
       .put(`/patient-exams/${patientExam.id}`)
       .json({
-        laboratory: 'some lab',
-        report: 'some report',
+        laboratory: "some lab",
+        report: "some report",
         examId: exam.id,
         patientId: patient.id,
         executionerId: user.id,
         executorId: user.id,
         executedAt: new Date(),
         resultDate: new Date(),
-        status: 'some status',
+        status: "some status",
         scheduleId: schedule.id,
         releasedAt: new Date(),
       })
@@ -245,12 +240,12 @@ test.group('Patient exam resource', group => {
     assert.equal(200, response.status());
   });
 
-  test('should destroy patient exam', async ({ client, assert }) => {
+  test("should destroy patient exam", async ({ client, assert }) => {
     const { user, patientExam } = await createData();
 
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client

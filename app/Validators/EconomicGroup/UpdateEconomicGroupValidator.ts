@@ -1,5 +1,5 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
 
 export default class UpdateEconomicGroupValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -10,7 +10,7 @@ export default class UpdateEconomicGroupValidator {
     document: schema.string({}),
     responsibleEmail: schema.string({}, [
       rules.email(),
-      rules.unique({ table: 'economic_groups', column: 'responsible_email' }),
+      rules.unique({ table: "economic_groups", column: "responsible_email" }),
     ]),
     responsiblePhone: schema.string({}),
   });

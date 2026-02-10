@@ -1,9 +1,9 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import SharedService from 'App/Services/SharedService';
-import SubgroupService from 'App/Services/SubgroupService';
-import CreateSubgroupValidator from 'App/Validators/Subgroup/CreateSubgroupValidator';
-import UpdateSubgroupValidator from 'App/Validators/Subgroup/UpdateSubgroupValidator';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import SharedService from "App/Services/SharedService";
+import SubgroupService from "App/Services/SubgroupService";
+import CreateSubgroupValidator from "App/Validators/Subgroup/CreateSubgroupValidator";
+import UpdateSubgroupValidator from "App/Validators/Subgroup/UpdateSubgroupValidator";
 
 @inject()
 export default class SubgroupsController {
@@ -40,12 +40,7 @@ export default class SubgroupsController {
     return response.created(result);
   }
 
-  public async update({
-    auth,
-    params,
-    request,
-    response,
-  }: HttpContextContract) {
+  public async update({ auth, params, request, response }: HttpContextContract) {
     const payload = await request.validate(UpdateSubgroupValidator);
     const authCtx = await this.sharedService.getAuthContext(auth);
 

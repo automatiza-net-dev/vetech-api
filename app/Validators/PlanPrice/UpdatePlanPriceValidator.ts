@@ -1,6 +1,6 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
-import { PlanPriceRecurrence } from 'App/Models/PlanPrice';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
+import { PlanPriceRecurrence } from "App/Models/PlanPrice";
 
 export default class UpdatePlanPriceValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -9,8 +9,8 @@ export default class UpdatePlanPriceValidator {
     plan_id: schema.string({}, [
       rules.uuid(),
       rules.exists({
-        table: 'plans',
-        column: 'id',
+        table: "plans",
+        column: "id",
       }),
     ]),
     planPrice: schema.number([rules.unsigned()]),

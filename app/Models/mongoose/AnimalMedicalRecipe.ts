@@ -1,4 +1,4 @@
-import { DateTime } from 'luxon';
+import { DateTime } from "luxon";
 
 export type IAnimalMedicalRecipe = {
   tag: string;
@@ -6,5 +6,5 @@ export type IAnimalMedicalRecipe = {
   realizedAt: DateTime;
   technicianId: string;
   recipe: string;
-  createdAt?: DateTime
+  createdAt?: DateTime;
 };

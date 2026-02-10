@@ -5,9 +5,9 @@ import DictionaryService from "App/Services/DictionaryService";
 
 @inject()
 export default class DictionariesController {
-	constructor(private service: DictionaryService) {}
+  constructor(private service: DictionaryService) {}
 
-	public async index(ctx: HttpContextContract) {
-		return ctx.response.ok(await this.service.index());
-	}
+  public async index(ctx: HttpContextContract) {
+    return ctx.response.ok(await this.service.index());
+  }
 }

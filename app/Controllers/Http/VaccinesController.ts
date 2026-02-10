@@ -7,95 +7,76 @@ import UpdateVaccineValidator from "App/Validators/Vaccine/UpdateVaccineValidato
 
 @inject()
 export default class VaccinesController {
-	constructor(
-		private readonly sharedService: SharedService,
-		private readonly service: VaccineService,
-	) {}
+  constructor(
+    private readonly sharedService: SharedService,
+    private readonly service: VaccineService,
+  ) {}
 
-	public async index({ auth, request, response }: HttpContextContract) {
-		const qs = request.qs();
-		const result = await this.service.index(
-			await this.sharedService.getAuthContext(auth),
-			{
-				name: qs.name,
-				description: qs.description,
-			},
-		);
+  public async index({ auth, request, response }: HttpContextContract) {
+    const qs = request.qs();
+    const result = await this.service.index(await this.sharedService.getAuthContext(auth), {
+      name: qs.name,
+      description: qs.description,
+    });
 
-		return response.ok(result);
-	}
+    return response.ok(result);
+  }
 
-	public async show({ auth, params, response }: HttpContextContract) {
-		const result = await this.service.show(
-			await this.sharedService.getAuthContext(auth),
-			params.id,
-		);
+  public async show({ auth, params, response }: HttpContextContract) {
+    const result = await this.service.show(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
 
-		return response.ok(result);
-	}
+    return response.ok(result);
+  }
 
-	public async status({
-		auth,
-		params,
-		request,
-		response,
-	}: HttpContextContract) {
-		const result = await this.service.status(
-			await this.sharedService.getAuthContext(auth),
-			params.id,
-			request.qs(),
-		);
+  public async status({ auth, params, request, response }: HttpContextContract) {
+    const result = await this.service.status(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+      request.qs(),
+    );
 
-		return response.ok(result);
-	}
+    return response.ok(result);
+  }
 
-	public async store({ auth, request, response }: HttpContextContract) {
-		await this.sharedService.errorHoc(response, async () => {
-			const payload = await request.validate(CreateVaccineValidator);
+  public async store({ auth, request, response }: HttpContextContract) {
+    await this.sharedService.errorHoc(response, async () => {
+      const payload = await request.validate(CreateVaccineValidator);
 
-			const result = await this.service.store(
-				await this.sharedService.getAuthContext(auth),
-				payload,
-			);
+      const result = await this.service.store(
+        await this.sharedService.getAuthContext(auth),
+        payload,
+      );
 
-			return response.created(result);
-		});
-	}
+      return response.created(result);
+    });
+  }
 
-	public async update({
-		auth,
-		params,
-		request,
-		response,
-	}: HttpContextContract) {
-		await this.sharedService.errorHoc(response, async () => {
-			const payload = await request.validate(UpdateVaccineValidator);
+  public async update({ auth, params, request, response }: HttpContextContract) {
+    await this.sharedService.errorHoc(response, async () => {
+      const payload = await request.validate(UpdateVaccineValidator);
 
-			const result = await this.service.update(
-				await this.sharedService.getAuthContext(auth),
-				params.id,
-				payload,
-			);
+      const result = await this.service.update(
+        await this.sharedService.getAuthContext(auth),
+        params.id,
+        payload,
+      );
 
-			return response.ok(result);
-		});
-	}
+      return response.ok(result);
+    });
+  }
 
-	public async destroy({ auth, params, response }: HttpContextContract) {
-		await this.service.destroy(
-			await this.sharedService.getAuthContext(auth),
-			params.id,
-		);
+  public async destroy({ auth, params, response }: HttpContextContract) {
+    await this.service.destroy(await this.sharedService.getAuthContext(auth), params.id);
 
-		return response.noContent();
-	}
+    return response.noContent();
+  }
 
-	public async clearCalendar({ auth, params, response }: HttpContextContract) {
-		await this.service.clearCalendar(
-			await this.sharedService.getAuthContext(auth),
-			params.id,
-		);
+  public async clearCalendar({ auth, params, response }: HttpContextContract) {
+    await this.service.clearCalendar(await this.sharedService.getAuthContext(auth), params.id);
 
-		return response.noContent();
-	}
+    return response.noContent();
+  }
 }

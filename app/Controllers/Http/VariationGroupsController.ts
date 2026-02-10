@@ -8,80 +8,75 @@ import UpdateVariationGroupValidator from "App/Validators/Variation/UpdateVariat
 
 @inject()
 export default class VariationGroupsController {
-	constructor(
-		private readonly sharedService: SharedService,
-		private readonly service: VariationGroupService,
-	) {}
+  constructor(
+    private readonly sharedService: SharedService,
+    private readonly service: VariationGroupService,
+  ) {}
 
-	public async index({ auth, response }: HttpContextContract) {
-		const { unit_id } = this.sharedService.extractUser(auth);
+  public async index({ auth, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
 
-		const result = await this.service.index(unit_id);
+    const result = await this.service.index(unit_id);
 
-		return response.ok(result);
-	}
+    return response.ok(result);
+  }
 
-	public async show({ auth, params, response }: HttpContextContract) {
-		const { unit_id } = this.sharedService.extractUser(auth);
+  public async show({ auth, params, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
 
-		const result = await this.service.show(unit_id, params.id);
+    const result = await this.service.show(unit_id, params.id);
 
-		return response.ok(result);
-	}
+    return response.ok(result);
+  }
 
-	public async store({ auth, request, response }: HttpContextContract) {
-		await this.sharedService.errorHoc(response, async () => {
-			const payload = await request.validate(CreateVariationGroupValidator);
-			const result = await this.service.store(
-				await this.sharedService.getAuthContext(auth),
-				payload,
-			);
+  public async store({ auth, request, response }: HttpContextContract) {
+    await this.sharedService.errorHoc(response, async () => {
+      const payload = await request.validate(CreateVariationGroupValidator);
+      const result = await this.service.store(
+        await this.sharedService.getAuthContext(auth),
+        payload,
+      );
 
-			return response.created(result);
-		});
-	}
+      return response.created(result);
+    });
+  }
 
-	public async assign({ auth, request, response }: HttpContextContract) {
-		const payload = await request.validate(CreateVariationVariationValidator);
-		const { unit_id } = this.sharedService.extractUser(auth);
+  public async assign({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(CreateVariationVariationValidator);
+    const { unit_id } = this.sharedService.extractUser(auth);
 
-		await this.service.assignVariation(unit_id, payload);
+    await this.service.assignVariation(unit_id, payload);
 
-		return response.created();
-	}
+    return response.created();
+  }
 
-	public async detach({ auth, params, response }: HttpContextContract) {
-		const { unit_id } = this.sharedService.extractUser(auth);
+  public async detach({ auth, params, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
 
-		await this.service.detach(unit_id, params.group, params.variation);
+    await this.service.detach(unit_id, params.group, params.variation);
 
-		return response.created();
-	}
+    return response.created();
+  }
 
-	public async update({
-		auth,
-		params,
-		request,
-		response,
-	}: HttpContextContract) {
-		await this.sharedService.errorHoc(response, async () => {
-			const payload = await request.validate(UpdateVariationGroupValidator);
+  public async update({ auth, params, request, response }: HttpContextContract) {
+    await this.sharedService.errorHoc(response, async () => {
+      const payload = await request.validate(UpdateVariationGroupValidator);
 
-			const result = await this.service.update(
-				await this.sharedService.getAuthContext(auth),
-				params.id,
-				payload,
-			);
+      const result = await this.service.update(
+        await this.sharedService.getAuthContext(auth),
+        params.id,
+        payload,
+      );
 
-			return response.ok(result);
-		});
-	}
+      return response.ok(result);
+    });
+  }
 
-	public async destroy({ auth, params, response }: HttpContextContract) {
-		const { unit_id } = this.sharedService.extractUser(auth);
+  public async destroy({ auth, params, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
 
-		await this.service.destroy(unit_id, params.id);
+    await this.service.destroy(unit_id, params.id);
 
-		return response.noContent();
-	}
+    return response.noContent();
+  }
 }

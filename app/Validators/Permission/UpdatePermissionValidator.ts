@@ -1,5 +1,5 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
 
 export default class UpdatePermissionValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -8,7 +8,7 @@ export default class UpdatePermissionValidator {
     description: schema.string({}, []),
     control: schema.string({}, []),
     controlId: schema.string({}, []),
-    screenId: schema.number([rules.exists({ table: 'screens', column: 'id' })]),
+    screenId: schema.number([rules.exists({ table: "screens", column: "id" })]),
   });
 
   public messages: CustomMessages = {};

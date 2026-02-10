@@ -1,5 +1,5 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
 import {
   CompanyType,
   COMPLETE_ICMS,
@@ -7,7 +7,7 @@ import {
   MovementCategory,
   MovementType,
   PIS_CST__COFINS_CST,
-} from 'App/Models/TaxationGroupRule';
+} from "App/Models/TaxationGroupRule";
 
 export default class CreateTaxationGroupRuleValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -35,11 +35,11 @@ export default class CreateTaxationGroupRuleValidator {
     icmsPercDiferimento: schema.number.optional(),
     taxationGroupId: schema.string({}, [
       rules.uuid(),
-      rules.exists({ table: 'taxation_groups', column: 'id' }),
+      rules.exists({ table: "taxation_groups", column: "id" }),
     ]),
     taxOperationId: schema.string({}, [
       rules.uuid(),
-      rules.exists({ table: 'tax_operations', column: 'id' }),
+      rules.exists({ table: "tax_operations", column: "id" }),
     ]),
   });
 

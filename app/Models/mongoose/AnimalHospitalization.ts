@@ -1,4 +1,4 @@
-import { DateTime } from 'luxon';
+import { DateTime } from "luxon";
 
 export type IAnimalHospitalizationData = {
   technician: {
@@ -23,7 +23,7 @@ export type IAnimalDischargeData = {
   observation: string;
 };
 
-export type HospitalizationType = 'hospitalization' | 'discharge';
+export type HospitalizationType = "hospitalization" | "discharge";
 
 export type IAnimalHospitalization = {
   tag: string;

@@ -1,9 +1,9 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import AccountPlanService from 'App/Services/AccountPlanService';
-import SharedService from 'App/Services/SharedService';
-import CreateAccountPlanValidator from 'App/Validators/AccountPlan/CreateAccountPlanValidator';
-import UpdateAccountPlanValidator from 'App/Validators/AccountPlan/UpdateAccountPlanValidator';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import AccountPlanService from "App/Services/AccountPlanService";
+import SharedService from "App/Services/SharedService";
+import CreateAccountPlanValidator from "App/Validators/AccountPlan/CreateAccountPlanValidator";
+import UpdateAccountPlanValidator from "App/Validators/AccountPlan/UpdateAccountPlanValidator";
 
 @inject()
 export default class AccountPlansController {
@@ -54,17 +54,12 @@ export default class AccountPlansController {
 
   public async show({ auth, request, response }: HttpContextContract) {
     const authCtx = await this.sharedService.getAuthContext(auth);
-    const data = await this.service.show(authCtx, request.param('id'));
+    const data = await this.service.show(authCtx, request.param("id"));
 
     return response.ok(data);
   }
 
-  public async update({
-    auth,
-    params,
-    request,
-    response,
-  }: HttpContextContract) {
+  public async update({ auth, params, request, response }: HttpContextContract) {
     const payload = await request.validate(UpdateAccountPlanValidator);
     const authCtx = await this.sharedService.getAuthContext(auth);
     const data = await this.service.update(authCtx, params.id, payload);

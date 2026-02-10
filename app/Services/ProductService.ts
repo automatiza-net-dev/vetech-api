@@ -15,9 +15,7 @@ import ProductVariation from "App/Models/ProductVariation";
 import ReceiptItem from "App/Models/ReceiptItem";
 import VariationGroup from "App/Models/VariationGroup";
 import SharedService, { AuthContext } from "App/Services/SharedService";
-import IProductData, {
-  IProductDataVariation,
-} from "Contracts/interfaces/IProductData";
+import IProductData, { IProductDataVariation } from "Contracts/interfaces/IProductData";
 import IUpdateProduct from "Contracts/interfaces/IUpdateProduct";
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
@@ -69,26 +67,18 @@ export default class ProductService {
                                                                      'maximum_discount_percentage',
                                                                      business_unit_products.maximum_discount_percentage))))::jsonb as variations`),
       )
-      .joinRaw(
-        "join product_variations on products.id = product_variations.product_id",
-      )
+      .joinRaw("join product_variations on products.id = product_variations.product_id")
       .joinRaw(
         `join business_unit_products
               on product_variations.id = business_unit_products.product_variation_id and business_unit_products.businness_unit_id = ?`,
         [authCtx.unit.id],
       )
-      .joinRaw(
-        "join variation_options on variation_group_id = products.variation_group_id",
-      )
-      .joinRaw(
-        "left join department_products on products.id = department_products.product_id",
-      )
+      .joinRaw("join variation_options on variation_group_id = products.variation_group_id")
+      .joinRaw("left join department_products on products.id = department_products.product_id")
       .whereRaw("products.economic_group_id = ?", [authCtx.group.id])
       .whereRaw("products.active is true")
       .whereRaw("products.deleted_at is null")
-      .groupByRaw(
-        "products.id, product_variations.id, products.variation_group_id",
-      );
+      .groupByRaw("products.id, product_variations.id, products.variation_group_id");
 
     const kitsQb = Database.from("kits")
       .select(
@@ -101,20 +91,12 @@ export default class ProductService {
 		    cast(null as jsonB)::jsonb as variations`),
       )
       .joinRaw("join kit_items on kits.id = kit_items.kit_id")
-      .joinRaw(
-        "join product_variations on kit_items.product_variation_id = product_variations.id",
-      )
+      .joinRaw("join product_variations on kit_items.product_variation_id = product_variations.id")
       .joinRaw("join products on product_variations.product_id = products.id")
-      .joinRaw(
-        "left join department_products on products.id = department_products.product_id",
-      )
+      .joinRaw("left join department_products on products.id = department_products.product_id")
       .whereRaw("kits.economic_group_id = ?", [authCtx.group.id])
-      .whereRaw(
-        "(kits.to_expiration::date <= now()::date or kits.to_expiration is null)",
-      )
-      .whereRaw(
-        "(kits.from_expiration::date >= now()::date or kits.from_expiration is null)",
-      )
+      .whereRaw("(kits.to_expiration::date <= now()::date or kits.to_expiration is null)")
+      .whereRaw("(kits.from_expiration::date >= now()::date or kits.from_expiration is null)")
       .groupByRaw("kits.id")
       .orderByRaw("description");
 
@@ -129,16 +111,14 @@ export default class ProductService {
 
     if (data.description) {
       qb.whereRaw("description ilike ?", [`%${data.description}%`]);
-      kitsQb.whereRaw("products.description ilike ?", [
-        `%${data.description}%`,
-      ]);
+      kitsQb.whereRaw("products.description ilike ?", [`%${data.description}%`]);
     }
 
     if (data.barcode) {
-      qb.whereRaw(
-        "(product_variations.barcode = ? or products.reference_code = ?)",
-        [data.barcode, data.barcode],
-      );
+      qb.whereRaw("(product_variations.barcode = ? or products.reference_code = ?)", [
+        data.barcode,
+        data.barcode,
+      ]);
     }
 
     if (data.subgroups) {
@@ -199,9 +179,7 @@ export default class ProductService {
       .where("type", ProductType.PRODUCT);
 
     if (data.description) {
-      qb.whereRaw("unaccent(description) ilike unaccent(?)", [
-        `%${data.description}%`,
-      ]);
+      qb.whereRaw("unaccent(description) ilike unaccent(?)", [`%${data.description}%`]);
     }
 
     if (data.reference) {
@@ -234,11 +212,7 @@ export default class ProductService {
       quantity: string;
       product_variation_id: string;
     }[] = await Database.from("deposits")
-      .select(
-        Database.raw(
-          "sum(quantity) as quantity, deposit_items.product_variation_id",
-        ),
-      )
+      .select(Database.raw("sum(quantity) as quantity, deposit_items.product_variation_id"))
       .joinRaw("join deposit_items on deposits.id = deposit_items.deposit_id")
       .whereRaw("deposits.business_unit_id = ?", [authCtx.unit.id])
       .whereRaw("deposits.type = 'Venda'", [])
@@ -268,27 +242,21 @@ export default class ProductService {
         }, new Decimal(0))
         .toNumber(),
       variations: product.variations.map((pv) => pv.id),
-      buProducts: product.variations.flatMap((pv) =>
-        pv.businessUnitProducts.map((bup) => bup.id),
-      ),
+      buProducts: product.variations.flatMap((pv) => pv.businessUnitProducts.map((bup) => bup.id)),
       subgroup: this.sharedService.captureGroup(product.subgroup, (v) => ({
         id: v.id,
         description: v.description,
       })),
-      taxationGroup: this.sharedService.captureGroup(
-        product.taxationGroup,
-        (v) => ({
-          id: v.id,
-          name: v.name,
-        }),
-      ),
+      taxationGroup: this.sharedService.captureGroup(product.taxationGroup, (v) => ({
+        id: v.id,
+        name: v.name,
+      })),
       price: {
         id: product.variations[0]?.id ?? null,
         ref: product.variations[0]?.businessUnitProducts[0]?.id ?? null,
         value:
           Number.parseFloat(
-            product.variations[0]?.businessUnitProducts[0]
-              ?.price as unknown as string,
+            product.variations[0]?.businessUnitProducts[0]?.price as unknown as string,
           ) ?? null,
       },
       kits: product.variations.flatMap((v) => v.kitItems),
@@ -333,11 +301,7 @@ export default class ProductService {
       .first();
 
     if (!product) {
-      throw new ResourceNotFoundException(
-        "Recurso não encontrado",
-        404,
-        "E_NOT_FOUND",
-      );
+      throw new ResourceNotFoundException("Recurso não encontrado", 404, "E_NOT_FOUND");
     }
 
     const depositRows: {
@@ -384,9 +348,7 @@ export default class ProductService {
           ...bup.toJSON(),
           stock: new Decimal(
             depositRows.find(
-              (dr) =>
-                dr.product_variation_id === vr.id &&
-                dr.business_unit_product_id === bup.id,
+              (dr) => dr.product_variation_id === vr.id && dr.business_unit_product_id === bup.id,
             )?.quantity ?? "0",
           ).toNumber(),
         })),
@@ -394,15 +356,9 @@ export default class ProductService {
     };
   }
 
-  public async store(
-    unitId: string,
-    data: Omit<IProductData, "active">,
-  ): Promise<Product> {
+  public async store(unitId: string, data: Omit<IProductData, "active">): Promise<Product> {
     const group = await this.sharedService.getUserGroup(unitId);
-    const businessUnits = await BusinessUnit.query().where(
-      "economic_group_id",
-      group.id,
-    );
+    const businessUnits = await BusinessUnit.query().where("economic_group_id", group.id);
 
     const variationGroup = data.variationGroup
       ? await VariationGroup.find(data.variationGroup)
@@ -455,9 +411,7 @@ export default class ProductService {
           },
         );
 
-        await prodVariation
-          .related("variationOptions")
-          .sync(variation.variation_options ?? []);
+        await prodVariation.related("variationOptions").sync(variation.variation_options ?? []);
 
         // eslint-disable-next-line no-restricted-syntax
         for await (const unit of businessUnits) {
@@ -494,19 +448,11 @@ export default class ProductService {
       Logger.error(e);
       await trx.rollback();
 
-      throw new InternalErrorException(
-        "Erro na execução",
-        500,
-        "E_INTERNAL_ERROR",
-      );
+      throw new InternalErrorException("Erro na execução", 500, "E_INTERNAL_ERROR");
     }
   }
 
-  public async update(
-    authCtx: AuthContext,
-    id: string,
-    data: IUpdateProduct,
-  ): Promise<Product> {
+  public async update(authCtx: AuthContext, id: string, data: IUpdateProduct): Promise<Product> {
     const product = await authCtx.group
       .related("products")
       .query()
@@ -541,11 +487,7 @@ export default class ProductService {
       .first();
 
     if (!product) {
-      throw new ResourceNotFoundException(
-        "Recurso não encontrado",
-        404,
-        "E_NOT_FOUND",
-      );
+      throw new ResourceNotFoundException("Recurso não encontrado", 404, "E_NOT_FOUND");
     }
 
     return product
@@ -590,12 +532,8 @@ export default class ProductService {
       .whereRaw("deposits.business_unit_id = ?", [data.businessUnitId])
       .whereRaw("deposits.type = 'Venda'", [])
       .whereRaw("deposits.deleted_at is null", [])
-      .whereRaw("deposit_items.product_variation_id = ?", [
-        data.productVariationId,
-      ])
-      .whereRaw("deposit_items.business_unit_product_id = ?", [
-        data.businessUnitProductId,
-      ])
+      .whereRaw("deposit_items.product_variation_id = ?", [data.productVariationId])
+      .whereRaw("deposit_items.business_unit_product_id = ?", [data.businessUnitProductId])
       .orderByRaw("deposits.description");
   }
 
@@ -608,11 +546,7 @@ export default class ProductService {
         .first();
 
       if (!product) {
-        throw new ResourceNotFoundException(
-          "Recurso não encontrado",
-          404,
-          "E_NOT_FOUND",
-        );
+        throw new ResourceNotFoundException("Recurso não encontrado", 404, "E_NOT_FOUND");
       }
 
       const biQb = BillItem.query()
@@ -667,12 +601,9 @@ export default class ProductService {
         );
       }
 
-      await ProductVariation.query()
-        .useTransaction(trx)
-        .where("product_id", product.id)
-        .update({
-          deleted_at: DateTime.now(),
-        });
+      await ProductVariation.query().useTransaction(trx).where("product_id", product.id).update({
+        deleted_at: DateTime.now(),
+      });
 
       await product
         .merge({
@@ -689,9 +620,7 @@ export default class ProductService {
       return data.price;
     }
 
-    const specificPrice = data.specificPrice.find(
-      (f) => f.business === unit.id,
-    );
+    const specificPrice = data.specificPrice.find((f) => f.business === unit.id);
 
     if (specificPrice) return specificPrice.price;
 

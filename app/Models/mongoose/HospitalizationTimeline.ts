@@ -1,4 +1,4 @@
-import { model, Schema } from '@ioc:Mongoose';
+import { model, Schema } from "@ioc:Mongoose";
 
 type T = {
   meta: object;
@@ -24,9 +24,6 @@ export const hospitalizationTimelineSchema = new Schema<T>(
   },
 );
 
-const HospitalizationTimeline = model<T>(
-  'hospitalization',
-  hospitalizationTimelineSchema,
-);
+const HospitalizationTimeline = model<T>("hospitalization", hospitalizationTimelineSchema);
 
 export default HospitalizationTimeline;

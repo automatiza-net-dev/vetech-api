@@ -1,17 +1,17 @@
-import BaseSchema from '@ioc:Adonis/Lucid/Schema';
+import BaseSchema from "@ioc:Adonis/Lucid/Schema";
 
 export default class extends BaseSchema {
-  protected tableName = 'systems';
+  protected tableName = "systems";
 
   public async up() {
-    this.schema.alterTable(this.tableName, table => {
-      table.integer('default_role_id').references('id').inTable('roles');
+    this.schema.alterTable(this.tableName, (table) => {
+      table.integer("default_role_id").references("id").inTable("roles");
     });
   }
 
   public async down() {
-    this.schema.alterTable(this.tableName, table => {
-      table.dropColumn('default_role_id');
+    this.schema.alterTable(this.tableName, (table) => {
+      table.dropColumn("default_role_id");
     });
   }
 }

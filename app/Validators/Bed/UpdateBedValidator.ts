@@ -1,6 +1,6 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, schema } from '@ioc:Adonis/Core/Validator';
-import { BedType } from 'App/Models/Bed';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, schema } from "@ioc:Adonis/Core/Validator";
+import { BedType } from "App/Models/Bed";
 
 export default class UpdateBedValidator {
   constructor(protected ctx: HttpContextContract) {}

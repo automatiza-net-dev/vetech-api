@@ -1,14 +1,14 @@
-import BaseSchema from '@ioc:Adonis/Lucid/Schema';
+import BaseSchema from "@ioc:Adonis/Lucid/Schema";
 
 export default class extends BaseSchema {
-  protected tableName = 'variation_group_variations';
+  protected tableName = "variation_group_variations";
 
   public async up() {
-    this.schema.createTable(this.tableName, table => {
-      table.uuid('group_variation_id').references('variation_groups.id');
-      table.uuid('variation_id').references('variations.id');
+    this.schema.createTable(this.tableName, (table) => {
+      table.uuid("group_variation_id").references("variation_groups.id");
+      table.uuid("variation_id").references("variations.id");
 
-      table.unique(['group_variation_id', 'variation_id']);
+      table.unique(["group_variation_id", "variation_id"]);
     });
   }
 

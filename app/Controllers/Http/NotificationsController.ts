@@ -7,153 +7,115 @@ import ReadNotificationValidator from "App/Validators/Notification/ReadNotificat
 
 @inject()
 export default class NotificationsController {
-	constructor(
-		private sharedService: SharedService,
-		private notificationService: NotificationsService,
-	) {}
+  constructor(
+    private sharedService: SharedService,
+    private notificationService: NotificationsService,
+  ) {}
 
-	public async listNotifications({ response, auth }: HttpContextContract) {
-		return response.ok(
-			await this.notificationService.listNotifications(
-				await this.sharedService.getAuthContext(auth),
-			),
-		);
-	}
+  public async listNotifications({ response, auth }: HttpContextContract) {
+    return response.ok(
+      await this.notificationService.listNotifications(
+        await this.sharedService.getAuthContext(auth),
+      ),
+    );
+  }
 
-	public async readNotifications({
-		request,
-		response,
-		auth,
-	}: HttpContextContract) {
-		const data = await request.validate(ReadNotificationValidator);
+  public async readNotifications({ request, response, auth }: HttpContextContract) {
+    const data = await request.validate(ReadNotificationValidator);
 
-		await this.notificationService.readNotifications(
-			await this.sharedService.getAuthContext(auth),
-			data,
-		);
+    await this.notificationService.readNotifications(
+      await this.sharedService.getAuthContext(auth),
+      data,
+    );
 
-		return response.noContent();
-	}
+    return response.noContent();
+  }
 
-	public async createNotification({
-		request,
-		response,
-		auth,
-	}: HttpContextContract) {
-		const data = await request.validate(CreateNotificationValidator);
+  public async createNotification({ request, response, auth }: HttpContextContract) {
+    const data = await request.validate(CreateNotificationValidator);
 
-		return response.created(
-			await this.notificationService.createNotification(
-				await this.sharedService.getAuthContext(auth),
-				data,
-			),
-		);
-	}
+    return response.created(
+      await this.notificationService.createNotification(
+        await this.sharedService.getAuthContext(auth),
+        data,
+      ),
+    );
+  }
 
-	public async updateNotification({
-		request,
-		response,
-		auth,
-		params,
-	}: HttpContextContract) {
-		const data = await request.validate(CreateNotificationValidator);
+  public async updateNotification({ request, response, auth, params }: HttpContextContract) {
+    const data = await request.validate(CreateNotificationValidator);
 
-		return response.ok(
-			await this.notificationService.updateNotification(
-				await this.sharedService.getAuthContext(auth),
-				params.id,
-				data,
-			),
-		);
-	}
+    return response.ok(
+      await this.notificationService.updateNotification(
+        await this.sharedService.getAuthContext(auth),
+        params.id,
+        data,
+      ),
+    );
+  }
 
-	public async excludeNotification({
-		response,
-		auth,
-		params,
-	}: HttpContextContract) {
-		await this.notificationService.excludeNotification(
-			await this.sharedService.getAuthContext(auth),
-			params.id,
-		);
+  public async excludeNotification({ response, auth, params }: HttpContextContract) {
+    await this.notificationService.excludeNotification(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
 
-		return response.noContent();
-	}
+    return response.noContent();
+  }
 
-	public async fullNotifications({ response, auth }: HttpContextContract) {
-		return response.ok(
-			await this.notificationService.fullNotifications(
-				await this.sharedService.getAuthContext(auth),
-			),
-		);
-	}
+  public async fullNotifications({ response, auth }: HttpContextContract) {
+    return response.ok(
+      await this.notificationService.fullNotifications(
+        await this.sharedService.getAuthContext(auth),
+      ),
+    );
+  }
 
-	public async unreadNotifications({ response, auth }: HttpContextContract) {
-		const all = await this.notificationService.fullNotifications(
-			await this.sharedService.getAuthContext(auth),
-		);
+  public async unreadNotifications({ response, auth }: HttpContextContract) {
+    const all = await this.notificationService.fullNotifications(
+      await this.sharedService.getAuthContext(auth),
+    );
 
-		return response.ok({ data: { number: all.data.length } });
-	}
+    return response.ok({ data: { number: all.data.length } });
+  }
 
-	public async rolesNotifications({ response, auth }: HttpContextContract) {
-		return response.ok(
-			await this.notificationService.undefinedRoles(
-				await this.sharedService.getAuthContext(auth),
-			),
-		);
-	}
+  public async rolesNotifications({ response, auth }: HttpContextContract) {
+    return response.ok(
+      await this.notificationService.undefinedRoles(await this.sharedService.getAuthContext(auth)),
+    );
+  }
 
-	public async pendingBillsNotifications({
-		response,
-		auth,
-	}: HttpContextContract) {
-		return response.ok(
-			await this.notificationService.pendingBills(
-				await this.sharedService.getAuthContext(auth),
-			),
-		);
-	}
+  public async pendingBillsNotifications({ response, auth }: HttpContextContract) {
+    return response.ok(
+      await this.notificationService.pendingBills(await this.sharedService.getAuthContext(auth)),
+    );
+  }
 
-	public async pendingBudgetsNotifications({
-		response,
-		auth,
-	}: HttpContextContract) {
-		return response.ok(
-			await this.notificationService.pendingBudgets(
-				await this.sharedService.getAuthContext(auth),
-			),
-		);
-	}
+  public async pendingBudgetsNotifications({ response, auth }: HttpContextContract) {
+    return response.ok(
+      await this.notificationService.pendingBudgets(await this.sharedService.getAuthContext(auth)),
+    );
+  }
 
-	public async pendingBillItemEvaluations({
-		response,
-		auth,
-	}: HttpContextContract) {
-		return response.ok(
-			await this.notificationService.pendingBillItemEvaluations(
-				await this.sharedService.getAuthContext(auth),
-			),
-		);
-	}
-	public async pendingBillPaymentEvaluations({
-		response,
-		auth,
-	}: HttpContextContract) {
-		return response.ok(
-			await this.notificationService.pendingBillItemEvaluations(
-				await this.sharedService.getAuthContext(auth),
-			),
-		);
-	}
-	public async pendingBillPaymentApprovals({
-		response,
-		auth,
-	}: HttpContextContract) {
-		return response.ok(
-			await this.notificationService.pendingBillPaymentApprovals(
-				await this.sharedService.getAuthContext(auth),
-			),
-		);
-	}
+  public async pendingBillItemEvaluations({ response, auth }: HttpContextContract) {
+    return response.ok(
+      await this.notificationService.pendingBillItemEvaluations(
+        await this.sharedService.getAuthContext(auth),
+      ),
+    );
+  }
+  public async pendingBillPaymentEvaluations({ response, auth }: HttpContextContract) {
+    return response.ok(
+      await this.notificationService.pendingBillItemEvaluations(
+        await this.sharedService.getAuthContext(auth),
+      ),
+    );
+  }
+  public async pendingBillPaymentApprovals({ response, auth }: HttpContextContract) {
+    return response.ok(
+      await this.notificationService.pendingBillPaymentApprovals(
+        await this.sharedService.getAuthContext(auth),
+      ),
+    );
+  }
 }

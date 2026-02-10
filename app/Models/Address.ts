@@ -1,13 +1,13 @@
-import { DateTime } from 'luxon';
-import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm';
-import User from 'App/Models/User';
+import { DateTime } from "luxon";
+import { BaseModel, BelongsTo, belongsTo, column } from "@ioc:Adonis/Lucid/Orm";
+import User from "App/Models/User";
 
 export const AddressTypes = [
-  'Casa',
-  'Apartamento',
-  'Condomínio Horizontal',
-  'Chácara / Sítio',
-  'Comercial',
+  "Casa",
+  "Apartamento",
+  "Condomínio Horizontal",
+  "Chácara / Sítio",
+  "Comercial",
 ] as const;
 
 export default class Address extends BaseModel {
@@ -18,7 +18,7 @@ export default class Address extends BaseModel {
   public main: boolean;
 
   @column({
-    columnName: 'postal_code',
+    columnName: "postal_code",
   })
   public postalCode?: string;
 
@@ -44,7 +44,7 @@ export default class Address extends BaseModel {
   public code: number;
 
   @column()
-  public type: typeof AddressTypes[number];
+  public type: (typeof AddressTypes)[number];
 
   @column()
   public active: boolean;
@@ -61,7 +61,7 @@ export default class Address extends BaseModel {
   public user_id: string;
 
   @belongsTo(() => User, {
-    foreignKey: 'user_id',
+    foreignKey: "user_id",
   })
   public user: BelongsTo<typeof User>;
 }

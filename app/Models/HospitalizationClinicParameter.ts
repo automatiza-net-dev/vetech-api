@@ -5,24 +5,24 @@ import {
   BelongsTo,
   belongsTo,
   column,
-} from '@ioc:Adonis/Lucid/Orm';
-import ClinicParameter from 'App/Models/ClinicParameter';
-import User from 'App/Models/User';
-import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
-import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
+} from "@ioc:Adonis/Lucid/Orm";
+import ClinicParameter from "App/Models/ClinicParameter";
+import User from "App/Models/User";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import { DateTime } from "luxon";
+import { v4 } from "uuid";
 
 export default class HospitalizationClinicParameter extends BaseModel {
   @column({ isPrimary: true })
   public id: string = v4();
 
   @column.dateTime({
-    columnName: 'executed_at',
+    columnName: "executed_at",
   })
   public executedAt: DateTime;
 
   @column.dateTime({
-    columnName: 'released_at',
+    columnName: "released_at",
   })
   public releasedAt: DateTime;
 
@@ -65,7 +65,7 @@ export default class HospitalizationClinicParameter extends BaseModel {
   public user_id: string;
 
   @belongsTo(() => User, {
-    foreignKey: 'user_id',
+    foreignKey: "user_id",
   })
   public user: BelongsTo<typeof User>;
 
@@ -75,7 +75,7 @@ export default class HospitalizationClinicParameter extends BaseModel {
   public clinic_parameter_id: string;
 
   @belongsTo(() => ClinicParameter, {
-    foreignKey: 'clinic_parameter_id',
+    foreignKey: "clinic_parameter_id",
   })
   public parameter: BelongsTo<typeof ClinicParameter>;
 }

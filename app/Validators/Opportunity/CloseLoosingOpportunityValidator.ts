@@ -1,5 +1,5 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, rules, schema } from '@ioc:Adonis/Core/Validator';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, rules, schema } from "@ioc:Adonis/Core/Validator";
 
 export default class CloseLoosingOpportunityValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -26,8 +26,8 @@ export default class CloseLoosingOpportunityValidator {
   public schema = schema.create({
     reasonId: schema.string([
       rules.exists({
-        table: 'reasons',
-        column: 'id',
+        table: "reasons",
+        column: "id",
       }),
     ]),
     observation: schema.string.optional(),

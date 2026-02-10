@@ -10,106 +10,103 @@ import { AuthenticationException } from "@adonisjs/auth/build/standalone";
  * of named middleware.
  */
 export default class AuthMiddleware {
-	/**
-	 * The URL to redirect to when request is Unauthorized
-	 */
-	protected redirectTo = "/login";
+  /**
+   * The URL to redirect to when request is Unauthorized
+   */
+  protected redirectTo = "/login";
 
-	/**
-	 * Authenticates the current HTTP request against a custom set of defined
-	 * guards.
-	 *
-	 * The authentication loop stops as soon as the user is authenticated using any
-	 * of the mentioned guards and that guard will be used by the rest of the code
-	 * during the current request.
-	 */
-	protected async authenticate(
-		auth: HttpContextContract["auth"],
-		guards: (keyof GuardsList)[],
-	) {
-		/**
-		 * Hold reference to the guard last attempted within the for loop. We pass
-		 * the reference of the guard to the "AuthenticationException", so that
-		 * it can decide the correct response behavior based upon the guard
-		 * driver
-		 */
-		let guardLastAttempted: string | undefined;
+  /**
+   * Authenticates the current HTTP request against a custom set of defined
+   * guards.
+   *
+   * The authentication loop stops as soon as the user is authenticated using any
+   * of the mentioned guards and that guard will be used by the rest of the code
+   * during the current request.
+   */
+  protected async authenticate(auth: HttpContextContract["auth"], guards: (keyof GuardsList)[]) {
+    /**
+     * Hold reference to the guard last attempted within the for loop. We pass
+     * the reference of the guard to the "AuthenticationException", so that
+     * it can decide the correct response behavior based upon the guard
+     * driver
+     */
+    let guardLastAttempted: string | undefined;
 
-		for (let guard of guards) {
-			guardLastAttempted = guard;
+    for (let guard of guards) {
+      guardLastAttempted = guard;
 
-			if (await auth.use(guard).check()) {
-				/**
-				 * Instruct auth to use the given guard as the default guard for
-				 * the rest of the request, since the user authenticated
-				 * succeeded here
-				 */
-				auth.defaultGuard = guard;
-				return true;
-			}
-		}
+      if (await auth.use(guard).check()) {
+        /**
+         * Instruct auth to use the given guard as the default guard for
+         * the rest of the request, since the user authenticated
+         * succeeded here
+         */
+        auth.defaultGuard = guard;
+        return true;
+      }
+    }
 
-		/**
-		 * Unable to authenticate using any guard
-		 */
-		throw new AuthenticationException(
-			"Unauthorized access",
-			"E_UNAUTHORIZED_ACCESS",
-			guardLastAttempted,
-			this.redirectTo,
-		);
-	}
+    /**
+     * Unable to authenticate using any guard
+     */
+    throw new AuthenticationException(
+      "Unauthorized access",
+      "E_UNAUTHORIZED_ACCESS",
+      guardLastAttempted,
+      this.redirectTo,
+    );
+  }
 
-	/**
-	 * Handle request
-	 */
-	public async handle(
-		{ auth }: HttpContextContract,
-		next: () => Promise<void>,
-		customGuards: (keyof GuardsList)[],
-	) {
-		/**
-		 * Uses the user defined guards or the default guard mentioned in
-		 * the config file
-		 */
-		const guards = customGuards.length ? customGuards : [auth.name];
+  /**
+   * Handle request
+   */
+  public async handle(
+    { auth }: HttpContextContract,
+    next: () => Promise<void>,
+    customGuards: (keyof GuardsList)[],
+  ) {
+    /**
+     * Uses the user defined guards or the default guard mentioned in
+     * the config file
+     */
+    const guards = customGuards.length ? customGuards : [auth.name];
 
-		let success = false;
-		try {
-			success = await this.authenticate(auth, guards);
-		} catch (e) {
-			// console.log("failed to authenticate", e);
-		}
+    let success = false;
+    try {
+      success = await this.authenticate(auth, guards);
+    } catch (e) {
+      // console.log("failed to authenticate", e);
+    }
 
-		if (!success) {
-			throw new AuthenticationException(
-				"Unauthorized access",
-				"E_UNAUTHORIZED_ACCESS",
-				undefined,
-				this.redirectTo,
-			);
-		}
+    if (!success) {
+      throw new AuthenticationException(
+        "Unauthorized access",
+        "E_UNAUTHORIZED_ACCESS",
+        undefined,
+        this.redirectTo,
+      );
+    }
 
-		// const header = request.header("X-System");
-		// if (!header) {
-		// 	throw new BadRequestException(
-		// 		"Requisição sem sistema original, adiciona uma X-System",
-		// 		400,
-		// 		"E_ERR",
-		// 	);
-		// }
-		//
-		// if (
-		// 	header.substring(0, 2).toLowerCase() !==
-		// 	auth.use("api").token?.meta.system_name.substring(0, 2).toLowerCase()
-		// ) {
-		// 	throw new BadRequestException(
-		// 		"Requisição feito de um sistema diferente do autenticado",
-		// 		400,
-		// 		"E_ERR",
-		// 	);
-		// }
+    // const header = request.header("X-System");
+    // if (!header) {
+    // 	throw new BadRequestException(
+    // 		"Requisição sem sistema original, adiciona uma X-System",
+    // 		400,
+    // 		"E_ERR",
+    // 	);
+    // }
+    //
+    // if (
+    // 	header.substring(0, 2).toLowerCase() !==
+    // 	auth.use("api").token?.meta.system_name.substring(0, 2).toLowerCase()
+    // ) {
+    // 	throw new BadRequestException(
+    // 		"Requisição feito de um sistema diferente do autenticado",
+    // 		400,
+    // 		"E_ERR",
+    // 	);
+    // }
 
-		await next();
-	}
+    await next();
+  }
 }

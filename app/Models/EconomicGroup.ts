@@ -1,12 +1,12 @@
 import {
-	BaseModel,
-	BelongsTo,
-	belongsTo,
-	column,
-	HasMany,
-	hasMany,
-	ManyToMany,
-	manyToMany,
+  BaseModel,
+  BelongsTo,
+  belongsTo,
+  column,
+  HasMany,
+  hasMany,
+  ManyToMany,
+  manyToMany,
 } from "@ioc:Adonis/Lucid/Orm";
 import BusinessUnit from "App/Models/BusinessUnit";
 import DocumentTemplate from "App/Models/DocumentTemplate";
@@ -31,171 +31,171 @@ import WorkingDay from "App/Models/WorkingDay";
 import { DateTime } from "luxon";
 
 export default class EconomicGroup extends BaseModel {
-	@column({ isPrimary: true })
-	public id: string;
+  @column({ isPrimary: true })
+  public id: string;
 
-	@column({
-		columnName: "fantasy_name",
-	})
-	public fantasyName: string;
+  @column({
+    columnName: "fantasy_name",
+  })
+  public fantasyName: string;
 
-	@column({
-		columnName: "company_name",
-	})
-	public companyName: string;
+  @column({
+    columnName: "company_name",
+  })
+  public companyName: string;
 
-	@column({})
-	public document: string;
+  @column({})
+  public document: string;
 
-	@column({
-		columnName: "responsible_email",
-	})
-	public responsibleEmail: string;
+  @column({
+    columnName: "responsible_email",
+  })
+  public responsibleEmail: string;
 
-	@column({
-		columnName: "responsible_phone",
-	})
-	public responsiblePhone: string;
+  @column({
+    columnName: "responsible_phone",
+  })
+  public responsiblePhone: string;
 
-	@column({
-		columnName: "colors",
-		consume: (rawVal: string) => {
-			return rawVal.split(",");
-		},
-		prepare: (value: string[]) => {
-			return value.join(",");
-		},
-	})
-	public colors: string[];
+  @column({
+    columnName: "colors",
+    consume: (rawVal: string) => {
+      return rawVal.split(",");
+    },
+    prepare: (value: string[]) => {
+      return value.join(",");
+    },
+  })
+  public colors: string[];
 
-	@manyToMany(() => User, {
-		pivotTable: "users_economic_groups",
-		pivotTimestamps: true,
-	})
-	public users: ManyToMany<typeof User>;
+  @manyToMany(() => User, {
+    pivotTable: "users_economic_groups",
+    pivotTimestamps: true,
+  })
+  public users: ManyToMany<typeof User>;
 
-	@column()
-	public status: "Ativo" | "Inativo" | "Consulta" | "Bloqueado";
+  @column()
+  public status: "Ativo" | "Inativo" | "Consulta" | "Bloqueado";
 
-	@column.dateTime({ autoCreate: true })
-	public createdAt: DateTime;
+  @column.dateTime({ autoCreate: true })
+  public createdAt: DateTime;
 
-	@column.dateTime({ autoCreate: true, autoUpdate: true })
-	public updatedAt: DateTime;
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  public updatedAt: DateTime;
 
-	@column({
-		serializeAs: null,
-	})
-	public system_id: number;
+  @column({
+    serializeAs: null,
+  })
+  public system_id: number;
 
-	@belongsTo(() => System, {
-		localKey: "id",
-		foreignKey: "system_id",
-	})
-	public system: BelongsTo<typeof System>;
+  @belongsTo(() => System, {
+    localKey: "id",
+    foreignKey: "system_id",
+  })
+  public system: BelongsTo<typeof System>;
 
-	@hasMany(() => BusinessUnit, {})
-	public businessUnits: HasMany<typeof BusinessUnit>;
+  @hasMany(() => BusinessUnit, {})
+  public businessUnits: HasMany<typeof BusinessUnit>;
 
-	@manyToMany(() => Patient, {
-		pivotTable: "patient_economic_groups",
-		pivotTimestamps: true,
-	})
-	public patients: ManyToMany<typeof Patient>;
+  @manyToMany(() => Patient, {
+    pivotTable: "patient_economic_groups",
+    pivotTimestamps: true,
+  })
+  public patients: ManyToMany<typeof Patient>;
 
-	@hasMany(() => Specie, {
-		localKey: "id",
-		foreignKey: "economic_group_id",
-	})
-	public species: HasMany<typeof Specie>;
+  @hasMany(() => Specie, {
+    localKey: "id",
+    foreignKey: "economic_group_id",
+  })
+  public species: HasMany<typeof Specie>;
 
-	@hasMany(() => ScheduleStatus, {
-		localKey: "id",
-		foreignKey: "economic_group_id",
-	})
-	public scheduleStatuses: HasMany<typeof ScheduleStatus>;
+  @hasMany(() => ScheduleStatus, {
+    localKey: "id",
+    foreignKey: "economic_group_id",
+  })
+  public scheduleStatuses: HasMany<typeof ScheduleStatus>;
 
-	@hasMany(() => ScheduleServiceGroup, {
-		localKey: "id",
-		foreignKey: "economic_group_id",
-	})
-	public scheduleServiceGroups: HasMany<typeof ScheduleServiceGroup>;
+  @hasMany(() => ScheduleServiceGroup, {
+    localKey: "id",
+    foreignKey: "economic_group_id",
+  })
+  public scheduleServiceGroups: HasMany<typeof ScheduleServiceGroup>;
 
-	@hasMany(() => ScheduleServiceType, {
-		localKey: "id",
-		foreignKey: "economic_group_id",
-	})
-	public scheduleServiceTypes: HasMany<typeof ScheduleServiceType>;
+  @hasMany(() => ScheduleServiceType, {
+    localKey: "id",
+    foreignKey: "economic_group_id",
+  })
+  public scheduleServiceTypes: HasMany<typeof ScheduleServiceType>;
 
-	@hasMany(() => WorkingDay, {
-		localKey: "id",
-		foreignKey: "economic_group_id",
-	})
-	public workingDays: HasMany<typeof WorkingDay>;
+  @hasMany(() => WorkingDay, {
+    localKey: "id",
+    foreignKey: "economic_group_id",
+  })
+  public workingDays: HasMany<typeof WorkingDay>;
 
-	@hasMany(() => UnavailableDay, {
-		localKey: "id",
-		foreignKey: "economic_group_id",
-	})
-	public unavailableDays: HasMany<typeof UnavailableDay>;
+  @hasMany(() => UnavailableDay, {
+    localKey: "id",
+    foreignKey: "economic_group_id",
+  })
+  public unavailableDays: HasMany<typeof UnavailableDay>;
 
-	@hasMany(() => Group, {
-		localKey: "id",
-		foreignKey: "economic_group_id",
-	})
-	public groups: HasMany<typeof Group>;
+  @hasMany(() => Group, {
+    localKey: "id",
+    foreignKey: "economic_group_id",
+  })
+  public groups: HasMany<typeof Group>;
 
-	@hasMany(() => Subgroup, {
-		localKey: "id",
-		foreignKey: "economic_group_id",
-	})
-	public subgroups: HasMany<typeof Subgroup>;
+  @hasMany(() => Subgroup, {
+    localKey: "id",
+    foreignKey: "economic_group_id",
+  })
+  public subgroups: HasMany<typeof Subgroup>;
 
-	@hasMany(() => Product, {
-		localKey: "id",
-		foreignKey: "economic_group_id",
-	})
-	public products: HasMany<typeof Product>;
+  @hasMany(() => Product, {
+    localKey: "id",
+    foreignKey: "economic_group_id",
+  })
+  public products: HasMany<typeof Product>;
 
-	@hasMany(() => Variation, {
-		localKey: "id",
-		foreignKey: "economic_group_id",
-	})
-	public variations: HasMany<typeof Variation>;
+  @hasMany(() => Variation, {
+    localKey: "id",
+    foreignKey: "economic_group_id",
+  })
+  public variations: HasMany<typeof Variation>;
 
-	@hasMany(() => VariationGroup, {
-		localKey: "id",
-		foreignKey: "economic_group_id",
-	})
-	public variationGroups: HasMany<typeof VariationGroup>;
+  @hasMany(() => VariationGroup, {
+    localKey: "id",
+    foreignKey: "economic_group_id",
+  })
+  public variationGroups: HasMany<typeof VariationGroup>;
 
-	@hasMany(() => Pathology, {
-		localKey: "id",
-		foreignKey: "economic_group_id",
-	})
-	public pathologies: HasMany<typeof Pathology>;
+  @hasMany(() => Pathology, {
+    localKey: "id",
+    foreignKey: "economic_group_id",
+  })
+  public pathologies: HasMany<typeof Pathology>;
 
-	@hasMany(() => MedicalDocumentTemplate, {
-		localKey: "id",
-		foreignKey: "economic_group_id",
-	})
-	public medicalDocumentTemplates: HasMany<typeof MedicalDocumentTemplate>;
+  @hasMany(() => MedicalDocumentTemplate, {
+    localKey: "id",
+    foreignKey: "economic_group_id",
+  })
+  public medicalDocumentTemplates: HasMany<typeof MedicalDocumentTemplate>;
 
-	@hasMany(() => DocumentTemplate, {
-		localKey: "id",
-		foreignKey: "economic_group_id",
-	})
-	public documentTemplates: HasMany<typeof DocumentTemplate>;
+  @hasMany(() => DocumentTemplate, {
+    localKey: "id",
+    foreignKey: "economic_group_id",
+  })
+  public documentTemplates: HasMany<typeof DocumentTemplate>;
 
-	@hasMany(() => PaymentMethod, {
-		localKey: "id",
-		foreignKey: "economicGroupId",
-	})
-	public paymentMethods: HasMany<typeof PaymentMethod>;
+  @hasMany(() => PaymentMethod, {
+    localKey: "id",
+    foreignKey: "economicGroupId",
+  })
+  public paymentMethods: HasMany<typeof PaymentMethod>;
 
-	@hasMany(() => TaxationGroup, {
-		localKey: "id",
-		foreignKey: "economic_group_id",
-	})
-	public taxationGroups: HasMany<typeof TaxationGroup>;
+  @hasMany(() => TaxationGroup, {
+    localKey: "id",
+    foreignKey: "economic_group_id",
+  })
+  public taxationGroups: HasMany<typeof TaxationGroup>;
 }

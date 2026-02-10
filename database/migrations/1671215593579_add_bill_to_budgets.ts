@@ -1,17 +1,17 @@
-import BaseSchema from '@ioc:Adonis/Lucid/Schema';
+import BaseSchema from "@ioc:Adonis/Lucid/Schema";
 
 export default class extends BaseSchema {
-  protected tableName = 'budgets';
+  protected tableName = "budgets";
 
   public async up() {
-    this.schema.alterTable(this.tableName, table => {
-      table.uuid('bill_id').references('bills.id');
+    this.schema.alterTable(this.tableName, (table) => {
+      table.uuid("bill_id").references("bills.id");
     });
   }
 
   public async down() {
-    this.schema.alterTable(this.tableName, table => {
-      table.dropColumn('bill_id');
+    this.schema.alterTable(this.tableName, (table) => {
+      table.dropColumn("bill_id");
     });
   }
 }

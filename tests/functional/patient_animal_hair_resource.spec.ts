@@ -1,9 +1,9 @@
-import Database from '@ioc:Adonis/Lucid/Database';
-import { test } from '@japa/runner';
+import Database from "@ioc:Adonis/Lucid/Database";
+import { test } from "@japa/runner";
 
-import { generateJwtToken, userBootstrap } from '../utils';
+import { generateJwtToken, userBootstrap } from "../utils";
 
-test.group('Patient animal hair resource', group => {
+test.group("Patient animal hair resource", (group) => {
   group.each.setup(async () => {
     await Database.beginGlobalTransaction();
     return () => Database.rollbackGlobalTransaction();
@@ -17,16 +17,14 @@ test.group('Patient animal hair resource', group => {
     };
   };
 
-  test('should search for patient animal hairs', async ({ assert, client }) => {
+  test("should search for patient animal hairs", async ({ assert, client }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
-    const response = await client
-      .get(`/patient-animal-hairs`)
-      .bearerToken(token);
+    const response = await client.get(`/patient-animal-hairs`).bearerToken(token);
 
     assert.equal(200, response.status());
     assert.isArray(response.body());

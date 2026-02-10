@@ -1,9 +1,9 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import SharedService from 'App/Services/SharedService';
-import TaxationGroupRuleService from 'App/Services/TaxationGroupRuleService';
-import CreateTaxationGroupRuleValidator from 'App/Validators/TaxationGroupRule/CreateTaxationGroupRuleValidator';
-import UpdateTaxationGroupRuleValidator from 'App/Validators/TaxationGroupRule/UpdateTaxationGroupRuleValidator';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import SharedService from "App/Services/SharedService";
+import TaxationGroupRuleService from "App/Services/TaxationGroupRuleService";
+import CreateTaxationGroupRuleValidator from "App/Validators/TaxationGroupRule/CreateTaxationGroupRuleValidator";
+import UpdateTaxationGroupRuleValidator from "App/Validators/TaxationGroupRule/UpdateTaxationGroupRuleValidator";
 
 @inject()
 export default class TaxationGroupRulesController {
@@ -44,12 +44,7 @@ export default class TaxationGroupRulesController {
     return response.ok(rule);
   }
 
-  public async update({
-    params,
-    request,
-    response,
-    auth,
-  }: HttpContextContract) {
+  public async update({ params, request, response, auth }: HttpContextContract) {
     const payload = await request.validate(UpdateTaxationGroupRuleValidator);
 
     const { unit_id, user } = this.sharedService.extractUser(auth);

@@ -1,8 +1,8 @@
-import { inject } from '@adonisjs/fold';
-import TaxOperation from 'App/Models/TaxOperation';
-import User from 'App/Models/User';
-import SharedService from 'App/Services/SharedService';
-import ITaxOperation from 'Contracts/interfaces/ITaxOperationData';
+import { inject } from "@adonisjs/fold";
+import TaxOperation from "App/Models/TaxOperation";
+import User from "App/Models/User";
+import SharedService from "App/Services/SharedService";
+import ITaxOperation from "Contracts/interfaces/ITaxOperationData";
 
 interface ISearch {
   type?: string;
@@ -20,27 +20,21 @@ export default class TaxOperationService {
     const query = TaxOperation.query();
 
     if (!isSuperAdmin) {
-      query.whereRaw('(economic_group_id = ? or economic_group_id is null)', [
-        group.id,
-      ]);
+      query.whereRaw("(economic_group_id = ? or economic_group_id is null)", [group.id]);
     }
 
     if (data.type) {
-      query.where('movement_type', data.type);
+      query.where("movement_type", data.type);
     }
 
     if (data.category) {
-      query.where('movement_category', data.category);
+      query.where("movement_category", data.category);
     }
 
     return query;
   }
 
-  public async store(
-    unitId: string,
-    user: User,
-    data: Omit<ITaxOperation, 'active'>,
-  ) {
+  public async store(unitId: string, user: User, data: Omit<ITaxOperation, "active">) {
     const group = await this.sharedService.getUserGroup(unitId);
     const isSuperAdmin = await this.sharedService.isSuperAdmin(user);
 
@@ -87,12 +81,7 @@ export default class TaxOperationService {
     return tax;
   }
 
-  public async update(
-    unitId: string,
-    user: User,
-    id: string,
-    data: ITaxOperation,
-  ) {
+  public async update(unitId: string, user: User, id: string, data: ITaxOperation) {
     const tax = await this.show(unitId, user, id);
 
     if (!tax.economic_group_id) {

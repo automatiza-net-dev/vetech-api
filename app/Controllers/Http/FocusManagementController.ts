@@ -10,55 +10,47 @@ import CreateBusiness_55Validator from "App/Validators/FocusManagement/CreateBus
 
 @inject()
 export default class FocusManagementController {
-	constructor(
-		private sharedService: SharedService,
-		private service: FocusNfeBusinessManagementService,
-	) {}
+  constructor(
+    private sharedService: SharedService,
+    private service: FocusNfeBusinessManagementService,
+  ) {}
 
-	public async createBusiness({
-		request,
-		response,
-		auth,
-	}: HttpContextContract) {
-		const authCtx = await this.sharedService.getAuthContext(auth);
-		const fixedPayload = await request.validate(CreateBusinessValidator);
-		let dynamicPayload: Record<string, string | number> = {};
+  public async createBusiness({ request, response, auth }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
+    const fixedPayload = await request.validate(CreateBusinessValidator);
+    let dynamicPayload: Record<string, string | number> = {};
 
-		if (fixedPayload.models.includes(0)) {
-			dynamicPayload = Object.assign(
-				dynamicPayload,
-				await request.validate(CreateBusiness_0Validator),
-			);
-		}
+    if (fixedPayload.models.includes(0)) {
+      dynamicPayload = Object.assign(
+        dynamicPayload,
+        await request.validate(CreateBusiness_0Validator),
+      );
+    }
 
-		if (fixedPayload.models.includes(65)) {
-			dynamicPayload = Object.assign(
-				dynamicPayload,
-				await request.validate(CreateBusiness_65Validator),
-			);
-			dynamicPayload = Object.assign(
-				dynamicPayload,
-				await request.validate(CreateBusiness_55_65Validator),
-			);
-		}
+    if (fixedPayload.models.includes(65)) {
+      dynamicPayload = Object.assign(
+        dynamicPayload,
+        await request.validate(CreateBusiness_65Validator),
+      );
+      dynamicPayload = Object.assign(
+        dynamicPayload,
+        await request.validate(CreateBusiness_55_65Validator),
+      );
+    }
 
-		if (fixedPayload.models.includes(55)) {
-			dynamicPayload = Object.assign(
-				dynamicPayload,
-				await request.validate(CreateBusiness_55Validator),
-			);
-			dynamicPayload = Object.assign(
-				dynamicPayload,
-				await request.validate(CreateBusiness_55_65Validator),
-			);
-		}
+    if (fixedPayload.models.includes(55)) {
+      dynamicPayload = Object.assign(
+        dynamicPayload,
+        await request.validate(CreateBusiness_55Validator),
+      );
+      dynamicPayload = Object.assign(
+        dynamicPayload,
+        await request.validate(CreateBusiness_55_65Validator),
+      );
+    }
 
-		const result = await this.service.createBusiness(
-			authCtx,
-			fixedPayload,
-			dynamicPayload,
-		);
+    const result = await this.service.createBusiness(authCtx, fixedPayload, dynamicPayload);
 
-		return response.ok(result);
-	}
+    return response.ok(result);
+  }
 }

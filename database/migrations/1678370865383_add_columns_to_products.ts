@@ -1,19 +1,19 @@
-import BaseSchema from '@ioc:Adonis/Lucid/Schema';
+import BaseSchema from "@ioc:Adonis/Lucid/Schema";
 
 export default class extends BaseSchema {
-  protected tableName = 'products';
+  protected tableName = "products";
 
   public async up() {
-    this.schema.alterTable(this.tableName, table => {
-      table.string('tax_benefit_code');
-      table.string('anvisa_code');
+    this.schema.alterTable(this.tableName, (table) => {
+      table.string("tax_benefit_code");
+      table.string("anvisa_code");
     });
   }
 
   public async down() {
-    this.schema.alterTable(this.tableName, table => {
-      table.dropColumn('tax_benefit_code');
-      table.dropColumn('anvisa_code');
+    this.schema.alterTable(this.tableName, (table) => {
+      table.dropColumn("tax_benefit_code");
+      table.dropColumn("anvisa_code");
     });
   }
 }

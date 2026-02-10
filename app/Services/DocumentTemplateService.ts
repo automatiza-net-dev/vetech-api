@@ -14,279 +14,245 @@ import Application from "@ioc:Adonis/Core/Application";
 import { PDFEngine } from "chromiumly";
 
 interface ISearch {
-	description?: string;
-	title?: string;
+  description?: string;
+  title?: string;
 }
 
 @inject()
 export default class DocumentTemplateService {
-	constructor(private readonly sharedService: SharedService) {}
+  constructor(private readonly sharedService: SharedService) {}
 
-	public async index(authCtx: AuthContext, data: ISearch) {
-		const qb = DocumentTemplate.query()
-			.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
-				authCtx.group.id,
-			])
-			.where("system_id", authCtx.system.id);
+  public async index(authCtx: AuthContext, data: ISearch) {
+    const qb = DocumentTemplate.query()
+      .whereRaw("(economic_group_id = ? or economic_group_id is null)", [authCtx.group.id])
+      .where("system_id", authCtx.system.id);
 
-		if (data.description) {
-			qb.where("description", "ilike", `%${data.description}%`);
-		}
+    if (data.description) {
+      qb.where("description", "ilike", `%${data.description}%`);
+    }
 
-		if (data.title) {
-			qb.where("title", "ilike", `%${data.title}%`);
-		}
+    if (data.title) {
+      qb.where("title", "ilike", `%${data.title}%`);
+    }
 
-		return qb;
-	}
+    return qb;
+  }
 
-	public async show(authCtx: AuthContext, id: string) {
-		const template = await DocumentTemplate.query()
-			.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
-				authCtx.group.id,
-			])
-			.where("system_id", authCtx.system.id)
-			.where("id", id)
-			.first();
+  public async show(authCtx: AuthContext, id: string) {
+    const template = await DocumentTemplate.query()
+      .whereRaw("(economic_group_id = ? or economic_group_id is null)", [authCtx.group.id])
+      .where("system_id", authCtx.system.id)
+      .where("id", id)
+      .first();
 
-		if (!template) {
-			throw new ResourceNotFoundException(
-				"Recurso não encontrado",
-				404,
-				"E_NOT_FOUND",
-			);
-		}
+    if (!template) {
+      throw new ResourceNotFoundException("Recurso não encontrado", 404, "E_NOT_FOUND");
+    }
 
-		return template;
-	}
+    return template;
+  }
 
-	public async renderPdf(authCtx: AuthContext, id: string) {
-		const template = await DocumentTemplate.query()
-			.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
-				authCtx.group.id,
-			])
-			.where("system_id", authCtx.system.id)
-			.where("id", id)
-			.first();
+  public async renderPdf(authCtx: AuthContext, id: string) {
+    const template = await DocumentTemplate.query()
+      .whereRaw("(economic_group_id = ? or economic_group_id is null)", [authCtx.group.id])
+      .where("system_id", authCtx.system.id)
+      .where("id", id)
+      .first();
 
-		if (!template) {
-			throw new ResourceNotFoundException(
-				"Recurso não encontrado",
-				404,
-				"E_NOT_FOUND",
-			);
-		}
+    if (!template) {
+      throw new ResourceNotFoundException("Recurso não encontrado", 404, "E_NOT_FOUND");
+    }
 
-		if (template.type !== "pdf") {
-			throw new BadRequestException(
-				"Apenas documentos para PDF são válidos",
-				400,
-				"",
-			);
-		}
+    if (template.type !== "pdf") {
+      throw new BadRequestException("Apenas documentos para PDF são válidos", 400, "");
+    }
 
-		if (!template.sourceFile) {
-			throw new BadRequestException(
-				"Documento sem arquivo de referência",
-				400,
-				"",
-			);
-		}
+    if (!template.sourceFile) {
+      throw new BadRequestException("Documento sem arquivo de referência", 400, "");
+    }
 
-		const file = await Drive.use("s3").get(template.sourceFile);
-		await Drive.use("local").put(template.sourceFile, file);
+    const file = await Drive.use("s3").get(template.sourceFile);
+    await Drive.use("local").put(template.sourceFile, file);
 
-		const localFilePath = await Drive.use("local").getUrl(template.sourceFile);
-		const fullPath = `${Env.get(
-			"LOCAL_DISK_ROOT",
-			Application.tmpPath(),
-		)}${localFilePath}`.replace("/uploads", "");
+    const localFilePath = await Drive.use("local").getUrl(template.sourceFile);
+    const fullPath = `${Env.get("LOCAL_DISK_ROOT", Application.tmpPath())}${localFilePath}`.replace(
+      "/uploads",
+      "",
+    );
 
-		const responseBuffer = await PDFEngine.convert({
-			files: [fullPath],
-		});
+    const responseBuffer = await PDFEngine.convert({
+      files: [fullPath],
+    });
 
-		await Drive.use("local").delete(template.sourceFile);
+    await Drive.use("local").delete(template.sourceFile);
 
-		const key = `generated/${Date.now()}-${template.id}.pdf`;
-		await Drive.use("s3").put(key, responseBuffer);
+    const key = `generated/${Date.now()}-${template.id}.pdf`;
+    await Drive.use("s3").put(key, responseBuffer);
 
-		const urlMap = await SharedService.ComputePublicS3Link([key]);
+    const urlMap = await SharedService.ComputePublicS3Link([key]);
 
-		return {
-			url: urlMap.at(0)?.view ?? null,
-		};
-	}
+    return {
+      url: urlMap.at(0)?.view ?? null,
+    };
+  }
 
-	public async store(
-		authCtx: AuthContext,
-		data: Omit<IDocumentTemplateData, "type" | "active">,
-	) {
-		if (!data.template) {
-			throw new BadRequestException("Texto não enviado", 400, "");
-		}
+  public async store(authCtx: AuthContext, data: Omit<IDocumentTemplateData, "type" | "active">) {
+    if (!data.template) {
+      throw new BadRequestException("Texto não enviado", 400, "");
+    }
 
-		const timeline = await TimelineType.firstOrCreate(
-			{
-				description: "Documento",
-				system_id: authCtx.system.id,
-			},
-			{
-				description: "Documento",
-				color: "#000",
-				requiresObservation: false,
-				system_id: authCtx.system.id,
-			},
-		);
+    const timeline = await TimelineType.firstOrCreate(
+      {
+        description: "Documento",
+        system_id: authCtx.system.id,
+      },
+      {
+        description: "Documento",
+        color: "#000",
+        requiresObservation: false,
+        system_id: authCtx.system.id,
+      },
+    );
 
-		return authCtx.group.related("documentTemplates").create({
-			timeline_type_id: timeline.id,
-			description: data.description,
-			title: data.title,
-			header: data.header,
-			template: data.template,
-			system_id: authCtx.system.id,
-			type: "text",
-		});
-	}
+    return authCtx.group.related("documentTemplates").create({
+      timeline_type_id: timeline.id,
+      description: data.description,
+      title: data.title,
+      header: data.header,
+      template: data.template,
+      system_id: authCtx.system.id,
+      type: "text",
+    });
+  }
 
-	public async uploadFile(
-		authCtx: AuthContext,
-		data: Omit<IDocumentTemplateData, "type" | "active">,
-	) {
-		return Database.transaction(async (trx) => {
-			if (!data.file) {
-				throw new BadRequestException("Arquivo não enviado", 400, "");
-			}
+  public async uploadFile(
+    authCtx: AuthContext,
+    data: Omit<IDocumentTemplateData, "type" | "active">,
+  ) {
+    return Database.transaction(async (trx) => {
+      if (!data.file) {
+        throw new BadRequestException("Arquivo não enviado", 400, "");
+      }
 
-			const timeline = await TimelineType.firstOrCreate(
-				{
-					description: "Documento",
-					system_id: authCtx.system.id,
-				},
-				{
-					description: "Documento",
-					color: "#000",
-					requiresObservation: false,
-					system_id: authCtx.system.id,
-				},
-				{
-					client: trx,
-				},
-			);
+      const timeline = await TimelineType.firstOrCreate(
+        {
+          description: "Documento",
+          system_id: authCtx.system.id,
+        },
+        {
+          description: "Documento",
+          color: "#000",
+          requiresObservation: false,
+          system_id: authCtx.system.id,
+        },
+        {
+          client: trx,
+        },
+      );
 
-			const doc = await authCtx.group.related("documentTemplates").create(
-				{
-					timeline_type_id: timeline.id,
-					description: data.description,
-					title: data.title,
-					header: data.header,
-					template: data.template ?? "",
-					system_id: authCtx.system.id,
-					type: "pdf",
-					fileName: data.file.clientName,
-					sourceFile: "",
-				},
-				{
-					client: trx,
-				},
-			);
+      const doc = await authCtx.group.related("documentTemplates").create(
+        {
+          timeline_type_id: timeline.id,
+          description: data.description,
+          title: data.title,
+          header: data.header,
+          template: data.template ?? "",
+          system_id: authCtx.system.id,
+          type: "pdf",
+          fileName: data.file.clientName,
+          sourceFile: "",
+        },
+        {
+          client: trx,
+        },
+      );
 
-			const key = await this.uploadFileToS3(data.file, doc.id);
+      const key = await this.uploadFileToS3(data.file, doc.id);
 
-			return doc.merge({ sourceFile: key }).useTransaction(trx).save();
-		});
-	}
+      return doc.merge({ sourceFile: key }).useTransaction(trx).save();
+    });
+  }
 
-	public async update(
-		authCtx: AuthContext,
-		id: string,
-		data: IDocumentTemplateData,
-	) {
-		const template = await this.show(authCtx, id);
+  public async update(authCtx: AuthContext, id: string, data: IDocumentTemplateData) {
+    const template = await this.show(authCtx, id);
 
-		if (!template.economic_group_id) {
-			throw this.sharedService.SystemResource();
-		}
+    if (!template.economic_group_id) {
+      throw this.sharedService.SystemResource();
+    }
 
-		let key = template.sourceFile;
-		if (data.file) {
-			key = await this.uploadFileToS3(data.file, template.id);
-		}
+    let key = template.sourceFile;
+    if (data.file) {
+      key = await this.uploadFileToS3(data.file, template.id);
+    }
 
-		return template
-			.merge({
-				description: data.description,
-				title: data.title,
-				header: data.header,
-				template: data.template ?? template.template,
-				active: data.active,
-				sourceFile: key,
-				type: data.file ? "pdf" : data.type,
-			})
-			.save();
-	}
+    return template
+      .merge({
+        description: data.description,
+        title: data.title,
+        header: data.header,
+        template: data.template ?? template.template,
+        active: data.active,
+        sourceFile: key,
+        type: data.file ? "pdf" : data.type,
+      })
+      .save();
+  }
 
-	public async destroy(authCtx: AuthContext, id: string) {
-		const template = await this.show(authCtx, id);
+  public async destroy(authCtx: AuthContext, id: string) {
+    const template = await this.show(authCtx, id);
 
-		if (!template.economic_group_id) {
-			throw this.sharedService.SystemResource();
-		}
+    if (!template.economic_group_id) {
+      throw this.sharedService.SystemResource();
+    }
 
-		await template.softDelete();
-	}
+    await template.softDelete();
+  }
 
-	public async getPdf(authCtx: AuthContext, id: string) {
-		const template = await DocumentTemplate.query()
-			.whereRaw("(economic_group_id = ? or economic_group_id is null)", [
-				authCtx.group.id,
-			])
-			.where("system_id", authCtx.system.id)
-			.where("id", id)
-			.first();
+  public async getPdf(authCtx: AuthContext, id: string) {
+    const template = await DocumentTemplate.query()
+      .whereRaw("(economic_group_id = ? or economic_group_id is null)", [authCtx.group.id])
+      .where("system_id", authCtx.system.id)
+      .where("id", id)
+      .first();
 
-		if (!template) {
-			throw this.sharedService.ResourceNotFound();
-		}
+    if (!template) {
+      throw this.sharedService.ResourceNotFound();
+    }
 
-		if (template.type !== "pdf") {
-			throw new BadRequestException("Documento não é do tipo PDF", 400, "");
-		}
+    if (template.type !== "pdf") {
+      throw new BadRequestException("Documento não é do tipo PDF", 400, "");
+    }
 
-		const file = await Drive.use("s3").getSignedUrl(template.sourceFile, {
-			expiresIn: "1m",
-		});
+    const file = await Drive.use("s3").getSignedUrl(template.sourceFile, {
+      expiresIn: "1m",
+    });
 
-		return {
-			url: file,
-			expiresAt: DateTime.now().plus({ minutes: 1 }),
-		};
-	}
+    return {
+      url: file,
+      expiresAt: DateTime.now().plus({ minutes: 1 }),
+    };
+  }
 
-	private async uploadFileToS3(
-		file: MultipartFileContract,
-		docID: string,
-	): Promise<string> {
-		const key = `${process.env.NODE_ENV ?? "test"}/${docID}.${file.extname}`;
+  private async uploadFileToS3(file: MultipartFileContract, docID: string): Promise<string> {
+    const key = `${process.env.NODE_ENV ?? "test"}/${docID}.${file.extname}`;
 
-		await file.moveToDisk(
-			"documents",
-			{
-				name: key,
-				visibility: "private",
-				contentType:
-					file.extname === "doc"
-						? "application/msword"
-						: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-			},
-			"s3",
-		);
+    await file.moveToDisk(
+      "documents",
+      {
+        name: key,
+        visibility: "private",
+        contentType:
+          file.extname === "doc"
+            ? "application/msword"
+            : "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      },
+      "s3",
+    );
 
-		// const signedUrl = await Drive.use("s3").getSignedUrl(key, {
-		// 	expiresIn: "1m",
-		// });
+    // const signedUrl = await Drive.use("s3").getSignedUrl(key, {
+    // 	expiresIn: "1m",
+    // });
 
-		return `documents/${key}`;
-	}
+    return `documents/${key}`;
+  }
 }

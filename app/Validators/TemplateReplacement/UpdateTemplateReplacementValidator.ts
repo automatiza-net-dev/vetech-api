@@ -1,6 +1,6 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import { CustomMessages, schema } from '@ioc:Adonis/Core/Validator';
-import { TemplateReplacementOrigin } from 'App/Models/TemplateReplacement';
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import { CustomMessages, schema } from "@ioc:Adonis/Core/Validator";
+import { TemplateReplacementOrigin } from "App/Models/TemplateReplacement";
 
 export default class UpdateTemplateReplacementValidator {
   constructor(protected ctx: HttpContextContract) {}

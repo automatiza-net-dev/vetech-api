@@ -1,11 +1,11 @@
 import {
-	BaseModel,
-	beforeFetch,
-	beforeFind,
-	BelongsTo,
-	belongsTo,
-	column,
-	computed,
+  BaseModel,
+  beforeFetch,
+  beforeFind,
+  BelongsTo,
+  belongsTo,
+  column,
+  computed,
 } from "@ioc:Adonis/Lucid/Orm";
 import ClientOrigin from "App/Models/ClientOrigin";
 import Patient from "App/Models/Patient";
@@ -16,167 +16,161 @@ import { v4 } from "uuid";
 import AccountPlan from "./AccountPlan";
 import MarketingCampaign from "./MarketingCampaign";
 
-export const TutorResidences = [
-	"CASA",
-	"APARTAMENTO",
-	"CONDOMINIO",
-	"SITIO",
-	"COMERCIAL",
-] as const;
+export const TutorResidences = ["CASA", "APARTAMENTO", "CONDOMINIO", "SITIO", "COMERCIAL"] as const;
 export default class PatientTutor extends BaseModel {
-	@column({ isPrimary: true })
-	public id: string = v4();
+  @column({ isPrimary: true })
+  public id: string = v4();
 
-	@column()
-	public residence: (typeof TutorResidences)[number];
+  @column()
+  public residence: (typeof TutorResidences)[number];
 
-	@column()
-	public document?: string;
+  @column()
+  public document?: string;
 
-	@column()
-	public inscription?: string; // ie/rg
+  @column()
+  public inscription?: string; // ie/rg
 
-	@column()
-	public nationality?: string; // ie/rg
+  @column()
+  public nationality?: string; // ie/rg
 
-	@column({
-		columnName: "civil_status",
-	})
-	public civilStatus?: string;
+  @column({
+    columnName: "civil_status",
+  })
+  public civilStatus?: string;
 
-	@column({
-		columnName: "corporate_name",
-		serializeAs: "corporateName",
-	})
-	public corporateName?: string;
+  @column({
+    columnName: "corporate_name",
+    serializeAs: "corporateName",
+  })
+  public corporateName?: string;
 
-	@column({
-		columnName: "city_code",
-	})
-	public cityCode: string;
+  @column({
+    columnName: "city_code",
+  })
+  public cityCode: string;
 
-	@column()
-	public email: string;
+  @column()
+  public email: string;
 
-	@column()
-	public cellphone: string;
+  @column()
+  public cellphone: string;
 
-	@column()
-	public telephone?: string;
+  @column()
+  public telephone?: string;
 
-	@column({
-		columnName: "message_person_name",
-	})
-	public messagePersonName?: string;
+  @column({
+    columnName: "message_person_name",
+  })
+  public messagePersonName?: string;
 
-	@column({
-		columnName: "message_person_phone",
-	})
-	public messagePersonPhone?: string;
+  @column({
+    columnName: "message_person_phone",
+  })
+  public messagePersonPhone?: string;
 
-	@column()
-	public postalCode?: string;
+  @column()
+  public postalCode?: string;
 
-	@column()
-	public patient_id: string;
+  @column()
+  public patient_id: string;
 
-	@column()
-	public street?: string;
+  @column()
+  public street?: string;
 
-	@column()
-	public number?: string;
+  @column()
+  public number?: string;
 
-	@column()
-	public complement?: string;
+  @column()
+  public complement?: string;
 
-	@column()
-	public district?: string;
+  @column()
+  public district?: string;
 
-	@column()
-	public city?: string;
+  @column()
+  public city?: string;
 
-	@column()
-	public state?: string;
+  @column()
+  public state?: string;
 
-	@computed({})
-	public get fullAddress() {
-		return [
-			this.street,
-			this.number,
-			this.complement,
-			this.city,
-			this.district,
-			[this.city, this.state].filter(Boolean).join(" - "),
-			this.postalCode,
-		]
-			.filter(Boolean)
-			.join(", ");
-	}
+  @computed({})
+  public get fullAddress() {
+    return [
+      this.street,
+      this.number,
+      this.complement,
+      this.city,
+      this.district,
+      [this.city, this.state].filter(Boolean).join(" - "),
+      this.postalCode,
+    ]
+      .filter(Boolean)
+      .join(", ");
+  }
 
-	@column.dateTime({ autoCreate: true })
-	public createdAt: DateTime;
+  @column.dateTime({ autoCreate: true })
+  public createdAt: DateTime;
 
-	@column.dateTime({ autoCreate: true, autoUpdate: true })
-	public updatedAt: DateTime;
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  public updatedAt: DateTime;
 
-	@column.dateTime({ serializeAs: null })
-	public deletedAt: DateTime;
+  @column.dateTime({ serializeAs: null })
+  public deletedAt: DateTime;
 
-	@beforeFind()
-	public static softDeletesFind = softDeleteQuery;
+  @beforeFind()
+  public static softDeletesFind = softDeleteQuery;
 
-	@beforeFetch()
-	public static softDeletesFetch = softDeleteQuery;
+  @beforeFetch()
+  public static softDeletesFetch = softDeleteQuery;
 
-	public async softDelete(column?: string) {
-		await softDelete(this, column);
-	}
+  public async softDelete(column?: string) {
+    await softDelete(this, column);
+  }
 
-	@belongsTo(() => Patient, {
-		localKey: "id",
-		foreignKey: "patient_id",
-	})
-	public tutor: BelongsTo<typeof Patient>;
+  @belongsTo(() => Patient, {
+    localKey: "id",
+    foreignKey: "patient_id",
+  })
+  public tutor: BelongsTo<typeof Patient>;
 
-	@column({
-		columnName: "client_origin_id",
-		serializeAs: null,
-	})
-	public client_origin_id: string;
+  @column({
+    columnName: "client_origin_id",
+    serializeAs: null,
+  })
+  public client_origin_id: string;
 
-	@belongsTo(() => ClientOrigin, {
-		localKey: "id",
-		foreignKey: "client_origin_id",
-	})
-	public clientOrigin: BelongsTo<typeof ClientOrigin>;
+  @belongsTo(() => ClientOrigin, {
+    localKey: "id",
+    foreignKey: "client_origin_id",
+  })
+  public clientOrigin: BelongsTo<typeof ClientOrigin>;
 
-	@column({
-		columnName: "profession_id",
-		serializeAs: null,
-	})
-	public profession_id: number;
+  @column({
+    columnName: "profession_id",
+    serializeAs: null,
+  })
+  public profession_id: number;
 
-	@belongsTo(() => Profession, {
-		localKey: "id",
-		foreignKey: "profession_id",
-	})
-	public profession: BelongsTo<typeof Profession>;
+  @belongsTo(() => Profession, {
+    localKey: "id",
+    foreignKey: "profession_id",
+  })
+  public profession: BelongsTo<typeof Profession>;
 
-	@column({})
-	public account_plan_id: string;
+  @column({})
+  public account_plan_id: string;
 
-	@belongsTo(() => AccountPlan, {
-		localKey: "id",
-		foreignKey: "account_plan_id",
-	})
-	public accountPlan: BelongsTo<typeof AccountPlan>;
+  @belongsTo(() => AccountPlan, {
+    localKey: "id",
+    foreignKey: "account_plan_id",
+  })
+  public accountPlan: BelongsTo<typeof AccountPlan>;
 
-	@column({ serializeAs: null })
-	public marketing_campaign_id: number | null;
+  @column({ serializeAs: null })
+  public marketing_campaign_id: number | null;
 
-	@belongsTo(() => MarketingCampaign, {
-		localKey: "id",
-		foreignKey: "marketing_campaign_id",
-	})
-	public marketingCampaign: BelongsTo<typeof MarketingCampaign>;
+  @belongsTo(() => MarketingCampaign, {
+    localKey: "id",
+    foreignKey: "marketing_campaign_id",
+  })
+  public marketingCampaign: BelongsTo<typeof MarketingCampaign>;
 }

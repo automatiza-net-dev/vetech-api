@@ -1,4 +1,4 @@
-import { VaccineType } from 'App/Models/Vaccine';
+import { VaccineType } from "App/Models/Vaccine";
 
 export interface IVaccineData {
   subgroupId?: string;

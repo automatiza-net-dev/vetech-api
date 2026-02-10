@@ -1,11 +1,11 @@
-import Database from '@ioc:Adonis/Lucid/Database';
-import { test } from '@japa/runner';
-import Plan from 'App/Models/Plan';
-import { v4 } from 'uuid';
+import Database from "@ioc:Adonis/Lucid/Database";
+import { test } from "@japa/runner";
+import Plan from "App/Models/Plan";
+import { v4 } from "uuid";
 
-import { generateJwtToken, userBootstrap } from '../utils';
+import { generateJwtToken, userBootstrap } from "../utils";
 
-test.group('Plan resource', group => {
+test.group("Plan resource", (group) => {
   group.each.setup(async () => {
     await Database.beginGlobalTransaction();
     return () => Database.rollbackGlobalTransaction();
@@ -17,7 +17,7 @@ test.group('Plan resource', group => {
     const plan = await Plan.create({
       id: v4(),
       system_id: system.id,
-      description: 'plan 1',
+      description: "plan 1",
       trialDays: 10,
       trialAdditional: 5,
       default: true,
@@ -26,17 +26,17 @@ test.group('Plan resource', group => {
     return { user, plan };
   };
 
-  test('create plan', async ({ client, assert }) => {
+  test("create plan", async ({ client, assert }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
       .post(`/plans`)
       .json({
-        description: 'plan 1',
+        description: "plan 1",
         trialDays: 10,
         trialAdditional: 5,
         default: true,
@@ -46,14 +46,14 @@ test.group('Plan resource', group => {
     assert.equal(201, response.status());
   });
 
-  test('get all plans', async ({ client, assert }) => {
+  test("get all plans", async ({ client, assert }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
-    const response = await client.get('/plans').bearerToken(token);
+    const response = await client.get("/plans").bearerToken(token);
 
     const body = response.body();
 
@@ -76,11 +76,11 @@ test.group('Plan resource', group => {
   //   assert.equal(plan.id, body.id);
   // });
 
-  test('throw exception for plan not found', async ({ client, assert }) => {
+  test("throw exception for plan not found", async ({ client, assert }) => {
     const { user } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client.get(`/plans/${v4()}`).bearerToken(token);
@@ -88,20 +88,20 @@ test.group('Plan resource', group => {
     const body = response.body();
 
     assert.equal(404, response.status());
-    assert.equal('E_NOT_FOUND: Plano não encontrado', body.message as string);
+    assert.equal("E_NOT_FOUND: Plano não encontrado", body.message as string);
   });
 
-  test('update plan', async ({ client, assert }) => {
+  test("update plan", async ({ client, assert }) => {
     const { user, plan } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
     const response = await client
       .put(`/plans/${plan.id}`)
       .json({
-        description: 'plan 2',
+        description: "plan 2",
         trialDays: 15,
         trialAdditional: 2,
         default: false,
@@ -115,16 +115,14 @@ test.group('Plan resource', group => {
     assert.notEqual(plan.description, body.description);
   });
 
-  test('delete plan', async ({ client, assert }) => {
+  test("delete plan", async ({ client, assert }) => {
     const { user, plan } = await createData();
     const token = await generateJwtToken(client, {
       email: user.email,
-      password: '102030',
+      password: "102030",
     });
 
-    const response = await client
-      .delete(`/plans/${plan.id}`)
-      .bearerToken(token);
+    const response = await client.delete(`/plans/${plan.id}`).bearerToken(token);
 
     assert.equal(204, response.status());
   });

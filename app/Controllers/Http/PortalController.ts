@@ -4,102 +4,74 @@ import PortalService from "App/Services/PortalService";
 
 @inject()
 export default class AccountPlanGroupsController {
-	constructor(private service: PortalService) {}
+  constructor(private service: PortalService) {}
 
-	public async dashboard({ auth, request, response }: HttpContextContract) {
-		const user = auth.use("api").user!;
-		const data = await this.service.dashboard(
-			{ systemID: user.system_id, user },
-			request.qs(),
-		);
+  public async dashboard({ auth, request, response }: HttpContextContract) {
+    const user = auth.use("api").user!;
+    const data = await this.service.dashboard({ systemID: user.system_id, user }, request.qs());
 
-		return response.ok(data);
-	}
+    return response.ok(data);
+  }
 
-	public async billing({ auth, request, response }: HttpContextContract) {
-		const user = auth.use("api").user!;
-		const data = await this.service.billing(
-			{ systemID: user.system_id, user },
-			request.qs(),
-		);
+  public async billing({ auth, request, response }: HttpContextContract) {
+    const user = auth.use("api").user!;
+    const data = await this.service.billing({ systemID: user.system_id, user }, request.qs());
 
-		return response.ok(data);
-	}
+    return response.ok(data);
+  }
 
-	public async monthlyBilling({
-		auth,
-		request,
-		response,
-	}: HttpContextContract) {
-		const user = auth.use("api").user!;
+  public async monthlyBilling({ auth, request, response }: HttpContextContract) {
+    const user = auth.use("api").user!;
 
-		const data = await this.service.monthlyBilling(
-			{ systemID: user.system_id, user },
-			request.qs(),
-		);
+    const data = await this.service.monthlyBilling(
+      { systemID: user.system_id, user },
+      request.qs(),
+    );
 
-		return response.ok(data);
-	}
+    return response.ok(data);
+  }
 
-	public async salesByPeriod({ auth, request, response }: HttpContextContract) {
-		const user = auth.use("api").user!;
-		const data = await this.service.salesByPeriod(
-			{ systemID: user.system_id, user },
-			request.qs(),
-		);
+  public async salesByPeriod({ auth, request, response }: HttpContextContract) {
+    const user = auth.use("api").user!;
+    const data = await this.service.salesByPeriod({ systemID: user.system_id, user }, request.qs());
 
-		return response.ok(data);
-	}
+    return response.ok(data);
+  }
 
-	public async sellerBillingRanking({
-		auth,
-		request,
-		response,
-	}: HttpContextContract) {
-		const user = auth.use("api").user!;
-		const data = await this.service.sellerBillingRanking(
-			{ systemID: user.system_id, user },
-			request.qs(),
-		);
+  public async sellerBillingRanking({ auth, request, response }: HttpContextContract) {
+    const user = auth.use("api").user!;
+    const data = await this.service.sellerBillingRanking(
+      { systemID: user.system_id, user },
+      request.qs(),
+    );
 
-		return response.ok(data);
-	}
+    return response.ok(data);
+  }
 
-	public async billingRanking({
-		auth,
-		request,
-		response,
-	}: HttpContextContract) {
-		const user = auth.use("api").user!;
-		const data = await this.service.billingRanking(
-			{ systemID: user.system_id, user },
-			request.qs(),
-		);
+  public async billingRanking({ auth, request, response }: HttpContextContract) {
+    const user = auth.use("api").user!;
+    const data = await this.service.billingRanking(
+      { systemID: user.system_id, user },
+      request.qs(),
+    );
 
-		return response.ok(data);
-	}
+    return response.ok(data);
+  }
 
-	public async avgTicket({ auth, request, response }: HttpContextContract) {
-		const user = auth.use("api").user!;
-		const data = await this.service.avgTicket(
-			{ systemID: user.system_id, user },
-			request.qs(),
-		);
+  public async avgTicket({ auth, request, response }: HttpContextContract) {
+    const user = auth.use("api").user!;
+    const data = await this.service.avgTicket({ systemID: user.system_id, user }, request.qs());
 
-		return response.ok(data);
-	}
+    return response.ok(data);
+  }
 
-	public async invoicingProductTypeSubgroup({
-		auth,
-		request,
-		response,
-	}: HttpContextContract) {
-		const user = auth.use("api").user!;
-		const data = await this.service.invoicingProductTypeSubgroup(
-			{ systemID: user.system_id, user },
-			request.qs(),
-		);
+  public async invoicingProductTypeSubgroup({ auth, request, response }: HttpContextContract) {
+    const user = auth.use("api").user!;
+    const data = await this.service.invoicingProductTypeSubgroup(
+      { systemID: user.system_id, user },
+      request.qs(),
+    );
 
-		return response.ok(data);
-	}
+    return response.ok(data);
+  }
 }

@@ -1,7 +1,7 @@
-import BaseSchema from '@ioc:Adonis/Lucid/Schema';
+import BaseSchema from "@ioc:Adonis/Lucid/Schema";
 
 export default class extends BaseSchema {
-  protected tableName = 'receipts';
+  protected tableName = "receipts";
 
   public async up() {}
 

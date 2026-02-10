@@ -1,7 +1,7 @@
-import { inject } from '@adonisjs/fold';
-import IpAccessControl from 'App/Models/IpAccessControl';
-import Role from 'App/Models/Role';
-import { AuthContext } from 'App/Services/SharedService';
+import { inject } from "@adonisjs/fold";
+import IpAccessControl from "App/Models/IpAccessControl";
+import Role from "App/Models/Role";
+import { AuthContext } from "App/Services/SharedService";
 
 @inject()
 export default class IpAccessControlService {
@@ -9,14 +9,14 @@ export default class IpAccessControlService {
 
   public async index(authCtx: AuthContext) {
     return IpAccessControl.query()
-      .preload('user', query => {
-        query.select(['id', 'name', 'email']);
+      .preload("user", (query) => {
+        query.select(["id", "name", "email"]);
       })
-      .preload('unit', query => {
-        query.select(['id', 'identification']);
+      .preload("unit", (query) => {
+        query.select(["id", "identification"]);
       })
-      .where('business_unit_id', authCtx.unit.id)
-      .where('active', true);
+      .where("business_unit_id", authCtx.unit.id)
+      .where("active", true);
   }
 
   public async store(
@@ -46,22 +46,17 @@ export default class IpAccessControlService {
     }
 
     const [count] = await IpAccessControl.query()
-      .where('ip_address', ip)
-      .where('business_unit_id', props.unit)
-      .where('active', true)
-      .count('id');
+      .where("ip_address", ip)
+      .where("business_unit_id", props.unit)
+      .where("active", true)
+      .count("id");
 
     if (!count) {
-      console.log(
-        'IpAccessControlService.checkAccess: ',
-        ip,
-        props.unit,
-        count,
-      );
+      console.log("IpAccessControlService.checkAccess: ", ip, props.unit, count);
       return false;
     }
 
-    const realCount = parseInt(count.$extras.count ?? '0');
+    const realCount = parseInt(count.$extras.count ?? "0");
 
     return realCount > 0;
   }

@@ -1,10 +1,10 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import PatientExamService from 'App/Services/PatientExamService';
-import SharedService from 'App/Services/SharedService';
-import CreatePatientExamAttachmentValidator from 'App/Validators/PatientExam/CreatePatientExamAttachmentValidator';
-import CreatePatientExamValidator from 'App/Validators/PatientExam/CreatePatientExamValidator';
-import UpdatePatientExamValidator from 'App/Validators/PatientExam/UpdatePatientExamValidator';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import PatientExamService from "App/Services/PatientExamService";
+import SharedService from "App/Services/SharedService";
+import CreatePatientExamAttachmentValidator from "App/Validators/PatientExam/CreatePatientExamAttachmentValidator";
+import CreatePatientExamValidator from "App/Validators/PatientExam/CreatePatientExamValidator";
+import UpdatePatientExamValidator from "App/Validators/PatientExam/UpdatePatientExamValidator";
 
 @inject()
 export default class PatientExamsController {
@@ -43,15 +43,8 @@ export default class PatientExamsController {
     return response.created(patient);
   }
 
-  public async storeAttachment({
-    auth,
-    params,
-    request,
-    response,
-  }: HttpContextContract) {
-    const payload = await request.validate(
-      CreatePatientExamAttachmentValidator,
-    );
+  public async storeAttachment({ auth, params, request, response }: HttpContextContract) {
+    const payload = await request.validate(CreatePatientExamAttachmentValidator);
 
     const patient = await this.service.createAttachment(
       await this.sharedService.getAuthContext(auth),
@@ -62,12 +55,7 @@ export default class PatientExamsController {
     return response.created(patient);
   }
 
-  public async update({
-    auth,
-    params,
-    request,
-    response,
-  }: HttpContextContract) {
+  public async update({ auth, params, request, response }: HttpContextContract) {
     const payload = await request.validate(UpdatePatientExamValidator);
 
     const patient = await this.service.update(
@@ -86,11 +74,7 @@ export default class PatientExamsController {
     return response.noContent();
   }
 
-  public async destroyAttachment({
-    auth,
-    params,
-    response,
-  }: HttpContextContract) {
+  public async destroyAttachment({ auth, params, response }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
     await this.service.deleteAttachment(unit_id, params.id, params.attachment);
 

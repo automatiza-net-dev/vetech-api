@@ -35,9 +35,7 @@ import IBusinessUnitFiscalDocumentData, {
 } from "Contracts/interfaces/IBusinessUnitFiscalDocumentData";
 import { inject } from "@adonisjs/fold";
 import Logger from "@ioc:Adonis/Core/Logger";
-import Database, {
-  TransactionClientContract,
-} from "@ioc:Adonis/Lucid/Database";
+import Database, { TransactionClientContract } from "@ioc:Adonis/Lucid/Database";
 import format from "date-fns/format";
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
@@ -64,13 +62,10 @@ export default class BusinessUnitFiscalDocumentService {
     private sharedService: SharedService,
     private focusNfe: FocusNfeService,
     private receiptService: ReceiptService,
-  ) { }
+  ) {}
 
   async nfeIndex(unitId: string, data: ISearch) {
-    const qb = IssuedFiscalDocument.query().where(
-      "business_unit_id",
-      data.unit ?? unitId,
-    );
+    const qb = IssuedFiscalDocument.query().where("business_unit_id", data.unit ?? unitId);
 
     if (data.type) {
       qb.where("movement_type", data.type);
@@ -94,10 +89,7 @@ export default class BusinessUnitFiscalDocumentService {
   }
 
   async nfseIndex(unitId: string, data: ISearch) {
-    const qb = ServiceIssuedFiscalDocument.query().where(
-      "business_unit_id",
-      data.unit ?? unitId,
-    );
+    const qb = ServiceIssuedFiscalDocument.query().where("business_unit_id", data.unit ?? unitId);
 
     // if (data.type) {
     //   qb.where('movement_type', data.type);
@@ -170,11 +162,7 @@ export default class BusinessUnitFiscalDocumentService {
     },
   ) {
     if (!authCtx.hasPermission("REL18")) {
-      throw new UnauthorizedException(
-        "Sem permissão para ver o relatório",
-        400,
-        "E_ERR",
-      );
+      throw new UnauthorizedException("Sem permissão para ver o relatório", 400, "E_ERR");
     }
 
     if (!data.businessUnitId || !validate(data.businessUnitId)) {
@@ -233,11 +221,7 @@ export default class BusinessUnitFiscalDocumentService {
         .firstOrFail();
 
       if (bill.status !== BillStatus.B) {
-        throw new BadRequestException(
-          "Documento em estado inválido",
-          400,
-          "E_INVALID_STATE",
-        );
+        throw new BadRequestException("Documento em estado inválido", 400, "E_INVALID_STATE");
       }
 
       const items = await BillItem.query()
@@ -265,9 +249,7 @@ export default class BusinessUnitFiscalDocumentService {
       }
 
       if (items.some((it) => !it.productVariation.product.ncm)) {
-        const itemsWithoutNcm = items.filter(
-          (it) => !it.productVariation.product.ncm,
-        );
+        const itemsWithoutNcm = items.filter((it) => !it.productVariation.product.ncm);
         throw new BadRequestException(
           `É necessário preencher o "Codigo Ncm" dos seguintes produtos antes de emitir a nota fiscal: ${itemsWithoutNcm.map((it) => it.productVariation.product.description)}`,
           400,
@@ -276,9 +258,7 @@ export default class BusinessUnitFiscalDocumentService {
       }
 
       if (items.some((it) => !it.productVariation.product.unit_id)) {
-        const itemsWithoutUnit = items.filter(
-          (it) => !it.productVariation.product.unit_id,
-        );
+        const itemsWithoutUnit = items.filter((it) => !it.productVariation.product.unit_id);
         throw new BadRequestException(
           `É necessário preencher a "Unidade" dos seguintes produtos antes de emitir a nota fiscal: ${itemsWithoutUnit.map((it) => it.productVariation.product.description).join(", ")}`,
 
@@ -288,9 +268,7 @@ export default class BusinessUnitFiscalDocumentService {
       }
 
       if (items.some((it) => !it.tax_rule_id)) {
-        const itemsWithoutTaxRule = items.filter(
-          (it) => !it.productVariation.product.unit_id,
-        );
+        const itemsWithoutTaxRule = items.filter((it) => !it.productVariation.product.unit_id);
         throw new BadRequestException(
           `Os itens abaixo estão sem as informações de impostos preenchidas. Entre em contato com o suporte para fazer esta configuração: ${itemsWithoutTaxRule.map((it) => it.productVariation.product.description).join(", ")}`,
           400,
@@ -298,10 +276,7 @@ export default class BusinessUnitFiscalDocumentService {
         );
       }
 
-      if (
-        bill.financialResponsible &&
-        !bill.financialResponsible.tutor.document
-      ) {
+      if (bill.financialResponsible && !bill.financialResponsible.tutor.document) {
         throw new BadRequestException(
           "O cpf/cnpj do Responsavel Financeiro da venda está em branco ou inválido",
           400,
@@ -326,11 +301,7 @@ export default class BusinessUnitFiscalDocumentService {
         .first();
 
       if (issuedDocumentAlready?.authorizationReceipt) {
-        throw new BadRequestException(
-          "Documento já autorizado",
-          400,
-          "E_ALREADY_ISSUED",
-        );
+        throw new BadRequestException("Documento já autorizado", 400, "E_ALREADY_ISSUED");
       }
 
       // if (items.some((i) => !i.tax_rule_id)) {
@@ -341,12 +312,9 @@ export default class BusinessUnitFiscalDocumentService {
       // 	);
       // }
 
-      const document = await BusinessUnitFiscalDocument.findOrFail(
-        data.unitFiscalDocumentId,
-        {
-          client: trx,
-        },
-      );
+      const document = await BusinessUnitFiscalDocument.findOrFail(data.unitFiscalDocumentId, {
+        client: trx,
+      });
 
       // before or after?
       await document
@@ -371,16 +339,9 @@ export default class BusinessUnitFiscalDocumentService {
           contingency: IssuedFiscalDocumentContingency.N,
           active: true,
           purpose: "Emissão", // TODO check
-          totalValue: items.reduce(
-            (acc, curr) => acc.plus(curr.totalValue),
-            new Decimal(0),
-          ),
+          totalValue: items.reduce((acc, curr) => acc.plus(curr.totalValue), new Decimal(0)),
 
-          finality: items.some(
-            (c) => c.taxRule.movementCategory === MovementCategory.DS,
-          )
-            ? 4
-            : 1,
+          finality: items.some((c) => c.taxRule.movementCategory === MovementCategory.DS) ? 4 : 1,
           accessKeyRef: data.accessKeyRef,
         },
         {
@@ -452,9 +413,7 @@ export default class BusinessUnitFiscalDocumentService {
            END                as product_installment_value`),
         )
         .joinRaw("join bills ON payments_with_order.bill_id = bills.id")
-        .joinRaw(
-          "join block_calculations ON payments_with_order.block = block_calculations.block",
-        )
+        .joinRaw("join block_calculations ON payments_with_order.block = block_calculations.block")
         .orderByRaw(
           "payments_with_order.bill_id, payments_with_order.block, payments_with_order.installments",
         );
@@ -496,10 +455,7 @@ export default class BusinessUnitFiscalDocumentService {
               : responsible.name,
           cpf_document: clearDoc.length === 11 ? clearDoc : null,
           cnpj_document: clearDoc.length === 14 ? clearDoc : null,
-          phone:
-            [responsible.tutor.cellphone, responsible.tutor.telephone].find(
-              Boolean,
-            ) ?? "",
+          phone: [responsible.tutor.cellphone, responsible.tutor.telephone].find(Boolean) ?? "",
           ie: responsible.tutor.inscription ?? "",
           email: responsible.tutor.email,
           authorized: unit.unitConfig.xmlDownloadAuthorization ?? "",
@@ -518,10 +474,7 @@ export default class BusinessUnitFiscalDocumentService {
         items: [],
         payments: bill.payments.map((item) => ({
           nfe_code: item.paymentMethod.nfe_code,
-          description:
-            item.paymentMethod.nfe_code === "99"
-              ? item.paymentMethod.description
-              : null,
+          description: item.paymentMethod.nfe_code === "99" ? item.paymentMethod.description : null,
           installment: new Decimal(
             precalculatedValues.find((pv) => pv.payment_id === item.id)
               ?.product_installment_value ?? 0,
@@ -536,13 +489,9 @@ export default class BusinessUnitFiscalDocumentService {
           acquirer:
             item.paymentMethod.tef === PaymentMethodTef.N
               ? null
-              : unit.acquirers.find((a) => a.id === item.tef_acquirer_id)
-                ?.document,
+              : unit.acquirers.find((a) => a.id === item.tef_acquirer_id)?.document,
           flag: item?.flag?.nfe_code,
-          nsu:
-            item.paymentMethod.tef === PaymentMethodTef.N
-              ? undefined
-              : item.nsuDocument,
+          nsu: item.paymentMethod.tef === PaymentMethodTef.N ? undefined : item.nsuDocument,
         })),
         totalizers: {
           // icms_base: bill.icmsBase,
@@ -597,9 +546,7 @@ export default class BusinessUnitFiscalDocumentService {
         };
 
         if (
-          ["10", "30", "70", "90", "201", "202", "203", "900"].includes(
-            item.icmsCst,
-          ) &&
+          ["10", "30", "70", "90", "201", "202", "203", "900"].includes(item.icmsCst) &&
           (item.icmsStBase ?? 0) > 0
         ) {
           result.icms_st_modality = 4;
@@ -610,11 +557,7 @@ export default class BusinessUnitFiscalDocumentService {
           result.icms_st_value = item.icmsStValue;
         }
 
-        if (
-          ["00", "10", "20", "51", "60", "70", "90", "900"].includes(
-            item.icmsCst,
-          )
-        ) {
+        if (["00", "10", "20", "51", "60", "70", "90", "900"].includes(item.icmsCst)) {
           result.icms_modality = 3;
           result.icms_base = item.icmsBase;
           result.icms_percentage = item.icmsPercentage;
@@ -626,8 +569,7 @@ export default class BusinessUnitFiscalDocumentService {
         }
 
         if (["51"].includes(item.icmsCst)) {
-          result.icms_deferred_operation_value =
-            item.icmsDeferredOperationValue;
+          result.icms_deferred_operation_value = item.icmsDeferredOperationValue;
           result.icms_deferred_value = item.icmsDeferredValue;
           result.icms_deferred_percentage = item.icmsDeferredPercentage;
         }
@@ -636,11 +578,7 @@ export default class BusinessUnitFiscalDocumentService {
       });
       nfePayload.items = cestTasks;
 
-      const result = await this.focusNfe.sendNfe(
-        issuedDocument.id,
-        nfePayload,
-        token,
-      );
+      const result = await this.focusNfe.sendNfe(issuedDocument.id, nfePayload, token);
 
       await BillItem.query()
         .useTransaction(trx)
@@ -682,10 +620,7 @@ export default class BusinessUnitFiscalDocumentService {
     });
   }
 
-  async authorizeNfse(
-    authCtx: AuthContext,
-    data: IAuthorizeNfseFiscalDocument,
-  ) {
+  async authorizeNfse(authCtx: AuthContext, data: IAuthorizeNfseFiscalDocument) {
     return Database.transaction(async (trx) => {
       return this.$sendNfse(trx, authCtx, data);
     });
@@ -704,22 +639,12 @@ export default class BusinessUnitFiscalDocumentService {
       }
 
       if (serviceDocument.status !== "erro_autorizacao") {
-        throw new BadRequestException(
-          "Nota não pode ser retransmitida",
-          400,
-          "E_INVALID_STATE",
-        );
+        throw new BadRequestException("Nota não pode ser retransmitida", 400, "E_INVALID_STATE");
       }
 
-      await serviceDocument
-        .merge({ deletedAt: DateTime.now() })
-        .useTransaction(trx)
-        .save();
+      await serviceDocument.merge({ deletedAt: DateTime.now() }).useTransaction(trx).save();
 
-      const items = await serviceDocument
-        .related("items")
-        .query()
-        .useTransaction(trx);
+      const items = await serviceDocument.related("items").query().useTransaction(trx);
 
       const updateQb = BillItem.query()
         .useTransaction(trx)
@@ -761,12 +686,9 @@ export default class BusinessUnitFiscalDocumentService {
   ) {
     const token = this.getToken(authCtx.unit);
 
-    const document = await BusinessUnitFiscalDocument.findOrFail(
-      data.unitFiscalDocumentId,
-      {
-        client: trx,
-      },
-    );
+    const document = await BusinessUnitFiscalDocument.findOrFail(data.unitFiscalDocumentId, {
+      client: trx,
+    });
 
     const bill = await Bill.query()
       .useTransaction(trx)
@@ -780,17 +702,10 @@ export default class BusinessUnitFiscalDocumentService {
       .firstOrFail();
 
     if (bill.status !== BillStatus.B) {
-      throw new BadRequestException(
-        "Documento em estado inválido",
-        400,
-        "E_INVALID_STATE",
-      );
+      throw new BadRequestException("Documento em estado inválido", 400, "E_INVALID_STATE");
     }
 
-    if (
-      bill.financialResponsible &&
-      !bill.financialResponsible.tutor.document
-    ) {
+    if (bill.financialResponsible && !bill.financialResponsible.tutor.document) {
       throw new BadRequestException(
         "O cpf/cnpj do Responsavel Financeiro da venda está em branco ou inválido",
         400,
@@ -829,9 +744,7 @@ export default class BusinessUnitFiscalDocumentService {
       throw new BadRequestException("Não existe documento para ser emitido");
     }
 
-    const productsWithoutServiceCode = items.filter(
-      (i) => !i.productVariation.product.serviceCode,
-    );
+    const productsWithoutServiceCode = items.filter((i) => !i.productVariation.product.serviceCode);
     if (productsWithoutServiceCode.length > 0) {
       throw new BadRequestException(
         `É necessário preencher o "Codigo de Serviço" dos seguintes serviços antes de emitir a nota fiscal: ${productsWithoutServiceCode.map((p) => p.productVariation.product.description).join(", ")}`,
@@ -850,8 +763,8 @@ export default class BusinessUnitFiscalDocumentService {
         items,
         responsible,
         clearDoc,
-        items.find((i) => i.productVariation.product.serviceCode)
-          ?.productVariation.product.serviceCode ?? "",
+        items.find((i) => i.productVariation.product.serviceCode)?.productVariation.product
+          .serviceCode ?? "",
       );
 
       const serviceDocument = await ServiceIssuedFiscalDocument.create(
@@ -864,10 +777,7 @@ export default class BusinessUnitFiscalDocumentService {
           national: true,
           authorizationDate: DateTime.now(),
           model: document.model,
-          totalValue: items.reduce(
-            (acc, curr) => acc.plus(curr.totalValue),
-            new Decimal(0),
-          ),
+          totalValue: items.reduce((acc, curr) => acc.plus(curr.totalValue), new Decimal(0)),
         },
         {
           client: trx,
@@ -909,8 +819,7 @@ export default class BusinessUnitFiscalDocumentService {
     if (!authCtx.unit.unitConfig.groupNfseDocuments) {
       const results = await Promise.all(
         items.map(async (item) => {
-          const clearDoc =
-            responsible.tutor.document?.replaceAll(/\D/g, "") ?? "";
+          const clearDoc = responsible.tutor.document?.replaceAll(/\D/g, "") ?? "";
 
           const serviceDocument = await ServiceIssuedFiscalDocument.create(
             {
@@ -923,10 +832,7 @@ export default class BusinessUnitFiscalDocumentService {
               national: false,
               authorizationDate: DateTime.now(),
               model: document.model,
-              totalValue: items.reduce(
-                (acc, curr) => acc.plus(curr.totalValue),
-                new Decimal(0),
-              ),
+              totalValue: items.reduce((acc, curr) => acc.plus(curr.totalValue), new Decimal(0)),
             },
             {
               client: trx,
@@ -946,10 +852,7 @@ export default class BusinessUnitFiscalDocumentService {
               cnpj_document: clearDoc.length === 14 ? clearDoc : null,
               name: responsible.name,
               email: responsible.tutor.email,
-              phone:
-                [responsible.tutor.cellphone, responsible.tutor.telephone].find(
-                  Boolean,
-                ) ?? "",
+              phone: [responsible.tutor.cellphone, responsible.tutor.telephone].find(Boolean) ?? "",
               address: {
                 street: SharedService.NoopString(responsible.tutor.street),
                 number: SharedService.NoopString(responsible.tutor.number),
@@ -974,16 +877,12 @@ export default class BusinessUnitFiscalDocumentService {
                 authCtx.unit.unitConfig.defaultNfseDescription ??
                 item.productVariation.product.description,
               city_code: authCtx.unit.cityCode ?? "",
-              nbs_code: undefined
+              nbs_code: undefined,
             },
           };
 
           if (payload.buyer.phone === "") {
-            throw new BadRequestException(
-              "Cliente não tem um telefone para contato",
-              400,
-              "E_ERR",
-            );
+            throw new BadRequestException("Cliente não tem um telefone para contato", 400, "E_ERR");
           }
 
           const result = await this.focusNfe.sendNfse(
@@ -991,8 +890,7 @@ export default class BusinessUnitFiscalDocumentService {
             payload,
             token,
             {
-              hideCnae:
-                authCtx.unit.unitConfig.config.fiscalDocuments?.nfse_hide_cnae,
+              hideCnae: authCtx.unit.unitConfig.config.fiscalDocuments?.nfse_hide_cnae,
               hideCityCode:
                 authCtx.unit.unitConfig.config.fiscalDocuments
                   ?.nfse_hide_codigo_tributario_municipio,
@@ -1026,10 +924,7 @@ export default class BusinessUnitFiscalDocumentService {
 
     const map: Map<string, BillItem[]> = new Map();
     for (const item of items) {
-      const key = [
-        item.issPercentage,
-        item.productVariation.product.serviceCode,
-      ].join("__");
+      const key = [item.issPercentage, item.productVariation.product.serviceCode].join("__");
 
       if (!map.has(key)) {
         map.set(key, []);
@@ -1052,10 +947,7 @@ export default class BusinessUnitFiscalDocumentService {
           national: false,
           authorizationDate: DateTime.now(),
           model: document.model,
-          totalValue: mapItems.reduce(
-            (acc, curr) => acc.plus(curr.totalValue),
-            new Decimal(0),
-          ),
+          totalValue: mapItems.reduce((acc, curr) => acc.plus(curr.totalValue), new Decimal(0)),
         },
         {
           client: trx,
@@ -1079,10 +971,7 @@ export default class BusinessUnitFiscalDocumentService {
             cnpj_document: clearDoc.length === 14 ? clearDoc : null,
             name: responsible.name,
             email: responsible.tutor.email,
-            phone:
-              [responsible.tutor.cellphone, responsible.tutor.telephone].find(
-                Boolean,
-              ) ?? "",
+            phone: [responsible.tutor.cellphone, responsible.tutor.telephone].find(Boolean) ?? "",
             address: {
               street: SharedService.NoopString(responsible.tutor.street),
               number: SharedService.NoopString(responsible.tutor.number),
@@ -1094,19 +983,13 @@ export default class BusinessUnitFiscalDocumentService {
             },
           },
           service: {
-            total_value: this.sharedService.sum(
-              mapItems.map((i) => i.totalValue),
-            ),
+            total_value: this.sharedService.sum(mapItems.map((i) => i.totalValue)),
             pis_value: this.sharedService.sum(mapItems.map((i) => i.pisValue)),
-            cofins_value: this.sharedService.sum(
-              mapItems.map((i) => i.cofinsValue),
-            ),
+            cofins_value: this.sharedService.sum(mapItems.map((i) => i.cofinsValue)),
             iss_value: this.sharedService.sum(mapItems.map((i) => i.issValue)),
             base_value: this.sharedService.sum(mapItems.map((i) => i.issBase)),
             percentage_value: issPercentage,
-            discount_value: this.sharedService.sum(
-              mapItems.map((i) => i.discountValue),
-            ),
+            discount_value: this.sharedService.sum(mapItems.map((i) => i.discountValue)),
             service_code: serviceCode,
             cnae: authCtx.unit.cnae ?? "",
             description: authCtx.unit.unitConfig.defaultNfseDescription ?? "-",
@@ -1115,11 +998,9 @@ export default class BusinessUnitFiscalDocumentService {
         },
         token,
         {
-          hideCnae:
-            authCtx.unit.unitConfig.config.fiscalDocuments?.nfse_hide_cnae,
+          hideCnae: authCtx.unit.unitConfig.config.fiscalDocuments?.nfse_hide_cnae,
           hideCityCode:
-            authCtx.unit.unitConfig.config.fiscalDocuments
-              ?.nfse_hide_codigo_tributario_municipio,
+            authCtx.unit.unitConfig.config.fiscalDocuments?.nfse_hide_codigo_tributario_municipio,
         },
         trx,
       );
@@ -1175,11 +1056,9 @@ export default class BusinessUnitFiscalDocumentService {
         cityRegistration: authCtx.unit.cityRegistration ?? "",
         simpleOptionCode: authCtx.unit.simple ? 3 : 1,
         specialTaxRegime:
-          authCtx.unit.unitConfig.config.fiscalDocuments
-            ?.regime_especial_tributacao ?? 0,
+          authCtx.unit.unitConfig.config.fiscalDocuments?.regime_especial_tributacao ?? 0,
         regimeTributarySimplesNacional:
-          authCtx.unit.unitConfig.config.fiscalDocuments
-            ?.regime_tributario_simples_nacional ?? 0,
+          authCtx.unit.unitConfig.config.fiscalDocuments?.regime_tributario_simples_nacional ?? 0,
         totalTaxPercentageSimplesNacional:
           authCtx.unit.unitConfig.config.fiscalDocuments
             ?.percentual_total_tributos_simples_nacional ?? 6,
@@ -1189,10 +1068,7 @@ export default class BusinessUnitFiscalDocumentService {
         cnpjDocument: clearDoc.length === 14 ? clearDoc : undefined,
         name: responsible.name,
         email: responsible.tutor.email,
-        phone:
-          [responsible.tutor.cellphone, responsible.tutor.telephone].find(
-            Boolean,
-          ) ?? "",
+        phone: [responsible.tutor.cellphone, responsible.tutor.telephone].find(Boolean) ?? "",
         address: {
           street: responsible.tutor.street ?? undefined,
           number: responsible.tutor.number ?? undefined,
@@ -1251,9 +1127,7 @@ export default class BusinessUnitFiscalDocumentService {
       .orderByRaw("issued_fiscal_documents.created_at desc");
 
     const tasks = rowsToUpdate
-      .filter(
-        (row) => !!row.focus_production_token || !!row.focus_homologation_token,
-      )
+      .filter((row) => !!row.focus_production_token || !!row.focus_homologation_token)
       .map(async (row) => {
         const token =
           row.fiscal_document_environment === "H"
@@ -1285,39 +1159,23 @@ export default class BusinessUnitFiscalDocumentService {
             sefaz_status_code: result.data.status_sefaz,
             sefaz_message: result.data.protocolo_cancelamento
               ? [
-                result.data.protocolo_cancelamento.descricao_evento,
-                result.data.protocolo_cancelamento.motivo,
-              ].join(" - ")
+                  result.data.protocolo_cancelamento.descricao_evento,
+                  result.data.protocolo_cancelamento.motivo,
+                ].join(" - ")
               : result.data.mensagem_sefaz,
             access_key: result.data.chave_nfe,
-            authorization_xml_path: [
-              urlPrefix,
-              result.data.caminho_xml_nota_fiscal,
-            ].join(""),
-            authorization_pdf_path: [urlPrefix, result.data.caminho_danfe].join(
-              "",
-            ),
-            cancellation_xml_path: [
-              urlPrefix,
-              result.data.caminho_xml_cancelamento,
-            ].join(""),
+            authorization_xml_path: [urlPrefix, result.data.caminho_xml_nota_fiscal].join(""),
+            authorization_pdf_path: [urlPrefix, result.data.caminho_danfe].join(""),
+            cancellation_xml_path: [urlPrefix, result.data.caminho_xml_cancelamento].join(""),
 
-            authorization_receipt:
-              result.data.protocolo_nota_fiscal?.numero_protocolo,
-            authorization_receipt_date: result.data.protocolo_nota_fiscal
-              ?.data_recebimento
-              ? DateTime.fromISO(
-                result.data.protocolo_nota_fiscal?.data_recebimento,
-              )
+            authorization_receipt: result.data.protocolo_nota_fiscal?.numero_protocolo,
+            authorization_receipt_date: result.data.protocolo_nota_fiscal?.data_recebimento
+              ? DateTime.fromISO(result.data.protocolo_nota_fiscal?.data_recebimento)
               : undefined,
 
-            cancellation_receipt:
-              result.data.protocolo_cancelamento?.numero_protocolo,
-            cancellation_receipt_date: result.data.protocolo_cancelamento
-              ?.data_evento
-              ? DateTime.fromISO(
-                result.data.protocolo_cancelamento?.data_evento,
-              )
+            cancellation_receipt: result.data.protocolo_cancelamento?.numero_protocolo,
+            cancellation_receipt_date: result.data.protocolo_cancelamento?.data_evento
+              ? DateTime.fromISO(result.data.protocolo_cancelamento?.data_evento)
               : undefined,
           });
         if (row.disabling_receipt && row.bill_id) {
@@ -1339,40 +1197,23 @@ export default class BusinessUnitFiscalDocumentService {
               sefaz_status_code: result.data.status_sefaz,
               sefaz_message: result.data.protocolo_cancelamento
                 ? [
-                  result.data.protocolo_cancelamento.descricao_evento,
-                  result.data.protocolo_cancelamento.motivo,
-                ].join(" - ")
+                    result.data.protocolo_cancelamento.descricao_evento,
+                    result.data.protocolo_cancelamento.motivo,
+                  ].join(" - ")
                 : result.data.mensagem_sefaz,
               access_key: result.data.chave_nfe,
-              authorization_xml_path: [
-                urlPrefix,
-                result.data.caminho_xml_nota_fiscal,
-              ].join(""),
-              authorization_pdf_path: [
-                urlPrefix,
-                result.data.caminho_danfe,
-              ].join(""),
-              cancellation_xml_path: [
-                urlPrefix,
-                result.data.caminho_xml_cancelamento,
-              ].join(""),
+              authorization_xml_path: [urlPrefix, result.data.caminho_xml_nota_fiscal].join(""),
+              authorization_pdf_path: [urlPrefix, result.data.caminho_danfe].join(""),
+              cancellation_xml_path: [urlPrefix, result.data.caminho_xml_cancelamento].join(""),
 
-              authorization_receipt:
-                result.data.protocolo_nota_fiscal?.numero_protocolo,
-              authorization_receipt_date: result.data.protocolo_nota_fiscal
-                ?.data_recebimento
-                ? DateTime.fromISO(
-                  result.data.protocolo_nota_fiscal?.data_recebimento,
-                )
+              authorization_receipt: result.data.protocolo_nota_fiscal?.numero_protocolo,
+              authorization_receipt_date: result.data.protocolo_nota_fiscal?.data_recebimento
+                ? DateTime.fromISO(result.data.protocolo_nota_fiscal?.data_recebimento)
                 : "NÃO FOI SETADO",
 
-              cancellation_receipt:
-                result.data.protocolo_cancelamento?.numero_protocolo,
-              cancellation_receipt_date: result.data.protocolo_cancelamento
-                ?.data_evento
-                ? DateTime.fromISO(
-                  result.data.protocolo_cancelamento?.data_evento,
-                )
+              cancellation_receipt: result.data.protocolo_cancelamento?.numero_protocolo,
+              cancellation_receipt_date: result.data.protocolo_cancelamento?.data_evento
+                ? DateTime.fromISO(result.data.protocolo_cancelamento?.data_evento)
                 : "NÃO FOI SETADO",
             },
           },
@@ -1413,9 +1254,7 @@ export default class BusinessUnitFiscalDocumentService {
       .orderByRaw("service_issued_fiscal_documents.created_at desc");
 
     const tasks = rowsToUpdate
-      .filter(
-        (row) => !!row.focus_production_token || !!row.focus_homologation_token,
-      )
+      .filter((row) => !!row.focus_production_token || !!row.focus_homologation_token)
       .map(async (row) => {
         const token =
           row.fiscal_document_environment === "H"
@@ -1450,10 +1289,8 @@ export default class BusinessUnitFiscalDocumentService {
             rpsType: result.data.tipo_rps,
             verificationCode: result.data.codigo_verificacao,
             errors: JSON.stringify(result.data.erros),
-            authorizationDate:
-              result.data.status === "autorizado" ? DateTime.now() : undefined,
-            cancellationDate:
-              result.data.status === "cancelado" ? DateTime.now() : undefined,
+            authorizationDate: result.data.status === "autorizado" ? DateTime.now() : undefined,
+            cancellationDate: result.data.status === "cancelado" ? DateTime.now() : undefined,
             mirrorPath: result.data.url,
             authorizationPdfPath: result.data.url_danfse,
             authorizationXmlPath: result.data.caminho_xml_nota_fiscal,
@@ -1480,12 +1317,8 @@ export default class BusinessUnitFiscalDocumentService {
               rpsType: result.data.tipo_rps,
               verificationCode: result.data.codigo_verificacao,
               errors: JSON.stringify(result.data.erros),
-              authorizationDate:
-                result.data.status === "autorizado"
-                  ? DateTime.now()
-                  : undefined,
-              cancellationDate:
-                result.data.status === "cancelado" ? DateTime.now() : undefined,
+              authorizationDate: result.data.status === "autorizado" ? DateTime.now() : undefined,
+              cancellationDate: result.data.status === "cancelado" ? DateTime.now() : undefined,
               mirrorPath: result.data.url,
               authorizationPdfPath: result.data.url_danfse,
               authorizationXmlPath: result.data.caminho_xml_nota_fiscal,
@@ -1568,11 +1401,7 @@ export default class BusinessUnitFiscalDocumentService {
         ? await this.focusNfe.getNfseNational(document.id, token)
         : await this.focusNfe.getNfse(document.id, token);
       if (!result.success) {
-        throw new BadRequestException(
-          "Erro ao atualizar nota",
-          400,
-          "E_NO_NOTE",
-        );
+        throw new BadRequestException("Erro ao atualizar nota", 400, "E_NO_NOTE");
       }
 
       await this.mergeNfse(document, result.data).useTransaction(trx).save();
@@ -1601,11 +1430,7 @@ export default class BusinessUnitFiscalDocumentService {
 
       const result = await this.focusNfe.getNfe(document.id, token);
       if (!result.success) {
-        throw new BadRequestException(
-          "Erro ao atualizar nova",
-          400,
-          "E_NO_NOTE",
-        );
+        throw new BadRequestException("Erro ao atualizar nova", 400, "E_NO_NOTE");
       }
 
       const updated = await this.mergeNfe(
@@ -1648,11 +1473,7 @@ export default class BusinessUnitFiscalDocumentService {
         ? await this.focusNfe.getNfseNational(document.id, token)
         : await this.focusNfe.getNfse(document.id, token);
       if (!result.success) {
-        throw new BadRequestException(
-          "Erro ao atualizar nova",
-          400,
-          "E_NO_NOTE",
-        );
+        throw new BadRequestException("Erro ao atualizar nova", 400, "E_NO_NOTE");
       }
 
       await this.mergeNfse(document, result.data).useTransaction(trx).save();
@@ -1743,24 +1564,12 @@ export default class BusinessUnitFiscalDocumentService {
         !!document.cancellationDate || // 2.15.5.4
         !!document.disablingReceipt // 2.15.5.5
       ) {
-        throw new BadRequestException(
-          "Documento em estado inválido",
-          400,
-          "E_INVALID_STATE",
-        );
+        throw new BadRequestException("Documento em estado inválido", 400, "E_INVALID_STATE");
       }
 
-      const cancelResult = await this.focusNfe.cancelNfe(
-        document.id,
-        data.reason,
-        token,
-      );
+      const cancelResult = await this.focusNfe.cancelNfe(document.id, data.reason, token);
       if (!cancelResult) {
-        throw new BadRequestException(
-          "Erro ao cancelar nota fiscal",
-          400,
-          "E_EXTERNAL_ERROR",
-        );
+        throw new BadRequestException("Erro ao cancelar nota fiscal", 400, "E_EXTERNAL_ERROR");
       }
 
       // const getResult = await this.focusNfe.getNfe(document.id);
@@ -1820,18 +1629,10 @@ export default class BusinessUnitFiscalDocumentService {
       const token = this.getToken(unit);
 
       const cancelResult = document.national
-        ? await this.focusNfe.cancelNationalNfse(
-          document.id,
-          data.reason,
-          token,
-        )
+        ? await this.focusNfe.cancelNationalNfse(document.id, data.reason, token)
         : await this.focusNfe.cancelNfse(document.id, data.reason, token);
       if (!cancelResult) {
-        throw new BadRequestException(
-          "Erro ao cancelar nota fiscal",
-          400,
-          "E_EXTERNAL_ERROR",
-        );
+        throw new BadRequestException("Erro ao cancelar nota fiscal", 400, "E_EXTERNAL_ERROR");
       }
 
       const tasks = document.items.map((item) =>
@@ -1897,11 +1698,7 @@ export default class BusinessUnitFiscalDocumentService {
         !!document.cancellationReceipt || // 2.16.5.5
         !!document.disablingReceipt // 2.16.5.6
       ) {
-        throw new BadRequestException(
-          "Documento em estado inválido",
-          400,
-          "E_INVALID_STATE",
-        );
+        throw new BadRequestException("Documento em estado inválido", 400, "E_INVALID_STATE");
       }
 
       const result = await this.focusNfe.disable(
@@ -1916,11 +1713,7 @@ export default class BusinessUnitFiscalDocumentService {
       );
 
       if (!result.success) {
-        throw new BadRequestException(
-          "Erro ao cancelar nota fiscal",
-          400,
-          "E_EXTERNAL_ERROR",
-        );
+        throw new BadRequestException("Erro ao cancelar nota fiscal", 400, "E_EXTERNAL_ERROR");
       }
 
       await document
@@ -1974,11 +1767,7 @@ export default class BusinessUnitFiscalDocumentService {
         !!document.cancellationReceipt || // 2.17.5.4
         !!document.disablingReceipt // 2.17.5.5
       ) {
-        throw new BadRequestException(
-          "Documento em estado inválido",
-          400,
-          "E_INVALID_STATE",
-        );
+        throw new BadRequestException("Documento em estado inválido", 400, "E_INVALID_STATE");
       }
 
       const count = await CorrectedFiscalDocument.query({
@@ -2008,26 +1797,15 @@ export default class BusinessUnitFiscalDocumentService {
   }
 
   async listReceived(authCtx: AuthContext) {
-    return this.focusNfe.listReceived(
-      authCtx.unit.document ?? "-",
-      this.getToken(authCtx.unit),
-    );
+    return this.focusNfe.listReceived(authCtx.unit.document ?? "-", this.getToken(authCtx.unit));
   }
 
   async searchReceived(authCtx: AuthContext, ref: string) {
-    return this.focusNfe.searchReceived(
-      ref,
-      this.getToken(authCtx.unit),
-      "pdf",
-    );
+    return this.focusNfe.searchReceived(ref, this.getToken(authCtx.unit), "pdf");
   }
 
   async importReceived(authCtx: AuthContext, ref: string) {
-    const rawString = await this.focusNfe.searchReceived(
-      ref,
-      this.getToken(authCtx.unit),
-      "xml",
-    );
+    const rawString = await this.focusNfe.searchReceived(ref, this.getToken(authCtx.unit), "xml");
 
     const receiptXml = await ReceiptXml.create({
       economic_group_id: authCtx.group.id,
@@ -2046,21 +1824,15 @@ export default class BusinessUnitFiscalDocumentService {
     env: string,
   ) {
     const urlPrefix =
-      env === "P"
-        ? "https://api.focusnfe.com.br"
-        : "https://homologacao.focusnfe.com.br";
+      env === "P" ? "https://api.focusnfe.com.br" : "https://homologacao.focusnfe.com.br";
 
     return document.merge({
-      sefazStatus:
-        document.sefazStatus === "Inutilizado"
-          ? document.sefazStatus
-          : data.status,
+      sefazStatus: document.sefazStatus === "Inutilizado" ? document.sefazStatus : data.status,
       sefazStatusCode: data.status_sefaz,
       sefazMessage: data.protocolo_cancelamento
-        ? [
-          data.protocolo_cancelamento.descricao_evento,
-          data.protocolo_cancelamento.motivo,
-        ].join(" - ")
+        ? [data.protocolo_cancelamento.descricao_evento, data.protocolo_cancelamento.motivo].join(
+            " - ",
+          )
         : data.mensagem_sefaz,
       accessKey: data.chave_nfe,
       authorizationXmlPath: [urlPrefix, data.caminho_xml_nota_fiscal].join(""),
@@ -2092,10 +1864,8 @@ export default class BusinessUnitFiscalDocumentService {
       verificationCode: data.codigo_verificacao,
       // @ts-expect-error json asd
       errors: JSON.stringify(data.erros),
-      authorizationDate:
-        data.status === "autorizado" ? DateTime.now() : undefined,
-      cancellationDate:
-        data.status === "cancelado" ? DateTime.now() : undefined,
+      authorizationDate: data.status === "autorizado" ? DateTime.now() : undefined,
+      cancellationDate: data.status === "cancelado" ? DateTime.now() : undefined,
       mirrorPath: data.url,
       authorizationPdfPath: data.url_danfse,
       authorizationXmlPath: data.caminho_xml_nota_fiscal,
@@ -2103,10 +1873,7 @@ export default class BusinessUnitFiscalDocumentService {
   }
 
   private getToken(unit: BusinessUnit) {
-    if (
-      !unit.unitConfig?.focusHomologationToken &&
-      !unit.unitConfig?.focusProductionToken
-    ) {
+    if (!unit.unitConfig?.focusHomologationToken && !unit.unitConfig?.focusProductionToken) {
       throw new BadRequestException(
         "Não foi possível autorizar a nota fiscal, pois a unidade não possui um token de acesso ao FocusNFe",
       );
@@ -2117,16 +1884,7 @@ export default class BusinessUnitFiscalDocumentService {
       : unit.unitConfig.focusProductionToken;
   }
 
-  static ICMS_CEST_VALUES = [
-    "10",
-    "30",
-    "60",
-    "70",
-    "201",
-    "202",
-    "203",
-    "500",
-  ];
+  static ICMS_CEST_VALUES = ["10", "30", "60", "70", "201", "202", "203", "500"];
 
   // private async calculateCest(item: BillItem) {
   // 	if (

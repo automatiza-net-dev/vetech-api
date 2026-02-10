@@ -5,12 +5,12 @@ import {
   belongsTo,
   BelongsTo,
   column,
-} from '@ioc:Adonis/Lucid/Orm';
-import EconomicGroup from 'App/Models/EconomicGroup';
-import { MovementCategory, MovementType } from 'App/Models/TaxationGroupRule';
-import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
-import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
+} from "@ioc:Adonis/Lucid/Orm";
+import EconomicGroup from "App/Models/EconomicGroup";
+import { MovementCategory, MovementType } from "App/Models/TaxationGroupRule";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import { DateTime } from "luxon";
+import { v4 } from "uuid";
 
 export default class TaxOperation extends BaseModel {
   @column({ isPrimary: true })
@@ -23,22 +23,22 @@ export default class TaxOperation extends BaseModel {
   public description: string;
 
   @column({
-    columnName: 'movement_type',
+    columnName: "movement_type",
   })
   public movementType: MovementType;
 
   @column({
-    columnName: 'movement_category',
+    columnName: "movement_category",
   })
   public movementCategory: MovementCategory;
 
   @column({
-    columnName: 'generates_financial',
+    columnName: "generates_financial",
   })
   public generatesFinancial: boolean;
 
   @column({
-    columnName: 'accounting_result',
+    columnName: "accounting_result",
   })
   public accountingResult: boolean;
 
@@ -70,7 +70,7 @@ export default class TaxOperation extends BaseModel {
   public economic_group_id: string;
 
   @belongsTo(() => EconomicGroup, {
-    foreignKey: 'economic_group_id',
+    foreignKey: "economic_group_id",
   })
   public economicGroup: BelongsTo<typeof EconomicGroup>;
 }

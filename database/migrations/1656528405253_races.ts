@@ -1,18 +1,18 @@
-import BaseSchema from '@ioc:Adonis/Lucid/Schema';
+import BaseSchema from "@ioc:Adonis/Lucid/Schema";
 
 export default class extends BaseSchema {
-  protected tableName = 'races';
+  protected tableName = "races";
 
   public async up() {
-    this.schema.createTable(this.tableName, table => {
-      table.uuid('id').primary();
+    this.schema.createTable(this.tableName, (table) => {
+      table.uuid("id").primary();
 
-      table.string('description');
-      table.uuid('specie_id').references('species.id');
+      table.string("description");
+      table.uuid("specie_id").references("species.id");
 
-      table.timestamp('created_at', { useTz: true });
-      table.timestamp('updated_at', { useTz: true });
-      table.dateTime('deleted_at').defaultTo(null);
+      table.timestamp("created_at", { useTz: true });
+      table.timestamp("updated_at", { useTz: true });
+      table.dateTime("deleted_at").defaultTo(null);
     });
   }
 

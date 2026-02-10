@@ -53,9 +53,9 @@ export interface ICreateBillPaymentData {
   paymentMethodFlagInstallmentId?: number;
   budgetPaymentId?: number;
 
-  clientCreditId?: number
-  chunkOfBills?: string[]
-  creditOverflow?: boolean
+  clientCreditId?: number;
+  chunkOfBills?: string[];
+  creditOverflow?: boolean;
 
   maxParcelas?: boolean;
   expirationDate: DateTime;

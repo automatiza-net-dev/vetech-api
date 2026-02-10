@@ -1,5 +1,5 @@
-import { schema, CustomMessages, rules } from '@ioc:Adonis/Core/Validator';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
+import { schema, CustomMessages, rules } from "@ioc:Adonis/Core/Validator";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 
 export default class UpdatePaymentExpirationValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -26,9 +26,7 @@ export default class UpdatePaymentExpirationValidator {
   public schema = schema.create({
     items: schema.array().members(
       schema.object().members({
-        billPaymentId: schema.string([
-          rules.exists({ table: 'bill_payments', column: 'id' }),
-        ]),
+        billPaymentId: schema.string([rules.exists({ table: "bill_payments", column: "id" })]),
         expirationDate: schema.date(),
       }),
     ),

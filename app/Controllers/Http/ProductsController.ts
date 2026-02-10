@@ -8,85 +8,73 @@ import UpdateProductValidator from "App/Validators/Product/UpdateProductValidato
 
 @inject()
 export default class ProductsController {
-	constructor(
-		private readonly service: ProductService,
-		private readonly sharedService: SharedService,
-	) {}
+  constructor(
+    private readonly service: ProductService,
+    private readonly sharedService: SharedService,
+  ) {}
 
-	public async forMovements({ auth, request, response }: HttpContextContract) {
-		const result = await this.service.forMovement(
-			await this.sharedService.getAuthContext(auth),
-			request.qs(),
-		);
+  public async forMovements({ auth, request, response }: HttpContextContract) {
+    const result = await this.service.forMovement(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
 
-		return response.ok(result);
-	}
+    return response.ok(result);
+  }
 
-	public async index({ auth, request, response }: HttpContextContract) {
-		const result = await this.service.index(
-			await this.sharedService.getAuthContext(auth),
-			request.qs(),
-		);
+  public async index({ auth, request, response }: HttpContextContract) {
+    const result = await this.service.index(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
 
-		return response.ok(result);
-	}
+    return response.ok(result);
+  }
 
-	public async show({ auth, params, response }: HttpContextContract) {
-		const result = await this.service.show(
-			await this.sharedService.getAuthContext(auth),
-			params.id,
-		);
+  public async show({ auth, params, response }: HttpContextContract) {
+    const result = await this.service.show(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
 
-		return response.ok(result);
-	}
+    return response.ok(result);
+  }
 
-	public async store({ auth, request, response }: HttpContextContract) {
-		const payload = await request.validate(CreateProductValidator);
-		const { unit_id } = this.sharedService.extractUser(auth);
+  public async store({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(CreateProductValidator);
+    const { unit_id } = this.sharedService.extractUser(auth);
 
-		const result = await this.service.store(unit_id, payload);
+    const result = await this.service.store(unit_id, payload);
 
-		return response.created(result);
-	}
+    return response.created(result);
+  }
 
-	public async update({
-		auth,
-		params,
-		request,
-		response,
-	}: HttpContextContract) {
-		const payload = await request.validate(UpdateProductValidator);
+  public async update({ auth, params, request, response }: HttpContextContract) {
+    const payload = await request.validate(UpdateProductValidator);
 
-		const result = await this.service.update(
-			await this.sharedService.getAuthContext(auth),
-			params.id,
-			payload,
-		);
+    const result = await this.service.update(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+      payload,
+    );
 
-		return response.ok(result);
-	}
+    return response.ok(result);
+  }
 
-	public async calculateStock({
-		auth,
-		request,
-		response,
-	}: HttpContextContract) {
-		const payload = await request.validate(CalculateStockValidator);
+  public async calculateStock({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(CalculateStockValidator);
 
-		const result = await this.service.calculateStock(
-			await this.sharedService.getAuthContext(auth),
-			payload,
-		);
+    const result = await this.service.calculateStock(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
 
-		return response.ok(result);
-	}
+    return response.ok(result);
+  }
 
-	public async destroy({ auth, params, response }: HttpContextContract) {
-		await this.service.destroy(
-			await this.sharedService.getAuthContext(auth),
-			params.id,
-		);
+  public async destroy({ auth, params, response }: HttpContextContract) {
+    await this.service.destroy(await this.sharedService.getAuthContext(auth), params.id);
 
-		return response.noContent();
-	}
+    return response.noContent();
+  }
 }

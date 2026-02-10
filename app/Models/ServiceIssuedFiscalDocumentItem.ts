@@ -5,34 +5,34 @@ import Bill from "./Bill";
 import BillItem from "./BillItem";
 
 export default class ServiceIssuedFiscalDocumentItem extends BaseModel {
-	@column({ isPrimary: true })
-	public id: number;
+  @column({ isPrimary: true })
+  public id: number;
 
-	@column.dateTime({ autoCreate: true })
-	public createdAt: DateTime;
+  @column.dateTime({ autoCreate: true })
+  public createdAt: DateTime;
 
-	@column({
-		serializeAs: null,
-	})
-	public service_issued_fiscal_document_id: string;
+  @column({
+    serializeAs: null,
+  })
+  public service_issued_fiscal_document_id: string;
 
-	@belongsTo(() => ServiceIssuedFiscalDocument, {
-		foreignKey: "service_issued_fiscal_document_id",
-	})
-	public service: BelongsTo<typeof ServiceIssuedFiscalDocument>;
+  @belongsTo(() => ServiceIssuedFiscalDocument, {
+    foreignKey: "service_issued_fiscal_document_id",
+  })
+  public service: BelongsTo<typeof ServiceIssuedFiscalDocument>;
 
-	@column({
-		serializeAs: null,
-	})
-	public bill_item_id: string;
+  @column({
+    serializeAs: null,
+  })
+  public bill_item_id: string;
 
-	@belongsTo(() => Bill, {
-		foreignKey: "bill_item_id",
-	})
-	public bill: BelongsTo<typeof Bill>;
+  @belongsTo(() => Bill, {
+    foreignKey: "bill_item_id",
+  })
+  public bill: BelongsTo<typeof Bill>;
 
-	@belongsTo(() => BillItem, {
-		foreignKey: "bill_item_id",
-	})
-	public billItem: BelongsTo<typeof BillItem>;
+  @belongsTo(() => BillItem, {
+    foreignKey: "bill_item_id",
+  })
+  public billItem: BelongsTo<typeof BillItem>;
 }

@@ -1,17 +1,17 @@
 import BaseSchema from "@ioc:Adonis/Lucid/Schema";
 
 export default class extends BaseSchema {
-	protected tableName = "systems";
+  protected tableName = "systems";
 
-	public async up() {
-		this.schema.alterTable(this.tableName, (table) => {
-			table.string("type", 10).defaultTo("Clinica");
-		});
-	}
+  public async up() {
+    this.schema.alterTable(this.tableName, (table) => {
+      table.string("type", 10).defaultTo("Clinica");
+    });
+  }
 
-	public async down() {
-		this.schema.alterTable(this.tableName, (table) => {
-			table.dropColumn("type");
-		});
-	}
+  public async down() {
+    this.schema.alterTable(this.tableName, (table) => {
+      table.dropColumn("type");
+    });
+  }
 }

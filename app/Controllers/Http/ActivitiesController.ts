@@ -1,9 +1,9 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import ActivityService from 'App/Services/ActivityService';
-import SharedService from 'App/Services/SharedService';
-import CreateActivityValidator from 'App/Validators/Activity/CreateActivityValidator';
-import UpdateActivityValidator from 'App/Validators/Activity/UpdateActivityValidator';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import ActivityService from "App/Services/ActivityService";
+import SharedService from "App/Services/SharedService";
+import CreateActivityValidator from "App/Validators/Activity/CreateActivityValidator";
+import UpdateActivityValidator from "App/Validators/Activity/UpdateActivityValidator";
 
 @inject()
 export default class ActivitysController {
@@ -15,13 +15,10 @@ export default class ActivitysController {
   async index({ auth, request, response }: HttpContextContract) {
     const qs = request.qs();
 
-    const result = await this.service.index(
-      await this.sharedService.getAuthContext(auth),
-      {
-        description: qs.description,
-        active: qs.active,
-      },
-    );
+    const result = await this.service.index(await this.sharedService.getAuthContext(auth), {
+      description: qs.description,
+      active: qs.active,
+    });
 
     return response.ok(result);
   }
@@ -38,10 +35,7 @@ export default class ActivitysController {
   async store({ auth, request, response }: HttpContextContract) {
     const payload = await request.validate(CreateActivityValidator);
 
-    await this.service.store(
-      await this.sharedService.getAuthContext(auth),
-      payload,
-    );
+    await this.service.store(await this.sharedService.getAuthContext(auth), payload);
 
     return response.created();
   }
@@ -49,20 +43,13 @@ export default class ActivitysController {
   async update({ auth, params, request, response }: HttpContextContract) {
     const payload = await request.validate(UpdateActivityValidator);
 
-    await this.service.update(
-      await this.sharedService.getAuthContext(auth),
-      params.id,
-      payload,
-    );
+    await this.service.update(await this.sharedService.getAuthContext(auth), params.id, payload);
 
     return response.noContent();
   }
 
   async destroy({ auth, params, response }: HttpContextContract) {
-    await this.service.delete(
-      await this.sharedService.getAuthContext(auth),
-      params.id,
-    );
+    await this.service.delete(await this.sharedService.getAuthContext(auth), params.id);
 
     return response.noContent();
   }

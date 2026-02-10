@@ -1,10 +1,5 @@
 import { DateTime } from "luxon";
-import {
-  BaseModel,
-  beforeFetch,
-  beforeFind,
-  column,
-} from "@ioc:Adonis/Lucid/Orm";
+import { BaseModel, beforeFetch, beforeFind, column } from "@ioc:Adonis/Lucid/Orm";
 import { softDeleteQuery } from "App/Services/SoftDelete";
 import Decimal from "decimal.js";
 

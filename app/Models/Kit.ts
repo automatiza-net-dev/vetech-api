@@ -1,6 +1,6 @@
-import { BaseModel, HasMany, column, hasMany } from '@ioc:Adonis/Lucid/Orm';
-import KitItem from 'App/Models/KitItem';
-import { DateTime } from 'luxon';
+import { BaseModel, HasMany, column, hasMany } from "@ioc:Adonis/Lucid/Orm";
+import KitItem from "App/Models/KitItem";
+import { DateTime } from "luxon";
 
 export default class Kit extends BaseModel {
   @column({ isPrimary: true })
@@ -10,12 +10,12 @@ export default class Kit extends BaseModel {
   public description: string;
 
   @column.dateTime({
-    columnName: 'from_expiration',
+    columnName: "from_expiration",
   })
   public fromExpiration: DateTime;
 
   @column.dateTime({
-    columnName: 'to_expiration',
+    columnName: "to_expiration",
   })
   public toExpiration: DateTime;
 
@@ -34,7 +34,7 @@ export default class Kit extends BaseModel {
   public economic_group_id: string;
 
   @hasMany(() => KitItem, {
-    foreignKey: 'kit_id',
+    foreignKey: "kit_id",
   })
   public items: HasMany<typeof KitItem>;
 }

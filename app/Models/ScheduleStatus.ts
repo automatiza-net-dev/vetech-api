@@ -1,12 +1,12 @@
 import {
-	BaseModel,
-	beforeFetch,
-	beforeFind,
-	BelongsTo,
-	belongsTo,
-	column,
-	HasMany,
-	hasMany,
+  BaseModel,
+  beforeFetch,
+  beforeFind,
+  BelongsTo,
+  belongsTo,
+  column,
+  HasMany,
+  hasMany,
 } from "@ioc:Adonis/Lucid/Orm";
 import EconomicGroup from "App/Models/EconomicGroup";
 import Schedule from "App/Models/Schedule";
@@ -26,80 +26,80 @@ export const SS_ON_NOTE = "3aad3eec-4cb0-4295-9840-5c584cb1040d";
 export const SS_LATE = "e5fbc62e-9f66-428c-ba05-1ecf6a0fb388";
 
 export const ScheduleStatusTypes = [
-	"AC",
-	"AN",
-	"CANC",
-	"FIN",
-	"ATR",
-	"ATEND",
-	"CIR",
-	"OBS",
-	"INT",
-	"REC",
-	"FAL",
+  "AC",
+  "AN",
+  "CANC",
+  "FIN",
+  "ATR",
+  "ATEND",
+  "CIR",
+  "OBS",
+  "INT",
+  "REC",
+  "FAL",
 ] as const;
 export type ScheduleStatusType = (typeof ScheduleStatusTypes)[number];
 
 export const VALID_CHANGES = {
-	AN: ["AC", "REC", "ATR", "CANC", "FAL"],
-	AC: ["REC", "CIR", "CANC", "ATR", "FAL"],
-	REC: ["ATEND", "CIR", "INT", "OBS", "CANC"],
-	ATEND: ["FIN", "CIR", "INT", "OBS"],
-	CIR: ["FIN", "INT", "OBS"],
-	INT: ["FIN", "OBS", "CIR"],
-	OBS: ["FIN", "CIR", "INT"],
-	ATR: ["REC", "ATEND", "CIR", "INT", "OBS", "CANC", "FAL"],
-	FAL: ["CANC"],
-	CANC: [],
-	FIN: [],
+  AN: ["AC", "REC", "ATR", "CANC", "FAL"],
+  AC: ["REC", "CIR", "CANC", "ATR", "FAL"],
+  REC: ["ATEND", "CIR", "INT", "OBS", "CANC"],
+  ATEND: ["FIN", "CIR", "INT", "OBS"],
+  CIR: ["FIN", "INT", "OBS"],
+  INT: ["FIN", "OBS", "CIR"],
+  OBS: ["FIN", "CIR", "INT"],
+  ATR: ["REC", "ATEND", "CIR", "INT", "OBS", "CANC", "FAL"],
+  FAL: ["CANC"],
+  CANC: [],
+  FIN: [],
 } as const;
 
 export default class ScheduleStatus extends BaseModel {
-	@column({ isPrimary: true })
-	public id: string = v4();
+  @column({ isPrimary: true })
+  public id: string = v4();
 
-	@column()
-	public description: string;
+  @column()
+  public description: string;
 
-	@column()
-	public color: string;
+  @column()
+  public color: string;
 
-	@column()
-	public type: ScheduleStatusType;
+  @column()
+  public type: ScheduleStatusType;
 
-	@column.dateTime({ autoCreate: true })
-	public createdAt: DateTime;
+  @column.dateTime({ autoCreate: true })
+  public createdAt: DateTime;
 
-	@column.dateTime({ autoCreate: true, autoUpdate: true })
-	public updatedAt: DateTime;
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  public updatedAt: DateTime;
 
-	@column.dateTime({ serializeAs: null })
-	public deletedAt: DateTime;
+  @column.dateTime({ serializeAs: null })
+  public deletedAt: DateTime;
 
-	@beforeFind()
-	public static softDeletesFind = softDeleteQuery;
+  @beforeFind()
+  public static softDeletesFind = softDeleteQuery;
 
-	@beforeFetch()
-	public static softDeletesFetch = softDeleteQuery;
+  @beforeFetch()
+  public static softDeletesFetch = softDeleteQuery;
 
-	public async softDelete(column?: string) {
-		await softDelete(this, column);
-	}
+  public async softDelete(column?: string) {
+    await softDelete(this, column);
+  }
 
-	@column({
-		serializeAs: null,
-	})
-	public system_id: number;
+  @column({
+    serializeAs: null,
+  })
+  public system_id: number;
 
-	@column()
-	public economic_group_id?: string;
+  @column()
+  public economic_group_id?: string;
 
-	@belongsTo(() => EconomicGroup)
-	public economicGroup: BelongsTo<typeof EconomicGroup>;
+  @belongsTo(() => EconomicGroup)
+  public economicGroup: BelongsTo<typeof EconomicGroup>;
 
-	@hasMany(() => Schedule, {
-		localKey: "id",
-		foreignKey: "schedule_status_id",
-	})
-	public schedules: HasMany<typeof Schedule>;
+  @hasMany(() => Schedule, {
+    localKey: "id",
+    foreignKey: "schedule_status_id",
+  })
+  public schedules: HasMany<typeof Schedule>;
 }

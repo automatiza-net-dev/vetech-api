@@ -7,12 +7,12 @@ import {
   column,
   HasMany,
   hasMany,
-} from '@ioc:Adonis/Lucid/Orm';
-import EconomicGroup from 'App/Models/EconomicGroup';
-import TaxationGroupRule from 'App/Models/TaxationGroupRule';
-import { softDelete, softDeleteQuery } from 'App/Services/SoftDelete';
-import { DateTime } from 'luxon';
-import { v4 } from 'uuid';
+} from "@ioc:Adonis/Lucid/Orm";
+import EconomicGroup from "App/Models/EconomicGroup";
+import TaxationGroupRule from "App/Models/TaxationGroupRule";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import { DateTime } from "luxon";
+import { v4 } from "uuid";
 
 export default class TaxationGroup extends BaseModel {
   @column({ isPrimary: true })
@@ -25,7 +25,7 @@ export default class TaxationGroup extends BaseModel {
   public active: boolean;
 
   @column()
-  public type: 'product' | 'service' | null;
+  public type: "product" | "service" | null;
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime;
@@ -52,12 +52,12 @@ export default class TaxationGroup extends BaseModel {
   public economic_group_id: string;
 
   @belongsTo(() => EconomicGroup, {
-    foreignKey: 'economic_group_id',
+    foreignKey: "economic_group_id",
   })
   public economicGroup: BelongsTo<typeof EconomicGroup>;
 
   @hasMany(() => TaxationGroupRule, {
-    foreignKey: 'taxation_group_id',
+    foreignKey: "taxation_group_id",
   })
   public rules: HasMany<typeof TaxationGroupRule>;
 }

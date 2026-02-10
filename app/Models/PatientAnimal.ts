@@ -1,11 +1,11 @@
 import {
-	BaseModel,
-	beforeFetch,
-	beforeFind,
-	BelongsTo,
-	belongsTo,
-	column,
-	computed,
+  BaseModel,
+  beforeFetch,
+  beforeFind,
+  BelongsTo,
+  belongsTo,
+  column,
+  computed,
 } from "@ioc:Adonis/Lucid/Orm";
 import Patient from "App/Models/Patient";
 import PatientAnimalHair from "App/Models/PatientAnimalHair";
@@ -15,78 +15,78 @@ import { DateTime } from "luxon";
 import { v4 } from "uuid";
 
 export default class PatientAnimal extends BaseModel {
-	@column({ isPrimary: true })
-	public id: string = v4();
+  @column({ isPrimary: true })
+  public id: string = v4();
 
-	@column()
-	public castrated: boolean;
+  @column()
+  public castrated: boolean;
 
-	@column()
-	public death: boolean;
+  @column()
+  public death: boolean;
 
-	@column.dateTime({
-		columnName: "death_date",
-		serializeAs: "deathDate",
-	})
-	public deathDate?: DateTime;
+  @column.dateTime({
+    columnName: "death_date",
+    serializeAs: "deathDate",
+  })
+  public deathDate?: DateTime;
 
-	@computed()
-	public get death_date() {
-		return this.deathDate;
-	}
+  @computed()
+  public get death_date() {
+    return this.deathDate;
+  }
 
-	@column()
-	public microchip: string;
+  @column()
+  public microchip: string;
 
-	@column.dateTime({ autoCreate: true })
-	public createdAt: DateTime;
+  @column.dateTime({ autoCreate: true })
+  public createdAt: DateTime;
 
-	@column.dateTime({ autoCreate: true, autoUpdate: true })
-	public updatedAt: DateTime;
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  public updatedAt: DateTime;
 
-	@column.dateTime({ serializeAs: null })
-	public deletedAt: DateTime;
+  @column.dateTime({ serializeAs: null })
+  public deletedAt: DateTime;
 
-	@beforeFind()
-	public static softDeletesFind = softDeleteQuery;
+  @beforeFind()
+  public static softDeletesFind = softDeleteQuery;
 
-	@beforeFetch()
-	public static softDeletesFetch = softDeleteQuery;
+  @beforeFetch()
+  public static softDeletesFetch = softDeleteQuery;
 
-	public async softDelete(column?: string) {
-		await softDelete(this, column);
-	}
+  public async softDelete(column?: string) {
+    await softDelete(this, column);
+  }
 
-	@column({
-		serializeAs: null,
-	})
-	public patient_id: string;
+  @column({
+    serializeAs: null,
+  })
+  public patient_id: string;
 
-	@belongsTo(() => Patient, {
-		localKey: "id",
-		foreignKey: "patient_id",
-	})
-	public patient: BelongsTo<typeof Patient>;
+  @belongsTo(() => Patient, {
+    localKey: "id",
+    foreignKey: "patient_id",
+  })
+  public patient: BelongsTo<typeof Patient>;
 
-	@column({
-		serializeAs: null,
-	})
-	public race_id: string;
+  @column({
+    serializeAs: null,
+  })
+  public race_id: string;
 
-	@belongsTo(() => Race, {
-		localKey: "id",
-		foreignKey: "race_id",
-	})
-	public race: BelongsTo<typeof Race>;
+  @belongsTo(() => Race, {
+    localKey: "id",
+    foreignKey: "race_id",
+  })
+  public race: BelongsTo<typeof Race>;
 
-	@column({
-		serializeAs: null,
-	})
-	public hair_id: string;
+  @column({
+    serializeAs: null,
+  })
+  public hair_id: string;
 
-	@belongsTo(() => PatientAnimalHair, {
-		localKey: "id",
-		foreignKey: "hair_id",
-	})
-	public hair: BelongsTo<typeof PatientAnimalHair>;
+  @belongsTo(() => PatientAnimalHair, {
+    localKey: "id",
+    foreignKey: "hair_id",
+  })
+  public hair: BelongsTo<typeof PatientAnimalHair>;
 }

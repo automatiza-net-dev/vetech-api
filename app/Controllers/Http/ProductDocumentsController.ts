@@ -8,76 +8,56 @@ import PrintDocumentValidator from "App/Validators/ProductDocument/PrintDocument
 
 @inject()
 export default class ProductDocumentsController {
-	constructor(
-		private sharedService: SharedService,
-		private service: ProductDocumentService,
-	) {}
+  constructor(
+    private sharedService: SharedService,
+    private service: ProductDocumentService,
+  ) {}
 
-	public async index({ request, response, auth }: HttpContextContract) {
-		const result = await this.service.index(
-			await this.sharedService.getAuthContext(auth),
-			request.qs(),
-		);
+  public async index({ request, response, auth }: HttpContextContract) {
+    const result = await this.service.index(
+      await this.sharedService.getAuthContext(auth),
+      request.qs(),
+    );
 
-		return response.ok(result);
-	}
+    return response.ok(result);
+  }
 
-	public async documentsFromBill({
-		request,
-		response,
-		auth,
-	}: HttpContextContract) {
-		const result = await this.service.documentsFromBill(
-			await this.sharedService.getAuthContext(auth),
-			request.param("bill", "invalid"),
-		);
+  public async documentsFromBill({ request, response, auth }: HttpContextContract) {
+    const result = await this.service.documentsFromBill(
+      await this.sharedService.getAuthContext(auth),
+      request.param("bill", "invalid"),
+    );
 
-		return response.ok(result);
-	}
+    return response.ok(result);
+  }
 
-	public async store({ request, response, auth }: HttpContextContract) {
-		const payload = await request.validate(CreateProductDocumentValidator);
+  public async store({ request, response, auth }: HttpContextContract) {
+    const payload = await request.validate(CreateProductDocumentValidator);
 
-		const result = await this.service.store(
-			await this.sharedService.getAuthContext(auth),
-			payload,
-		);
+    const result = await this.service.store(await this.sharedService.getAuthContext(auth), payload);
 
-		return response.ok(result);
-	}
+    return response.ok(result);
+  }
 
-	public async generateDocuments({
-		request,
-		response,
-		auth,
-	}: HttpContextContract) {
-		const payload = await request.validate(GenerateDocumentValidator);
+  public async generateDocuments({ request, response, auth }: HttpContextContract) {
+    const payload = await request.validate(GenerateDocumentValidator);
 
-		await this.service.generateDocuments(
-			await this.sharedService.getAuthContext(auth),
-			payload,
-		);
+    await this.service.generateDocuments(await this.sharedService.getAuthContext(auth), payload);
 
-		return response.created();
-	}
+    return response.created();
+  }
 
-	public async printDocument({ request, response, auth }: HttpContextContract) {
-		const payload = await request.validate(PrintDocumentValidator);
+  public async printDocument({ request, response, auth }: HttpContextContract) {
+    const payload = await request.validate(PrintDocumentValidator);
 
-		await this.service.printDocument(
-			await this.sharedService.getAuthContext(auth),
-			payload,
-		);
+    await this.service.printDocument(await this.sharedService.getAuthContext(auth), payload);
 
-		return response.ok(null);
-	}
+    return response.ok(null);
+  }
 
-	public async destroy({ request, response, auth }: HttpContextContract) {
-		await this.service.destroy(
-			await this.sharedService.getAuthContext(auth),
-			request.param("id"),
-		);
+  public async destroy({ request, response, auth }: HttpContextContract) {
+    await this.service.destroy(await this.sharedService.getAuthContext(auth), request.param("id"));
 
-		return response.noContent();
-	}
+    return response.noContent();
+  }
 }

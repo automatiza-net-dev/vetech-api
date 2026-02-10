@@ -2,9 +2,9 @@ import { schema, CustomMessages, rules } from "@ioc:Adonis/Core/Validator";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 
 export default class CreateDreGroupPlanningValidator {
-	constructor(protected ctx: HttpContextContract) {}
+  constructor(protected ctx: HttpContextContract) {}
 
-	/*
+  /*
    * Define schema to validate the "shape", "type", "formatting" and "integrity" of data.
    *
    * For example:
@@ -29,31 +29,31 @@ export default class CreateDreGroupPlanningValidator {
 				cost: number;
 			}[];
    */
-	public schema = schema.create({
-		period: schema.string(),
-		accountPlans: schema.array().members(
-			schema.object().members({
-				accountPlanId: schema.string([
-					rules.exists({
-						table: "account_plans",
-						column: "id",
-					}),
-				]),
-				cost: schema.number(),
-			}),
-		),
-	});
+  public schema = schema.create({
+    period: schema.string(),
+    accountPlans: schema.array().members(
+      schema.object().members({
+        accountPlanId: schema.string([
+          rules.exists({
+            table: "account_plans",
+            column: "id",
+          }),
+        ]),
+        cost: schema.number(),
+      }),
+    ),
+  });
 
-	/**
-	 * Custom messages for validation failures. You can make use of dot notation `(.)`
-	 * for targeting nested fields and array expressions `(*)` for targeting all
-	 * children of an array. For example:
-	 *
-	 * {
-	 *   'profile.username.required': 'Username is required',
-	 *   'scores.*.number': 'Define scores as valid numbers'
-	 * }
-	 *
-	 */
-	public messages: CustomMessages = {};
+  /**
+   * Custom messages for validation failures. You can make use of dot notation `(.)`
+   * for targeting nested fields and array expressions `(*)` for targeting all
+   * children of an array. For example:
+   *
+   * {
+   *   'profile.username.required': 'Username is required',
+   *   'scores.*.number': 'Define scores as valid numbers'
+   * }
+   *
+   */
+  public messages: CustomMessages = {};
 }

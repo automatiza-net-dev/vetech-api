@@ -1,17 +1,17 @@
-import BaseSchema from '@ioc:Adonis/Lucid/Schema';
+import BaseSchema from "@ioc:Adonis/Lucid/Schema";
 
 export default class extends BaseSchema {
-  protected tableName = 'daily_cashier_logs';
+  protected tableName = "daily_cashier_logs";
 
   public async up() {
-    this.schema.alterTable(this.tableName, table => {
-      table.integer('tag');
+    this.schema.alterTable(this.tableName, (table) => {
+      table.integer("tag");
     });
   }
 
   public async down() {
-    this.schema.alterTable(this.tableName, table => {
-      table.dropColumn('tag');
+    this.schema.alterTable(this.tableName, (table) => {
+      table.dropColumn("tag");
     });
   }
 }

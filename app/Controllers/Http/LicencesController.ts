@@ -1,8 +1,8 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import LicenceService from 'App/Services/LicenceService';
-import AdditionalTrialValidator from 'App/Validators/Licence/AdditionalTrialValidator';
-import CreateLicenceValidator from 'App/Validators/Licence/CreateLicenceValidator';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import LicenceService from "App/Services/LicenceService";
+import AdditionalTrialValidator from "App/Validators/Licence/AdditionalTrialValidator";
+import CreateLicenceValidator from "App/Validators/Licence/CreateLicenceValidator";
 
 @inject()
 export default class LicencesController {

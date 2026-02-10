@@ -8,66 +8,61 @@ import UpdateWorkingDayValidator from "App/Validators/WorkingDay/UpdateWorkingDa
 
 @inject()
 export default class WorkingDaysController {
-	constructor(
-		private readonly service: WorkingDayService,
-		private readonly sharedService: SharedService,
-	) {}
+  constructor(
+    private readonly service: WorkingDayService,
+    private readonly sharedService: SharedService,
+  ) {}
 
-	public async index({ auth, request, response }: HttpContextContract) {
-		const { unit_id } = this.sharedService.extractUser(auth);
+  public async index({ auth, request, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
 
-		const qs = request.qs();
+    const qs = request.qs();
 
-		const data = await this.service.index(unit_id, qs.user);
+    const data = await this.service.index(unit_id, qs.user);
 
-		return response.ok(data);
-	}
+    return response.ok(data);
+  }
 
-	public async show({ auth, params, response }: HttpContextContract) {
-		const { unit_id } = this.sharedService.extractUser(auth);
+  public async show({ auth, params, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
 
-		const data = await this.service.show(unit_id, params.id);
+    const data = await this.service.show(unit_id, params.id);
 
-		return response.ok(data);
-	}
+    return response.ok(data);
+  }
 
-	public async store({ auth, request, response }: HttpContextContract) {
-		const payload = await request.validate(CreateWorkingDayValidator);
-		const { unit_id } = this.sharedService.extractUser(auth);
+  public async store({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(CreateWorkingDayValidator);
+    const { unit_id } = this.sharedService.extractUser(auth);
 
-		const data = await this.service.store(unit_id, payload);
+    const data = await this.service.store(unit_id, payload);
 
-		return response.created(data);
-	}
+    return response.created(data);
+  }
 
-	public async storeMany({ auth, request, response }: HttpContextContract) {
-		const payload = await request.validate(CreateManyWorkingDayValidator);
-		const { unit_id } = this.sharedService.extractUser(auth);
+  public async storeMany({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(CreateManyWorkingDayValidator);
+    const { unit_id } = this.sharedService.extractUser(auth);
 
-		const data = await this.service.storeMany(unit_id, payload);
+    const data = await this.service.storeMany(unit_id, payload);
 
-		return response.created(data);
-	}
+    return response.created(data);
+  }
 
-	public async update({
-		auth,
-		params,
-		request,
-		response,
-	}: HttpContextContract) {
-		const payload = await request.validate(UpdateWorkingDayValidator);
-		const { unit_id } = this.sharedService.extractUser(auth);
+  public async update({ auth, params, request, response }: HttpContextContract) {
+    const payload = await request.validate(UpdateWorkingDayValidator);
+    const { unit_id } = this.sharedService.extractUser(auth);
 
-		const data = await this.service.update(unit_id, params.id, payload);
+    const data = await this.service.update(unit_id, params.id, payload);
 
-		return response.ok(data);
-	}
+    return response.ok(data);
+  }
 
-	public async destroy({ auth, params, response }: HttpContextContract) {
-		const { unit_id } = this.sharedService.extractUser(auth);
+  public async destroy({ auth, params, response }: HttpContextContract) {
+    const { unit_id } = this.sharedService.extractUser(auth);
 
-		await this.service.destroy(unit_id, params.id);
+    await this.service.destroy(unit_id, params.id);
 
-		return response.noContent();
-	}
+    return response.noContent();
+  }
 }

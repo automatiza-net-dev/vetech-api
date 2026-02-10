@@ -1,9 +1,9 @@
-import { inject } from '@adonisjs/fold';
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext';
-import AccountPlanGroupService from 'App/Services/AccountPlanGroupService';
-import SharedService from 'App/Services/SharedService';
-import CreateAccountPlanGroupValidator from 'App/Validators/AccountPlanGroup/CreateAccountPlanGroupValidator';
-import UpdateAccountPlanGroupValidator from 'App/Validators/AccountPlanGroup/UpdateAccountPlanGroupValidator';
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
+import AccountPlanGroupService from "App/Services/AccountPlanGroupService";
+import SharedService from "App/Services/SharedService";
+import CreateAccountPlanGroupValidator from "App/Validators/AccountPlanGroup/CreateAccountPlanGroupValidator";
+import UpdateAccountPlanGroupValidator from "App/Validators/AccountPlanGroup/UpdateAccountPlanGroupValidator";
 
 @inject()
 export default class AccountPlanGroupsController {
@@ -35,17 +35,12 @@ export default class AccountPlanGroupsController {
 
   public async show({ auth, request, response }: HttpContextContract) {
     const authCtx = await this.sharedService.getAuthContext(auth);
-    const data = await this.service.show(authCtx, request.param('id'));
+    const data = await this.service.show(authCtx, request.param("id"));
 
     return response.ok(data);
   }
 
-  public async update({
-    auth,
-    params,
-    request,
-    response,
-  }: HttpContextContract) {
+  public async update({ auth, params, request, response }: HttpContextContract) {
     const payload = await request.validate(UpdateAccountPlanGroupValidator);
     const authCtx = await this.sharedService.getAuthContext(auth);
 

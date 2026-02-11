@@ -1876,7 +1876,7 @@ where deposit_id = ?
     const rows: { total_value: string }[] = await Database.from("client_credits")
       .select(Database.raw("sum(original_value - used_value) as total_value"))
       .where("client_id", tutorID)
-      .whereRaw("reversed is false")
+      .whereRaw("(reversed is false and deleted_at is null)")
       .groupBy("client_id");
 
     return {

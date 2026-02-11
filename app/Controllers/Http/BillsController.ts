@@ -30,7 +30,7 @@ export default class BillsController {
   constructor(
     private sharedService: SharedService,
     private service: BillService,
-  ) {}
+  ) { }
 
   public async index({ request, response, auth }: HttpContextContract) {
     const result = await this.service.index(
@@ -60,9 +60,7 @@ export default class BillsController {
   }
 
   public async recalculate({ params, auth, response }: HttpContextContract) {
-    const { unit_id } = this.sharedService.extractUser(auth);
-
-    await this.service.recalculateItemsTaxes(unit_id, params.id);
+    await this.service.recalculateItemsTaxes(await this.sharedService.getAuthContext(auth), params.id);
 
     return response.ok(null);
   }

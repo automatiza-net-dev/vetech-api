@@ -1,21 +1,22 @@
-import { DateTime } from "luxon";
+import { softDeleteQuery } from "App/Services/SoftDelete";
 import {
   BaseModel,
+  BelongsTo,
   beforeFetch,
   beforeFind,
-  BelongsTo,
   belongsTo,
   column,
   HasMany,
   hasMany,
 } from "@ioc:Adonis/Lucid/Orm";
-import { softDeleteQuery } from "App/Services/SoftDelete";
 import Decimal from "decimal.js";
-import User from "./User";
-import PaymentMethod from "./PaymentMethod";
+import { DateTime } from "luxon";
 import BillPayment from "./BillPayment";
 import ClientCredit from "./ClientCredit";
+import ClientUsedCredit from "./ClientUsedCredit";
 import Patient from "./Patient";
+import PaymentMethod from "./PaymentMethod";
+import User from "./User";
 
 export default class ClientPayment extends BaseModel {
   @column({ isPrimary: true })
@@ -88,4 +89,9 @@ export default class ClientPayment extends BaseModel {
     foreignKey: "client_payment_id",
   })
   public clientCredits: HasMany<typeof ClientCredit>;
+
+  @hasMany(() => ClientUsedCredit, {
+    foreignKey: "client_payment_id",
+  })
+  public clientUsedCredits: HasMany<typeof ClientUsedCredit>;
 }

@@ -1,7 +1,7 @@
-import { DateTime } from "luxon";
-import { BaseModel, beforeFetch, beforeFind, column } from "@ioc:Adonis/Lucid/Orm";
 import { softDeleteQuery } from "App/Services/SoftDelete";
+import { BaseModel, beforeFetch, beforeFind, column } from "@ioc:Adonis/Lucid/Orm";
 import Decimal from "decimal.js";
+import { DateTime } from "luxon";
 
 export default class ClientUsedCredit extends BaseModel {
   @column({ isPrimary: true })
@@ -51,6 +51,9 @@ export default class ClientUsedCredit extends BaseModel {
 
   @column({ serializeAs: null })
   public client_payment_id: number;
+
+  @column({ serializeAs: null })
+  public client_credit_id: number;
 
   @column({ serializeAs: null })
   public reversed_by_user_id: string;

@@ -7,7 +7,6 @@ import BillCancelation from "App/Models/BillCancelation";
 import BillItem, { BillItemStatus } from "App/Models/BillItem";
 import BillItemDepartment from "App/Models/BillItemDepartment";
 import BillPayment, { BillPaymentFeeType } from "App/Models/BillPayment";
-import BusinessUnit from "App/Models/BusinessUnit";
 import BusinessUnitCheckingAccountPaymentMethod from "App/Models/BusinessUnitCheckingAccountPaymentMethod";
 import ClientCredit from "App/Models/ClientCredit";
 import ClientPayment from "App/Models/ClientPayment";
@@ -2623,15 +2622,11 @@ where deposit_id = ?
     });
   }
 
-  async recalculateItemsTaxes(unitId: string, id: string) {
+  async recalculateItemsTaxes(authCtx: AuthContext, id: string) {
     await Database.transaction(async (trx) => {
-      const unit = await BusinessUnit.findOrFail(id, {
-        client: trx,
-      });
-
       const bill = await Bill.query()
         .useTransaction(trx)
-        .where("business_unit_id", unitId)
+        .where("business_unit_id", authCtx.unit.id)
         .where("id", id)
         .preload("items", (query) => {
           query.preload("productVariation", (query) => {
@@ -2657,7 +2652,7 @@ where deposit_id = ?
           )
           .preload("product")
           .preload("businessUnitProducts", (query) => {
-            query.where("businness_unit_id", unitId);
+            query.where("businness_unit_id", authCtx.unit.id);
           });
 
         const taxRules = await TaxationGroupRule.query()
@@ -2670,8 +2665,8 @@ where deposit_id = ?
           })
           .where("movementType", MovementType.S)
           .where("movementCategory", MovementCategory.NS)
-          .where("fromUf", unit.state ?? "")
-          .where("toUf", unit.state ?? "")
+          .where("fromUf", authCtx.unit.state ?? "")
+          .where("toUf", authCtx.unit.state ?? "")
           .preload("taxationGroup")
           .preload("taxOperation");
 

@@ -4166,7 +4166,7 @@ where deposit_id = ?
           });
 
           query.preload("finance", (query) => {
-            query.whereNotNull("payment_date");
+            // query.whereNotNull("payment_date");
 
             query.select("id", "payment_date", "payment_method_id");
 
@@ -4181,13 +4181,13 @@ where deposit_id = ?
         throw new BadRequestException("Nota não encontrada", 400, "E_RR");
       }
 
-      if (toPrint.payments.length === 0) {
-        throw new BadRequestException(
-          "Não existem titulos baixados para a impressão de recibo",
-          400,
-          "E_RR",
-        );
-      }
+      // if (toPrint.payments.length === 0) {
+      //   throw new BadRequestException(
+      //     "Não existem titulos baixados para a impressão de recibo",
+      //     400,
+      //     "E_RR",
+      //   );
+      // }
 
       return toPrint;
     });

@@ -1371,7 +1371,7 @@ where deposit_id = ?
         );
       }
 
-      const valorDescontarVendas = new Decimal(data.installmentsValue).minus(originalValue);
+      const valorDescontarVendas = cashToPay;
 
       let totalDistribuido = new Decimal(0);
 
@@ -1500,7 +1500,10 @@ where deposit_id = ?
             .merge({
               paidValue: data.creditOverflow
                 ? bill.totalValue.toNumber()
-                : new Decimal(bill.paidValue).plus(valorAPagarPorVenda).toNumber(),
+                : new Decimal(bill.paidValue)
+                    .plus(valorAPagarPorVenda)
+                    .plus(creditToUse.gt(0) ? valorRelativoCreditoUso : 0)
+                    .toNumber(),
             })
             .useTransaction(trx)
             .save();

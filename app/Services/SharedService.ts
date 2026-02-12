@@ -1,4 +1,5 @@
 import { inject } from "@adonisjs/fold";
+import { platform } from "node:os";
 import { schema, type TypedSchema } from "@ioc:Adonis/Core/Validator";
 import Drive from "@ioc:Adonis/Core/Drive";
 import { AuthContract } from "@ioc:Adonis/Addons/Auth";
@@ -19,7 +20,6 @@ import { ValidationException } from "@ioc:Adonis/Core/Validator";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import PaymentMethod from "App/Models/PaymentMethod";
 import SystemUrl from "App/Models/SystemUrl";
-import S3Cache from "App/Models/S3Cache";
 import { TDynamicForm } from "App/Models/BusinessUnitConfig";
 
 type KeySelector<T> = (item: T) => any[];
@@ -426,16 +426,16 @@ export default class SharedService {
     const dailyCashier =
       authCtx.unit.unitConfig.dailyCashierType === "usuario"
         ? await DailyCashier.query()
-            .useTransaction(trx)
-            .where("business_unit_id", authCtx.unit.id)
-            .where("user_who_opened_id", authCtx.user.id)
-            .where("status", DailyCashierStatus.A)
-            .first()
+          .useTransaction(trx)
+          .where("business_unit_id", authCtx.unit.id)
+          .where("user_who_opened_id", authCtx.user.id)
+          .where("status", DailyCashierStatus.A)
+          .first()
         : await DailyCashier.query()
-            .useTransaction(trx)
-            .where("business_unit_id", authCtx.unit.id)
-            .where("status", DailyCashierStatus.A)
-            .first();
+          .useTransaction(trx)
+          .where("business_unit_id", authCtx.unit.id)
+          .where("status", DailyCashierStatus.A)
+          .first();
 
     if (!dailyCashier && shouldThrow) {
       throw new BadRequestException("Não existe caixa diário aberto", 400, "E_NOT_OPEN");
@@ -790,5 +790,14 @@ export default class SharedService {
     const result = await qb.first();
 
     return result.total;
+  }
+
+
+  static GetPlatformOffset() {
+    if (platform() === "win32") {
+      return 3
+    }
+
+    return 0
   }
 }

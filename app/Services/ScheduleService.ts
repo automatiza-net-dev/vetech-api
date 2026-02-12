@@ -463,7 +463,7 @@ export default class ScheduleService {
             .toFormat("dd/MM/yy - HH:mm"),
           late:
             isAfter(new Date(), day.startHour.plus({ hours: this.timeOffset }).toJSDate()) &&
-            ["AN", "AC", "ATR"].includes(day.serviceStatus.type)
+              ["AN", "AC", "ATR"].includes(day.serviceStatus.type)
               ? differenceInMinutes(new Date(), day.startHour.plus({ hours: 3 }).toJSDate())
               : null,
           type: this.getEventLabel(day),
@@ -492,11 +492,11 @@ export default class ScheduleService {
             .toFormat("dd/MM/yy - HH:mm"),
           late:
             isAfter(new Date(), day.startHour.plus({ hours: this.timeOffset }).toJSDate()) &&
-            ["AN", "AC", "ATR"].includes(day.serviceStatus.type)
+              ["AN", "AC", "ATR"].includes(day.serviceStatus.type)
               ? differenceInMinutes(
-                  new Date(),
-                  day.startHour.plus({ hours: this.timeOffset }).toJSDate(),
-                )
+                new Date(),
+                day.startHour.plus({ hours: this.timeOffset }).toJSDate(),
+              )
               : null,
           type: this.getEventLabel(day),
         })),
@@ -855,7 +855,7 @@ export default class ScheduleService {
     });
   }
 
-  public async show(unitId: string, id: string): Promise<Schedule> {
+  public async show(unitId: string, id: string) {
     const schedule = await Schedule.query()
       .where("id", id)
       .andWhere("business_unit_id", unitId)
@@ -896,7 +896,10 @@ export default class ScheduleService {
       throw new ResourceNotFoundException("Recurso não encontrado", 400, "E_NOT_FOUND");
     }
 
-    return schedule;
+    schedule.startHour = schedule.startHour.plus({ hours: SharedService.GetPlatformOffset() })
+    schedule.endHour = schedule.endHour.plus({ hours: SharedService.GetPlatformOffset() })
+
+    return schedule.toJSON()
   }
 
   public async update(
@@ -1953,17 +1956,17 @@ export default class ScheduleService {
               scheduledOutside:
                 this.getEventLabel(day) === "schedule"
                   ? !resultData[1]
-                      .filter((wd) => wd.user_id === elem.id)
-                      .some((wd) =>
-                        this.isScheduleInsideWorkingHour(
-                          // @ts-ignore
-                          day.startHour,
-                          // @ts-ignore
-                          day.endHour,
-                          wd.startHour,
-                          wd.endHour,
-                        ),
-                      )
+                    .filter((wd) => wd.user_id === elem.id)
+                    .some((wd) =>
+                      this.isScheduleInsideWorkingHour(
+                        // @ts-ignore
+                        day.startHour,
+                        // @ts-ignore
+                        day.endHour,
+                        wd.startHour,
+                        wd.endHour,
+                      ),
+                    )
                   : false,
             })),
         };
@@ -2891,8 +2894,8 @@ export default class ScheduleService {
 
     return schedules.map((elem) => ({
       id: elem.id,
-      start: elem.startHour,
-      end: elem.endHour,
+      start: elem.startHour.plus({ hours: SharedService.GetPlatformOffset() }),
+      end: elem.endHour.plus({ hours: SharedService.GetPlatformOffset() }),
       majorComplaint: elem.majorComplaint,
       tutor: {
         id: elem.holder?.id,
@@ -2913,14 +2916,14 @@ export default class ScheduleService {
       },
       cancellation: elem.cancellationUser
         ? {
-            technician: {
-              id: elem.user?.id,
-              name: elem.user?.name,
-            },
-            reason: elem.reason?.reason ?? null,
-            observation: elem.observation,
-            cancelledAt: elem.updatedAt,
-          }
+          technician: {
+            id: elem.user?.id,
+            name: elem.user?.name,
+          },
+          reason: elem.reason?.reason ?? null,
+          observation: elem.observation,
+          cancelledAt: elem.updatedAt,
+        }
         : null,
       reschedules: elem.reschedules.map((r) => ({
         id: r.id,
@@ -3271,8 +3274,8 @@ when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores 
   private snakeToCamelDeep<T extends object>(
     obj: T,
   ): {
-    [K in keyof T]: T[K] extends object ? { [k in keyof T[K]]: string } : T[K];
-  } {
+      [K in keyof T]: T[K] extends object ? { [k in keyof T[K]]: string } : T[K];
+    } {
     return Object.fromEntries(
       Object.entries(obj).map(([key, value]) => {
         const newKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
@@ -3283,7 +3286,7 @@ when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores 
         ];
       }),
     ) as {
-      [K in keyof T]: T[K] extends object ? { [k in keyof T[K]]: string } : T[K];
-    };
+        [K in keyof T]: T[K] extends object ? { [k in keyof T[K]]: string } : T[K];
+      };
   }
 }

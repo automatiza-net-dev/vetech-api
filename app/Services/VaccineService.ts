@@ -1,5 +1,3 @@
-import { inject } from "@adonisjs/fold";
-import Database from "@ioc:Adonis/Lucid/Database";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import AnimalTimeline from "App/Models/mongoose/AnimalTimeline";
 import Vaccine from "App/Models/Vaccine";
@@ -7,6 +5,8 @@ import VaccineCalendar from "App/Models/VaccineCalendar";
 import VaccineCalendarLog from "App/Models/VaccineCalendarLog";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import { IVaccineData } from "Contracts/interfaces/IVaccineData";
+import { inject } from "@adonisjs/fold";
+import Database from "@ioc:Adonis/Lucid/Database";
 import { DateTime } from "luxon";
 import { validate } from "uuid";
 import BadRequestException from "../Exceptions/BadRequestException";
@@ -151,7 +151,13 @@ export default class VaccineService {
         "join patients tutor on tutor.id = holder_dependents.holder_id and holder_dependents.is_main = true",
       )
       .joinRaw(
-        "left join patient_contacts on tutor.id = patient_contacts.patient_id and patient_contacts.type = 'celular'",
+        `left join lateral (
+          select contact, type 
+          from patient_contacts 
+          where patient_contacts.patient_id = tutor.id 
+          and patient_contacts.type = 'celular' 
+          limit 1
+        ) patient_contacts on true`,
       )
       .joinRaw(
         "join vaccine_calendars on vaccine_calendars.patient_vaccine_id = patient_vaccines.id",

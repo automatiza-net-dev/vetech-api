@@ -1937,9 +1937,7 @@ where deposit_id = ?
         throw new BadRequestException("Pagamento contem crédito que foi usado", 400, "E_ERR");
       }
 
-      let deletedValue = payment.billPayments.reduce((acc, curr) => {
-        return acc.plus(new Decimal(curr.totalValue));
-      }, new Decimal(0));
+      let deletedValue = payment.value;
 
       const deletedValuePerBill = payment.billPayments.reduce(
         (acc, curr) => {
@@ -1948,6 +1946,16 @@ where deposit_id = ?
           }
 
           acc[curr.bill_id] = acc[curr.bill_id].plus(new Decimal(curr.totalValue));
+          return acc;
+        },
+        {} as Record<string, Decimal>,
+      );
+
+      const relativeValuePerBill = Object.entries(deletedValuePerBill).reduce(
+        (acc, [billID, value]) => {
+          const percentage = value.div(deletedValue);
+          acc[billID] = deletedValue.times(percentage);
+
           return acc;
         },
         {} as Record<string, Decimal>,
@@ -1971,7 +1979,7 @@ where deposit_id = ?
           status: BillStatus.A,
         });
 
-      for (const [billId, value] of Object.entries(deletedValuePerBill)) {
+      for (const [billId, value] of Object.entries(relativeValuePerBill)) {
         const rowBill = await Bill.query().useTransaction(trx).where("id", billId).firstOrFail();
 
         await rowBill

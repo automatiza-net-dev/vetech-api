@@ -844,4 +844,12 @@ export default class SharedService {
 
     return result.total;
   }
+
+  static GetPlatformOffset() {
+    if (platform() === "win32") {
+      return 3;
+    }
+
+    return 0;
+  }
 }

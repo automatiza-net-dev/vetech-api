@@ -1,15 +1,15 @@
-import {
-  BaseModel,
-  beforeFetch,
-  beforeFind,
-  BelongsTo,
-  belongsTo,
-  column,
-} from "@ioc:Adonis/Lucid/Orm";
 import CheckingAccount from "App/Models/CheckingAccount";
 import TefAcquirer from "App/Models/TefAcquirer";
 import TefFlag from "App/Models/TefFlag";
 import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import {
+  BaseModel,
+  BelongsTo,
+  beforeFetch,
+  beforeFind,
+  belongsTo,
+  column,
+} from "@ioc:Adonis/Lucid/Orm";
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 import { v4 } from "uuid";
@@ -17,6 +17,7 @@ import { v4 } from "uuid";
 import AccountPlan from "./AccountPlan";
 import Bordero from "./Bordero";
 import BusinessUnit from "./BusinessUnit";
+import ClientPayment from "./ClientPayment";
 import Patient from "./Patient";
 import PaymentMethod from "./PaymentMethod";
 import User from "./User";
@@ -79,7 +80,7 @@ export default class Finance extends BaseModel {
   public installment: number;
 
   @column()
-  public block: number;
+  public block: number | null;
 
   @column()
   public historic: string;
@@ -295,7 +296,7 @@ export default class Finance extends BaseModel {
   @column({
     serializeAs: null,
   })
-  public origin_id: string;
+  public origin_id: string | null;
 
   @column({
     serializeAs: null,
@@ -396,6 +397,16 @@ export default class Finance extends BaseModel {
     foreignKey: "bordero_id",
   })
   public bordero: BelongsTo<typeof Bordero>;
+
+  @column({
+    serializeAs: null,
+  })
+  public client_payment_id: number | null;
+
+  @belongsTo(() => ClientPayment, {
+    foreignKey: "client_payment_id",
+  })
+  public clientPayment: BelongsTo<typeof ClientPayment>;
 
   @column({
     serializeAs: null,

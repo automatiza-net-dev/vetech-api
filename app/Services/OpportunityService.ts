@@ -17,7 +17,7 @@ import { DateTime } from "luxon";
 
 @inject()
 export default class OpportunityService {
-  constructor(private sharedService: SharedService) { }
+  constructor(private sharedService: SharedService) {}
 
   public async showOpportunity(authCtx: AuthContext, id: string) {
     const result = await Opportunity.query()
@@ -1975,21 +1975,21 @@ export default class OpportunityService {
       contactDate: elem.op_contact_date ?? "-",
       contact: elem.contactID
         ? {
-          id: elem.contactID ?? null,
-          name: elem?.contactName ?? null,
-        }
+            id: elem.contactID ?? null,
+            name: elem?.contactName ?? null,
+          }
         : null,
       client: elem?.clientID
         ? {
-          id: elem?.clientID ?? null,
-          name: elem?.clientName ?? null,
-        }
+            id: elem?.clientID ?? null,
+            name: elem?.clientName ?? null,
+          }
         : null,
       status: elem?.statusID
         ? {
-          id: elem?.statusID ?? null,
-          description: elem?.statusDescription ?? null,
-        }
+            id: elem?.statusID ?? null,
+            description: elem?.statusDescription ?? null,
+          }
         : null,
     }));
   }

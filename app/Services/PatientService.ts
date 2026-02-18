@@ -1324,7 +1324,7 @@ export default class PatientService {
 
     const sales = await salesQb;
 
-    const budgets = await Budget.query()
+    const budgets = data.onlyOpen ? [] : await Budget.query()
       .where(key, patient.id)
       .where("status", BudgetStatus.A)
       .preload("seller")
@@ -3036,7 +3036,7 @@ export default class PatientService {
       return []
     }
 
-    return ClientCredit.query().where('client_id', tutorID).where('reversed', false)
+    return ClientCredit.query().where('client_id', tutorID).where('reversed', false).whereRaw('(original_value - used_value) > 0')
   }
 
   private async uploadPhoto(file: MultipartFileContract): Promise<string> {

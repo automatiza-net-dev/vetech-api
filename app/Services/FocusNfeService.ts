@@ -178,6 +178,7 @@ export interface ISendNfse {
     cnae: string;
     description: string;
     city_code: string;
+    nbs_code: string | undefined;
   };
 }
 
@@ -210,19 +211,19 @@ export interface ISendNationalNfse {
     email: string;
     phone: string;
     address: {
-      street: string;
-      number: string;
-      complement?: string;
-      district: string;
-      cityCode?: number;
-      postalCode: string;
+      street: string | undefined;
+      number: string | undefined;
+      complement: string | undefined;
+      district: string | undefined;
+      cityCode: number | undefined;
+      postalCode: string | undefined;
     };
   };
 
   service: {
     description: string;
     value: number;
-    nationalServiceCode: string;
+    nationalServiceCode: string | undefined;
     nationalTaxationCode: string;
     issTaxationType: number;
     issRetentionType: number;
@@ -728,38 +729,6 @@ export default class FocusNfeService {
     }
   }
 
-  public async getNfseNational(ref: string, token: string) {
-    try {
-      const { data } = await this.ax.get(`/v2/nfsen/${ref}`, {
-        params: {},
-        auth: {
-          username: token,
-          password: "",
-        },
-      });
-
-      const zodResponse = nfseResponseSchema.safeParse(data);
-      if (!zodResponse.success) {
-        return {
-          success: false as const,
-          error: "Resposta inválida",
-          idk: zodResponse.error.format(),
-        };
-      }
-
-      return {
-        success: true as const,
-        data: zodResponse.data,
-      };
-    } catch (error) {
-      return {
-        success: false as const,
-        error: "Erro ao chamar",
-        idk: "idk",
-      };
-    }
-  }
-
   public async cancelNfe(ref: string, reason: string, token: string) {
     try {
       const { data } = await this.ax.delete(`/v2/nfe/${ref}`, {
@@ -879,6 +848,7 @@ export default class FocusNfeService {
         codigo_cnae: meta.hideCnae ? undefined : data.service.cnae,
         discriminacao: data.service.description,
         codigo_tributario_municipio: meta.hideCityCode ? undefined : data.service.city_code,
+        codigo_nbs: this.noopString(data.service.nbs_code),
       },
     };
 
@@ -961,7 +931,7 @@ export default class FocusNfeService {
         },
       });
 
-      // Logger.info(JSON.stringify(data, undefined, 2));
+      Logger.info(JSON.stringify(data, undefined, 2));
 
       const parsedResponse = z
         .object({
@@ -978,7 +948,7 @@ export default class FocusNfeService {
         // Logger.error(JSON.stringify(parsedResponse.error.issues, undefined, 2));
         return {
           success: false,
-          message: "NFSEN criada mas resposta inválida",
+          data: "NFSE criada mas resposta inválida",
         };
       }
 
@@ -1111,5 +1081,17 @@ export default class FocusNfeService {
       // Logger.error(JSON.stringify(error, null, 2));
       throw new InternalErrorException("Falha ao buscar na focus", 500, "E_ERR");
     }
+  }
+
+  private noopString(data: unknown) {
+    if (typeof data !== "string") {
+      return undefined;
+    }
+
+    if (data === "") {
+      return undefined;
+    }
+
+    return data;
   }
 }

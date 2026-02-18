@@ -3,7 +3,9 @@ import { platform } from "node:os";
 import { schema, type TypedSchema } from "@ioc:Adonis/Core/Validator";
 import Drive from "@ioc:Adonis/Core/Drive";
 import { AuthContract } from "@ioc:Adonis/Addons/Auth";
-import Database, { TransactionClientContract } from "@ioc:Adonis/Lucid/Database";
+import Database, {
+  TransactionClientContract,
+} from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
@@ -158,9 +160,12 @@ export default class SharedService {
     const updatedKeyTasks = keys.map(async (key) => {
       return {
         key,
-        view: await Drive.use("s3").getSignedUrl(key.startsWith("/uploads/") ? key.slice(9) : key, {
-          expiresIn: "7d",
-        }),
+        view: await Drive.use("s3").getSignedUrl(
+          key.startsWith("/uploads/") ? key.slice(9) : key,
+          {
+            expiresIn: "7d",
+          },
+        ),
         download: await Drive.use("s3").getSignedUrl(
           key.startsWith("/uploads/") ? key.slice(9) : key,
           {
@@ -173,7 +178,10 @@ export default class SharedService {
     return await Promise.all(updatedKeyTasks);
   }
 
-  public async errorHoc(response: HttpContextContract["response"], fn: () => Promise<void>) {
+  public async errorHoc(
+    response: HttpContextContract["response"],
+    fn: () => Promise<void>,
+  ) {
     try {
       await fn();
     } catch (e) {
@@ -258,7 +266,10 @@ export default class SharedService {
   }
 
   public async getBUnit(unitId: string) {
-    return BusinessUnit.query().where("id", unitId).preload("unitConfig").firstOrFail();
+    return BusinessUnit.query()
+      .where("id", unitId)
+      .preload("unitConfig")
+      .firstOrFail();
   }
 
   public async isSuperAdmin(user: User): Promise<boolean> {
@@ -327,7 +338,9 @@ export default class SharedService {
       .select(Database.raw("permissions.control_id"))
       .joinRaw("join roles on roles.id = user_unit_roles.role_id")
       .joinRaw("join role_permissions on role_permissions.role_id = roles.id")
-      .joinRaw("join permissions on role_permissions.permission_id = permissions.id")
+      .joinRaw(
+        "join permissions on role_permissions.permission_id = permissions.id",
+      )
       .where("user_unit_roles.user_id", user.id)
       .where("user_unit_roles.unit_id", unit_id)
       .where("roles.system_id", unit.economicGroup.system_id)
@@ -352,14 +365,18 @@ export default class SharedService {
         return !!flatPermissions.find((r) => r === controlID);
       },
       hasPermissions: (controlIDs) => {
-        return controlIDs.every((controlID) => !!flatPermissions.find((r) => r === controlID));
+        return controlIDs.every(
+          (controlID) => !!flatPermissions.find((r) => r === controlID),
+        );
       },
     };
   }
 
   public checkOverlapping(ASet: DateSet, BSet: DateSet): boolean {
-    const firstMatch = ASet.start.toJSDate().getTime() < BSet.end.toJSDate().getTime();
-    const secondMatch = BSet.start.toJSDate().getTime() < ASet.end.toJSDate().getTime();
+    const firstMatch =
+      ASet.start.toJSDate().getTime() < BSet.end.toJSDate().getTime();
+    const secondMatch =
+      BSet.start.toJSDate().getTime() < ASet.end.toJSDate().getTime();
 
     return firstMatch && secondMatch;
   }
@@ -381,7 +398,11 @@ export default class SharedService {
   }
 
   public async userHasRoles(user: User, roles: string[]): Promise<boolean> {
-    const userRoles = await user.related("roles").query().where("active", true).preload("role");
+    const userRoles = await user
+      .related("roles")
+      .query()
+      .where("active", true)
+      .preload("role");
 
     return Boolean(userRoles.find((r) => roles.includes(r.role?.name)));
   }
@@ -407,7 +428,9 @@ export default class SharedService {
   }
 
   public sum(val: Array<number>): number {
-    return val.filter(Boolean).reduce((acc: number, cur: number) => acc + cur, 0);
+    return val
+      .filter(Boolean)
+      .reduce((acc: number, cur: number) => acc + cur, 0);
   }
 
   public captureGroup<T>(val: T | null | undefined, fn: (val: T) => unknown) {
@@ -426,19 +449,23 @@ export default class SharedService {
     const dailyCashier =
       authCtx.unit.unitConfig.dailyCashierType === "usuario"
         ? await DailyCashier.query()
-            .useTransaction(trx)
-            .where("business_unit_id", authCtx.unit.id)
-            .where("user_who_opened_id", authCtx.user.id)
-            .where("status", DailyCashierStatus.A)
-            .first()
+          .useTransaction(trx)
+          .where("business_unit_id", authCtx.unit.id)
+          .where("user_who_opened_id", authCtx.user.id)
+          .where("status", DailyCashierStatus.A)
+          .first()
         : await DailyCashier.query()
-            .useTransaction(trx)
-            .where("business_unit_id", authCtx.unit.id)
-            .where("status", DailyCashierStatus.A)
-            .first();
+          .useTransaction(trx)
+          .where("business_unit_id", authCtx.unit.id)
+          .where("status", DailyCashierStatus.A)
+          .first();
 
     if (!dailyCashier && shouldThrow) {
-      throw new BadRequestException("Não existe caixa diário aberto", 400, "E_NOT_OPEN");
+      throw new BadRequestException(
+        "Não existe caixa diário aberto",
+        400,
+        "E_NOT_OPEN",
+      );
     }
 
     return dailyCashier;
@@ -457,7 +484,11 @@ export default class SharedService {
       .first();
 
     if (!row && shouldThrow) {
-      throw new BadRequestException("Não existe movimento diário aberto", 400, "E_NOT_OPEN");
+      throw new BadRequestException(
+        "Não existe movimento diário aberto",
+        400,
+        "E_NOT_OPEN",
+      );
     }
 
     return row;
@@ -502,11 +533,10 @@ export default class SharedService {
       // }
     }
 
-    const rows = await Database.rawQuery("select * from check_max_discount(?, ?, ?)", [
-      authCtx.user.id,
-      authCtx.unit.id,
-      JSON.stringify(items),
-    ])
+    const rows = await Database.rawQuery(
+      "select * from check_max_discount(?, ?, ?)",
+      [authCtx.user.id, authCtx.unit.id, JSON.stringify(items)],
+    )
       .useTransaction(trx)
       .exec();
 
@@ -555,7 +585,11 @@ export default class SharedService {
     return value;
   }
 
-  static CalculateDateOffset(idx: number, date: DateTime, paymentMethod: PaymentMethod): DateTime {
+  static CalculateDateOffset(
+    idx: number,
+    date: DateTime,
+    paymentMethod: PaymentMethod,
+  ): DateTime {
     // 1a parcela
     if (idx === 0) {
       // pular exatamente 1 mês
@@ -568,7 +602,11 @@ export default class SharedService {
     }
 
     // 2a parcela em diante
-    const lastDate = SharedService.CalculateDateOffset(idx - 1, date, paymentMethod);
+    const lastDate = SharedService.CalculateDateOffset(
+      idx - 1,
+      date,
+      paymentMethod,
+    );
     // pular exatamente 1 mês depois da ultima parcela
     if (paymentMethod.daysBetweenInstallments === 30) {
       return lastDate.plus({ months: 1 });
@@ -578,7 +616,10 @@ export default class SharedService {
     return lastDate.plus({ days: paymentMethod.daysBetweenInstallments });
   }
 
-  static GroupBy<T>(array: T[], keySelector: KeySelector<T>): Record<string, T[]> {
+  static GroupBy<T>(
+    array: T[],
+    keySelector: KeySelector<T>,
+  ): Record<string, T[]> {
     return array.reduce(
       (acc, item) => {
         // Select multiple keys and join them into a composite key
@@ -611,11 +652,13 @@ export default class SharedService {
   }
 
   private static reduceValidatorObject(rows: TDynamicForm[string]["prop"]) {
-    const memberProps = (Array.isArray(rows) ? rows : [rows]).flat().reduce((acc, curr) => {
-      acc[curr.key] = SharedService.reduceSimpleValidator(curr);
+    const memberProps = (Array.isArray(rows) ? rows : [rows])
+      .flat()
+      .reduce((acc, curr) => {
+        acc[curr.key] = SharedService.reduceSimpleValidator(curr);
 
-      return acc;
-    }, {} as TypedSchema);
+        return acc;
+      }, {} as TypedSchema);
 
     return schema.object().members(memberProps);
   }
@@ -641,14 +684,20 @@ export default class SharedService {
     }
 
     if (_prop.type === "string") {
-      return schema.array().members(_prop.required ? schema.string() : schema.string.optional());
+      return schema
+        .array()
+        .members(_prop.required ? schema.string() : schema.string.optional());
     }
 
     if (_prop.type === "number") {
-      return schema.array().members(_prop.required ? schema.number() : schema.number.optional());
+      return schema
+        .array()
+        .members(_prop.required ? schema.number() : schema.number.optional());
     }
 
-    return schema.array().members(_prop.required ? schema.date() : schema.date.optional());
+    return schema
+      .array()
+      .members(_prop.required ? schema.date() : schema.date.optional());
   }
 
   static CreateDynamicValidator(form: TDynamicForm["cadastro"]) {
@@ -682,7 +731,9 @@ export default class SharedService {
               if (isNumeric) {
                 const dynamicField = root.prop[Number.parseInt(token)];
                 if (dynamicField) {
-                  return dynamicField?.error_message ?? "Campo é obrigatório [3]";
+                  return (
+                    dynamicField?.error_message ?? "Campo é obrigatório [3]"
+                  );
                 }
 
                 return "Campo é obrigatório [4]";
@@ -719,7 +770,9 @@ export default class SharedService {
       .select(Database.raw("permissions.control_id"))
       .joinRaw("join roles on roles.id = user_unit_roles.role_id")
       .joinRaw("join role_permissions on role_permissions.role_id = roles.id")
-      .joinRaw("join permissions on role_permissions.permission_id = permissions.id")
+      .joinRaw(
+        "join permissions on role_permissions.permission_id = permissions.id",
+      )
       .where("user_unit_roles.user_id", userID)
       .where("user_unit_roles.unit_id", unitID)
       .where("roles.system_id", systemID)
@@ -733,15 +786,15 @@ export default class SharedService {
   }
 
   static NoopString(value: string | undefined) {
-    if (!value || typeof value === "undefined") {
-      return undefined;
+    if (!value || typeof value === 'undefined') {
+      return undefined
     }
 
-    if (value === "") {
-      return undefined;
+    if (value === '') {
+      return undefined
     }
 
-    return value;
+    return value
   }
 
   static async PendingPayments(
@@ -790,13 +843,5 @@ export default class SharedService {
     const result = await qb.first();
 
     return result.total;
-  }
-
-  static GetPlatformOffset() {
-    if (platform() === "win32") {
-      return 3;
-    }
-
-    return 0;
   }
 }

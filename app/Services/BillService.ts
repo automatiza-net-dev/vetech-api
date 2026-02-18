@@ -1551,12 +1551,13 @@ where deposit_id = ?
               account_plan_id: authCtx.unit.unitConfig.sale_exit_account_plan_id,
               checking_account_id:
                 $checkingAccountMeta?.checking_account_id ?? paymentMethod?.checkingAccountId,
-              origin_id: billIdList.at(v % billIdList.length),
+              origin_id: null,
+              client_payment_id: clientPayment?.id,
 
               // internalCode: bill.internalCode,
               type: FinanceType.C,
               installment: v + 1,
-              block: v + 1,
+              block: null,
               originFlag: FinanceOriginFlag.S,
               document: `CLI-${firstPossibleClient?.tag ?? "???"}`,
               historic: `CLI-${firstPossibleClient?.tag ?? "???"}`,
@@ -2035,10 +2036,7 @@ where deposit_id = ?
         await Finance.query()
           .useTransaction(trx)
           .where("business_unit_id", authCtx.unit.id)
-          .whereIn(
-            "origin_id",
-            payment.billPayments.map((bp) => bp.bill_id),
-          )
+          .where("client_payment_id", payment.id)
           .update({
             exclusion_user_id: authCtx.user.id,
             deleted_at: DateTime.now(),

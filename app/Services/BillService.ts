@@ -1485,7 +1485,7 @@ where deposit_id = ?
                 nsuDocument: data.nsuDocument,
                 paymentMethodDiscountPercentage: paymentMethod?.fee,
                 paymentMethodDiscountValue: paymentMethod
-                  ? valorAPagarPorVenda.times(new Decimal(paymentMethod.fee)).div(100).toNumber()
+                  ? valorAPagarPorVenda.times(new Decimal(paymentMethod?.fee ?? 0)).div(100).toNumber()
                   : 0,
                 qtyInstallments: installmentFee.installment,
               },

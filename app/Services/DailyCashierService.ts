@@ -38,34 +38,34 @@ interface ISearch {
 
 @inject()
 export default class DailyCashierService {
-  constructor(private readonly sharedService: SharedService) {}
+  constructor(private readonly sharedService: SharedService) { }
 
   async checkCashierStatus(authCtx: AuthContext) {
     const rows: { id: string; data_caixa: "Anterior" | "Hoje" }[] | null =
       authCtx.unit.unitConfig.dailyCashierType === "usuario"
         ? await Database.from("daily_cashiers")
-            .select(
-              Database.raw(
-                "id, case when opening_date::date < now()::date then 'Anterior' else 'Hoje' end as data_caixa",
-              ),
-            )
-            .where("business_unit_id", authCtx.unit.id)
-            .where("user_who_opened_id", authCtx.user.id)
-            .whereRaw("status = ?", [DailyCashierStatus.A])
-            .whereRaw("opening_date::date <= now()::date")
-            .whereNull("deleted_at")
-            .limit(1)
+          .select(
+            Database.raw(
+              "id, case when opening_date::date < now()::date then 'Anterior' else 'Hoje' end as data_caixa",
+            ),
+          )
+          .where("business_unit_id", authCtx.unit.id)
+          .where("user_who_opened_id", authCtx.user.id)
+          .whereRaw("status = ?", [DailyCashierStatus.A])
+          .whereRaw("opening_date::date <= now()::date")
+          .whereNull("deleted_at")
+          .limit(1)
         : await Database.from("daily_cashiers")
-            .select(
-              Database.raw(
-                "id, case when opening_date::date < now()::date then 'Anterior' else 'Hoje' end as data_caixa",
-              ),
-            )
-            .where("business_unit_id", authCtx.unit.id)
-            .whereRaw("status = ?", [DailyCashierStatus.A])
-            .whereRaw("opening_date::date <= now()::date")
-            .whereNull("deleted_at")
-            .limit(1);
+          .select(
+            Database.raw(
+              "id, case when opening_date::date < now()::date then 'Anterior' else 'Hoje' end as data_caixa",
+            ),
+          )
+          .where("business_unit_id", authCtx.unit.id)
+          .whereRaw("status = ?", [DailyCashierStatus.A])
+          .whereRaw("opening_date::date <= now()::date")
+          .whereNull("deleted_at")
+          .limit(1);
 
     if (!rows || rows.length === 0) {
       return {
@@ -251,7 +251,7 @@ export default class DailyCashierService {
           return;
         }
 
-        if (existing && existing.installments < p.installments) {
+        if (existing.installments < p.installments) {
           billMap[key] = p;
         }
       });
@@ -320,9 +320,15 @@ export default class DailyCashierService {
             tef_aquirer_id: e.tef_acquirer_id,
             tef_aquirer_description: e.acquirer?.description,
             expiration_date: e.expirationDate,
-            installments: e.installments,
+            installments: e.qtyInstallments,
             installment_value: e.installmentValue,
-            total_value: new Decimal(e.installmentValue).times(e.installments).toNumber(),
+            total_value: payments.reduce((acc, curr) => {
+              if (curr.bill_id !== e.bill_id) {
+                return acc
+              }
+
+              return acc.plus(new Decimal(curr.installmentValue))
+            }, new Decimal(0)),
             nsu_document: e.nsuDocument,
           },
         })),

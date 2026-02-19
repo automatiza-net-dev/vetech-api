@@ -1073,9 +1073,13 @@ export default class ScheduleService {
   }
 
   public async reschedule(authCtx: AuthContext, id: string, data: IRescheduleData) {
-    const schedule = await this.show(authCtx.unit.id, id);
-
     return Database.transaction(async (trx) => {
+      const schedule = await Schedule.query()
+        .useTransaction(trx)
+        .where("id", id)
+        .andWhere("business_unit_id", authCtx.unit.id)
+        .firstOrFail()
+
       const technician = data.userId
         ? await User.findOrFail(data.userId, { client: trx })
         : authCtx.user;

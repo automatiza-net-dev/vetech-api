@@ -1184,7 +1184,10 @@ export default class ScheduleService {
       throw new UnauthorizedException("Usuário não tem permissão", 400, "E_ERR");
     }
 
-    const schedule = await this.show(authCtx.unit.id, id);
+    const schedule = await Schedule.query()
+      .where("id", id)
+      .andWhere("business_unit_id", authCtx.unit.id)
+      .firstOrFail()
 
     if (schedule.serviceStatus.type !== "CANC") {
       throw new BadRequestException("Apenas agendas canceladas podem ser reabertas", 400, "E_ERR");
@@ -1230,7 +1233,10 @@ export default class ScheduleService {
       throw new UnauthorizedException("Usuário não tem permissão", 400, "E_ERR");
     }
 
-    const schedule = await this.show(authCtx.unit.id, id);
+    const schedule = await Schedule.query()
+      .where("id", id)
+      .andWhere("business_unit_id", authCtx.unit.id)
+      .firstOrFail()
 
     if (schedule.serviceStatus.type === "CANC") {
       throw new BadRequestException(

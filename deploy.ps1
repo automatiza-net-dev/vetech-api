@@ -1,6 +1,6 @@
 # Atualiza o repositório
 git fetch
-git pull origin main
+git pull origin master
 
 pm2 stop 0 1
 

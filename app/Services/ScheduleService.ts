@@ -463,7 +463,7 @@ export default class ScheduleService {
             .toFormat("dd/MM/yy - HH:mm"),
           late:
             isAfter(new Date(), day.startHour.plus({ hours: this.timeOffset }).toJSDate()) &&
-            ["AN", "AC", "ATR"].includes(day.serviceStatus.type)
+              ["AN", "AC", "ATR"].includes(day.serviceStatus.type)
               ? differenceInMinutes(new Date(), day.startHour.plus({ hours: 3 }).toJSDate())
               : null,
           type: this.getEventLabel(day),
@@ -492,11 +492,11 @@ export default class ScheduleService {
             .toFormat("dd/MM/yy - HH:mm"),
           late:
             isAfter(new Date(), day.startHour.plus({ hours: this.timeOffset }).toJSDate()) &&
-            ["AN", "AC", "ATR"].includes(day.serviceStatus.type)
+              ["AN", "AC", "ATR"].includes(day.serviceStatus.type)
               ? differenceInMinutes(
-                  new Date(),
-                  day.startHour.plus({ hours: this.timeOffset }).toJSDate(),
-                )
+                new Date(),
+                day.startHour.plus({ hours: this.timeOffset }).toJSDate(),
+              )
               : null,
           type: this.getEventLabel(day),
         })),
@@ -910,9 +910,14 @@ export default class ScheduleService {
       ignoreBlocking?: boolean;
     },
   ): Promise<Schedule> {
-    const schedule = await this.show(authCtx.unit.id, id);
 
     return Database.transaction(async (trx) => {
+      const schedule = await Schedule.query()
+        .useTransaction(trx)
+        .where("id", id)
+        .andWhere("business_unit_id", authCtx.unit.id)
+        .firstOrFail()
+
       const _user = data.userId
         ? await User.findOrFail(data.userId, { client: trx })
         : authCtx.user;
@@ -926,6 +931,7 @@ export default class ScheduleService {
               end: data.endHour.plus({ hours: this.timeOffset }),
             },
           );
+
 
           if (result.invalidWorkingDay) {
             throw new BadRequestException(
@@ -950,6 +956,7 @@ export default class ScheduleService {
             .useTransaction(trx)
             .where("user_id", data.userId ?? authCtx.user.id)
             .andWhere("business_unit_id", authCtx.unit.id)
+            .whereNot('id', id)
             .andWhereRaw(
               `
             (
@@ -978,6 +985,7 @@ export default class ScheduleService {
               query.whereNotIn("type", ["CANC"]);
             })
             .first();
+
 
           if (overlapping) {
             throw new BadRequestException("Horário já está ocupado", 400, "E_BAD_REQUEST");
@@ -1956,17 +1964,17 @@ export default class ScheduleService {
               scheduledOutside:
                 this.getEventLabel(day) === "schedule"
                   ? !resultData[1]
-                      .filter((wd) => wd.user_id === elem.id)
-                      .some((wd) =>
-                        this.isScheduleInsideWorkingHour(
-                          // @ts-ignore
-                          day.startHour,
-                          // @ts-ignore
-                          day.endHour,
-                          wd.startHour,
-                          wd.endHour,
-                        ),
-                      )
+                    .filter((wd) => wd.user_id === elem.id)
+                    .some((wd) =>
+                      this.isScheduleInsideWorkingHour(
+                        // @ts-ignore
+                        day.startHour,
+                        // @ts-ignore
+                        day.endHour,
+                        wd.startHour,
+                        wd.endHour,
+                      ),
+                    )
                   : false,
             })),
         };
@@ -2916,14 +2924,14 @@ export default class ScheduleService {
       },
       cancellation: elem.cancellationUser
         ? {
-            technician: {
-              id: elem.user?.id,
-              name: elem.user?.name,
-            },
-            reason: elem.reason?.reason ?? null,
-            observation: elem.observation,
-            cancelledAt: elem.updatedAt,
-          }
+          technician: {
+            id: elem.user?.id,
+            name: elem.user?.name,
+          },
+          reason: elem.reason?.reason ?? null,
+          observation: elem.observation,
+          cancelledAt: elem.updatedAt,
+        }
         : null,
       reschedules: elem.reschedules.map((r) => ({
         id: r.id,
@@ -3274,19 +3282,18 @@ when expiration_date::date < now()::date then 'Valores em Atraso' else 'Valores 
   private snakeToCamelDeep<T extends object>(
     obj: T,
   ): {
-    [K in keyof T]: T[K] extends object ? { [k in keyof T[K]]: string } : T[K];
-  } {
+      [K in keyof T]: T[K] extends object ? { [k in keyof T[K]]: string } : T[K];
+    } {
     return Object.fromEntries(
       Object.entries(obj).map(([key, value]) => {
         const newKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
-        console.log({ newKey, key, value });
         return [
           newKey,
           value && typeof value === "object" ? this.snakeToCamelDeep(value as object) : value,
         ];
       }),
     ) as {
-      [K in keyof T]: T[K] extends object ? { [k in keyof T[K]]: string } : T[K];
-    };
+        [K in keyof T]: T[K] extends object ? { [k in keyof T[K]]: string } : T[K];
+      };
   }
 }

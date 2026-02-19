@@ -1073,9 +1073,13 @@ export default class ScheduleService {
   }
 
   public async reschedule(authCtx: AuthContext, id: string, data: IRescheduleData) {
-    const schedule = await this.show(authCtx.unit.id, id);
-
     return Database.transaction(async (trx) => {
+      const schedule = await Schedule.query()
+        .useTransaction(trx)
+        .where("id", id)
+        .andWhere("business_unit_id", authCtx.unit.id)
+        .firstOrFail()
+
       const technician = data.userId
         ? await User.findOrFail(data.userId, { client: trx })
         : authCtx.user;
@@ -1180,7 +1184,10 @@ export default class ScheduleService {
       throw new UnauthorizedException("Usuário não tem permissão", 400, "E_ERR");
     }
 
-    const schedule = await this.show(authCtx.unit.id, id);
+    const schedule = await Schedule.query()
+      .where("id", id)
+      .andWhere("business_unit_id", authCtx.unit.id)
+      .firstOrFail()
 
     if (schedule.serviceStatus.type !== "CANC") {
       throw new BadRequestException("Apenas agendas canceladas podem ser reabertas", 400, "E_ERR");
@@ -1226,7 +1233,10 @@ export default class ScheduleService {
       throw new UnauthorizedException("Usuário não tem permissão", 400, "E_ERR");
     }
 
-    const schedule = await this.show(authCtx.unit.id, id);
+    const schedule = await Schedule.query()
+      .where("id", id)
+      .andWhere("business_unit_id", authCtx.unit.id)
+      .firstOrFail()
 
     if (schedule.serviceStatus.type === "CANC") {
       throw new BadRequestException(

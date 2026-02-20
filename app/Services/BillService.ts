@@ -1398,8 +1398,10 @@ where deposit_id = ?
         bills.map(async (bill) => {
           let currentBlock = maxBlockPerBill[bill.id] ?? 0;
 
+          const billTotalValue = bill.totalValue ?? new Decimal(0);
+          const billPaidValue = bill.paidValue ?? new Decimal(0);
           let valorAPagarPorVenda = data.creditOverflow
-            ? new Decimal(bill.totalValue).minus(bill.paidValue)
+            ? new Decimal(billTotalValue).minus(billPaidValue)
             : new Decimal(valorDescontarVendas)
                 .times(percentagePerBill[bill.id])
                 .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
@@ -1506,8 +1508,8 @@ where deposit_id = ?
           await bill
             .merge({
               paidValue: data.creditOverflow
-                ? bill.totalValue.toNumber()
-                : new Decimal(bill.paidValue)
+                ? (bill.totalValue ?? new Decimal(0)).toNumber()
+                : (bill.paidValue ?? new Decimal(0))
                     .plus(valorAPagarPorVenda)
                     .plus(creditToUse.gt(0) ? valorRelativoCreditoUso : 0)
                     .toNumber(),
@@ -1768,7 +1770,7 @@ where deposit_id = ?
 
       await bill
         .merge({
-          paidValue: bill.paidValue + data.installmentsValue,
+          paidValue: (bill.paidValue ?? new Decimal(0)).plus(data.installmentsValue).toNumber(),
           pending: pendingBillPayment || bill.pending,
         })
         .useTransaction(trx)
@@ -2105,7 +2107,9 @@ where deposit_id = ?
 
       await payment.bill
         .merge({
-          paidValue: payment.bill.paidValue - payment.totalValue,
+          paidValue: (payment.bill.paidValue ?? new Decimal(0))
+            .minus(payment.totalValue)
+            .toNumber(),
         })
         .useTransaction(trx)
         .save();
@@ -2180,9 +2184,10 @@ where deposit_id = ?
 
       await this.syncBillPendingAndSum(trx, bill);
 
+      const totalPaymentsValue = payments.reduce((acc, curr) => acc + curr.totalValue, 0);
       await bill
         .merge({
-          paidValue: bill.paidValue - payments.reduce((acc, curr) => acc + curr.totalValue, 0),
+          paidValue: (bill.paidValue ?? new Decimal(0)).minus(totalPaymentsValue).toNumber(),
         })
         .useTransaction(trx)
         .save();
@@ -2383,7 +2388,9 @@ where deposit_id = ?
       );
     }
 
-    if (!bill.totalValue.equals(bill.paidValue)) {
+    const billTotalValue = bill.totalValue ?? new Decimal(0);
+    const billPaidValue = bill.paidValue ?? new Decimal(0);
+    if (!billTotalValue.equals(billPaidValue)) {
       throw new BadRequestException(
         "Valor de pagamentos é menor que o valor da nota",
         400,

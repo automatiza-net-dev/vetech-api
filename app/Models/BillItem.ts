@@ -1,14 +1,14 @@
-import {
-  BaseModel,
-  beforeFetch,
-  beforeFind,
-  BelongsTo,
-  belongsTo,
-  column,
-} from "@ioc:Adonis/Lucid/Orm";
 import Bill from "App/Models/Bill";
 import TaxationGroupRule from "App/Models/TaxationGroupRule";
 import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import {
+  BaseModel,
+  BelongsTo,
+  beforeFetch,
+  beforeFind,
+  belongsTo,
+  column,
+} from "@ioc:Adonis/Lucid/Orm";
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 import { v4 } from "uuid";
@@ -34,28 +34,63 @@ export default class BillItem extends BaseModel {
 
   @column({
     columnName: "cost_value",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public costValue: number;
+  public costValue: Decimal | null;
 
   @column({
     columnName: "sale_value",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public saleValue: number;
+  public saleValue: Decimal | null;
 
   @column({
     columnName: "unitary_value",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public unitaryValue: number;
+  public unitaryValue: Decimal | null;
 
   @column({
     columnName: "discount_value",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public discountValue: number;
+  public discountValue: Decimal | null;
 
   @column({
     columnName: "total_value",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public totalValue: number;
+  public totalValue: Decimal | null;
 
   @column({
     columnName: "fiscal_operation_code",
@@ -74,8 +109,15 @@ export default class BillItem extends BaseModel {
 
   @column({
     columnName: "icms_deferred_operation_value",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public icmsDeferredOperationValue: number;
+  public icmsDeferredOperationValue: Decimal | null;
 
   @column({
     columnName: "icms_deferred_percentage",
@@ -89,8 +131,15 @@ export default class BillItem extends BaseModel {
 
   @column({
     columnName: "icms_base",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public icmsBase: number;
+  public icmsBase: Decimal | null;
 
   @column({
     columnName: "icms_percentage",
@@ -101,8 +150,15 @@ export default class BillItem extends BaseModel {
 
   @column({
     columnName: "icms_value",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public icmsValue: number;
+  public icmsValue: Decimal | null;
 
   @column({
     columnName: "icms_percentage_red_aliquot",

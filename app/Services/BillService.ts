@@ -1211,12 +1211,16 @@ where deposit_id = ?
       }
 
       const totalToPay = bills.reduce((acc, curr) => {
-        return acc.plus(curr.totalValue).minus(curr.paidValue);
+        const totalValue = curr.totalValue ?? new Decimal(0);
+        const paidValue = curr.paidValue ?? new Decimal(0);
+        return acc.plus(totalValue).minus(paidValue);
       }, new Decimal(0));
 
       const percentagePerBill = bills.reduce(
         (acc, curr) => {
-          acc[curr.id] = curr.totalValue.minus(curr.paidValue).div(totalToPay);
+          const totalValue = curr.totalValue ?? new Decimal(0);
+          const paidValue = curr.paidValue ?? new Decimal(0);
+          acc[curr.id] = totalValue.minus(paidValue).div(totalToPay);
           return acc;
         },
         {} as Record<string, Decimal>,
@@ -1485,7 +1489,10 @@ where deposit_id = ?
                 nsuDocument: data.nsuDocument,
                 paymentMethodDiscountPercentage: paymentMethod?.fee,
                 paymentMethodDiscountValue: paymentMethod
-                  ? valorAPagarPorVenda.times(new Decimal(paymentMethod?.fee ?? 0)).div(100).toNumber()
+                  ? valorAPagarPorVenda
+                      .times(new Decimal(paymentMethod?.fee ?? 0))
+                      .div(100)
+                      .toNumber()
                   : 0,
                 qtyInstallments: installmentFee.installment,
               },

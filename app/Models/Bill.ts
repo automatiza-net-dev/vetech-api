@@ -1,29 +1,29 @@
+import BillDocument from "App/Models/BillDocument";
+import BillItem from "App/Models/BillItem";
+import BillPayment from "App/Models/BillPayment";
+import Budget from "App/Models/Budget";
+import BusinessUnit from "App/Models/BusinessUnit";
+import EconomicGroup from "App/Models/EconomicGroup";
+import Patient from "App/Models/Patient";
+import User from "App/Models/User";
+import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
 import {
   BaseModel,
+  BelongsTo,
   beforeFetch,
   beforeFind,
   belongsTo,
-  BelongsTo,
   column,
   computed,
   HasMany,
   hasMany,
 } from "@ioc:Adonis/Lucid/Orm";
-import BillItem from "App/Models/BillItem";
-import BusinessUnit from "App/Models/BusinessUnit";
-import { softDelete, softDeleteQuery } from "App/Services/SoftDelete";
+import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 import { v4 } from "uuid";
-import BillDocument from "App/Models/BillDocument";
-import BillPayment from "App/Models/BillPayment";
-import Budget from "App/Models/Budget";
-import EconomicGroup from "App/Models/EconomicGroup";
-import Patient from "App/Models/Patient";
-import User from "App/Models/User";
-import Decimal from "decimal.js";
+import BillRelatedType from "./BillRelatedType";
 import Reason from "./Reason";
 import Receipt from "./Receipt";
-import BillRelatedType from "./BillRelatedType";
 
 export enum BillStatus {
   A = "ABERTA",
@@ -60,136 +60,315 @@ export default class Bill extends BaseModel {
 
   @column({
     columnName: "product_value",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public productValue: number;
+  public productValue: Decimal | null;
 
   @column({
     columnName: "service_value",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public serviceValue: number;
+  public serviceValue: Decimal | null;
 
   @column({
     columnName: "discount_value",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public discountValue: number;
+  public discountValue: Decimal | null;
 
   @column({
     columnName: "fee_value",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public feeValue: number;
+  public feeValue: Decimal | null;
 
   @column({
     columnName: "delivery_value",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public deliveryValue: number;
+  public deliveryValue: Decimal | null;
 
   @column({
     columnName: "paid_value",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public paidValue: number;
+  public paidValue: Decimal | null;
 
   @column({
     columnName: "total_value",
     consume: (value) => (value ? new Decimal(value) : null),
-    prepare: (value) => value.toString(),
-    serialize: (value: Decimal) => (value ? value.toNumber() : 0),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public totalValue: Decimal;
+  public totalValue: Decimal | null;
 
   @column({
     columnName: "icms_base",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public icmsBase: number;
+  public icmsBase: Decimal | null;
 
   @column({
     columnName: "icms_value",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public icmsValue: number;
+  public icmsValue: Decimal | null;
 
   @column({
     columnName: "icms_st_base",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public icmsStBase: number;
+  public icmsStBase: Decimal | null;
 
   @column({
     columnName: "icms_st_value",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public icmsStValue: number;
+  public icmsStValue: Decimal | null;
 
   @column({
     columnName: "iss_base",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public issBase: number;
+  public issBase: Decimal | null;
 
   @column({
     columnName: "iss_value",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public issValue: number;
+  public issValue: Decimal | null;
 
   @column({
     columnName: "pis_base",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public pisBase: number;
+  public pisBase: Decimal | null;
 
   @column({
     columnName: "pis_value",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public pisValue: number;
+  public pisValue: Decimal | null;
 
   @column({
     columnName: "pis_retention_value",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public pisRetentionValue: number;
+  public pisRetentionValue: Decimal | null;
 
   @column({
     columnName: "cofins_base",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public cofinsBase: number;
+  public cofinsBase: Decimal | null;
 
   @column({
     columnName: "cofins_value",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public cofinsValue: number;
+  public cofinsValue: Decimal | null;
 
   @column({
     columnName: "cofins_retention_value",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public cofinsRetentionValue: number;
+  public cofinsRetentionValue: Decimal | null;
 
   @column({
     columnName: "ipi_base",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public ipiBase: number;
+  public ipiBase: Decimal | null;
 
   @column({
     columnName: "ipi_value",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public ipiValue: number;
+  public ipiValue: Decimal | null;
 
   @column({
     columnName: "icms_deferred_value",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public icmsDeferredValue: number;
+  public icmsDeferredValue: Decimal | null;
 
   @column({
     columnName: "icms_fcp_value",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public icmsFcpValue: number;
+  public icmsFcpValue: Decimal | null;
 
   @column({
     columnName: "icms_uf_origin_value",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public icmsUfOriginValue: number;
+  public icmsUfOriginValue: Decimal | null;
 
   @column({
     columnName: "icms_uf_destination_value",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public icmsUfDestinationValue: number;
+  public icmsUfDestinationValue: Decimal | null;
 
   @column({
     columnName: "other_value",
+    consume: (value) => (value ? new Decimal(value) : null),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
-  public otherValue: number;
+  public otherValue: Decimal | null;
 
   @column({
     columnName: "additional_information",
@@ -261,8 +440,12 @@ export default class Bill extends BaseModel {
     columnName: "cancel_value_products",
     serializeAs: "cancelValueProducts",
     consume: (value) => (value ? new Decimal(value) : null),
-    prepare: (value) => value.toString(),
-    serialize: (value: Decimal) => (value ? value.toNumber() : 0),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
   public cancelValueProducts: Decimal | null;
 
@@ -270,8 +453,12 @@ export default class Bill extends BaseModel {
     columnName: "cancel_value_services",
     serializeAs: "cancelValueServices",
     consume: (value) => (value ? new Decimal(value) : null),
-    prepare: (value) => value.toString(),
-    serialize: (value: Decimal) => (value ? value.toNumber() : 0),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
   public cancelValueServices: Decimal | null;
 
@@ -279,8 +466,12 @@ export default class Bill extends BaseModel {
     columnName: "cancel_value_total",
     serializeAs: "cancelValueTotal",
     consume: (value) => (value ? new Decimal(value) : null),
-    prepare: (value) => value.toString(),
-    serialize: (value: Decimal) => (value ? value.toNumber() : 0),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
   public cancelValueTotal: Decimal | null;
 
@@ -288,8 +479,12 @@ export default class Bill extends BaseModel {
     columnName: "original_total_value",
     serializeAs: "originalTotalValue",
     consume: (value) => (value ? new Decimal(value) : null),
-    prepare: (value) => value.toString(),
-    serialize: (value: Decimal) => (value ? value.toNumber() : 0),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
   public originalTotalValue: Decimal | null;
 
@@ -297,8 +492,12 @@ export default class Bill extends BaseModel {
     columnName: "original_products_value",
     serializeAs: "originalProductsValue",
     consume: (value) => (value ? new Decimal(value) : null),
-    prepare: (value) => value.toString(),
-    serialize: (value: Decimal) => (value ? value.toNumber() : 0),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
   public originalProductsValue: Decimal | null;
 
@@ -306,8 +505,12 @@ export default class Bill extends BaseModel {
     columnName: "original_services_value",
     serializeAs: "originalServicesValue",
     consume: (value) => (value ? new Decimal(value) : null),
-    prepare: (value) => value.toString(),
-    serialize: (value: Decimal) => (value ? value.toNumber() : 0),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
   public originalServicesValue: Decimal | null;
 
@@ -315,8 +518,12 @@ export default class Bill extends BaseModel {
     columnName: "original_discount_value",
     serializeAs: "originalDiscountValue",
     consume: (value) => (value ? new Decimal(value) : null),
-    prepare: (value) => value.toString(),
-    serialize: (value: Decimal) => (value ? value.toNumber() : 0),
+    prepare: (value) => {
+      if (!value) return null;
+      const decimal = value instanceof Decimal ? value : new Decimal(value);
+      return decimal.toFixed(2);
+    },
+    serialize: (value: Decimal | null) => (value ? value.toNumber() : null),
   })
   public originalDiscountValue: Decimal | null;
 

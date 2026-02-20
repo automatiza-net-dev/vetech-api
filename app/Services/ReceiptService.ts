@@ -1117,9 +1117,9 @@ export default class ReceiptService {
         const item = items[itemIdx];
         const barcode = item.prod.cEAN;
 
-        const existingProduct = supplierProducts.find(
-          (sp) => sp.productVariation.barcode === barcode,
-        )?.productVariation.product;
+        // const existingProduct = supplierProducts.find(
+        //   (sp) => sp.productVariation.barcode === barcode,
+        // )?.productVariation.product;
 
         const cofins = this.getCofins(parsed.data, Number.parseInt(itemIdx, 10));
         const pis = this.getPis(parsed.data, Number.parseInt(itemIdx, 10));

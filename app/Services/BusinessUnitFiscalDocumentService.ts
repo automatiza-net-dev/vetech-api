@@ -366,7 +366,7 @@ export default class BusinessUnitFiscalDocumentService {
                              bills.product_value / bills.total_value as product_proportion,
                              round(SUM(bill_payments.total_value * (bills.product_value / bills.total_value))::numeric,
                                    2)                                as block_total,
-                             bill_payments.qty_installments          as total_installments`),
+                             count(*)          as total_installments`),
             )
             .joinRaw("join bill_payments on bills.id = bill_payments.bill_id")
             .where("bills.id", bill.id)

@@ -835,11 +835,11 @@ export default class ReceiptService {
 					query.preload("product");
 				});
 
-				query.whereHas("productVariation", (query) => {
-					query.whereHas("product", (q) => {
-						q.whereNull("deleted_at");
-					});
-				});
+				// query.whereHas("productVariation", (query) => {
+				// 	query.whereHas("product", (q) => {
+				// 		q.whereNull("deleted_at");
+				// 	});
+				// });
 			});
 
 		return rows;

@@ -2384,11 +2384,13 @@ set quantity =
                   join business_unit_configs buc
                        on buc.business_unit_id = d.business_unit_id and d.id = buc.incoming_deposit_id
          where ri.receipt_id = ?
-           and deposit_items.id = di.id)
+           and deposit_items.id = di.id
+          and ri.disabled_date is null)
 where deposit_id = ?
   and product_variation_id in (select product_variation_id
                                from receipt_items
-                               where receipt_id = ?)`,
+                               where receipt_id = ? and receipt_items.disabled_date is null)
+  `,
         [receipt.id, authCtx.unit.unitConfig.incoming_deposit_id, receipt.id],
       )
         .useTransaction(trx)

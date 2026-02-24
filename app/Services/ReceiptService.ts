@@ -2236,8 +2236,8 @@ and product_variation_id in (
       await Database.rawQuery(
         `WITH calculated_costs AS (SELECT bup.id,
                                  bup.businness_unit_id,
-                                 ((bup.cost_price * (sum(di.quantity)-sum(ri.quantity))) + (sum(ri.cost_value * ri.quantity))) /
-                                 ((sum(di.quantity)-sum(ri.quantity) )+sum(ri.quantity * ri.fraction_value)) AS new_cost_price
+                                 ((avg(bup.cost_price) * sum(di.quantity)) + (avg(ri.cost_value) * avg(ri.quantity))) /
+                                 ((sum(di.quantity)-sum(ri.quantity)) + avg(ri.quantity * p.fraction_value)) AS new_cost_price
                           FROM business_unit_products bup
                                    JOIN product_variations pv ON pv.id = bup.product_variation_id
                                    JOIN products p ON p.id = pv.product_id

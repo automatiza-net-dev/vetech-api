@@ -2376,7 +2376,7 @@ where
       await Database.rawQuery(
         `update deposit_items
 set quantity =
-        (select sum(di.quantity - (ri.quantity * ri.fraction_value))
+        (select sum(di.quantity) - (sum(ri.quantity * ri.fraction_value))
          from deposit_items di
                   join deposits d on di.deposit_id = d.id
                   join receipt_items ri

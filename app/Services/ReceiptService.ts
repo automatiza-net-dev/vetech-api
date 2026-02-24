@@ -2236,8 +2236,9 @@ and product_variation_id in (
       await Database.rawQuery(
         `WITH calculated_costs AS (SELECT bup.id,
                                  bup.businness_unit_id,
-                                 ((avg(bup.cost_price) * sum(di.quantity)) + (avg(ri.cost_value) * avg(ri.quantity))) /
-                                 ((sum(di.quantity)-sum(ri.quantity)) + avg(ri.quantity * p.fraction_value)) AS new_cost_price
+                                 ((bup.cost_price * (sum(di.quantity)-sum(ri.quantity))) + (sum(ri.cost_value * ri.quantity))) /
+                                 ((sum(di.quantity)-sum(ri.quantity) )+ sum(ri.quantity * ri.fraction_value)) AS new_cost_price_media,
+                                 (sum(ri.cost_value * ri.quantity))/sum(ri.quantity) new_cost_price_ultimo_preco
                           FROM business_unit_products bup
                                    JOIN product_variations pv ON pv.id = bup.product_variation_id
                                    JOIN products p ON p.id = pv.product_id
@@ -2255,7 +2256,7 @@ and product_variation_id in (
                           WHERE receipts.id = ?
                           GROUP BY bup.id, bup.businness_unit_id)
 UPDATE business_unit_products
-SET cost_price = cc.new_cost_price
+SET cost_price = cc.new_cost_price_media
 FROM calculated_costs cc
 WHERE business_unit_products.id = cc.id
   AND business_unit_products.businness_unit_id = cc.businness_unit_id;`,

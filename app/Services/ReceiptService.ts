@@ -2215,13 +2215,14 @@ export default class ReceiptService {
       await Database.rawQuery(
         `update deposit_items set quantity =
 (
-    select (avg(di.quantity) + sum(ri.quantity * ri.fraction_value))
+    select (SUM(di.quantity) + sum(ri.quantity * ri.fraction_value))
     from deposit_items di
       join deposits d on di.deposit_id = d.id
       join receipt_items ri on ri.product_variation_id = di.product_variation_id and ri.business_unit_id = d.business_unit_id
       join business_unit_configs buc on buc.business_unit_id = d.business_unit_id and d.id = buc.incoming_deposit_id
     where ri.receipt_id = ?
       and deposit_items.id = di.id
+      and ri.disabled_date is null
     group by di.product_variation_id
           )
 where deposit_id = ?

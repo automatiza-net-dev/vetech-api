@@ -2257,7 +2257,7 @@ and product_variation_id in (
                           WHERE receipts.id = ?
                           GROUP BY bup.id, bup.businness_unit_id)
 UPDATE business_unit_products
-SET cost_price = cc.new_cost_price_ultimo_preco
+SET cost_price = cc.new_cost_price_ultimo_preco::decimal(10, 2)
 FROM calculated_costs cc
 WHERE business_unit_products.id = cc.id
   AND business_unit_products.businness_unit_id = cc.businness_unit_id;`,

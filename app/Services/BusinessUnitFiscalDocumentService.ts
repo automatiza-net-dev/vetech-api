@@ -42,6 +42,7 @@ import { DateTime } from "luxon";
 import { validate } from "uuid";
 import { z } from "zod";
 import ReceiptService from "./ReceiptService";
+import BillService from "./BillService";
 
 interface ISearch {
   unit?: string;
@@ -62,6 +63,7 @@ export default class BusinessUnitFiscalDocumentService {
     private sharedService: SharedService,
     private focusNfe: FocusNfeService,
     private receiptService: ReceiptService,
+    private billService: BillService,
   ) { }
 
   async nfeIndex(unitId: string, data: ISearch) {
@@ -186,6 +188,8 @@ export default class BusinessUnitFiscalDocumentService {
   }
 
   async authorize(authCtx: AuthContext, data: IAuthorizeFiscalDocument) {
+    await this.billService.recalculateItemsTaxes(authCtx, data.billId)
+
     return Database.transaction(async (trx) => {
       const unit = await BusinessUnit.query()
         .useTransaction(trx)
@@ -621,6 +625,8 @@ export default class BusinessUnitFiscalDocumentService {
   }
 
   async authorizeNfse(authCtx: AuthContext, data: IAuthorizeNfseFiscalDocument) {
+    await this.billService.recalculateItemsTaxes(authCtx, data.billId)
+
     return Database.transaction(async (trx) => {
       return this.$sendNfse(trx, authCtx, data);
     });

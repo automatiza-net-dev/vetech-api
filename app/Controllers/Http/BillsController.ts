@@ -1,36 +1,36 @@
-import { inject } from "@adonisjs/fold";
-import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import BillService from "App/Services/BillService";
 import SharedService from "App/Services/SharedService";
 import AddKitToBillValidator from "App/Validators/Bill/AddKitToBillValidator";
+import ApproveBillCourtesyMaxDiscountValidator from "App/Validators/Bill/ApproveBillCourtesyMaxDiscountValidator";
+import CalculateTaxValidator from "App/Validators/Bill/CalculateTaxValidator";
 import CheckDepositAvailabilityValidator from "App/Validators/Bill/CheckDepositAvailabilityValidator";
 import CheckItemDiscountValidator from "App/Validators/Bill/CheckItemDiscountValidator";
 import ConfirmBillPaymentsValidator from "App/Validators/Bill/ConfirmBillPaymentsValidator";
-import CreateBillItemValidator from "App/Validators/Bill/CreateBillItemValidator";
 import CreateBillItemsValidator from "App/Validators/Bill/CreateBillItemsValidator";
+import CreateBillItemValidator from "App/Validators/Bill/CreateBillItemValidator";
 import CreateBillPaymentValidator from "App/Validators/Bill/CreateBillPaymentValidator";
-import CreateBillValidator from "App/Validators/Bill/CreateBillValidator";
 import CreateBillsValidator from "App/Validators/Bill/CreateBillsValidator";
+import CreateBillValidator from "App/Validators/Bill/CreateBillValidator";
 import CreateTreatmentBillValidator from "App/Validators/Bill/CreateTreatmentBillValidator";
+import DeleteItemDepartmentValidator from "App/Validators/Bill/DeleteItemDepartmentValidator";
 import DeletePaymentBlockValidator from "App/Validators/Bill/DeletePaymentBlockValidator";
-import UpdateBillFinancialResponsibleValidator from "App/Validators/Bill/UpdateBillFinancialResponsibleValidator";
-import UpdateBillItemValidator from "App/Validators/Bill/UpdateBillItemValidator";
-import UpdateBillValidator from "App/Validators/Bill/UpdateBillValidator";
-import UpdatePaymentExpirationValidator from "App/Validators/Bill/UpdatePaymentExpirationValidator";
-import ApproveBillCourtesyMaxDiscountValidator from "App/Validators/Bill/ApproveBillCourtesyMaxDiscountValidator";
+import FinishBillCancellationValidator from "App/Validators/Bill/FinishBillCancellationValidator";
 import RequestBillCancellationValidator from "App/Validators/Bill/RequestBillCancellationValidator";
 import ReviewBillCancellationValidator from "App/Validators/Bill/ReviewBillCancellationValidator";
-import FinishBillCancellationValidator from "App/Validators/Bill/FinishBillCancellationValidator";
-import DeleteItemDepartmentValidator from "App/Validators/Bill/DeleteItemDepartmentValidator";
+import UpdateBillFinancialResponsibleValidator from "App/Validators/Bill/UpdateBillFinancialResponsibleValidator";
+import UpdateBillItemValidator from "App/Validators/Bill/UpdateBillItemValidator";
 import UpdateBillSellerValidator from "App/Validators/Bill/UpdateBillSellerValidator";
-import CalculateTaxValidator from "App/Validators/Bill/CalculateTaxValidator";
+import UpdateBillValidator from "App/Validators/Bill/UpdateBillValidator";
+import UpdatePaymentExpirationValidator from "App/Validators/Bill/UpdatePaymentExpirationValidator";
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 
 @inject()
 export default class BillsController {
   constructor(
     private sharedService: SharedService,
     private service: BillService,
-  ) {}
+  ) { }
 
   public async index({ request, response, auth }: HttpContextContract) {
     const result = await this.service.index(
@@ -41,7 +41,11 @@ export default class BillsController {
     return response.ok(result);
   }
 
-  public async aggregateClientPayments({ params, auth, response }: HttpContextContract) {
+  public async aggregateClientPayments({
+    params,
+    auth,
+    response,
+  }: HttpContextContract) {
     const result = await this.service.aggregateClientPayments(
       await this.sharedService.getAuthContext(auth),
       params.tutorID,
@@ -68,7 +72,11 @@ export default class BillsController {
     return response.ok(null);
   }
 
-  public async checkItemDiscount({ request, response, auth }: HttpContextContract) {
+  public async checkItemDiscount({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
     const payload = await request.validate(CheckItemDiscountValidator);
 
     const result = await this.service.checkItemsDiscount(
@@ -115,13 +123,20 @@ export default class BillsController {
     return this.sharedService.errorHoc(response, async () => {
       const payload = await request.validate(UpdateBillValidator);
 
-      await this.service.updateBill(await this.sharedService.getAuthContext(auth), payload);
+      await this.service.updateBill(
+        await this.sharedService.getAuthContext(auth),
+        payload,
+      );
 
       return response.ok(null);
     });
   }
 
-  public async createBillItem({ request, response, auth }: HttpContextContract) {
+  public async createBillItem({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
     const payload = await request.validate(CreateBillItemValidator);
 
     const result = await this.service.createBillItem(
@@ -136,7 +151,11 @@ export default class BillsController {
     return response.created(result);
   }
 
-  public async createBillItems({ request, response, auth }: HttpContextContract) {
+  public async createBillItems({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
     const payload = await request.validate(CreateBillItemsValidator);
 
     const result = await this.service.createBillItems(
@@ -150,7 +169,11 @@ export default class BillsController {
     return response.created(result);
   }
 
-  public async updateBillItem({ request, response, auth }: HttpContextContract) {
+  public async updateBillItem({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
     const payload = await request.validate(UpdateBillItemValidator);
 
     const result = await this.service.updateBillItem(
@@ -166,12 +189,19 @@ export default class BillsController {
   }
 
   public async deleteBillItem({ params, auth, response }: HttpContextContract) {
-    await this.service.deleteBillItem(await this.sharedService.getAuthContext(auth), params.id);
+    await this.service.deleteBillItem(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
 
     return response.ok(null);
   }
 
-  public async createBillPayment({ request, response, auth }: HttpContextContract) {
+  public async createBillPayment({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
     const payload = await request.validate(CreateBillPaymentValidator);
 
     const result = await this.service.createBillPayment(
@@ -182,13 +212,24 @@ export default class BillsController {
     return response.created(result);
   }
 
-  public async deleteBillPayment({ params, response, auth }: HttpContextContract) {
-    await this.service.deleteBillPayment(await this.sharedService.getAuthContext(auth), params.id);
+  public async deleteBillPayment({
+    params,
+    response,
+    auth,
+  }: HttpContextContract) {
+    await this.service.deleteBillPayment(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
 
     return response.ok(null);
   }
 
-  public async deleteBillPaymentBlock({ request, response, auth }: HttpContextContract) {
+  public async deleteBillPaymentBlock({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
     const payload = await request.validate(DeletePaymentBlockValidator);
 
     await this.service.deleteBillPaymentBlock(
@@ -199,7 +240,11 @@ export default class BillsController {
     return response.ok(null);
   }
 
-  public async searchProducts({ request, response, auth }: HttpContextContract) {
+  public async searchProducts({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
 
     const qs = request.qs();
@@ -230,7 +275,10 @@ export default class BillsController {
   }
 
   public async excludeBill({ params, auth, response }: HttpContextContract) {
-    await this.service.excludeBill(await this.sharedService.getAuthContext(auth), params.id);
+    await this.service.excludeBill(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
     return response.ok(null);
   }
 
@@ -248,7 +296,11 @@ export default class BillsController {
     return response.ok(null);
   }
 
-  public async disableBillItem({ params, auth, response }: HttpContextContract) {
+  public async disableBillItem({
+    params,
+    auth,
+    response,
+  }: HttpContextContract) {
     const { unit_id } = this.sharedService.extractUser(auth);
 
     await this.service.disableBillItem(unit_id, params.id);
@@ -258,20 +310,34 @@ export default class BillsController {
   public async addKitToBill({ request, response, auth }: HttpContextContract) {
     const payload = await request.validate(AddKitToBillValidator);
 
-    await this.service.addFromKit(await this.sharedService.getAuthContext(auth), payload);
+    await this.service.addFromKit(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
 
     return response.ok(null);
   }
 
-  public async fetchConferenceCashier({ params, response, auth }: HttpContextContract) {
+  public async fetchConferenceCashier({
+    params,
+    response,
+    auth,
+  }: HttpContextContract) {
     const authCtx = await this.sharedService.getAuthContext(auth);
 
-    const result = await this.service.fetchConferenceCashier(authCtx, params.id);
+    const result = await this.service.fetchConferenceCashier(
+      authCtx,
+      params.id,
+    );
 
     return response.ok(result);
   }
 
-  public async updateCashierConference({ request, response, auth }: HttpContextContract) {
+  public async updateCashierConference({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
     const payload = await request.validate(ConfirmBillPaymentsValidator);
     const authCtx = await this.sharedService.getAuthContext(auth);
 
@@ -280,7 +346,11 @@ export default class BillsController {
     return response.ok(null);
   }
 
-  public async createTreatment({ request, response, auth }: HttpContextContract) {
+  public async createTreatment({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
     const payload = await request.validate(CreateTreatmentBillValidator);
     const authCtx = await this.sharedService.getAuthContext(auth);
 
@@ -289,7 +359,11 @@ export default class BillsController {
     return response.ok(null);
   }
 
-  public async updatePaymentExpiration({ request, response, auth }: HttpContextContract) {
+  public async updatePaymentExpiration({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
     const payload = await request.validate(UpdatePaymentExpirationValidator);
     const authCtx = await this.sharedService.getAuthContext(auth);
 
@@ -298,8 +372,14 @@ export default class BillsController {
     return response.ok(null);
   }
 
-  public async updateBillFinancialResponsible({ request, response, auth }: HttpContextContract) {
-    const payload = await request.validate(UpdateBillFinancialResponsibleValidator);
+  public async updateBillFinancialResponsible({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
+    const payload = await request.validate(
+      UpdateBillFinancialResponsibleValidator,
+    );
     const authCtx = await this.sharedService.getAuthContext(auth);
 
     await this.service.updateBillFinancialResponsible(authCtx, payload);
@@ -307,7 +387,11 @@ export default class BillsController {
     return response.ok(null);
   }
 
-  public async updateBillSeller({ request, response, auth }: HttpContextContract) {
+  public async updateBillSeller({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
     const payload = await request.validate(UpdateBillSellerValidator);
     const authCtx = await this.sharedService.getAuthContext(auth);
 
@@ -316,7 +400,11 @@ export default class BillsController {
     return response.ok(null);
   }
 
-  public async checkDepositAvailability({ request, response, auth }: HttpContextContract) {
+  public async checkDepositAvailability({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
     const payload = await request.validate(CheckDepositAvailabilityValidator);
     const authCtx = await this.sharedService.getAuthContext(auth);
 
@@ -325,7 +413,11 @@ export default class BillsController {
     return response.ok(null);
   }
 
-  public async discountDepositItems({ request, response, auth }: HttpContextContract) {
+  public async discountDepositItems({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
     const payload = await request.validate(CheckDepositAvailabilityValidator);
     const authCtx = await this.sharedService.getAuthContext(auth);
 
@@ -334,7 +426,11 @@ export default class BillsController {
     return response.ok(null);
   }
 
-  public async printPaymentReceipt({ request, response, auth }: HttpContextContract) {
+  public async printPaymentReceipt({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
     const authCtx = await this.sharedService.getAuthContext(auth);
 
     const result = await this.service.printPaymentReceipt(
@@ -346,16 +442,26 @@ export default class BillsController {
     return response.ok(result);
   }
 
-  public async approveBillCourtesyMaxDiscounts({ request, response, auth }: HttpContextContract) {
+  public async approveBillCourtesyMaxDiscounts({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
     const authCtx = await this.sharedService.getAuthContext(auth);
-    const payload = await request.validate(ApproveBillCourtesyMaxDiscountValidator);
+    const payload = await request.validate(
+      ApproveBillCourtesyMaxDiscountValidator,
+    );
 
     await this.service.approveCourtesyOrMaxDiscount(authCtx, payload);
 
     return response.ok(null);
   }
 
-  public async requestBillCancellation({ request, response, auth }: HttpContextContract) {
+  public async requestBillCancellation({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
     const authCtx = await this.sharedService.getAuthContext(auth);
     const payload = await request.validate(RequestBillCancellationValidator);
 
@@ -364,7 +470,11 @@ export default class BillsController {
     return response.ok(null);
   }
 
-  public async reviewBillCancellation({ request, response, auth }: HttpContextContract) {
+  public async reviewBillCancellation({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
     const authCtx = await this.sharedService.getAuthContext(auth);
     const payload = await request.validate(ReviewBillCancellationValidator);
 
@@ -373,7 +483,11 @@ export default class BillsController {
     return response.ok(null);
   }
 
-  public async finishBillCancellation({ request, response, auth }: HttpContextContract) {
+  public async finishBillCancellation({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
     const authCtx = await this.sharedService.getAuthContext(auth);
     const payload = await request.validate(FinishBillCancellationValidator);
 
@@ -382,7 +496,11 @@ export default class BillsController {
     return response.ok(null);
   }
 
-  public async deleteItemDepartments({ request, response, auth }: HttpContextContract) {
+  public async deleteItemDepartments({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
     const authCtx = await this.sharedService.getAuthContext(auth);
     const payload = await request.validate(DeleteItemDepartmentValidator);
 
@@ -391,7 +509,11 @@ export default class BillsController {
     return response.ok(null);
   }
 
-  public async calculateBillTaxes({ request, response, auth }: HttpContextContract) {
+  public async calculateBillTaxes({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
     const authCtx = await this.sharedService.getAuthContext(auth);
     const payload = await request.validate(CalculateTaxValidator);
 
@@ -400,11 +522,28 @@ export default class BillsController {
     return response.ok(null);
   }
 
-  public async deleteClientPayment({ request, response, auth }: HttpContextContract) {
+  public async deleteClientPayment({
+    request,
+    response,
+    auth,
+  }: HttpContextContract) {
     const authCtx = await this.sharedService.getAuthContext(auth);
 
     await this.service.deleteClientPayment(authCtx, request.param("id"));
 
     return response.ok(null);
+  }
+
+  public async getClientPaymentSales({
+    params,
+    auth,
+    response,
+  }: HttpContextContract) {
+    const result = await this.service.getClientPaymentSales(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
+
+    return response.ok(result);
   }
 }

@@ -1087,7 +1087,7 @@ export default class BusinessUnitFiscalDocumentService {
         nationalServiceCode:
           mapItems
             .find((mi) => mi.productVariation.product.codigoNbs)
-            ?.productVariation.product.codigoNbs?.toString() ?? "0",
+            ?.productVariation.product.codigoNbs?.toString() ?? undefined,
         nationalTaxationCode: serviceCode,
         issTaxationType: 1,
         issRetentionType: 1, // fixo

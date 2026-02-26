@@ -222,7 +222,7 @@ export interface ISendNationalNfse {
   service: {
     description: string;
     value: number;
-    nationalServiceCode: string;
+    nationalServiceCode: string | undefined;
     nationalTaxationCode: string;
     issTaxationType: number;
     issRetentionType: number;

@@ -4045,45 +4045,72 @@ where deposit_id = ?
 
 		await bill
 			.merge({
-				icmsBase: validItems.reduce((acc, item) => acc + item.icmsBase, 0),
-				icmsValue: validItems.reduce((acc, item) => acc + item.icmsValue, 0),
+				icmsBase: validItems.reduce(
+					(acc, item) => acc + (item.icmsBase?.toNumber() ?? 0),
+					0,
+				),
+				icmsValue: validItems.reduce(
+					(acc, item) => acc + (item.icmsValue?.toNumber() ?? 0),
+					0,
+				),
 				icmsStBase: validItems
 					.filter(
 						(i) =>
 							typeof i.icmsStValue === "number" && !Number.isNaN(i.icmsStValue),
 					)
-					.reduce((acc, item) => acc + item.icmsStBase, 0),
+					.reduce((acc, item) => acc + (item.icmsStBase?.toNumber() ?? 0), 0),
 				icmsStValue: validItems
 					.filter(
 						(i) =>
 							typeof i.icmsStValue === "number" && !Number.isNaN(i.icmsStValue),
 					)
-					.reduce((acc, item) => acc + item.icmsStValue, 0),
-				issBase: validItems.reduce((acc, item) => acc + (item.issBase ?? 0), 0),
-				issValue: validItems.reduce((acc, item) => acc + item.issValue, 0),
-				pisBase: validItems.reduce((acc, item) => acc + item.pisBase, 0),
-				pisValue: validItems.reduce((acc, item) => acc + item.pisValue, 0),
-				pisRetentionValue: validItems.reduce(
-					(acc, item) => acc + (item.pisRetentionValue ?? 0),
+					.reduce((acc, item) => acc + (item.icmsStValue?.toNumber() ?? 0), 0),
+				issBase: validItems.reduce(
+					(acc, item) => acc + (item.issBase?.toNumber() ?? 0),
 					0,
 				),
-				cofinsBase: validItems.reduce((acc, item) => acc + item.cofinsBase, 0),
+				issValue: validItems.reduce(
+					(acc, item) => acc + (item.issValue?.toNumber() ?? 0),
+					0,
+				),
+				pisBase: validItems.reduce(
+					(acc, item) => acc + (item.pisBase?.toNumber() ?? 0),
+					0,
+				),
+				pisValue: validItems.reduce(
+					(acc, item) => acc + (item.pisValue?.toNumber() ?? 0),
+					0,
+				),
+				pisRetentionValue: validItems.reduce(
+					(acc, item) => acc + (item.pisRetentionValue?.toNumber() ?? 0),
+					0,
+				),
+				cofinsBase: validItems.reduce(
+					(acc, item) => acc + (item.cofinsBase?.toNumber() ?? 0),
+					0,
+				),
 				cofinsValue: validItems.reduce(
-					(acc, item) => acc + item.cofinsValue,
+					(acc, item) => acc + (item.cofinsValue?.toNumber() ?? 0),
 					0,
 				),
 				cofinsRetentionValue: validItems.reduce(
-					(acc, item) => acc + item.cofinsRetentionValue,
+					(acc, item) => acc + (item.cofinsRetentionValue?.toNumber() ?? 0),
 					0,
 				),
-				ipiBase: validItems.reduce((acc, item) => acc + item.ipiBase, 0),
-				ipiValue: validItems.reduce((acc, item) => acc + item.ipiValue, 0),
+				ipiBase: validItems.reduce(
+					(acc, item) => acc + (item.ipiBase?.toNumber() ?? 0),
+					0,
+				),
+				ipiValue: validItems.reduce(
+					(acc, item) => acc + (item.ipiValue?.toNumber() ?? 0),
+					0,
+				),
 				icmsDeferredValue: validItems.reduce(
-					(acc, item) => acc + item.icmsDeferredValue,
+					(acc, item) => acc + (item.icmsDeferredValue?.toNumber() ?? 0),
 					0,
 				),
 				icmsFcpValue: validItems.reduce(
-					(acc, item) => acc + item.icmsFcpValue,
+					(acc, item) => acc + (item.icmsFcpValue?.toNumber() ?? 0),
 					0,
 				),
 				icmsUfDestinationValue: validItems.reduce(

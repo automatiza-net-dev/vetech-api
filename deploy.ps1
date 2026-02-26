@@ -20,7 +20,7 @@ Copy-Item -Recurse -Force public build\public
 node ace migration:run
 
 # Reinicia processos do PM2
-pm2 start 1
+pm2 start 0
 #pm2 restart cron
 
 Write-Host "Deploy finalizado com sucesso!"

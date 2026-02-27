@@ -2,10 +2,7 @@ import BadRequestException from "App/Exceptions/BadRequestException";
 import Bill from "App/Models/Bill";
 import BillPaymentConference from "App/Models/BillPaymentConference";
 import DailyCashier, { DailyCashierStatus } from "App/Models/DailyCashier";
-import {
-  DailyCashierEntryStatus,
-  DailyCashierEntryType,
-} from "App/Models/DailyCashierEntry";
+import { DailyCashierEntryStatus, DailyCashierEntryType } from "App/Models/DailyCashierEntry";
 import DailyMovement, { DailyMovementStatus } from "App/Models/DailyMovement";
 import Finance, { FinanceAccept } from "App/Models/Finance";
 import SharedService, { AuthContext } from "App/Services/SharedService";
@@ -40,34 +37,34 @@ interface ISearch {
 
 @inject()
 export default class DailyCashierService {
-  constructor(private readonly sharedService: SharedService) { }
+  constructor(private readonly sharedService: SharedService) {}
 
   async checkCashierStatus(authCtx: AuthContext) {
     const rows: { id: string; data_caixa: "Anterior" | "Hoje" }[] | null =
       authCtx.unit.unitConfig.dailyCashierType === "usuario"
         ? await Database.from("daily_cashiers")
-          .select(
-            Database.raw(
-              "id, case when opening_date::date < now()::date then 'Anterior' else 'Hoje' end as data_caixa",
-            ),
-          )
-          .where("business_unit_id", authCtx.unit.id)
-          .where("user_who_opened_id", authCtx.user.id)
-          .whereRaw("status = ?", [DailyCashierStatus.A])
-          .whereRaw("opening_date::date <= now()::date")
-          .whereNull("deleted_at")
-          .limit(1)
+            .select(
+              Database.raw(
+                "id, case when opening_date::date < now()::date then 'Anterior' else 'Hoje' end as data_caixa",
+              ),
+            )
+            .where("business_unit_id", authCtx.unit.id)
+            .where("user_who_opened_id", authCtx.user.id)
+            .whereRaw("status = ?", [DailyCashierStatus.A])
+            .whereRaw("opening_date::date <= now()::date")
+            .whereNull("deleted_at")
+            .limit(1)
         : await Database.from("daily_cashiers")
-          .select(
-            Database.raw(
-              "id, case when opening_date::date < now()::date then 'Anterior' else 'Hoje' end as data_caixa",
-            ),
-          )
-          .where("business_unit_id", authCtx.unit.id)
-          .whereRaw("status = ?", [DailyCashierStatus.A])
-          .whereRaw("opening_date::date <= now()::date")
-          .whereNull("deleted_at")
-          .limit(1);
+            .select(
+              Database.raw(
+                "id, case when opening_date::date < now()::date then 'Anterior' else 'Hoje' end as data_caixa",
+              ),
+            )
+            .where("business_unit_id", authCtx.unit.id)
+            .whereRaw("status = ?", [DailyCashierStatus.A])
+            .whereRaw("opening_date::date <= now()::date")
+            .whereNull("deleted_at")
+            .limit(1);
 
     if (!rows || rows.length === 0) {
       return {
@@ -168,40 +165,28 @@ export default class DailyCashierService {
         },
         tag: dailyCashier.tag,
 
-        opening_user: this.sharedService.captureGroup(
-          dailyCashier.userWhoOpened,
-          (v) => ({
-            id: v.id,
-            name: v.name,
-          }),
-        ),
+        opening_user: this.sharedService.captureGroup(dailyCashier.userWhoOpened, (v) => ({
+          id: v.id,
+          name: v.name,
+        })),
         opening_date: dailyCashier.openingDate,
 
-        closing_user: this.sharedService.captureGroup(
-          dailyCashier.userWhoClosed,
-          (v) => ({
-            id: v.id,
-            name: v.name,
-          }),
-        ),
+        closing_user: this.sharedService.captureGroup(dailyCashier.userWhoClosed, (v) => ({
+          id: v.id,
+          name: v.name,
+        })),
         closing_date: dailyCashier.closingDate,
 
-        checking_user: this.sharedService.captureGroup(
-          dailyCashier.userWhoChecked,
-          (v) => ({
-            id: v.id,
-            name: v.name,
-          }),
-        ),
+        checking_user: this.sharedService.captureGroup(dailyCashier.userWhoChecked, (v) => ({
+          id: v.id,
+          name: v.name,
+        })),
         checking_date: dailyCashier.checkingDate,
 
-        revision_user: this.sharedService.captureGroup(
-          dailyCashier.userWhoRevised,
-          (v) => ({
-            id: v.id,
-            name: v.name,
-          }),
-        ),
+        revision_user: this.sharedService.captureGroup(dailyCashier.userWhoRevised, (v) => ({
+          id: v.id,
+          name: v.name,
+        })),
         revision_date: dailyCashier.revisionDate,
 
         opening_balance: dailyCashier.openingBalance,
@@ -282,32 +267,18 @@ export default class DailyCashierService {
         revision_date: result.revisionDate,
         user_who_checked_id: result.user_who_checked_id,
         checking_date: result.checkingDate,
-        opening_balance: Number.parseFloat(
-          result.openingBalance as unknown as string,
-        ),
-        cashier_funds: Number.parseFloat(
-          result.cashierFunds as unknown as string,
-        ),
+        opening_balance: Number.parseFloat(result.openingBalance as unknown as string),
+        cashier_funds: Number.parseFloat(result.cashierFunds as unknown as string),
         sales_total: Number.parseFloat(result.salesTotal as unknown as string),
-        expenses_total: Number.parseFloat(
-          result.expensesTotal as unknown as string,
-        ),
-        receipts_total: Number.parseFloat(
-          result.receiptsTotal as unknown as string,
-        ),
-        cashier_total: Number.parseFloat(
-          result.cashierTotal as unknown as string,
-        ),
-        cashier_balance: Number.parseFloat(
-          result.cashierBalance as unknown as string,
-        ),
+        expenses_total: Number.parseFloat(result.expensesTotal as unknown as string),
+        receipts_total: Number.parseFloat(result.receiptsTotal as unknown as string),
+        cashier_total: Number.parseFloat(result.cashierTotal as unknown as string),
+        cashier_balance: Number.parseFloat(result.cashierBalance as unknown as string),
         observation: result.observations,
         status: result.status,
         despesas: result.entries
           .filter(
-            (e) =>
-              e.type === DailyCashierEntryType.D &&
-              e.status === DailyCashierEntryStatus.A,
+            (e) => e.type === DailyCashierEntryType.D && e.status === DailyCashierEntryStatus.A,
           )
           .map((e) => ({
             tag: e.tag,
@@ -317,9 +288,7 @@ export default class DailyCashierService {
           })),
         recebimentos: result.entries
           .filter(
-            (e) =>
-              e.type === DailyCashierEntryType.C &&
-              e.status === DailyCashierEntryStatus.A,
+            (e) => e.type === DailyCashierEntryType.C && e.status === DailyCashierEntryStatus.A,
           )
           .map((e) => ({
             tag: e.tag,
@@ -377,11 +346,7 @@ export default class DailyCashierService {
         query.where("user_who_opened_id", data.openingUser);
       }
       if (data.fromBalance) {
-        query.where(
-          "cashier_balance",
-          ">=",
-          Number.parseFloat(data.fromBalance),
-        );
+        query.where("cashier_balance", ">=", Number.parseFloat(data.fromBalance));
       }
 
       if (data.toBalance) {
@@ -395,24 +360,15 @@ export default class DailyCashierService {
       }
 
       if (data.fromOpening && data.toOpening) {
-        query.whereRaw("opening_date::date between ? and ?", [
-          data.fromOpening,
-          data.toOpening,
-        ]);
+        query.whereRaw("opening_date::date between ? and ?", [data.fromOpening, data.toOpening]);
       }
 
       if (data.fromClosing && data.toClosing) {
-        query.whereRaw("closing_date::date between ? and ?", [
-          data.fromClosing,
-          data.toClosing,
-        ]);
+        query.whereRaw("closing_date::date between ? and ?", [data.fromClosing, data.toClosing]);
       }
 
       if (data.fromChecking && data.toChecking) {
-        query.whereRaw("checking_date::date between ? and ?", [
-          data.fromChecking,
-          data.toChecking,
-        ]);
+        query.whereRaw("checking_date::date between ? and ?", [data.fromChecking, data.toChecking]);
       }
     }
 
@@ -426,14 +382,10 @@ export default class DailyCashierService {
           .useTransaction(trx)
           .where("business_unit_id", authCtx.unit.id)
           .where("user_who_opened_id", data.userId ?? authCtx.user.id)
-          .whereRaw("(status = ? or opening_date::date = now()::date)", [
-            DailyCashierStatus.A,
-          ])
+          .whereRaw("(status = ? or opening_date::date = now()::date)", [DailyCashierStatus.A])
           .orderBy("opening_date", "desc");
 
-        if (
-          anotherOpenCashiers.some((c) => c.status === DailyCashierStatus.A)
-        ) {
+        if (anotherOpenCashiers.some((c) => c.status === DailyCashierStatus.A)) {
           throw new BadRequestException(
             "Já existe um caixa diário aberto para este usuário",
             400,
@@ -495,12 +447,9 @@ export default class DailyCashierService {
         }
       }
 
-      const dailyMovement = await DailyMovement.findOrFail(
-        data.dailyMovementId,
-        {
-          client: trx,
-        },
-      );
+      const dailyMovement = await DailyMovement.findOrFail(data.dailyMovementId, {
+        client: trx,
+      });
 
       if (dailyMovement.status !== DailyMovementStatus.A) {
         throw new BadRequestException(
@@ -541,11 +490,7 @@ export default class DailyCashierService {
     });
   }
 
-  async closeDailyCashier(
-    authCtx: AuthContext,
-    id: string,
-    data: ICloseCashierData,
-  ) {
+  async closeDailyCashier(authCtx: AuthContext, id: string, data: ICloseCashierData) {
     const dailyCashier = await DailyCashier.query()
       .where("id", id)
       .where("business_unit_id", authCtx.unit.id)
@@ -569,25 +514,14 @@ export default class DailyCashierService {
       .where("daily_cashier_id", id)
       .whereNull("deleted_at");
 
-    const salesSum = payments.reduce(
-      (total, payment) => total + payment.totalValue,
-      0,
-    );
+    const salesSum = payments.reduce((total, payment) => total + payment.totalValue, 0);
 
     const expensesTotal = entries
       .filter((entry) => entry.type === DailyCashierEntryType.D)
-      .reduce(
-        (total, entry) =>
-          total + Number.parseFloat(entry.value as unknown as string),
-        0,
-      );
+      .reduce((total, entry) => total + Number.parseFloat(entry.value as unknown as string), 0);
     const receiptsTotal = entries
       .filter((entry) => entry.type === DailyCashierEntryType.C)
-      .reduce(
-        (total, entry) =>
-          total + Number.parseFloat(entry.value as unknown as string),
-        0,
-      );
+      .reduce((total, entry) => total + Number.parseFloat(entry.value as unknown as string), 0);
 
     const partial =
       Number.parseFloat(dailyCashier.openingBalance as unknown as string) +
@@ -618,16 +552,10 @@ export default class DailyCashierService {
         .first();
 
       if (!dailyCashier) {
-        throw this.sharedService.ResourceNotFound(
-          "Caixa diário não encontrado",
-        );
+        throw this.sharedService.ResourceNotFound("Caixa diário não encontrado");
       }
 
-      if (
-        ![DailyCashierStatus.F, DailyCashierStatus.R].includes(
-          dailyCashier.status,
-        )
-      ) {
+      if (![DailyCashierStatus.F, DailyCashierStatus.R].includes(dailyCashier.status)) {
         throw new BadRequestException(
           "Caixa diário não está fechado",
           400,
@@ -724,11 +652,7 @@ export default class DailyCashierService {
     });
   }
 
-  async checkDailyCashier(
-    authCtx: AuthContext,
-    id: string,
-    data: ICheckCashierData,
-  ) {
+  async checkDailyCashier(authCtx: AuthContext, id: string, data: ICheckCashierData) {
     return Database.transaction(async (trx) => {
       const dailyCashier = await DailyCashier.query()
         .useTransaction(trx)
@@ -737,9 +661,7 @@ export default class DailyCashierService {
         .first();
 
       if (!dailyCashier) {
-        throw this.sharedService.ResourceNotFound(
-          "Caixa diário não encontrado",
-        );
+        throw this.sharedService.ResourceNotFound("Caixa diário não encontrado");
       }
 
       if (dailyCashier.status !== DailyCashierStatus.F) {
@@ -755,9 +677,7 @@ export default class DailyCashierService {
           user_who_checked_id: authCtx.user.id,
 
           status: DailyCashierStatus.C,
-          observations: [dailyCashier.observations, data.observations].join(
-            " - ",
-          ),
+          observations: [dailyCashier.observations, data.observations].join(" - "),
           checkingDate: DateTime.now(),
         })
         .useTransaction(trx)
@@ -765,11 +685,7 @@ export default class DailyCashierService {
     });
   }
 
-  async reviewDailyCashier(
-    authCtx: AuthContext,
-    id: string,
-    data: IReviewCashierData,
-  ) {
+  async reviewDailyCashier(authCtx: AuthContext, id: string, data: IReviewCashierData) {
     return Database.transaction(async (trx) => {
       const dailyCashier = await DailyCashier.query()
         .useTransaction(trx)
@@ -778,9 +694,7 @@ export default class DailyCashierService {
         .first();
 
       if (!dailyCashier) {
-        throw this.sharedService.ResourceNotFound(
-          "Caixa diário não encontrado",
-        );
+        throw this.sharedService.ResourceNotFound("Caixa diário não encontrado");
       }
 
       if (dailyCashier.status !== DailyCashierStatus.F) {
@@ -796,9 +710,7 @@ export default class DailyCashierService {
           user_who_revised_id: data.userId,
           status: DailyCashierStatus.R,
           revisionDate: data.revisionDate,
-          observations: [dailyCashier.observations, data.observations].join(
-            " - ",
-          ),
+          observations: [dailyCashier.observations, data.observations].join(" - "),
         })
         .useTransaction(trx)
         .save();
@@ -900,9 +812,7 @@ export default class DailyCashierService {
         .first();
 
       if (!bill) {
-        throw this.sharedService.ResourceNotFound(
-          "Nota de saída não encontrada",
-        );
+        throw this.sharedService.ResourceNotFound("Nota de saída não encontrada");
       }
 
       const uniqueBills = Array.from(new Set(data.items.map((b) => b.billId)));

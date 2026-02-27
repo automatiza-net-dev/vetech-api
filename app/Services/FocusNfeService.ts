@@ -178,7 +178,7 @@ export interface ISendNfse {
     cnae: string;
     description: string;
     city_code: string;
-    nbs_code: string | undefined
+    nbs_code: string | undefined;
   };
 }
 
@@ -520,14 +520,14 @@ export default class FocusNfeService {
       formas_pagamento:
         rawPayload.finality === 1
           ? rawPayload.payments.map((payment) => ({
-            forma_pagamento: payment.nfe_code,
-            descricao_pagamento: payment.description,
-            valor_pagamento: payment.installment,
-            tipo_integracao: payment.integration_type,
-            cnpj_credenciadora: payment.acquirer,
-            bandeira_operadora: payment.flag,
-            numero_autorizacao: payment.nsu,
-          }))
+              forma_pagamento: payment.nfe_code,
+              descricao_pagamento: payment.description,
+              valor_pagamento: payment.installment,
+              tipo_integracao: payment.integration_type,
+              cnpj_credenciadora: payment.acquirer,
+              bandeira_operadora: payment.flag,
+              numero_autorizacao: payment.nsu,
+            }))
           : [{ forma_pagamento: "90" }],
 
       // icms_base_calculo: data.totalizers.icms_base,
@@ -880,7 +880,7 @@ export default class FocusNfeService {
         codigo_cnae: meta.hideCnae ? undefined : data.service.cnae,
         discriminacao: data.service.description,
         codigo_tributario_municipio: meta.hideCityCode ? undefined : data.service.city_code,
-        codigo_nbs: data.service.nbs_code
+        codigo_nbs: data.service.nbs_code,
       },
     };
 

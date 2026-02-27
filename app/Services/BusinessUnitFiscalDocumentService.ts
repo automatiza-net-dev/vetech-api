@@ -999,7 +999,7 @@ export default class BusinessUnitFiscalDocumentService {
             service_code: serviceCode,
             cnae: authCtx.unit.cnae ?? "",
             description: authCtx.unit.unitConfig.defaultNfseDescription ?? "-",
-            city_code: authCtx.unit.tributationCode ?? "",
+            city_code: authCtx.unit.cityCode ?? "",
             nbs_code: mapItems.find((i) => i.productVariation.product.codigoNbs)?.productVariation
               .product.codigoNbs,
           },

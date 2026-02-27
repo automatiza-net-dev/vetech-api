@@ -2708,9 +2708,9 @@ where deposit_id = ?
         throw this.sharedService.ResourceNotFound();
       }
 
-      if (bill.status !== BillStatus.A) {
-        throw new BadRequestException("Nota não está aberta", 400, "E_NOT_OPEN");
-      }
+      // if (bill.status !== BillStatus.A) {
+      //   throw new BadRequestException("Nota não está aberta", 400, "E_NOT_OPEN");
+      // }
 
       const ufList = bill.items.map((i) => i.taxRule?.toUf).filter(Boolean);
       const ufIcms = await UfIcms.query()

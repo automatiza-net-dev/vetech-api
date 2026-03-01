@@ -987,6 +987,8 @@ Route.group(() => {
   Route.delete("/delete-payment/:id", "BillsController.deleteBillPayment");
   Route.delete("/delete-client-payment/:id", "BillsController.deleteClientPayment");
   Route.delete("/delete-payment-block", "BillsController.deleteBillPaymentBlock");
+
+  Route.get("/client-payment-sales/:id", "BillsController.getClientPaymentSales");
 })
   .prefix("bills")
   .middleware("auth");

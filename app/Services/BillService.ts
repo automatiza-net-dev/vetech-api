@@ -5374,4 +5374,39 @@ where id = ?`,
         .save();
     });
   }
+
+  async getClientPaymentSales(_authCtx: AuthContext, clientPaymentId: number) {
+    const clientPayment = await ClientPayment.query()
+      .where("id", clientPaymentId)
+      .preload("billPayments", (query) => {
+        query.preload("bill", (billQuery) => {
+          billQuery.select("id", "tag", "total_value", "status");
+        });
+      })
+      .preload("clientCredits")
+      .first();
+
+    if (!clientPayment) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    const sales = clientPayment.billPayments.map((billPayment) => ({
+      billId: billPayment.bill?.id,
+      tag: billPayment.bill?.tag,
+      totalValue: billPayment.totalValue,
+      paidValue: billPayment.installmentValue,
+    }));
+
+    const credits = clientPayment.clientCredits.map((credit) => ({
+      id: credit.id,
+      originalValue: credit.originalValue,
+      usedValue: credit.usedValue,
+      returned: credit.returned,
+    }));
+
+    return {
+      sales,
+      credits,
+    };
+  }
 }

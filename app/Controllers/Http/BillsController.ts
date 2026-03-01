@@ -407,4 +407,13 @@ export default class BillsController {
 
     return response.ok(null);
   }
+
+  public async getClientPaymentSales({ params, auth, response }: HttpContextContract) {
+    const result = await this.service.getClientPaymentSales(
+      await this.sharedService.getAuthContext(auth),
+      params.id,
+    );
+
+    return response.ok(result);
+  }
 }

@@ -72,7 +72,7 @@ interface ISearchSupplier {
 
 @inject()
 export default class PatientService {
-  constructor(private readonly sharedService: SharedService) {}
+  constructor(private readonly sharedService: SharedService) { }
 
   static MESES = [
     "Janeiro",
@@ -836,12 +836,12 @@ export default class PatientService {
       started_at: string;
       aid: string | null;
     } | null = params.scheduleId
-      ? await Database.from("schedules")
+        ? await Database.from("schedules")
           .select(Database.raw("schedules.id, schedules.started_at, attendances.id as aid"))
           .whereRaw("schedules.id = ?", [params.scheduleId])
           .joinRaw("left join attendances on attendances.schedule_id = schedules.id")
           .first()
-      : await Database.from("schedules")
+        : await Database.from("schedules")
           .select(Database.raw("schedules.id, schedules.started_at, attendances.id as aid"))
           .whereRaw("schedules.patient_id = ?", [patient.id])
           .whereRaw("start_hour::date = now()::date")
@@ -888,9 +888,9 @@ export default class PatientService {
         : "-",
       birth_date_text: patient.birthDate
         ? new Intl.DateTimeFormat("pt-BR", {
-            day: "numeric",
-            month: "long",
-          }).format(patient.birthDate)
+          day: "numeric",
+          month: "long",
+        }).format(patient.birthDate)
         : "-",
       active: patient.active,
       tag: patient.tag,
@@ -1139,9 +1139,8 @@ export default class PatientService {
       .preload("user", (query) => {
         query.select("id", "name");
       })
-      .preload("paymentMethod", (query) => {
-        query.select("id", "description");
-      });
+      .preload("paymentMethod")
+      .preload("finances")
   }
 
   public async salesMetadata(
@@ -1201,11 +1200,11 @@ export default class PatientService {
     const budgets = data.onlyOpen
       ? []
       : await Budget.query()
-          .where(key, patient.id)
-          .where("status", BudgetStatus.A)
-          .preload("seller")
-          .preload(key === "patient_id" ? "client" : "user")
-          .orderByRaw("budget_date desc, tag desc");
+        .where(key, patient.id)
+        .where("status", BudgetStatus.A)
+        .preload("seller")
+        .preload(key === "patient_id" ? "client" : "user")
+        .orderByRaw("budget_date desc, tag desc");
 
     const budgetStatuses: { id: string; status: string }[] = await Database.from("budgets")
       .select(
@@ -1458,19 +1457,19 @@ export default class PatientService {
         // não tem nenhuma informação de data relativa?
         !data.birthYears && !data.birthMonths && !data.birthDays
           ? // verifica se tem data
-            data.birthDate
+          data.birthDate
             ? typeof data.birthDate === "string"
               ? DateTime.fromISO(data.birthDate).toJSDate()
               : data.birthDate.toJSDate()
             : // se não tiver, usa null
-              null
+            null
           : DateTime.now()
-              .minus({
-                years: data.birthYears ?? 0,
-                months: data.birthMonths ?? 0,
-                days: data.birthDays ?? 0,
-              })
-              .toJSDate();
+            .minus({
+              years: data.birthYears ?? 0,
+              months: data.birthMonths ?? 0,
+              days: data.birthDays ?? 0,
+            })
+            .toJSDate();
 
       const patient = await Patient.create(
         {
@@ -1830,19 +1829,19 @@ export default class PatientService {
         // não tem nenhuma informação de data relativa?
         !data.birthYears && !data.birthMonths && !data.birthDays
           ? // verifica se tem data
-            data.birthDate
+          data.birthDate
             ? typeof data.birthDate === "string"
               ? DateTime.fromISO(data.birthDate).toJSDate()
               : data.birthDate.toJSDate()
             : // se não tiver, usa null
-              null
+            null
           : DateTime.now()
-              .minus({
-                years: data.birthYears ?? 0,
-                months: data.birthMonths ?? 0,
-                days: data.birthDays ?? 0,
-              })
-              .toJSDate();
+            .minus({
+              years: data.birthYears ?? 0,
+              months: data.birthMonths ?? 0,
+              days: data.birthDays ?? 0,
+            })
+            .toJSDate();
 
       const patient = await authCtx.group
         .related("patients")

@@ -1,8 +1,9 @@
-import { inject } from "@adonisjs/fold";
 import BadRequestException from "App/Exceptions/BadRequestException";
+import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import Attendance from "App/Models/Attendance";
 import Banking, { BankingOriginFlag, BankingStatus, BankingType } from "App/Models/Banking";
 import Bordero, { TBorderoStatus, TBorderoType } from "App/Models/Bordero";
+import BusinessUnitCheckingAccountPaymentMethod from "App/Models/BusinessUnitCheckingAccountPaymentMethod";
 import CheckingAccount from "App/Models/CheckingAccount";
 import DailyCashier, { DailyCashierStatus } from "App/Models/DailyCashier";
 import DailyMovement, { DailyMovementStatus } from "App/Models/DailyMovement";
@@ -26,12 +27,11 @@ import {
   IUpdateFinance,
   IUpsertFinance,
 } from "Contracts/interfaces/IFinanceData";
-import { format } from "date-fns";
-import { DateTime } from "luxon";
+import { inject } from "@adonisjs/fold";
 import Database, { TransactionClientContract } from "@ioc:Adonis/Lucid/Database";
-import BusinessUnitCheckingAccountPaymentMethod from "App/Models/BusinessUnitCheckingAccountPaymentMethod";
-import UnauthorizedException from "App/Exceptions/UnauthorizedException";
+import { format } from "date-fns";
 import Decimal from "decimal.js";
+import { DateTime } from "luxon";
 
 interface ISearch {
   fromIssueDate?: string;
@@ -1413,6 +1413,51 @@ tef_flags.description as tef_flag, payment_methods.tef as pm_tef, payment_method
       // await this.
 
       return updated;
+    });
+  }
+
+  async updateMultipleExpirationDates(
+    authCtx: AuthContext,
+    data: {
+      items: { id: string; expirationDate: DateTime }[];
+    },
+  ) {
+    return Database.transaction(async (trx) => {
+      const ids = data.items.map((item) => item.id);
+
+      const finances = await Finance.query()
+        .useTransaction(trx)
+        .whereIn("id", ids)
+        .where("business_unit_id", authCtx.unit.id);
+
+      if (finances.length !== ids.length) {
+        throw new BadRequestException(
+          "Não foi possível encontrar todos os lançamentos",
+          400,
+          "BAD_REQUEST",
+        );
+      }
+
+      const notActiveFinances = finances.filter((f) => f.status !== FinanceStatus.A);
+      if (notActiveFinances.length > 0) {
+        throw new BadRequestException(
+          `Não é possível atualizar a data de vencimento de lançamentos que não estão ativos: ${notActiveFinances.map((f) => `${f.document} / ${f.installment}`).join(", ")}`,
+          400,
+          "BAD_REQUEST",
+        );
+      }
+
+      const updatePromises = data.items.map((item) => {
+        return Finance.query()
+          .useTransaction(trx)
+          .where("id", item.id)
+          .where("business_unit_id", authCtx.unit.id)
+          .update({
+            expiration_date: item.expirationDate,
+          });
+      });
+
+      await Promise.all(updatePromises);
     });
   }
 

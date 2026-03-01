@@ -1233,6 +1233,7 @@ export default class ScheduleService {
     const schedule = await Schedule.query()
       .where("id", id)
       .andWhere("business_unit_id", authCtx.unit.id)
+      .preload("serviceStatus")
       .firstOrFail();
 
     if (schedule.serviceStatus.type === "CANC") {

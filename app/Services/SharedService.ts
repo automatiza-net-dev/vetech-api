@@ -426,16 +426,16 @@ export default class SharedService {
     const dailyCashier =
       authCtx.unit.unitConfig.dailyCashierType === "usuario"
         ? await DailyCashier.query()
-            .useTransaction(trx)
-            .where("business_unit_id", authCtx.unit.id)
-            .where("user_who_opened_id", authCtx.user.id)
-            .where("status", DailyCashierStatus.A)
-            .first()
+          .useTransaction(trx)
+          .where("business_unit_id", authCtx.unit.id)
+          .where("user_who_opened_id", authCtx.user.id)
+          .where("status", DailyCashierStatus.A)
+          .first()
         : await DailyCashier.query()
-            .useTransaction(trx)
-            .where("business_unit_id", authCtx.unit.id)
-            .where("status", DailyCashierStatus.A)
-            .first();
+          .useTransaction(trx)
+          .where("business_unit_id", authCtx.unit.id)
+          .where("status", DailyCashierStatus.A)
+          .first();
 
     if (!dailyCashier && shouldThrow) {
       throw new BadRequestException("Não existe caixa diário aberto", 400, "E_NOT_OPEN");
@@ -738,6 +738,18 @@ export default class SharedService {
     }
 
     if (value === "") {
+      return undefined;
+    }
+
+    return value;
+  }
+
+  static NoopNumber(value: number | undefined) {
+    if (!value || typeof value === "undefined") {
+      return undefined;
+    }
+
+    if (value === 0) {
       return undefined;
     }
 

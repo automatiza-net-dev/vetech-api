@@ -1417,6 +1417,12 @@ where deposit_id = ?
           }
 
           if (creditToUse.gt(new Decimal(0))) {
+            const creditFeePercentage = overflowPaymentMethod?.fee ?? 0;
+            const creditFeeValue = valorRelativoCreditoUso
+              .times(creditFeePercentage)
+              .div(100)
+              .toNumber();
+
             await BillPayment.create(
               {
                 economic_group_id: authCtx.group.id,
@@ -1434,12 +1440,9 @@ where deposit_id = ?
                 expirationDate: overflowPaymentMethod
                   ? SharedService.CalculateDateOffset(0, data.expirationDate, overflowPaymentMethod)
                   : DateTime.now(),
-                feeType:
-                  (overflowPaymentMethod?.fee ?? 0) > 0
-                    ? BillPaymentFeeType.S
-                    : BillPaymentFeeType.N,
-                feeValue: 0,
-                feePercentage: 0,
+                feeType: creditFeePercentage > 0 ? BillPaymentFeeType.S : BillPaymentFeeType.N,
+                feeValue: creditFeeValue,
+                feePercentage: creditFeePercentage,
                 installments: installmentFee.installment,
                 installmentValue: valorRelativoCreditoUso.toNumber(),
                 totalValue: valorRelativoCreditoUso.toNumber(),
@@ -1458,6 +1461,24 @@ where deposit_id = ?
           }
 
           if (cashToPay.gt(0)) {
+            // Calcular fee considerando flags e parcelas (mesma lógica do Finance)
+            const shouldUseFlag = paymentMethod?.tef !== PaymentMethodTef.N;
+            const cashFeePercentage = paymentMethod
+              ? shouldUseFlag
+                ? flags.reduce((acc, cur) => {
+                    const ctx = cur.installments.find(
+                      (f) => f.installment === installmentFee.installment,
+                    );
+                    if (ctx) {
+                      return ctx.fee;
+                    }
+                    return acc;
+                  }, paymentMethod.fee)
+                : paymentMethod.fee
+              : 0;
+
+            const cashFeeValue = valorAPagarPorVenda.times(cashFeePercentage).div(100).toNumber();
+
             const moneyBillPayment = await BillPayment.create(
               {
                 economic_group_id: authCtx.group.id,
@@ -1475,10 +1496,9 @@ where deposit_id = ?
                 expirationDate: paymentMethod
                   ? SharedService.CalculateDateOffset(0, data.expirationDate, paymentMethod)
                   : DateTime.now(),
-                feeType:
-                  (paymentMethod?.fee ?? 0) > 0 ? BillPaymentFeeType.S : BillPaymentFeeType.N,
-                feeValue: 0,
-                feePercentage: 0,
+                feeType: cashFeePercentage > 0 ? BillPaymentFeeType.S : BillPaymentFeeType.N,
+                feeValue: cashFeeValue,
+                feePercentage: cashFeePercentage,
                 installments: installmentFee.installment,
                 installmentValue: valorAPagarPorVenda.toNumber(),
                 totalValue: valorAPagarPorVenda.toNumber(),

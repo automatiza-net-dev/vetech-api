@@ -1596,7 +1596,7 @@ where deposit_id = ?
               feeDiscountValue: installmentValue
                 .minus(installmentValue.times(feeCtx).div(100))
                 .toNumber(),
-              feeValue: new Decimal(0),
+              feeValue: installmentValue.times(feeCtx).div(100),
               feeDiscountPercentage: feeCtx,
               accept: FinanceAccept.N,
               reconciled: authCtx.unit.unitConfig.balanceControl === "previsto",
@@ -1715,6 +1715,24 @@ where deposit_id = ?
         );
       }
 
+      // Buscar flags antes de criar os BillPayments
+      const flagsQb = PaymentMethodFlag.query()
+        .useTransaction(trx)
+        .preload("installments", (query) => {
+          if (data.paymentMethodFlagInstallmentId) {
+            query.where("id", data.paymentMethodFlagInstallmentId);
+          }
+        });
+
+      if (data.paymentMethodId) {
+        flagsQb.where("payment_method_id", data.paymentMethodId);
+      }
+
+      if (data.paymentMethodFlagId) {
+        flagsQb.where("id", data.paymentMethodFlagId);
+      }
+      const flags = await flagsQb;
+
       if (data.clientCreditId) {
         const billCredit = await ClientCredit.query()
           .where("id", data.clientCreditId)
@@ -1747,6 +1765,22 @@ where deposit_id = ?
           (_, v) => {
             const installmentValue = v === installment.installment - 1 ? withOffset : singleValue;
 
+            // Calcular fee considerando flags e parcelas
+            const shouldUseFlag = paymentMethod.tef !== PaymentMethodTef.N;
+            const feePercentage = shouldUseFlag
+              ? flags.reduce((acc, cur) => {
+                  const ctx = cur.installments.find(
+                    (f) => f.installment === installment.installment,
+                  );
+                  if (ctx) {
+                    return ctx.fee;
+                  }
+                  return acc;
+                }, paymentMethod.fee)
+              : paymentMethod.fee;
+
+            const feeValue = (installmentValue * feePercentage) / 100;
+
             return {
               economic_group_id: authCtx.group.id,
               business_unit_id: authCtx.unit.id,
@@ -1764,12 +1798,12 @@ where deposit_id = ?
                 data.expirationDate,
                 paymentMethod,
               ),
-              feeType: paymentMethod.fee > 0 ? BillPaymentFeeType.S : BillPaymentFeeType.N,
-              feeValue: 0,
-              feePercentage: 0,
+              feeType: feePercentage > 0 ? BillPaymentFeeType.S : BillPaymentFeeType.N,
+              feeValue,
+              feePercentage,
               installments: v + 1,
               installmentValue,
-              totalValue: installmentValue, // TODO: add fee
+              totalValue: installmentValue,
               nsuDocument: data.nsuDocument,
               paymentMethodDiscountPercentage: installment.fee,
               paymentMethodDiscountValue: (installmentValue * installment.fee) / 100,
@@ -1810,19 +1844,6 @@ where deposit_id = ?
         .where("business_unit_id", authCtx.unit.id)
         .where("payment_method_id", data.paymentMethodId!)
         .first();
-
-      const flagsQb = PaymentMethodFlag.query()
-        .useTransaction(trx)
-        .preload("installments", (query) => {
-          if (data.paymentMethodFlagInstallmentId) {
-            query.where("id", data.paymentMethodFlagInstallmentId);
-          }
-        })
-        .where("payment_method_id", paymentMethod.id);
-      if (data.paymentMethodFlagId) {
-        flagsQb.where("id", data.paymentMethodFlagId);
-      }
-      const flags = await flagsQb;
 
       await Finance.createMany(
         Array.from({ length: installment.installment }, (_, v) => {
@@ -1871,7 +1892,7 @@ where deposit_id = ?
             feeDiscountValue:
               (payments.at(v)?.installmentValue ?? 0) -
               (installmentValue - (installmentValue * feeCtx) / 100),
-            feeValue: new Decimal(0),
+            feeValue: new Decimal((installmentValue * feeCtx) / 100),
             // feeDiscountPercentage: paymentMethod.fee,
             // feeDiscountPercentage:
             // 	payments.at(v)?.paymentMethodDiscountPercentage,

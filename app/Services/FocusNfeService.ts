@@ -959,12 +959,7 @@ export default class FocusNfeService {
       .useTransaction(tx);
 
     try {
-      const url =
-        extra.unitID === "1937b039-38cd-4a05-b1c5-8a51a2905211"
-          ? `/v2/nfse?ref=${ref}`
-          : `/v2/nfsen?ref=${ref}`;
-
-      const { data } = await this.ax.post(url, this.sanitize(payload), {
+      const { data } = await this.ax.post(`/v2/nfsen?ref=${ref}`, this.sanitize(payload), {
         auth: {
           username: token,
           password: "",

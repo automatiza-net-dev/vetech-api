@@ -64,7 +64,7 @@ export default class BusinessUnitFiscalDocumentService {
     private focusNfe: FocusNfeService,
     private receiptService: ReceiptService,
     private billService: BillService,
-  ) { }
+  ) {}
 
   async nfeIndex(unitId: string, data: ISearch) {
     const qb = IssuedFiscalDocument.query().where("business_unit_id", data.unit ?? unitId);
@@ -795,6 +795,9 @@ export default class BusinessUnitFiscalDocumentService {
         groupedPayload,
         token,
         trx,
+        {
+          unitID: authCtx.unit.id,
+        },
       );
 
       if (result.success && typeof result.data !== "string") {
@@ -1000,8 +1003,10 @@ export default class BusinessUnitFiscalDocumentService {
             cnae: authCtx.unit.cnae ?? "",
             description: authCtx.unit.unitConfig.defaultNfseDescription ?? "-",
             city_code: authCtx.unit.cityCode ?? "",
-            nbs_code: SharedService.NoopNumber(mapItems.find((i) => i.productVariation.product.codigoNbs)?.productVariation
-              .product.codigoNbs),
+            nbs_code: SharedService.NoopNumber(
+              mapItems.find((i) => i.productVariation.product.codigoNbs)?.productVariation.product
+                .codigoNbs,
+            ),
           },
         },
         token,
@@ -1169,9 +1174,9 @@ export default class BusinessUnitFiscalDocumentService {
             sefaz_status_code: result.data.status_sefaz,
             sefaz_message: result.data.protocolo_cancelamento
               ? [
-                result.data.protocolo_cancelamento.descricao_evento,
-                result.data.protocolo_cancelamento.motivo,
-              ].join(" - ")
+                  result.data.protocolo_cancelamento.descricao_evento,
+                  result.data.protocolo_cancelamento.motivo,
+                ].join(" - ")
               : result.data.mensagem_sefaz,
             access_key: result.data.chave_nfe,
             authorization_xml_path: [urlPrefix, result.data.caminho_xml_nota_fiscal].join(""),
@@ -1207,9 +1212,9 @@ export default class BusinessUnitFiscalDocumentService {
               sefaz_status_code: result.data.status_sefaz,
               sefaz_message: result.data.protocolo_cancelamento
                 ? [
-                  result.data.protocolo_cancelamento.descricao_evento,
-                  result.data.protocolo_cancelamento.motivo,
-                ].join(" - ")
+                    result.data.protocolo_cancelamento.descricao_evento,
+                    result.data.protocolo_cancelamento.motivo,
+                  ].join(" - ")
                 : result.data.mensagem_sefaz,
               access_key: result.data.chave_nfe,
               authorization_xml_path: [urlPrefix, result.data.caminho_xml_nota_fiscal].join(""),
@@ -1841,8 +1846,8 @@ export default class BusinessUnitFiscalDocumentService {
       sefazStatusCode: data.status_sefaz,
       sefazMessage: data.protocolo_cancelamento
         ? [data.protocolo_cancelamento.descricao_evento, data.protocolo_cancelamento.motivo].join(
-          " - ",
-        )
+            " - ",
+          )
         : data.mensagem_sefaz,
       accessKey: data.chave_nfe,
       authorizationXmlPath: [urlPrefix, data.caminho_xml_nota_fiscal].join(""),

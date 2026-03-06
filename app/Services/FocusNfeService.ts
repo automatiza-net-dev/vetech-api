@@ -945,6 +945,9 @@ export default class FocusNfeService {
     data: ISendNationalNfse,
     token: string,
     tx: TransactionClientContract,
+    extra: {
+      unitID: string;
+    },
   ) {
     const payload = this.mapToNationalNfsePayload(data);
 
@@ -956,7 +959,12 @@ export default class FocusNfeService {
       .useTransaction(tx);
 
     try {
-      const { data } = await this.ax.post(`/v2/nfsen?ref=${ref}`, this.sanitize(payload), {
+      const url =
+        extra.unitID === "1937b039-38cd-4a05-b1c5-8a51a2905211"
+          ? `/v2/nfse?ref=${ref}`
+          : `/v2/nfsen?ref=${ref}`;
+
+      const { data } = await this.ax.post(url, this.sanitize(payload), {
         auth: {
           username: token,
           password: "",

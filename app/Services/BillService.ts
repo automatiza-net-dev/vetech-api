@@ -1389,6 +1389,7 @@ where deposit_id = ?
       }
 
       const billIdList: string[] = [];
+      const billPaymentIdList: string[] = [];
 
       await Promise.all(
         bills.map(async (bill) => {
@@ -1515,6 +1516,7 @@ where deposit_id = ?
               { client: trx },
             );
             billIdList.push(moneyBillPayment.bill_id);
+            billPaymentIdList.push(moneyBillPayment.id);
           }
 
           //.plus(valorDescontarVendas)
@@ -1574,7 +1576,7 @@ where deposit_id = ?
               account_plan_id: authCtx.unit.unitConfig.sale_exit_account_plan_id,
               checking_account_id:
                 $checkingAccountMeta?.checking_account_id ?? paymentMethod?.checkingAccountId,
-              origin_id: null,
+              origin_id: billPaymentIdList.at(0),
               client_payment_id: clientPayment?.id,
 
               // internalCode: bill.internalCode,
@@ -4312,9 +4314,9 @@ where deposit_id = ?
             query.where("block", data.block);
           }
 
-          query.whereHas("finance", (query) => {
-            query.whereNotNull("payment_date");
-          });
+          // query.whereHas("finance", (query) => {
+          //   query.whereNotNull("payment_date");
+          // });
 
           query.select(
             "id",

@@ -356,6 +356,23 @@ export default class BillService {
             q.select("id", "description");
           });
         });
+
+        query.preload("finances", (q) => {
+          q.select([
+            "id",
+            "payment_date",
+            "payment_method_id",
+            "expiration_date",
+            "total_value",
+            "original_value",
+            "value",
+            "payment_value",
+          ]);
+
+          q.preload("paymentMethod", (q) => {
+            q.select("id", "description");
+          });
+        });
       })
       .preload("items", (query) => {
         query

@@ -1,4 +1,13 @@
-import { BaseModel, BelongsTo, belongsTo, column, HasOne, hasOne } from "@ioc:Adonis/Lucid/Orm";
+import {
+  BaseModel,
+  BelongsTo,
+  belongsTo,
+  column,
+  HasMany,
+  hasMany,
+  HasOne,
+  hasOne,
+} from "@ioc:Adonis/Lucid/Orm";
 import Bill from "App/Models/Bill";
 import PaymentMethod from "App/Models/PaymentMethod";
 import TefAcquirer from "App/Models/TefAcquirer";
@@ -204,6 +213,11 @@ export default class BillPayment extends BaseModel {
     foreignKey: "origin_id",
   })
   public finance: HasOne<typeof Finance>;
+
+  @hasMany(() => Finance, {
+    foreignKey: "origin_id",
+  })
+  public finances: HasMany<typeof Finance>;
 
   @column({
     serializeAs: null,

@@ -1,29 +1,29 @@
-import { inject } from "@adonisjs/fold";
-import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import BillService from "App/Services/BillService";
 import SharedService from "App/Services/SharedService";
 import AddKitToBillValidator from "App/Validators/Bill/AddKitToBillValidator";
+import ApproveBillCourtesyMaxDiscountValidator from "App/Validators/Bill/ApproveBillCourtesyMaxDiscountValidator";
+import CalculateTaxValidator from "App/Validators/Bill/CalculateTaxValidator";
 import CheckDepositAvailabilityValidator from "App/Validators/Bill/CheckDepositAvailabilityValidator";
 import CheckItemDiscountValidator from "App/Validators/Bill/CheckItemDiscountValidator";
 import ConfirmBillPaymentsValidator from "App/Validators/Bill/ConfirmBillPaymentsValidator";
-import CreateBillItemValidator from "App/Validators/Bill/CreateBillItemValidator";
 import CreateBillItemsValidator from "App/Validators/Bill/CreateBillItemsValidator";
+import CreateBillItemValidator from "App/Validators/Bill/CreateBillItemValidator";
 import CreateBillPaymentValidator from "App/Validators/Bill/CreateBillPaymentValidator";
-import CreateBillValidator from "App/Validators/Bill/CreateBillValidator";
 import CreateBillsValidator from "App/Validators/Bill/CreateBillsValidator";
+import CreateBillValidator from "App/Validators/Bill/CreateBillValidator";
 import CreateTreatmentBillValidator from "App/Validators/Bill/CreateTreatmentBillValidator";
+import DeleteItemDepartmentValidator from "App/Validators/Bill/DeleteItemDepartmentValidator";
 import DeletePaymentBlockValidator from "App/Validators/Bill/DeletePaymentBlockValidator";
-import UpdateBillFinancialResponsibleValidator from "App/Validators/Bill/UpdateBillFinancialResponsibleValidator";
-import UpdateBillItemValidator from "App/Validators/Bill/UpdateBillItemValidator";
-import UpdateBillValidator from "App/Validators/Bill/UpdateBillValidator";
-import UpdatePaymentExpirationValidator from "App/Validators/Bill/UpdatePaymentExpirationValidator";
-import ApproveBillCourtesyMaxDiscountValidator from "App/Validators/Bill/ApproveBillCourtesyMaxDiscountValidator";
+import FinishBillCancellationValidator from "App/Validators/Bill/FinishBillCancellationValidator";
 import RequestBillCancellationValidator from "App/Validators/Bill/RequestBillCancellationValidator";
 import ReviewBillCancellationValidator from "App/Validators/Bill/ReviewBillCancellationValidator";
-import FinishBillCancellationValidator from "App/Validators/Bill/FinishBillCancellationValidator";
-import DeleteItemDepartmentValidator from "App/Validators/Bill/DeleteItemDepartmentValidator";
+import UpdateBillFinancialResponsibleValidator from "App/Validators/Bill/UpdateBillFinancialResponsibleValidator";
+import UpdateBillItemValidator from "App/Validators/Bill/UpdateBillItemValidator";
 import UpdateBillSellerValidator from "App/Validators/Bill/UpdateBillSellerValidator";
-import CalculateTaxValidator from "App/Validators/Bill/CalculateTaxValidator";
+import UpdateBillValidator from "App/Validators/Bill/UpdateBillValidator";
+import UpdatePaymentExpirationValidator from "App/Validators/Bill/UpdatePaymentExpirationValidator";
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 
 @inject()
 export default class BillsController {
@@ -337,6 +337,7 @@ export default class BillsController {
   public async printPaymentReceipt({ request, response, auth }: HttpContextContract) {
     const authCtx = await this.sharedService.getAuthContext(auth);
 
+    // Note: The route parameter is called "bill" but it now receives a client_payment_id
     const result = await this.service.printPaymentReceipt(
       authCtx,
       request.param("bill"),

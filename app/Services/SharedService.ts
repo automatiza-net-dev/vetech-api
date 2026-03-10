@@ -743,6 +743,18 @@ export default class SharedService {
     return value;
   }
 
+  static NoopNumber(value: number | undefined) {
+    if (!value || typeof value === "undefined") {
+      return undefined;
+    }
+
+    if (value === 0) {
+      return undefined;
+    }
+
+    return value;
+  }
+
   static async PendingPayments(
     authCtx: AuthContext,
     sourceID: string,

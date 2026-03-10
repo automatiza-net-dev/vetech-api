@@ -227,6 +227,7 @@ export interface ISendNationalNfse {
     nationalTaxationCode: string;
     issTaxationType: number;
     issRetentionType: number;
+    _issPercentage: number | undefined;
     cityCode: number;
   };
 }
@@ -637,7 +638,7 @@ export default class FocusNfeService {
       descricao_servico: data.service.description,
       valor_servico: data.service.value,
       tributacao_iss: data.service.issTaxationType,
-      percentual_aliquota_relativa_municipio: data.service.issTaxationType,
+      percentual_aliquota_relativa_municipio: data.service._issPercentage,
       tipo_retencao_iss: data.service.issRetentionType,
       codigo_tributacao_nacional_iss: data.service.nationalTaxationCode,
       codigo_nbs: data.service.nationalServiceCode,

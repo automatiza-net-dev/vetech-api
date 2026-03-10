@@ -4253,18 +4253,18 @@ where deposit_id = ?
 
   async printPaymentReceipt(
     authCtx: AuthContext,
-    billID: string,
+    clientPaymentId: string,
     data: { billPayment?: string; block?: string },
   ) {
-    if (!validate(billID)) {
-      throw new BadRequestException("ID de Venda inválido", 400, "E_ERR");
+    if (!validate(clientPaymentId)) {
+      throw new BadRequestException("ID de Pagamento inválido", 400, "E_ERR");
     }
 
     return Database.transaction(async (trx) => {
       const updateQb = Database.from("bill_payments")
         .useTransaction(trx)
         .where("business_unit_id", authCtx.unit.id)
-        .where("bill_id", billID);
+        .where("client_payment_id", clientPaymentId);
 
       if (data.billPayment) {
         updateQb.where("id", data.billPayment);
@@ -4279,25 +4279,10 @@ where deposit_id = ?
         print_user_id: authCtx.user.id,
       });
 
-      const toPrint = await Bill.query()
+      const toPrint = await ClientPayment.query()
         .useTransaction(trx)
-        .where("id", billID)
-        .select("id", "tag", "bill_date", "business_unit_id", "client_id")
-        .preload("businessUnit", (query) => {
-          query.select(
-            "id",
-            "company_name",
-            "document",
-            "phone",
-            "postal_code",
-            "address",
-            "number",
-            "complement",
-            "district",
-            "city",
-            "state",
-          );
-        })
+        .where("id", clientPaymentId)
+        .select("id", "value", "payment_date", "client_id", "payment_method_id")
         .preload("client", (query) => {
           query.select("id", "name");
 
@@ -4305,7 +4290,10 @@ where deposit_id = ?
             query.select("id", "document");
           });
         })
-        .preload("payments", (query) => {
+        .preload("paymentMethod", (query) => {
+          query.select("id", "description");
+        })
+        .preload("billPayments", (query) => {
           if (data.billPayment) {
             query.where("id", data.billPayment);
           }
@@ -4314,10 +4302,6 @@ where deposit_id = ?
             query.where("block", data.block);
           }
 
-          // query.whereHas("finance", (query) => {
-          //   query.whereNotNull("payment_date");
-          // });
-
           query.select(
             "id",
             "total_value",
@@ -4325,6 +4309,7 @@ where deposit_id = ?
             "printed_at",
             "payment_method_id",
             "print_user_id",
+            "bill_id",
           );
 
           query.preload("paymentMethod", (query) => {
@@ -4335,9 +4320,31 @@ where deposit_id = ?
             query.select("id", "name");
           });
 
-          query.preload("finance", (query) => {
-            // query.whereNotNull("payment_date");
+          query.preload("bill", (query) => {
+            query.select("id", "tag", "bill_date", "business_unit_id", "client_id");
 
+            query.preload("businessUnit", (query) => {
+              query.select(
+                "id",
+                "company_name",
+                "document",
+                "phone",
+                "postal_code",
+                "address",
+                "number",
+                "complement",
+                "district",
+                "city",
+                "state",
+              );
+            });
+
+            query.preload("client", (query) => {
+              query.select("id", "name");
+            });
+          });
+
+          query.preload("finance", (query) => {
             query.select("id", "payment_date", "payment_method_id");
 
             query.preload("paymentMethod", (query) => {
@@ -4348,16 +4355,8 @@ where deposit_id = ?
         .first();
 
       if (!toPrint) {
-        throw new BadRequestException("Nota não encontrada", 400, "E_RR");
+        throw new BadRequestException("Pagamento não encontrado", 400, "E_RR");
       }
-
-      // if (toPrint.payments.length === 0) {
-      //   throw new BadRequestException(
-      //     "Não existem titulos baixados para a impressão de recibo",
-      //     400,
-      //     "E_RR",
-      //   );
-      // }
 
       return toPrint;
     });

@@ -883,7 +883,7 @@ export default class BusinessUnitFiscalDocumentService {
                 authCtx.unit.unitConfig.defaultNfseDescription ??
                 item.productVariation.product.description,
               city_code: authCtx.unit.cityCode ?? "",
-              nbs_code: item.productVariation.product.codigoNbs,
+              nbs_code: SharedService.NoopNumber(item.productVariation.product.codigoNbs),
             },
           };
 
@@ -1000,8 +1000,10 @@ export default class BusinessUnitFiscalDocumentService {
             cnae: authCtx.unit.cnae ?? "",
             description: authCtx.unit.unitConfig.defaultNfseDescription ?? "-",
             city_code: authCtx.unit.cityCode ?? "",
-            nbs_code: mapItems.find((i) => i.productVariation.product.codigoNbs)?.productVariation
-              .product.codigoNbs,
+            nbs_code: SharedService.NoopNumber(
+              mapItems.find((i) => i.productVariation.product.codigoNbs)?.productVariation.product
+                .codigoNbs,
+            ),
           },
         },
         token,
@@ -1101,6 +1103,7 @@ export default class BusinessUnitFiscalDocumentService {
         nationalTaxationCode: serviceCode,
         issTaxationType: 1,
         issRetentionType: 1, // fixo
+        _issPercentage: mapItems.find((i) => i.issPercentage)?.issPercentage,
         cityCode: Number.parseInt(authCtx.unit.cityCode ?? "0"),
       },
     };

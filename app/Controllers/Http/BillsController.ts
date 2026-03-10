@@ -337,11 +337,21 @@ export default class BillsController {
   public async printPaymentReceipt({ request, response, auth }: HttpContextContract) {
     const authCtx = await this.sharedService.getAuthContext(auth);
 
-    // Note: The route parameter is called "bill" but it now receives a client_payment_id
     const result = await this.service.printPaymentReceipt(
       authCtx,
       request.param("bill"),
       request.qs(),
+    );
+
+    return response.ok(result);
+  }
+
+  public async printClientPaymentReceipt({ request, response, auth }: HttpContextContract) {
+    const authCtx = await this.sharedService.getAuthContext(auth);
+
+    const result = await this.service.printClientPaymentReceipt(
+      authCtx,
+      request.param("clientPayment"),
     );
 
     return response.ok(result);

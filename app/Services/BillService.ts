@@ -4270,18 +4270,14 @@ where deposit_id = ?
 
   async printPaymentReceipt(
     authCtx: AuthContext,
-    clientPaymentId: string,
+    billID: string,
     data: { billPayment?: string; block?: string },
   ) {
-    if (!validate(clientPaymentId)) {
-      throw new BadRequestException("ID de Pagamento inválido", 400, "E_ERR");
-    }
-
     return Database.transaction(async (trx) => {
       const updateQb = Database.from("bill_payments")
         .useTransaction(trx)
         .where("business_unit_id", authCtx.unit.id)
-        .where("client_payment_id", clientPaymentId);
+        .where("bill_id", billID);
 
       if (data.billPayment) {
         updateQb.where("id", data.billPayment);
@@ -4290,6 +4286,119 @@ where deposit_id = ?
       if (data.block) {
         updateQb.where("block", data.block);
       }
+
+      await updateQb.update({
+        printed_at: DateTime.now(),
+        print_user_id: authCtx.user.id,
+      });
+
+      const toPrint = await Bill.query()
+        .useTransaction(trx)
+        .where("id", billID)
+        .select("id", "tag", "bill_date", "business_unit_id", "client_id")
+        .preload("businessUnit", (query) => {
+          query.select(
+            "id",
+            "company_name",
+            "document",
+            "phone",
+            "postal_code",
+            "address",
+            "number",
+            "complement",
+            "district",
+            "city",
+            "state",
+          );
+        })
+        .preload("client", (query) => {
+          query.select("id", "name");
+
+          query.preload("tutor", (query) => {
+            query.select("id", "document");
+          });
+        })
+        .preload("payments", (query) => {
+          if (data.billPayment) {
+            query.where("id", data.billPayment);
+          }
+
+          if (data.block) {
+            query.where("block", data.block);
+          }
+
+          // query.whereHas("finance", (query) => {
+          //   query.whereNotNull("payment_date");
+          // });
+
+          query.select(
+            "id",
+            "total_value",
+            "expiration_date",
+            "printed_at",
+            "payment_method_id",
+            "print_user_id",
+          );
+
+          query.preload("paymentMethod", (query) => {
+            query.select("id", "description");
+          });
+
+          query.preload("printUser", (query) => {
+            query.select("id", "name");
+          });
+
+          query.preload("finance", (query) => {
+            // query.whereNotNull("payment_date");
+
+            query.select("id", "payment_date", "payment_method_id");
+
+            query.preload("paymentMethod", (query) => {
+              query.select("id", "description");
+            });
+          });
+
+          query.preload("finances", (q) => {
+            q.select([
+              "id",
+              "payment_date",
+              "payment_method_id",
+              "expiration_date",
+              "total_value",
+              "original_value",
+              "value",
+              "payment_value",
+            ]);
+
+            q.preload("paymentMethod", (q) => {
+              q.select("id", "description");
+            });
+          });
+        })
+        .first();
+
+      if (!toPrint) {
+        throw new BadRequestException("Nota não encontrada", 400, "E_RR");
+      }
+
+      // if (toPrint.payments.length === 0) {
+      //   throw new BadRequestException(
+      //     "Não existem titulos baixados para a impressão de recibo",
+      //     400,
+      //     "E_RR",
+      //   );
+      // }
+
+      return toPrint;
+    });
+  }
+
+  async printClientPaymentReceipt(authCtx: AuthContext, clientPaymentId: string) {
+    return Database.transaction(async (trx) => {
+      const updateQb = Database.from("bill_payments")
+        .useTransaction(trx)
+        .where("business_unit_id", authCtx.unit.id)
+        .where("client_payment_id", clientPaymentId);
 
       await updateQb.update({
         printed_at: DateTime.now(),
@@ -4311,14 +4420,6 @@ where deposit_id = ?
           query.select("id", "description");
         })
         .preload("billPayments", (query) => {
-          if (data.billPayment) {
-            query.where("id", data.billPayment);
-          }
-
-          if (data.block) {
-            query.where("block", data.block);
-          }
-
           query.select(
             "id",
             "total_value",
@@ -4366,6 +4467,23 @@ where deposit_id = ?
 
             query.preload("paymentMethod", (query) => {
               query.select("id", "description");
+            });
+          });
+
+          query.preload("finances", (q) => {
+            q.select([
+              "id",
+              "payment_date",
+              "payment_method_id",
+              "expiration_date",
+              "total_value",
+              "original_value",
+              "value",
+              "payment_value",
+            ]);
+
+            q.preload("paymentMethod", (q) => {
+              q.select("id", "description");
             });
           });
         })

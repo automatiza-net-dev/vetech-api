@@ -795,9 +795,6 @@ export default class BusinessUnitFiscalDocumentService {
         groupedPayload,
         token,
         trx,
-        {
-          unitID: authCtx.unit.id,
-        },
       );
 
       if (result.success && typeof result.data !== "string") {
@@ -1106,6 +1103,7 @@ export default class BusinessUnitFiscalDocumentService {
         nationalTaxationCode: serviceCode,
         issTaxationType: 1,
         issRetentionType: 1, // fixo
+        _issPercentage: mapItems.find((i) => i.issPercentage)?.issPercentage,
         cityCode: Number.parseInt(authCtx.unit.cityCode ?? "0"),
       },
     };

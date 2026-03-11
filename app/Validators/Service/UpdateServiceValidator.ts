@@ -32,7 +32,7 @@ export default class UpdateServiceValidator {
       }),
     ]),
     serviceCode: schema.string.optional(),
-    codigoNbs: schema.string.optional(),
+    codigoNbs: schema.number.optional(),
     active: schema.boolean(),
     serviceType: schema.enum(PServiceType),
   });

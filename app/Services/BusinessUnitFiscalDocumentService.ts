@@ -41,8 +41,8 @@ import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 import { validate } from "uuid";
 import { z } from "zod";
-import ReceiptService from "./ReceiptService";
 import BillService from "./BillService";
+import ReceiptService from "./ReceiptService";
 
 interface ISearch {
   unit?: string;
@@ -1106,6 +1106,9 @@ export default class BusinessUnitFiscalDocumentService {
         _issPercentage: mapItems.find((i) => i.issPercentage)?.issPercentage,
         cityCode: Number.parseInt(authCtx.unit.cityCode ?? "0"),
       },
+      showPercentualAliquotaRelativaMunicipio:
+        authCtx.unit.unitConfig.config.fiscalDocuments
+          ?.show_percentual_aliquota_relativa_municipio ?? false,
     };
   }
 

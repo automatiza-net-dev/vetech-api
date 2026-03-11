@@ -41,6 +41,7 @@ export const ConfigFiscalDocumentSchema = z.object({
   regime_tributario_simples_nacional: z.number().optional(),
   regime_especial_tributacao: z.number().optional(),
   percentual_total_tributos_simples_nacional: z.number().optional(),
+  show_percentual_aliquota_relativa_municipio: z.boolean().optional().nullable(),
 });
 
 export const ConfigSchedulesSchema = z.object({

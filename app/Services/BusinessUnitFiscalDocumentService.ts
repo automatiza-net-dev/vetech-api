@@ -64,7 +64,7 @@ export default class BusinessUnitFiscalDocumentService {
     private focusNfe: FocusNfeService,
     private receiptService: ReceiptService,
     private billService: BillService,
-  ) {}
+  ) { }
 
   async nfeIndex(unitId: string, data: ISearch) {
     const qb = IssuedFiscalDocument.query().where("business_unit_id", data.unit ?? unitId);
@@ -1175,9 +1175,9 @@ export default class BusinessUnitFiscalDocumentService {
             sefaz_status_code: result.data.status_sefaz,
             sefaz_message: result.data.protocolo_cancelamento
               ? [
-                  result.data.protocolo_cancelamento.descricao_evento,
-                  result.data.protocolo_cancelamento.motivo,
-                ].join(" - ")
+                result.data.protocolo_cancelamento.descricao_evento,
+                result.data.protocolo_cancelamento.motivo,
+              ].join(" - ")
               : result.data.mensagem_sefaz,
             access_key: result.data.chave_nfe,
             authorization_xml_path: [urlPrefix, result.data.caminho_xml_nota_fiscal].join(""),
@@ -1213,9 +1213,9 @@ export default class BusinessUnitFiscalDocumentService {
               sefaz_status_code: result.data.status_sefaz,
               sefaz_message: result.data.protocolo_cancelamento
                 ? [
-                    result.data.protocolo_cancelamento.descricao_evento,
-                    result.data.protocolo_cancelamento.motivo,
-                  ].join(" - ")
+                  result.data.protocolo_cancelamento.descricao_evento,
+                  result.data.protocolo_cancelamento.motivo,
+                ].join(" - ")
                 : result.data.mensagem_sefaz,
               access_key: result.data.chave_nfe,
               authorization_xml_path: [urlPrefix, result.data.caminho_xml_nota_fiscal].join(""),
@@ -1382,9 +1382,20 @@ export default class BusinessUnitFiscalDocumentService {
         .useTransaction(trx)
         .save();
       if (updated.disablingReceipt || result.data.status === "erro_autorizacao") {
+        const serviceItems = await BillItem.query()
+          .useTransaction(trx)
+          .where("bill_id", document.bill_id)
+          .whereHas("productVariation", (q) => {
+            q.whereHas("product", (q) => {
+              q.where("type", ProductType.PRODUCT);
+            });
+          });
         await BillItem.query()
           .useTransaction(trx)
-          .where("bill_id", updated.bill_id)
+          .whereIn(
+            "id",
+            serviceItems.map((si) => si.id),
+          )
           .update({ nfeIssued: false } as Partial<BillItem>);
       }
     });
@@ -1424,9 +1435,20 @@ export default class BusinessUnitFiscalDocumentService {
       await this.mergeNfse(document, result.data).useTransaction(trx).save();
 
       if (result.data.status === "erro_autorizacao") {
-        await BillItem.query()
+        const serviceItems = await BillItem.query()
           .useTransaction(trx)
           .where("bill_id", document.bill_id)
+          .whereHas("productVariation", (q) => {
+            q.whereHas("product", (q) => {
+              q.where("type", ProductType.SERVICE);
+            });
+          });
+        await BillItem.query()
+          .useTransaction(trx)
+          .whereIn(
+            "id",
+            serviceItems.map((si) => si.id),
+          )
           .update({ nfeIssued: false } as Partial<BillItem>);
       }
     });
@@ -1855,8 +1877,8 @@ export default class BusinessUnitFiscalDocumentService {
       sefazStatusCode: data.status_sefaz,
       sefazMessage: data.protocolo_cancelamento
         ? [data.protocolo_cancelamento.descricao_evento, data.protocolo_cancelamento.motivo].join(
-            " - ",
-          )
+          " - ",
+        )
         : data.mensagem_sefaz,
       accessKey: data.chave_nfe,
       authorizationXmlPath: [urlPrefix, data.caminho_xml_nota_fiscal].join(""),

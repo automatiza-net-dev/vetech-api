@@ -1,26 +1,25 @@
-import { inject } from "@adonisjs/fold";
-import { platform } from "node:os";
-import { schema, type TypedSchema } from "@ioc:Adonis/Core/Validator";
-import Drive from "@ioc:Adonis/Core/Drive";
-import { AuthContract } from "@ioc:Adonis/Addons/Auth";
-import Database, { TransactionClientContract } from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import BusinessUnit from "App/Models/BusinessUnit";
+import { TDynamicForm } from "App/Models/BusinessUnitConfig";
 import DailyCashier, { DailyCashierStatus } from "App/Models/DailyCashier";
 import DailyMovement, { DailyMovementStatus } from "App/Models/DailyMovement";
 import EconomicGroup from "App/Models/EconomicGroup";
+import PaymentMethod from "App/Models/PaymentMethod";
 import System from "App/Models/System";
+import SystemUrl from "App/Models/SystemUrl";
 import User from "App/Models/User";
 import UserUnitRole from "App/Models/UserUnitRole";
-import { DateTime } from "luxon";
 import { validate } from "App/Shared";
-import { ValidationException } from "@ioc:Adonis/Core/Validator";
+import { platform } from "node:os";
+import { inject } from "@adonisjs/fold";
+import { AuthContract } from "@ioc:Adonis/Addons/Auth";
+import Drive from "@ioc:Adonis/Core/Drive";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
-import PaymentMethod from "App/Models/PaymentMethod";
-import SystemUrl from "App/Models/SystemUrl";
-import { TDynamicForm } from "App/Models/BusinessUnitConfig";
+import { schema, type TypedSchema, ValidationException } from "@ioc:Adonis/Core/Validator";
+import Database, { TransactionClientContract } from "@ioc:Adonis/Lucid/Database";
+import { DateTime } from "luxon";
 
 type KeySelector<T> = (item: T) => any[];
 
@@ -59,7 +58,7 @@ export default class SharedService {
     startHour: "Hora de início",
     endHour: "Hora de término",
     patientId: "Paciente",
-    holderId: "Tutor",
+    holderId: "Responsável",
     userId: "Usuário",
     scheduleOriginId: "Agenda de Origem",
     scheduleId: "Agenda",
@@ -79,7 +78,7 @@ export default class SharedService {
     internalObservation: "Observação interna",
     tag: "Identificador do Paciente",
     technicianId: "Técnico",
-    tutorId: "Tutor",
+    tutorId: "Responsável",
     photos: "Fotos",
     title: "Título",
     complaint: "Reclamação",
@@ -110,7 +109,7 @@ export default class SharedService {
     birthDays: "Dias",
     inscription: "Documento",
     name: "Nome",
-    holders: "Tutores",
+    holders: "Responsáveis",
   } as const;
 
   public static async ComputePublicS3Link(keys: string[]): Promise<

@@ -1,5 +1,3 @@
-import { inject } from "@adonisjs/fold";
-import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import FinanceService from "App/Services/FinanceService";
 import SharedService from "App/Services/SharedService";
 import AcceptManyFinanceValidator from "App/Validators/Finance/AcceptManyFinanceValidator";
@@ -18,7 +16,10 @@ import UpdateFinanceDownValidator from "App/Validators/Finance/UpdateFinanceDown
 import UpdateFinanceReversalValidator from "App/Validators/Finance/UpdateFinanceReversalValidator";
 import UpdateFinanceValidator from "App/Validators/Finance/UpdateFinanceValidator";
 import UpdateGroupedFinanceDownValidator from "App/Validators/Finance/UpdateGroupedFinanceDownValidator";
+import UpdateMultipleExpirationDatesValidator from "App/Validators/Finance/UpdateMultipleExpirationDatesValidator";
 import UpsertFinanceValidator from "App/Validators/Finance/UpsertFinanceValidator";
+import { inject } from "@adonisjs/fold";
+import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 
 @inject()
 export default class FinancesController {
@@ -332,6 +333,17 @@ export default class FinancesController {
     const result = await this.service.updateFinance(unit_id, user, params.id, payload);
 
     return response.ok(result);
+  }
+
+  async updateMultipleExpirationDates({ auth, request, response }: HttpContextContract) {
+    const payload = await request.validate(UpdateMultipleExpirationDatesValidator);
+
+    await this.service.updateMultipleExpirationDates(
+      await this.sharedService.getAuthContext(auth),
+      payload,
+    );
+
+    return response.noContent();
   }
 
   async groupedFinanceDown({ auth, request, response }: HttpContextContract) {

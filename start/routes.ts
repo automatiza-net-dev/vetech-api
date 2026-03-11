@@ -856,6 +856,7 @@ Route.group(() => {
   Route.post("/accept-many", "FinancesController.acceptManyFinances");
   Route.post("/not-accept-many", "FinancesController.notAcceptManyFinances");
   Route.put("/update/:id", "FinancesController.updateFinance");
+  Route.put("/update-expiration-dates", "FinancesController.updateMultipleExpirationDates");
   Route.put("/grouped-down", "FinancesController.groupedFinanceDown");
   Route.put("/update-down", "FinancesController.updateFinanceDown");
   Route.put("/update-reversal/:id", "FinancesController.updateFinanceReversal");
@@ -968,6 +969,10 @@ Route.group(() => {
   Route.get("/taxes", "BillsController.searchTax");
   Route.get("/show/:id", "BillsController.show");
   Route.get("/print-payment-receipts/:bill", "BillsController.printPaymentReceipt");
+  Route.get(
+    "/print-client-payment-receipts/:clientPayment",
+    "BillsController.printClientPaymentReceipt",
+  );
 
   Route.put("/update-conference", "BillsController.updateCashierConference");
   Route.put("/recalculate/:id", "BillsController.recalculate");
@@ -987,6 +992,8 @@ Route.group(() => {
   Route.delete("/delete-payment/:id", "BillsController.deleteBillPayment");
   Route.delete("/delete-client-payment/:id", "BillsController.deleteClientPayment");
   Route.delete("/delete-payment-block", "BillsController.deleteBillPaymentBlock");
+
+  Route.get("/client-payment-sales/:id", "BillsController.getClientPaymentSales");
 })
   .prefix("bills")
   .middleware("auth");

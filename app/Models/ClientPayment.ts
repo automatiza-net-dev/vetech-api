@@ -17,6 +17,7 @@ import ClientUsedCredit from "./ClientUsedCredit";
 import Patient from "./Patient";
 import PaymentMethod from "./PaymentMethod";
 import User from "./User";
+import Finance from "./Finance";
 
 export default class ClientPayment extends BaseModel {
   @column({ isPrimary: true })
@@ -94,4 +95,9 @@ export default class ClientPayment extends BaseModel {
     foreignKey: "client_payment_id",
   })
   public clientUsedCredits: HasMany<typeof ClientUsedCredit>;
+
+  @hasMany(() => Finance, {
+    foreignKey: "client_payment_id",
+  })
+  public finances: HasMany<typeof Finance>;
 }

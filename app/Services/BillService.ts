@@ -356,6 +356,23 @@ export default class BillService {
             q.select("id", "description");
           });
         });
+
+        query.preload("finances", (q) => {
+          q.select([
+            "id",
+            "payment_date",
+            "payment_method_id",
+            "expiration_date",
+            "total_value",
+            "original_value",
+            "value",
+            "payment_value",
+          ]);
+
+          q.preload("paymentMethod", (q) => {
+            q.select("id", "description");
+          });
+        });
       })
       .preload("items", (query) => {
         query
@@ -1389,6 +1406,7 @@ where deposit_id = ?
       }
 
       const billIdList: string[] = [];
+      const billPaymentIdList: string[] = [];
 
       await Promise.all(
         bills.map(async (bill) => {
@@ -1417,6 +1435,12 @@ where deposit_id = ?
           }
 
           if (creditToUse.gt(new Decimal(0))) {
+            const creditFeePercentage = overflowPaymentMethod?.fee ?? 0;
+            const creditFeeValue = valorRelativoCreditoUso
+              .times(creditFeePercentage)
+              .div(100)
+              .toNumber();
+
             await BillPayment.create(
               {
                 economic_group_id: authCtx.group.id,
@@ -1434,12 +1458,9 @@ where deposit_id = ?
                 expirationDate: overflowPaymentMethod
                   ? SharedService.CalculateDateOffset(0, data.expirationDate, overflowPaymentMethod)
                   : DateTime.now(),
-                feeType:
-                  (overflowPaymentMethod?.fee ?? 0) > 0
-                    ? BillPaymentFeeType.S
-                    : BillPaymentFeeType.N,
-                feeValue: 0,
-                feePercentage: 0,
+                feeType: creditFeePercentage > 0 ? BillPaymentFeeType.S : BillPaymentFeeType.N,
+                feeValue: creditFeeValue,
+                feePercentage: creditFeePercentage,
                 installments: installmentFee.installment,
                 installmentValue: valorRelativoCreditoUso.toNumber(),
                 totalValue: valorRelativoCreditoUso.toNumber(),
@@ -1458,6 +1479,24 @@ where deposit_id = ?
           }
 
           if (cashToPay.gt(0)) {
+            // Calcular fee considerando flags e parcelas (mesma lógica do Finance)
+            const shouldUseFlag = paymentMethod?.tef !== PaymentMethodTef.N;
+            const cashFeePercentage = paymentMethod
+              ? shouldUseFlag
+                ? flags.reduce((acc, cur) => {
+                    const ctx = cur.installments.find(
+                      (f) => f.installment === installmentFee.installment,
+                    );
+                    if (ctx) {
+                      return ctx.fee;
+                    }
+                    return acc;
+                  }, paymentMethod.fee)
+                : paymentMethod.fee
+              : 0;
+
+            const cashFeeValue = valorAPagarPorVenda.times(cashFeePercentage).div(100).toNumber();
+
             const moneyBillPayment = await BillPayment.create(
               {
                 economic_group_id: authCtx.group.id,
@@ -1475,10 +1514,9 @@ where deposit_id = ?
                 expirationDate: paymentMethod
                   ? SharedService.CalculateDateOffset(0, data.expirationDate, paymentMethod)
                   : DateTime.now(),
-                feeType:
-                  (paymentMethod?.fee ?? 0) > 0 ? BillPaymentFeeType.S : BillPaymentFeeType.N,
-                feeValue: 0,
-                feePercentage: 0,
+                feeType: cashFeePercentage > 0 ? BillPaymentFeeType.S : BillPaymentFeeType.N,
+                feeValue: cashFeeValue,
+                feePercentage: cashFeePercentage,
                 installments: installmentFee.installment,
                 installmentValue: valorAPagarPorVenda.toNumber(),
                 totalValue: valorAPagarPorVenda.toNumber(),
@@ -1495,6 +1533,7 @@ where deposit_id = ?
               { client: trx },
             );
             billIdList.push(moneyBillPayment.bill_id);
+            billPaymentIdList.push(moneyBillPayment.id);
           }
 
           //.plus(valorDescontarVendas)
@@ -1554,7 +1593,7 @@ where deposit_id = ?
               account_plan_id: authCtx.unit.unitConfig.sale_exit_account_plan_id,
               checking_account_id:
                 $checkingAccountMeta?.checking_account_id ?? paymentMethod?.checkingAccountId,
-              origin_id: null,
+              origin_id: billPaymentIdList.at(0),
               client_payment_id: clientPayment?.id,
 
               // internalCode: bill.internalCode,
@@ -1573,10 +1612,8 @@ where deposit_id = ?
               originalValue: new Decimal(installmentValue),
               value: installmentValue.minus(installmentValue.times(feeCtx).div(100)),
               totalValue: installmentValue.minus(installmentValue.times(feeCtx).div(100)),
-              feeDiscountValue: installmentValue
-                .minus(installmentValue.times(feeCtx).div(100))
-                .toNumber(),
-              feeValue: new Decimal(0),
+              feeDiscountValue: installmentValue.times(feeCtx).div(100).toNumber(),
+              feeValue: installmentValue.times(feeCtx).div(100),
               feeDiscountPercentage: feeCtx,
               accept: FinanceAccept.N,
               reconciled: authCtx.unit.unitConfig.balanceControl === "previsto",
@@ -1695,6 +1732,24 @@ where deposit_id = ?
         );
       }
 
+      // Buscar flags antes de criar os BillPayments
+      const flagsQb = PaymentMethodFlag.query()
+        .useTransaction(trx)
+        .preload("installments", (query) => {
+          if (data.paymentMethodFlagInstallmentId) {
+            query.where("id", data.paymentMethodFlagInstallmentId);
+          }
+        });
+
+      if (data.paymentMethodId) {
+        flagsQb.where("payment_method_id", data.paymentMethodId);
+      }
+
+      if (data.paymentMethodFlagId) {
+        flagsQb.where("id", data.paymentMethodFlagId);
+      }
+      const flags = await flagsQb;
+
       if (data.clientCreditId) {
         const billCredit = await ClientCredit.query()
           .where("id", data.clientCreditId)
@@ -1727,6 +1782,22 @@ where deposit_id = ?
           (_, v) => {
             const installmentValue = v === installment.installment - 1 ? withOffset : singleValue;
 
+            // Calcular fee considerando flags e parcelas
+            const shouldUseFlag = paymentMethod.tef !== PaymentMethodTef.N;
+            const feePercentage = shouldUseFlag
+              ? flags.reduce((acc, cur) => {
+                  const ctx = cur.installments.find(
+                    (f) => f.installment === installment.installment,
+                  );
+                  if (ctx) {
+                    return ctx.fee;
+                  }
+                  return acc;
+                }, paymentMethod.fee)
+              : paymentMethod.fee;
+
+            const feeValue = (installmentValue * feePercentage) / 100;
+
             return {
               economic_group_id: authCtx.group.id,
               business_unit_id: authCtx.unit.id,
@@ -1744,12 +1815,12 @@ where deposit_id = ?
                 data.expirationDate,
                 paymentMethod,
               ),
-              feeType: paymentMethod.fee > 0 ? BillPaymentFeeType.S : BillPaymentFeeType.N,
-              feeValue: 0,
-              feePercentage: 0,
+              feeType: feePercentage > 0 ? BillPaymentFeeType.S : BillPaymentFeeType.N,
+              feeValue,
+              feePercentage,
               installments: v + 1,
               installmentValue,
-              totalValue: installmentValue, // TODO: add fee
+              totalValue: installmentValue,
               nsuDocument: data.nsuDocument,
               paymentMethodDiscountPercentage: installment.fee,
               paymentMethodDiscountValue: (installmentValue * installment.fee) / 100,
@@ -1790,19 +1861,6 @@ where deposit_id = ?
         .where("business_unit_id", authCtx.unit.id)
         .where("payment_method_id", data.paymentMethodId!)
         .first();
-
-      const flagsQb = PaymentMethodFlag.query()
-        .useTransaction(trx)
-        .preload("installments", (query) => {
-          if (data.paymentMethodFlagInstallmentId) {
-            query.where("id", data.paymentMethodFlagInstallmentId);
-          }
-        })
-        .where("payment_method_id", paymentMethod.id);
-      if (data.paymentMethodFlagId) {
-        flagsQb.where("id", data.paymentMethodFlagId);
-      }
-      const flags = await flagsQb;
 
       await Finance.createMany(
         Array.from({ length: installment.installment }, (_, v) => {
@@ -1851,7 +1909,7 @@ where deposit_id = ?
             feeDiscountValue:
               (payments.at(v)?.installmentValue ?? 0) -
               (installmentValue - (installmentValue * feeCtx) / 100),
-            feeValue: new Decimal(0),
+            feeValue: new Decimal((installmentValue * feeCtx) / 100),
             // feeDiscountPercentage: paymentMethod.fee,
             // feeDiscountPercentage:
             // 	payments.at(v)?.paymentMethodDiscountPercentage,
@@ -4215,10 +4273,6 @@ where deposit_id = ?
     billID: string,
     data: { billPayment?: string; block?: string },
   ) {
-    if (!validate(billID)) {
-      throw new BadRequestException("ID de Venda inválido", 400, "E_ERR");
-    }
-
     return Database.transaction(async (trx) => {
       const updateQb = Database.from("bill_payments")
         .useTransaction(trx)
@@ -4273,9 +4327,9 @@ where deposit_id = ?
             query.where("block", data.block);
           }
 
-          query.whereHas("finance", (query) => {
-            query.whereNotNull("payment_date");
-          });
+          // query.whereHas("finance", (query) => {
+          //   query.whereNotNull("payment_date");
+          // });
 
           query.select(
             "id",
@@ -4303,6 +4357,23 @@ where deposit_id = ?
               query.select("id", "description");
             });
           });
+
+          query.preload("finances", (q) => {
+            q.select([
+              "id",
+              "payment_date",
+              "payment_method_id",
+              "expiration_date",
+              "total_value",
+              "original_value",
+              "value",
+              "payment_value",
+            ]);
+
+            q.preload("paymentMethod", (q) => {
+              q.select("id", "description");
+            });
+          });
         })
         .first();
 
@@ -4317,6 +4388,110 @@ where deposit_id = ?
       //     "E_RR",
       //   );
       // }
+
+      return toPrint;
+    });
+  }
+
+  async printClientPaymentReceipt(authCtx: AuthContext, clientPaymentId: string) {
+    return Database.transaction(async (trx) => {
+      const updateQb = Database.from("bill_payments")
+        .useTransaction(trx)
+        .where("business_unit_id", authCtx.unit.id)
+        .where("client_payment_id", clientPaymentId);
+
+      await updateQb.update({
+        printed_at: DateTime.now(),
+        print_user_id: authCtx.user.id,
+      });
+
+      const toPrint = await ClientPayment.query()
+        .useTransaction(trx)
+        .where("id", clientPaymentId)
+        .select("id", "value", "payment_date", "client_id", "payment_method_id")
+        .preload("client", (query) => {
+          query.select("id", "name");
+
+          query.preload("tutor", (query) => {
+            query.select("id", "document");
+          });
+        })
+        .preload("paymentMethod", (query) => {
+          query.select("id", "description");
+        })
+        .preload("billPayments", (query) => {
+          query.select(
+            "id",
+            "total_value",
+            "expiration_date",
+            "printed_at",
+            "payment_method_id",
+            "print_user_id",
+            "bill_id",
+          );
+
+          query.preload("paymentMethod", (query) => {
+            query.select("id", "description");
+          });
+
+          query.preload("printUser", (query) => {
+            query.select("id", "name");
+          });
+
+          query.preload("bill", (query) => {
+            query.select("id", "tag", "bill_date", "business_unit_id", "client_id");
+
+            query.preload("businessUnit", (query) => {
+              query.select(
+                "id",
+                "company_name",
+                "document",
+                "phone",
+                "postal_code",
+                "address",
+                "number",
+                "complement",
+                "district",
+                "city",
+                "state",
+              );
+            });
+
+            query.preload("client", (query) => {
+              query.select("id", "name");
+            });
+          });
+
+          query.preload("finance", (query) => {
+            query.select("id", "payment_date", "payment_method_id");
+
+            query.preload("paymentMethod", (query) => {
+              query.select("id", "description");
+            });
+          });
+
+          query.preload("finances", (q) => {
+            q.select([
+              "id",
+              "payment_date",
+              "payment_method_id",
+              "expiration_date",
+              "total_value",
+              "original_value",
+              "value",
+              "payment_value",
+            ]);
+
+            q.preload("paymentMethod", (q) => {
+              q.select("id", "description");
+            });
+          });
+        })
+        .first();
+
+      if (!toPrint) {
+        throw new BadRequestException("Pagamento não encontrado", 400, "E_RR");
+      }
 
       return toPrint;
     });
@@ -5373,5 +5548,40 @@ where id = ?`,
         .useTransaction(trx)
         .save();
     });
+  }
+
+  async getClientPaymentSales(_authCtx: AuthContext, clientPaymentId: number) {
+    const clientPayment = await ClientPayment.query()
+      .where("id", clientPaymentId)
+      .preload("billPayments", (query) => {
+        query.preload("bill", (billQuery) => {
+          billQuery.select("id", "tag", "total_value", "status");
+        });
+      })
+      .preload("clientCredits")
+      .first();
+
+    if (!clientPayment) {
+      throw this.sharedService.ResourceNotFound();
+    }
+
+    const sales = clientPayment.billPayments.map((billPayment) => ({
+      billId: billPayment.bill?.id,
+      tag: billPayment.bill?.tag,
+      totalValue: billPayment.totalValue,
+      paidValue: billPayment.installmentValue,
+    }));
+
+    const credits = clientPayment.clientCredits.map((credit) => ({
+      id: credit.id,
+      originalValue: credit.originalValue,
+      usedValue: credit.usedValue,
+      returned: credit.returned,
+    }));
+
+    return {
+      sales,
+      credits,
+    };
   }
 }

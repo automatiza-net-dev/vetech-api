@@ -1,12 +1,11 @@
-import { inject } from "@adonisjs/fold";
-import { MultipartFileContract } from "@ioc:Adonis/Core/BodyParser";
-import Database, { TransactionClientContract } from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import ResourceNotFoundException from "App/Exceptions/ResourceNotFoundException";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import Attendance from "App/Models/Attendance";
 import Bill, { BillStatus } from "App/Models/Bill";
 import Budget, { BudgetStatus } from "App/Models/Budget";
+import ClientCredit from "App/Models/ClientCredit";
+import ClientPayment from "App/Models/ClientPayment";
 import HolderDependentLog from "App/Models/HolderDependentLog";
 import Hospitalization, { HospitalizationType } from "App/Models/Hospitalization";
 import AnimalTimeline from "App/Models/mongoose/AnimalTimeline";
@@ -26,13 +25,14 @@ import IPatientData, { IFastStorePatient } from "Contracts/interfaces/IPatientDa
 import IPatientSupplierData from "Contracts/interfaces/IPatientSupplierData";
 import IPatientTutorData from "Contracts/interfaces/IPatientTutorData";
 import ISearchPatient from "Contracts/interfaces/ISearchPatient";
+import { inject } from "@adonisjs/fold";
+import { MultipartFileContract } from "@ioc:Adonis/Core/BodyParser";
+import Database, { TransactionClientContract } from "@ioc:Adonis/Lucid/Database";
 import { intervalToDuration } from "date-fns";
 import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 import { v4, validate } from "uuid";
 import { HospitalizationStatus } from "../Models/Hospitalization";
-import ClientCredit from "App/Models/ClientCredit";
-import ClientPayment from "App/Models/ClientPayment";
 
 interface ISearch {
   id?: string;
@@ -715,7 +715,7 @@ export default class PatientService {
     const tutor = await Patient.query().where("id", id).preload("dependents").first();
 
     if (!tutor) {
-      throw new ResourceNotFoundException("Tutor não encontrado", 404, "E_NOT_FOUND");
+      throw new ResourceNotFoundException("Responsável não encontrado", 404, "E_NOT_FOUND");
     }
 
     const animalsIndex = await this.animalsIndex(authCtx, {});
@@ -1139,9 +1139,8 @@ export default class PatientService {
       .preload("user", (query) => {
         query.select("id", "name");
       })
-      .preload("paymentMethod", (query) => {
-        query.select("id", "description");
-      });
+      .preload("paymentMethod")
+      .preload("finances");
   }
 
   public async salesMetadata(
@@ -1500,7 +1499,7 @@ export default class PatientService {
           });
 
           if (holder.type !== PatientType.TUTOR) {
-            throw new BadRequestException("Tutor inválido", 400, "E_BAD_REQUEST");
+            throw new BadRequestException("Responsável inválido", 400, "E_BAD_REQUEST");
           }
 
           await holder.related("dependents").attach({ [patient.id]: { is_main: elem.main } }, trx);
@@ -1570,7 +1569,7 @@ export default class PatientService {
           .first();
         if (document) {
           throw new BadRequestException(
-            `Este Cpf/Cnpj já existe neste Grupo Economico para o Tutor "${data.name}"`,
+            `Este Cpf/Cnpj já existe neste Grupo Economico para o Responsável "${data.name}"`,
             400,
             "E_DOCUMENT_ALREADY_REGISTERED",
           );
@@ -1722,7 +1721,7 @@ export default class PatientService {
       .first();
 
     if (!tutor) {
-      throw new BadRequestException("Tutor inválido", 400, "E_BAD_REQUEST");
+      throw new BadRequestException("Responsável inválido", 400, "E_BAD_REQUEST");
     }
 
     const dependents = tutor.dependents.map((d) => d.id);
@@ -1922,7 +1921,7 @@ export default class PatientService {
           });
 
           if (holder.type !== PatientType.TUTOR) {
-            throw new BadRequestException("Tutor inválido", 400, "E_BAD_REQUEST");
+            throw new BadRequestException("Responsável inválido", 400, "E_BAD_REQUEST");
           }
 
           await holder
@@ -2110,7 +2109,7 @@ export default class PatientService {
         .first();
 
       if (!tutor) {
-        throw new BadRequestException("Tutor inválido", 400, "E_BAD_REQUEST");
+        throw new BadRequestException("Responsável inválido", 400, "E_BAD_REQUEST");
       }
 
       if (data.tag && data.tag !== tutor.tag) {
@@ -2145,7 +2144,7 @@ export default class PatientService {
           .first();
         if (document) {
           throw new BadRequestException(
-            `Este Cpf/Cnpj já existe neste Grupo Economico para o Tutor "${data.name}"`,
+            `Este Cpf/Cnpj já existe neste Grupo Economico para o Responsável "${data.name}"`,
             400,
             "E_DOCUMENT_ALREADY_REGISTERED",
           );
@@ -2488,7 +2487,7 @@ export default class PatientService {
         .first();
 
       if (!db_tutor) {
-        throw new BadRequestException("Tutor inválido", 400, "E_BAD_REQUEST");
+        throw new BadRequestException("Responsável inválido", 400, "E_BAD_REQUEST");
       }
 
       const patientTutors = await db_patient
@@ -2585,7 +2584,7 @@ export default class PatientService {
         .first();
 
       if (!db_tutor) {
-        throw new BadRequestException("Tutor inválido", 400, "E_BAD_REQUEST");
+        throw new BadRequestException("Responsável inválido", 400, "E_BAD_REQUEST");
       }
 
       const rows = await Database.from("holder_dependents")

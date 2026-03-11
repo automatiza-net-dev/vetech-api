@@ -1,9 +1,3 @@
-import { inject } from "@adonisjs/fold";
-import { MultipartFileContract } from "@ioc:Adonis/Core/BodyParser";
-import Drive from "@ioc:Adonis/Core/Drive";
-import Hash from "@ioc:Adonis/Core/Hash";
-import Logger from "@ioc:Adonis/Core/Logger";
-import Database, { TransactionClientContract } from "@ioc:Adonis/Lucid/Database";
 import BadRequestException from "App/Exceptions/BadRequestException";
 import UnauthorizedException from "App/Exceptions/UnauthorizedException";
 import Bill from "App/Models/Bill";
@@ -41,6 +35,12 @@ import UfIcms from "App/Models/UfIcms";
 import User from "App/Models/User";
 import SharedService, { AuthContext } from "App/Services/SharedService";
 import { GenerateTag } from "App/Utils/GenerateTag";
+import { inject } from "@adonisjs/fold";
+import { MultipartFileContract } from "@ioc:Adonis/Core/BodyParser";
+import Drive from "@ioc:Adonis/Core/Drive";
+import Hash from "@ioc:Adonis/Core/Hash";
+import Logger from "@ioc:Adonis/Core/Logger";
+import Database, { TransactionClientContract } from "@ioc:Adonis/Lucid/Database";
 import { format } from "date-fns";
 import { Decimal } from "decimal.js";
 import { DateTime } from "luxon";
@@ -1272,6 +1272,8 @@ export default class ReceiptService {
       from receipt_items ri
         join receipts r on ri.receipt_id = r.id
           join supplier_products sp on ri.product_supplier_xml = sp.product_supplier_id and r.supplier_id = sp.supplier_id and sp.economic_group_id = ?
+          join product_variations pv on sp.product_variation_id = pv.id and pv.deleted_at is null
+          join products p on pv.product_id = p.id and p.deleted_at is null
       where ri.receipt_id = ?
       and receipt_items.id = ri.id
       and receipt_items.product_variation_id is null;`,
@@ -1280,8 +1282,8 @@ export default class ReceiptService {
 
     await Database.rawQuery(
       `update receipt_items set product_variation_id = pv.id
-      from receipt_items ri join product_variations pv on ri.barcode_xml = pv.barcode and ( coalesce(pv.barcode,'') <> '' and pv.barcode <> 'SEM GTIN')
-        join products p on pv.product_id = p.id and p.economic_group_id = ?
+      from receipt_items ri join product_variations pv on ri.barcode_xml = pv.barcode and ( coalesce(pv.barcode,'') <> '' and pv.barcode <> 'SEM GTIN') and pv.deleted_at is null
+        join products p on pv.product_id = p.id and p.economic_group_id = ? and p.deleted_at is null
       where ri.receipt_id = ?
       and receipt_items.id = ri.id
       and receipt_items.product_variation_id is null;`,

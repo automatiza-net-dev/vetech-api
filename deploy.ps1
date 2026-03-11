@@ -2,9 +2,8 @@
 git fetch
 git pull origin master
 
-pm2 stop 0 1
-
-#Remove-Item -Recurse -Force -ErrorAction SilentlyContinue .\build
+# Para a aplicação atual
+pm2 stop vetech-api
 
 # Instala dependências e gera build
 #npm install
@@ -19,9 +18,8 @@ Copy-Item -Recurse -Force public build\public
 # Executa migrações
 node ace migration:run
 
-# Reinicia processos do PM2
-pm2 start 0
-#pm2 restart cron
+# Recarrega a aplicação com a nova configuração
+pm2 restart ecosystem.config.js --env=production
 
 Write-Host "Deploy finalizado com sucesso!"
 

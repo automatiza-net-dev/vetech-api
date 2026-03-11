@@ -2258,7 +2258,8 @@ and product_variation_id in (
                                    JOIN receipt_items ri ON ri.receipt_id = receipts.id
                               AND ri.product_variation_id = pv.id
                           WHERE receipts.id = ?
-                          GROUP BY bup.id, bup.businness_unit_id)
+                          GROUP BY bup.id, bup.businness_unit_id
+                          HAVING SUM(ri.total_value) > 0)
 UPDATE business_unit_products
 SET cost_price = cc.new_cost_price_ultimo_preco::decimal(10, 2)
 FROM calculated_costs cc

@@ -1378,8 +1378,9 @@ export default class BusinessUnitFiscalDocumentService {
       )
         .useTransaction(trx)
         .save();
-      if (updated.disablingReceipt) {
+      if (updated.disablingReceipt || result.data.status === "erro_autorizacao") {
         await BillItem.query()
+          .useTransaction(trx)
           .where("bill_id", updated.bill_id)
           .update({ nfeIssued: false } as Partial<BillItem>);
       }
@@ -1418,6 +1419,13 @@ export default class BusinessUnitFiscalDocumentService {
       }
 
       await this.mergeNfse(document, result.data).useTransaction(trx).save();
+
+      if (result.data.status === "erro_autorizacao") {
+        await BillItem.query()
+          .useTransaction(trx)
+          .where("bill_id", document.bill_id)
+          .update({ nfeIssued: false } as Partial<BillItem>);
+      }
     });
   }
 

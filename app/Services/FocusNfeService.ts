@@ -230,6 +230,7 @@ export interface ISendNationalNfse {
     _issPercentage: number | undefined;
     cityCode: number;
   };
+  showPercentualAliquotaRelativaMunicipio?: boolean;
 }
 
 export const nfeResponseSchema = z.object({
@@ -612,7 +613,7 @@ export default class FocusNfeService {
   }
 
   private mapToNationalNfsePayload(data: ISendNationalNfse) {
-    return {
+    const payload: Record<string, any> = {
       data_emissao: data.issuedAt,
       data_competencia: data.competenceDate,
       codigo_municipio_emissora: data.seller.cityCode,
@@ -638,11 +639,15 @@ export default class FocusNfeService {
       descricao_servico: data.service.description,
       valor_servico: data.service.value,
       tributacao_iss: data.service.issTaxationType,
-      percentual_aliquota_relativa_municipio: data.service._issPercentage,
       tipo_retencao_iss: data.service.issRetentionType,
       codigo_tributacao_nacional_iss: data.service.nationalTaxationCode,
       codigo_nbs: data.service.nationalServiceCode,
+      percentual_aliquota_relativa_municipio: data.showPercentualAliquotaRelativaMunicipio
+        ? data.service._issPercentage
+        : undefined,
     };
+
+    return payload;
   }
 
   public async getDownloadLinks(

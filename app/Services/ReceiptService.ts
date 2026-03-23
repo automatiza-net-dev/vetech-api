@@ -2763,7 +2763,9 @@ where deposit_id = ?
 
       const newProductVariations = await ProductVariation.createMany(
         rowItems.map((elem) => ({
-          product_id: newProducts.find((p) => p.description === elem.descriptionXml)?.id,
+          product_id: newProducts.find(
+            (p) => p.description === elem.descriptionXml && p.ncm === elem.ncmXml,
+          )?.id,
           barcode: elem.barcodeXml,
         })),
         { client: trx },
@@ -2772,8 +2774,14 @@ where deposit_id = ?
       const tasks = rowItems.map((elem) => {
         return elem
           .merge({
-            product_variation_id: newProductVariations.find((p) => p.barcode === elem.barcodeXml)
-              ?.id,
+            product_variation_id: newProductVariations.find(
+              (p) =>
+                p.barcode === elem.barcodeXml &&
+                p.product_id ===
+                  newProducts.find(
+                    (np) => np.description === elem.descriptionXml && np.ncm === elem.ncmXml,
+                  )?.id,
+            )?.id,
           })
           .useTransaction(trx)
           .save();
@@ -2785,8 +2793,14 @@ where deposit_id = ?
         for (const elem of rowItems) {
           buProductData.push({
             businness_unit_id: unit.id,
-            product_variation_id: newProductVariations.find((p) => p.barcode === elem.barcodeXml)
-              ?.id,
+            product_variation_id: newProductVariations.find(
+              (p) =>
+                p.barcode === elem.barcodeXml &&
+                p.product_id ===
+                  newProducts.find(
+                    (np) => np.description === elem.descriptionXml && np.ncm === elem.ncmXml,
+                  )?.id,
+            )?.id,
             stock: 0,
             maximumStock: 0,
             minimumStock: 0,
@@ -2836,7 +2850,14 @@ where deposit_id = ?
         rowItems.map((elem) => ({
           economic_group_id: authCtx.group.id,
           supplier_id: row.supplier_id,
-          product_variation_id: newProductVariations.find((p) => p.barcode === elem.barcodeXml)?.id,
+          product_variation_id: newProductVariations.find(
+            (p) =>
+              p.barcode === elem.barcodeXml &&
+              p.product_id ===
+                newProducts.find(
+                  (np) => np.description === elem.descriptionXml && np.ncm === elem.ncmXml,
+                )?.id,
+          )?.id,
           product_supplier_id: elem.productSupplierXml,
         })),
         { client: trx },

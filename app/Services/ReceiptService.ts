@@ -1061,7 +1061,7 @@ export default class ReceiptService {
           query.preload("product");
         });
 
-      const receiptsCounter = await Receipt.query()
+      const receiptsCounter = await Database.from("receipts")
         .useTransaction(trx)
         .where("economic_group_id", authCtx.group.id)
         .where("business_unit_id", authCtx.unit.id);

@@ -192,6 +192,8 @@ interface IDisableNfe {
 export interface ISendNationalNfse {
   issuedAt: string;
   competenceDate: string;
+  simple: boolean;
+  codigoTributacaoMunicipalIss?: string;
 
   seller: {
     document: string;
@@ -229,6 +231,7 @@ export interface ISendNationalNfse {
     issRetentionType: number;
     _issPercentage: number | undefined;
     cityCode: number;
+    issTotalValue: number;
   };
   showPercentualAliquotaRelativaMunicipio?: boolean;
 }
@@ -621,9 +624,7 @@ export default class FocusNfeService {
       // inscricao_municipal_prestador: data.seller.cityRegistration,
       codigo_opcao_simples_nacional: data.seller.simpleOptionCode,
       codigo_municipio_prestacao: data.service.cityCode,
-      percentual_total_tributos_simples_nacional: data.seller.totalTaxPercentageSimplesNacional,
       regime_especial_tributacao: data.seller.specialTaxRegime,
-      regime_tributario_simples_nacional: data.seller.regimeTributarySimplesNacional,
       cpf_tomador: data.buyer.cpfDocument,
       cnpj_tomador: data.buyer.cnpjDocument,
       razao_social_tomador: data.buyer.name,
@@ -642,10 +643,21 @@ export default class FocusNfeService {
       tipo_retencao_iss: data.service.issRetentionType,
       codigo_tributacao_nacional_iss: data.service.nationalTaxationCode,
       codigo_nbs: data.service.nationalServiceCode,
-      percentual_aliquota_relativa_municipio: data.showPercentualAliquotaRelativaMunicipio
-        ? data.service._issPercentage
-        : undefined,
+      valor_total_tributos_federais: "0.01",
+      valor_total_tributos_estaduais: "0.01",
+      valor_total_tributos_municipais: data.service.issTotalValue.toFixed(2),
+      codigo_tributacao_municipal_iss: data.codigoTributacaoMunicipalIss,
     };
+
+    // Only include Simples Nacional fields when simple = true
+    if (data.simple) {
+      payload.percentual_total_tributos_simples_nacional =
+        data.seller.totalTaxPercentageSimplesNacional;
+      payload.regime_tributario_simples_nacional = data.seller.regimeTributarySimplesNacional;
+      payload.percentual_aliquota_relativa_municipio = data.showPercentualAliquotaRelativaMunicipio
+        ? data.service._issPercentage
+        : undefined;
+    }
 
     return payload;
   }

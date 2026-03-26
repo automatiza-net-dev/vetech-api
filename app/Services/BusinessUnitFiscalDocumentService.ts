@@ -64,7 +64,7 @@ export default class BusinessUnitFiscalDocumentService {
     private focusNfe: FocusNfeService,
     private receiptService: ReceiptService,
     private billService: BillService,
-  ) { }
+  ) {}
 
   async nfeIndex(unitId: string, data: ISearch) {
     const qb = IssuedFiscalDocument.query().where("business_unit_id", data.unit ?? unitId);
@@ -1061,6 +1061,10 @@ export default class BusinessUnitFiscalDocumentService {
         .minus({ hours: 3 - SharedService.GetPlatformOffset() })
         .toISO(),
       competenceDate: format(new Date(), "yyyy-MM-dd"),
+      simple: authCtx.unit.simple,
+      codigoTributacaoMunicipalIss:
+        authCtx.unit.unitConfig.config.fiscalDocuments?.codigo_tributacao_municipal_iss ??
+        undefined,
       seller: {
         document: authCtx.unit.document ?? "",
         municipalRegistration: authCtx.unit.cityRegistration ?? "",
@@ -1105,6 +1109,7 @@ export default class BusinessUnitFiscalDocumentService {
         issRetentionType: 1, // fixo
         _issPercentage: mapItems.find((i) => i.issPercentage)?.issPercentage,
         cityCode: Number.parseInt(authCtx.unit.cityCode ?? "0"),
+        issTotalValue: this.sharedService.sum(mapItems.map((i) => i.issValue)),
       },
       showPercentualAliquotaRelativaMunicipio:
         authCtx.unit.unitConfig.config.fiscalDocuments
@@ -1175,9 +1180,9 @@ export default class BusinessUnitFiscalDocumentService {
             sefaz_status_code: result.data.status_sefaz,
             sefaz_message: result.data.protocolo_cancelamento
               ? [
-                result.data.protocolo_cancelamento.descricao_evento,
-                result.data.protocolo_cancelamento.motivo,
-              ].join(" - ")
+                  result.data.protocolo_cancelamento.descricao_evento,
+                  result.data.protocolo_cancelamento.motivo,
+                ].join(" - ")
               : result.data.mensagem_sefaz,
             access_key: result.data.chave_nfe,
             authorization_xml_path: [urlPrefix, result.data.caminho_xml_nota_fiscal].join(""),
@@ -1213,9 +1218,9 @@ export default class BusinessUnitFiscalDocumentService {
               sefaz_status_code: result.data.status_sefaz,
               sefaz_message: result.data.protocolo_cancelamento
                 ? [
-                  result.data.protocolo_cancelamento.descricao_evento,
-                  result.data.protocolo_cancelamento.motivo,
-                ].join(" - ")
+                    result.data.protocolo_cancelamento.descricao_evento,
+                    result.data.protocolo_cancelamento.motivo,
+                  ].join(" - ")
                 : result.data.mensagem_sefaz,
               access_key: result.data.chave_nfe,
               authorization_xml_path: [urlPrefix, result.data.caminho_xml_nota_fiscal].join(""),
@@ -1877,8 +1882,8 @@ export default class BusinessUnitFiscalDocumentService {
       sefazStatusCode: data.status_sefaz,
       sefazMessage: data.protocolo_cancelamento
         ? [data.protocolo_cancelamento.descricao_evento, data.protocolo_cancelamento.motivo].join(
-          " - ",
-        )
+            " - ",
+          )
         : data.mensagem_sefaz,
       accessKey: data.chave_nfe,
       authorizationXmlPath: [urlPrefix, data.caminho_xml_nota_fiscal].join(""),

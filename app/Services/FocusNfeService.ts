@@ -194,6 +194,8 @@ export interface ISendNationalNfse {
   competenceDate: string;
   simple: boolean;
   codigoTributacaoMunicipalIss?: string;
+  situacaoTributariaPisCofins?: string;
+  tipoRetencaoPisCofins?: number;
 
   seller: {
     document: string;
@@ -232,6 +234,10 @@ export interface ISendNationalNfse {
     _issPercentage: number | undefined;
     cityCode: number;
     issTotalValue: number;
+    pisTotalValue: number;
+    cofinsTotalValue: number;
+    pisPercentage?: number;
+    cofinsPercentage?: number;
   };
   showPercentualAliquotaRelativaMunicipio?: boolean;
 }
@@ -657,6 +663,14 @@ export default class FocusNfeService {
       payload.percentual_aliquota_relativa_municipio = data.showPercentualAliquotaRelativaMunicipio
         ? data.service._issPercentage
         : undefined;
+    } else {
+      // Include PIS/COFINS fields when simple = false
+      payload.situacao_tributaria_pis_cofins = data.situacaoTributariaPisCofins;
+      payload.tipo_retencao_pis_cofins = data.tipoRetencaoPisCofins;
+      payload.aliquota_pis = data.service.pisPercentage;
+      payload.aliquota_cofins = data.service.cofinsPercentage;
+      payload.valor_pis = data.service.pisTotalValue.toFixed(2);
+      payload.valor_cofins = data.service.cofinsTotalValue.toFixed(2);
     }
 
     return payload;

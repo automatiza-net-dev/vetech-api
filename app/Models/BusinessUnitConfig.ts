@@ -43,6 +43,8 @@ export const ConfigFiscalDocumentSchema = z.object({
   percentual_total_tributos_simples_nacional: z.number().optional(),
   show_percentual_aliquota_relativa_municipio: z.boolean().optional().nullable(),
   codigo_tributacao_municipal_iss: z.string().optional().nullable(),
+  situacao_tributaria_pis_cofins: z.string().optional().nullable(),
+  tipo_retencao_pis_cofins: z.number().optional().nullable(),
 });
 
 export const ConfigSchedulesSchema = z.object({

@@ -1630,7 +1630,12 @@ export default class BusinessUnitFiscalDocumentService {
         throw new BadRequestException("Documento em estado inválido", 400, "E_INVALID_STATE");
       }
 
-      const cancelResult = await this.focusNfe.cancelNfe(document.id, data.reason, token);
+      const cancelResult = await this.focusNfe.cancelNfe(
+        document.id,
+        data.reason,
+        token,
+        document.model || "55",
+      );
       if (!cancelResult) {
         throw new BadRequestException("Erro ao cancelar nota fiscal", 400, "E_EXTERNAL_ERROR");
       }

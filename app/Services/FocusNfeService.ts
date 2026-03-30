@@ -531,14 +531,14 @@ export default class FocusNfeService {
       formas_pagamento:
         rawPayload.finality === 1
           ? rawPayload.payments.map((payment) => ({
-              forma_pagamento: payment.nfe_code,
-              descricao_pagamento: payment.description,
-              valor_pagamento: payment.installment,
-              tipo_integracao: payment.integration_type,
-              cnpj_credenciadora: payment.acquirer,
-              bandeira_operadora: payment.flag,
-              numero_autorizacao: payment.nsu,
-            }))
+            forma_pagamento: payment.nfe_code,
+            descricao_pagamento: payment.description,
+            valor_pagamento: payment.installment,
+            tipo_integracao: payment.integration_type,
+            cnpj_credenciadora: payment.acquirer,
+            bandeira_operadora: payment.flag,
+            numero_autorizacao: payment.nsu,
+          }))
           : [{ forma_pagamento: "90" }],
 
       // icms_base_calculo: data.totalizers.icms_base,
@@ -794,9 +794,10 @@ export default class FocusNfeService {
     }
   }
 
-  public async cancelNfe(ref: string, reason: string, token: string) {
+  public async cancelNfe(ref: string, reason: string, token: string, model: string) {
     try {
-      const { data } = await this.ax.delete(`/v2/nfe/${ref}`, {
+      const endpoint = model === "65" ? `/v2/nfce/${ref}` : `/v2/nfe/${ref}`;
+      const { data } = await this.ax.delete(endpoint, {
         data: {
           justificativa: reason,
         },
@@ -811,7 +812,10 @@ export default class FocusNfeService {
       type T = TypedAxiosError<{ mensagem: string }, unknown>;
       // Logger.error((error as T).response?.data.mensagem ?? "");
 
-      return null;
+      return {
+        success: false as const,
+        message: (error as T).response?.data?.mensagem ?? "",
+      };
     }
   }
 

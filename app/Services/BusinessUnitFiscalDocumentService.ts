@@ -744,8 +744,7 @@ export default class BusinessUnitFiscalDocumentService {
       })
       .preload("productVariation", (query) => {
         query.preload("product");
-      })
-      .preload("taxRule");
+      });
 
     if (items.length === 0) {
       throw new BadRequestException("Não existe documento para ser emitido");
@@ -1066,12 +1065,17 @@ export default class BusinessUnitFiscalDocumentService {
       codigoTributacaoMunicipalIss:
         authCtx.unit.unitConfig.config.fiscalDocuments?.codigo_tributacao_municipal_iss ??
         undefined,
-      situacaoTributariaPisCofins: !authCtx.unit.simple
-        ? (authCtx.unit.unitConfig.config.fiscalDocuments?.situacao_tributaria_pis_cofins ??
+      percentualTotalTributosFederais: !authCtx.unit.simple
+        ? (authCtx.unit.unitConfig.config.fiscalDocuments?.percentual_total_tributos_federais ??
           undefined)
         : undefined,
-      tipoRetencaoPisCofins: !authCtx.unit.simple
-        ? (authCtx.unit.unitConfig.config.fiscalDocuments?.tipo_retencao_pis_cofins ?? undefined)
+      percentualTotalTributosEstaduais: !authCtx.unit.simple
+        ? (authCtx.unit.unitConfig.config.fiscalDocuments?.percentual_total_tributos_estaduais ??
+          undefined)
+        : undefined,
+      percentualTotalTributosMunicipais: !authCtx.unit.simple
+        ? (authCtx.unit.unitConfig.config.fiscalDocuments?.percentual_total_tributos_municipais ??
+          undefined)
         : undefined,
       seller: {
         document: authCtx.unit.document ?? "",
@@ -1118,10 +1122,6 @@ export default class BusinessUnitFiscalDocumentService {
         _issPercentage: mapItems.find((i) => i.issPercentage)?.issPercentage,
         cityCode: Number.parseInt(authCtx.unit.cityCode ?? "0"),
         issTotalValue: this.sharedService.sum(mapItems.map((i) => i.issValue)),
-        pisTotalValue: this.sharedService.sum(mapItems.map((i) => i.pisValue)),
-        cofinsTotalValue: this.sharedService.sum(mapItems.map((i) => i.cofinsValue)),
-        pisPercentage: mapItems.find((i) => i.taxRule?.pisPerc)?.taxRule?.pisPerc,
-        cofinsPercentage: mapItems.find((i) => i.taxRule?.cofinsPerc)?.taxRule?.cofinsPerc,
       },
       showPercentualAliquotaRelativaMunicipio:
         authCtx.unit.unitConfig.config.fiscalDocuments

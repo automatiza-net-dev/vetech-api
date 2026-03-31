@@ -8,6 +8,7 @@ import { TransactionClientContract } from "@ioc:Adonis/Lucid/Database";
 import axios, { AxiosError } from "axios";
 import format from "date-fns/format";
 import { z } from "zod";
+import SharedService from "./SharedService";
 
 // U = error payload
 type TypedAxiosError<U = unknown, T = unknown> = AxiosError<U, T>;
@@ -194,8 +195,9 @@ export interface ISendNationalNfse {
   competenceDate: string;
   simple: boolean;
   codigoTributacaoMunicipalIss?: string;
-  situacaoTributariaPisCofins?: string;
-  tipoRetencaoPisCofins?: number;
+  percentualTotalTributosFederais?: string;
+  percentualTotalTributosEstaduais?: string;
+  percentualTotalTributosMunicipais?: string;
 
   seller: {
     document: string;
@@ -234,10 +236,6 @@ export interface ISendNationalNfse {
     _issPercentage: number | undefined;
     cityCode: number;
     issTotalValue: number;
-    pisTotalValue: number;
-    cofinsTotalValue: number;
-    pisPercentage?: number;
-    cofinsPercentage?: number;
   };
   showPercentualAliquotaRelativaMunicipio?: boolean;
 }
@@ -531,14 +529,14 @@ export default class FocusNfeService {
       formas_pagamento:
         rawPayload.finality === 1
           ? rawPayload.payments.map((payment) => ({
-            forma_pagamento: payment.nfe_code,
-            descricao_pagamento: payment.description,
-            valor_pagamento: payment.installment,
-            tipo_integracao: payment.integration_type,
-            cnpj_credenciadora: payment.acquirer,
-            bandeira_operadora: payment.flag,
-            numero_autorizacao: payment.nsu,
-          }))
+              forma_pagamento: payment.nfe_code,
+              descricao_pagamento: payment.description,
+              valor_pagamento: payment.installment,
+              tipo_integracao: payment.integration_type,
+              cnpj_credenciadora: payment.acquirer,
+              bandeira_operadora: payment.flag,
+              numero_autorizacao: payment.nsu,
+            }))
           : [{ forma_pagamento: "90" }],
 
       // icms_base_calculo: data.totalizers.icms_base,
@@ -649,28 +647,20 @@ export default class FocusNfeService {
       tipo_retencao_iss: data.service.issRetentionType,
       codigo_tributacao_nacional_iss: data.service.nationalTaxationCode,
       codigo_nbs: data.service.nationalServiceCode,
-      valor_total_tributos_federais: "0.01",
-      valor_total_tributos_estaduais: "0.01",
-      valor_total_tributos_municipais: data.service.issTotalValue.toFixed(2),
       codigo_tributacao_municipal_iss: data.codigoTributacaoMunicipalIss,
     };
 
     // Only include Simples Nacional fields when simple = true
-    if (data.simple) {
-      payload.percentual_total_tributos_simples_nacional =
-        data.seller.totalTaxPercentageSimplesNacional;
-      payload.regime_tributario_simples_nacional = data.seller.regimeTributarySimplesNacional;
-      payload.percentual_aliquota_relativa_municipio = data.showPercentualAliquotaRelativaMunicipio
-        ? data.service._issPercentage
-        : undefined;
-    } else {
-      // Include PIS/COFINS fields when simple = false
-      payload.situacao_tributaria_pis_cofins = data.situacaoTributariaPisCofins;
-      payload.tipo_retencao_pis_cofins = data.tipoRetencaoPisCofins;
-      payload.aliquota_pis = data.service.pisPercentage;
-      payload.aliquota_cofins = data.service.cofinsPercentage;
-      payload.valor_pis = data.service.pisTotalValue.toFixed(2);
-      payload.valor_cofins = data.service.cofinsTotalValue.toFixed(2);
+    if (!data.simple) {
+      payload.percentual_total_tributos_federais = SharedService.NoopString(
+        data.percentualTotalTributosFederais,
+      );
+      payload.percentual_total_tributos_estaduais = SharedService.NoopString(
+        data.percentualTotalTributosEstaduais,
+      );
+      payload.percentual_total_tributos_municipais = SharedService.NoopString(
+        data.percentualTotalTributosMunicipais,
+      );
     }
 
     return payload;

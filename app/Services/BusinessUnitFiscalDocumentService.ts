@@ -744,7 +744,8 @@ export default class BusinessUnitFiscalDocumentService {
       })
       .preload("productVariation", (query) => {
         query.preload("product");
-      });
+      })
+      .preload("taxRule");
 
     if (items.length === 0) {
       throw new BadRequestException("Não existe documento para ser emitido");
@@ -1083,6 +1084,18 @@ export default class BusinessUnitFiscalDocumentService {
         : undefined,
       tipoRetencaoPisCofins: !authCtx.unit.simple
         ? (authCtx.unit.unitConfig.config.fiscalDocuments?.tipo_retencao_pis_cofins ?? undefined)
+        : undefined,
+      aliquotaPis: !authCtx.unit.simple
+        ? (mapItems.find((i) => i.taxRule?.pisPerc)?.taxRule?.pisPerc ?? undefined)
+        : undefined,
+      aliquotaCofins: !authCtx.unit.simple
+        ? (mapItems.find((i) => i.taxRule?.cofinsPerc)?.taxRule?.cofinsPerc ?? undefined)
+        : undefined,
+      valorPis: !authCtx.unit.simple
+        ? (this.sharedService.sum(mapItems.map((i) => i.pisValue)) ?? undefined)
+        : undefined,
+      valorCofins: !authCtx.unit.simple
+        ? (this.sharedService.sum(mapItems.map((i) => i.cofinsValue)) ?? undefined)
         : undefined,
       seller: {
         document: authCtx.unit.document ?? "",

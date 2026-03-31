@@ -200,6 +200,10 @@ export interface ISendNationalNfse {
   percentualTotalTributosMunicipais?: string;
   situacaoTributariaPisCofins?: string;
   tipoRetencaoPisCofins?: string;
+  aliquotaPis?: number;
+  aliquotaCofins?: number;
+  valorPis?: number;
+  valorCofins?: number;
 
   seller: {
     document: string;
@@ -667,6 +671,10 @@ export default class FocusNfeService {
         data.situacaoTributariaPisCofins,
       );
       payload.tipo_retencao_pis_cofins = SharedService.NoopString(data.tipoRetencaoPisCofins);
+      payload.aliquota_pis = data.aliquotaPis;
+      payload.aliquota_cofins = data.aliquotaCofins;
+      payload.valor_pis = data.valorPis?.toFixed(2);
+      payload.valor_cofins = data.valorCofins?.toFixed(2);
     }
 
     return payload;

@@ -198,6 +198,8 @@ export interface ISendNationalNfse {
   percentualTotalTributosFederais?: string;
   percentualTotalTributosEstaduais?: string;
   percentualTotalTributosMunicipais?: string;
+  situacaoTributariaPisCofins?: string;
+  tipoRetencaoPisCofins?: string;
 
   seller: {
     document: string;
@@ -661,6 +663,10 @@ export default class FocusNfeService {
       payload.percentual_total_tributos_municipais = SharedService.NoopString(
         data.percentualTotalTributosMunicipais,
       );
+      payload.situacao_tributaria_pis_cofins = SharedService.NoopString(
+        data.situacaoTributariaPisCofins,
+      );
+      payload.tipo_retencao_pis_cofins = SharedService.NoopString(data.tipoRetencaoPisCofins);
     }
 
     return payload;

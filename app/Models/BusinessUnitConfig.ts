@@ -46,6 +46,8 @@ export const ConfigFiscalDocumentSchema = z.object({
   percentual_total_tributos_federais: z.string().optional().nullable(),
   percentual_total_tributos_estaduais: z.string().optional().nullable(),
   percentual_total_tributos_municipais: z.string().optional().nullable(),
+  situacao_tributaria_pis_cofins: z.string().optional().nullable(),
+  tipo_retencao_pis_cofins: z.string().optional().nullable(),
 });
 
 export const ConfigSchedulesSchema = z.object({

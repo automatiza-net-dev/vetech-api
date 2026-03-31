@@ -1077,6 +1077,13 @@ export default class BusinessUnitFiscalDocumentService {
         ? (authCtx.unit.unitConfig.config.fiscalDocuments?.percentual_total_tributos_municipais ??
           undefined)
         : undefined,
+      situacaoTributariaPisCofins: !authCtx.unit.simple
+        ? (authCtx.unit.unitConfig.config.fiscalDocuments?.situacao_tributaria_pis_cofins ??
+          undefined)
+        : undefined,
+      tipoRetencaoPisCofins: !authCtx.unit.simple
+        ? (authCtx.unit.unitConfig.config.fiscalDocuments?.tipo_retencao_pis_cofins ?? undefined)
+        : undefined,
       seller: {
         document: authCtx.unit.document ?? "",
         municipalRegistration: authCtx.unit.cityRegistration ?? "",

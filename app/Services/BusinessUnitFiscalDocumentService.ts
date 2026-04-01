@@ -894,6 +894,7 @@ export default class BusinessUnitFiscalDocumentService {
 
           const result = await this.focusNfe.sendNfse(
             serviceDocument.id,
+            authCtx.unit.id,
             payload,
             token,
             {
@@ -965,6 +966,7 @@ export default class BusinessUnitFiscalDocumentService {
 
       const result = await this.focusNfe.sendNfse(
         serviceDocument.id,
+        authCtx.unit.id,
         {
           issuedAt: new Date().toISOString(),
           simple: authCtx.unit.simple,
@@ -1718,7 +1720,7 @@ export default class BusinessUnitFiscalDocumentService {
 
       const cancelResult = document.national
         ? await this.focusNfe.cancelNationalNfse(document.id, data.reason, token)
-        : await this.focusNfe.cancelNfse(document.id, data.reason, token);
+        : await this.focusNfe.cancelNfse(document.id, unitId, data.reason, token);
       if (!cancelResult) {
         throw new BadRequestException("Erro ao cancelar nota fiscal", 400, "E_EXTERNAL_ERROR");
       }

@@ -870,6 +870,7 @@ export default class FocusNfeService {
 
   public async sendNfse(
     ref: string,
+    businessUnitId: string,
     data: ISendNfse,
     token: string,
     meta: {
@@ -946,8 +947,12 @@ export default class FocusNfeService {
       })
       .useTransaction(tx);
 
+    // Unidade de Barretos que deve usar NFS-eN (rota /v2/nfsen)
+    const BARRETOS = "1937b039-38cd-4a05-b1c5-8a51a2905211";
+    const endpoint = businessUnitId === BARRETOS ? `/v2/nfsen?ref=${ref}` : `/v2/nfse?ref=${ref}`;
+
     try {
-      const { data } = await this.ax.post(`/v2/nfse?ref=${ref}`, this.sanitize(payload), {
+      const { data } = await this.ax.post(endpoint, this.sanitize(payload), {
         auth: {
           username: token,
           password: "",
@@ -1040,9 +1045,13 @@ export default class FocusNfeService {
     }
   }
 
-  public async cancelNfse(ref: string, reason: string, token: string) {
+  public async cancelNfse(ref: string, businessUnitId: string, reason: string, token: string) {
+    // Unidade de Barretos que deve usar NFS-eN (rota /v2/nfsen)
+    const BARRETOS = "1937b039-38cd-4a05-b1c5-8a51a2905211";
+    const endpoint = businessUnitId === BARRETOS ? `/v2/nfsen/${ref}` : `/v2/nfse/${ref}`;
+
     try {
-      const { data } = await this.ax.delete(`/v2/nfse/${ref}`, {
+      const { data } = await this.ax.delete(endpoint, {
         data: {
           justificativa: reason,
         },

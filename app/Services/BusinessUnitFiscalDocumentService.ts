@@ -744,7 +744,8 @@ export default class BusinessUnitFiscalDocumentService {
       })
       .preload("productVariation", (query) => {
         query.preload("product");
-      });
+      })
+      .preload("taxRule");
 
     if (items.length === 0) {
       throw new BadRequestException("Não existe documento para ser emitido");
@@ -893,6 +894,7 @@ export default class BusinessUnitFiscalDocumentService {
 
           const result = await this.focusNfe.sendNfse(
             serviceDocument.id,
+            authCtx.unit.id,
             payload,
             token,
             {
@@ -964,6 +966,7 @@ export default class BusinessUnitFiscalDocumentService {
 
       const result = await this.focusNfe.sendNfse(
         serviceDocument.id,
+        authCtx.unit.id,
         {
           issuedAt: new Date().toISOString(),
           simple: authCtx.unit.simple,
@@ -1061,6 +1064,41 @@ export default class BusinessUnitFiscalDocumentService {
         .minus({ hours: 3 - SharedService.GetPlatformOffset() })
         .toISO(),
       competenceDate: format(new Date(), "yyyy-MM-dd"),
+      simple: authCtx.unit.simple,
+      codigoTributacaoMunicipalIss:
+        authCtx.unit.unitConfig.config.fiscalDocuments?.codigo_tributacao_municipal_iss ??
+        undefined,
+      percentualTotalTributosFederais: !authCtx.unit.simple
+        ? (authCtx.unit.unitConfig.config.fiscalDocuments?.percentual_total_tributos_federais ??
+          undefined)
+        : undefined,
+      percentualTotalTributosEstaduais: !authCtx.unit.simple
+        ? (authCtx.unit.unitConfig.config.fiscalDocuments?.percentual_total_tributos_estaduais ??
+          undefined)
+        : undefined,
+      percentualTotalTributosMunicipais: !authCtx.unit.simple
+        ? (authCtx.unit.unitConfig.config.fiscalDocuments?.percentual_total_tributos_municipais ??
+          undefined)
+        : undefined,
+      situacaoTributariaPisCofins: !authCtx.unit.simple
+        ? (authCtx.unit.unitConfig.config.fiscalDocuments?.situacao_tributaria_pis_cofins ??
+          undefined)
+        : undefined,
+      tipoRetencaoPisCofins: !authCtx.unit.simple
+        ? (authCtx.unit.unitConfig.config.fiscalDocuments?.tipo_retencao_pis_cofins ?? undefined)
+        : undefined,
+      aliquotaPis: !authCtx.unit.simple
+        ? (mapItems.find((i) => i.taxRule?.pisPerc)?.taxRule?.pisPerc ?? undefined)
+        : undefined,
+      aliquotaCofins: !authCtx.unit.simple
+        ? (mapItems.find((i) => i.taxRule?.cofinsPerc)?.taxRule?.cofinsPerc ?? undefined)
+        : undefined,
+      valorPis: !authCtx.unit.simple
+        ? (this.sharedService.sum(mapItems.map((i) => i.pisValue)) ?? undefined)
+        : undefined,
+      valorCofins: !authCtx.unit.simple
+        ? (this.sharedService.sum(mapItems.map((i) => i.cofinsValue)) ?? undefined)
+        : undefined,
       seller: {
         document: authCtx.unit.document ?? "",
         municipalRegistration: authCtx.unit.cityRegistration ?? "",
@@ -1105,6 +1143,7 @@ export default class BusinessUnitFiscalDocumentService {
         issRetentionType: 1, // fixo
         _issPercentage: mapItems.find((i) => i.issPercentage)?.issPercentage,
         cityCode: Number.parseInt(authCtx.unit.cityCode ?? "0"),
+        issTotalValue: this.sharedService.sum(mapItems.map((i) => i.issValue)),
       },
       showPercentualAliquotaRelativaMunicipio:
         authCtx.unit.unitConfig.config.fiscalDocuments
@@ -1382,9 +1421,20 @@ export default class BusinessUnitFiscalDocumentService {
         .useTransaction(trx)
         .save();
       if (updated.disablingReceipt || result.data.status === "erro_autorizacao") {
+        const serviceItems = await BillItem.query()
+          .useTransaction(trx)
+          .where("bill_id", document.bill_id)
+          .whereHas("productVariation", (q) => {
+            q.whereHas("product", (q) => {
+              q.where("type", ProductType.PRODUCT);
+            });
+          });
         await BillItem.query()
           .useTransaction(trx)
-          .where("bill_id", updated.bill_id)
+          .whereIn(
+            "id",
+            serviceItems.map((si) => si.id),
+          )
           .update({ nfeIssued: false } as Partial<BillItem>);
       }
     });
@@ -1424,9 +1474,20 @@ export default class BusinessUnitFiscalDocumentService {
       await this.mergeNfse(document, result.data).useTransaction(trx).save();
 
       if (result.data.status === "erro_autorizacao") {
-        await BillItem.query()
+        const serviceItems = await BillItem.query()
           .useTransaction(trx)
           .where("bill_id", document.bill_id)
+          .whereHas("productVariation", (q) => {
+            q.whereHas("product", (q) => {
+              q.where("type", ProductType.SERVICE);
+            });
+          });
+        await BillItem.query()
+          .useTransaction(trx)
+          .whereIn(
+            "id",
+            serviceItems.map((si) => si.id),
+          )
           .update({ nfeIssued: false } as Partial<BillItem>);
       }
     });
@@ -1591,7 +1652,12 @@ export default class BusinessUnitFiscalDocumentService {
         throw new BadRequestException("Documento em estado inválido", 400, "E_INVALID_STATE");
       }
 
-      const cancelResult = await this.focusNfe.cancelNfe(document.id, data.reason, token);
+      const cancelResult = await this.focusNfe.cancelNfe(
+        document.id,
+        data.reason,
+        token,
+        document.model || "55",
+      );
       if (!cancelResult) {
         throw new BadRequestException("Erro ao cancelar nota fiscal", 400, "E_EXTERNAL_ERROR");
       }
@@ -1654,7 +1720,7 @@ export default class BusinessUnitFiscalDocumentService {
 
       const cancelResult = document.national
         ? await this.focusNfe.cancelNationalNfse(document.id, data.reason, token)
-        : await this.focusNfe.cancelNfse(document.id, data.reason, token);
+        : await this.focusNfe.cancelNfse(document.id, unitId, data.reason, token);
       if (!cancelResult) {
         throw new BadRequestException("Erro ao cancelar nota fiscal", 400, "E_EXTERNAL_ERROR");
       }

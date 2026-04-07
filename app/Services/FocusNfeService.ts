@@ -8,6 +8,7 @@ import { TransactionClientContract } from "@ioc:Adonis/Lucid/Database";
 import axios, { AxiosError } from "axios";
 import format from "date-fns/format";
 import { z } from "zod";
+import SharedService from "./SharedService";
 
 // U = error payload
 type TypedAxiosError<U = unknown, T = unknown> = AxiosError<U, T>;
@@ -192,6 +193,17 @@ interface IDisableNfe {
 export interface ISendNationalNfse {
   issuedAt: string;
   competenceDate: string;
+  simple: boolean;
+  codigoTributacaoMunicipalIss?: string;
+  percentualTotalTributosFederais?: string;
+  percentualTotalTributosEstaduais?: string;
+  percentualTotalTributosMunicipais?: string;
+  situacaoTributariaPisCofins?: string;
+  tipoRetencaoPisCofins?: string;
+  aliquotaPis?: number;
+  aliquotaCofins?: number;
+  valorPis?: number;
+  valorCofins?: number;
 
   seller: {
     document: string;
@@ -229,6 +241,7 @@ export interface ISendNationalNfse {
     issRetentionType: number;
     _issPercentage: number | undefined;
     cityCode: number;
+    issTotalValue: number;
   };
   showPercentualAliquotaRelativaMunicipio?: boolean;
 }
@@ -621,9 +634,7 @@ export default class FocusNfeService {
       // inscricao_municipal_prestador: data.seller.cityRegistration,
       codigo_opcao_simples_nacional: data.seller.simpleOptionCode,
       codigo_municipio_prestacao: data.service.cityCode,
-      percentual_total_tributos_simples_nacional: data.seller.totalTaxPercentageSimplesNacional,
       regime_especial_tributacao: data.seller.specialTaxRegime,
-      regime_tributario_simples_nacional: data.seller.regimeTributarySimplesNacional,
       cpf_tomador: data.buyer.cpfDocument,
       cnpj_tomador: data.buyer.cnpjDocument,
       razao_social_tomador: data.buyer.name,
@@ -642,10 +653,29 @@ export default class FocusNfeService {
       tipo_retencao_iss: data.service.issRetentionType,
       codigo_tributacao_nacional_iss: data.service.nationalTaxationCode,
       codigo_nbs: data.service.nationalServiceCode,
-      percentual_aliquota_relativa_municipio: data.showPercentualAliquotaRelativaMunicipio
-        ? data.service._issPercentage
-        : undefined,
+      codigo_tributacao_municipal_iss: data.codigoTributacaoMunicipalIss,
     };
+
+    // Only include Simples Nacional fields when simple = true
+    if (!data.simple) {
+      payload.percentual_total_tributos_federais = SharedService.NoopString(
+        data.percentualTotalTributosFederais,
+      );
+      payload.percentual_total_tributos_estaduais = SharedService.NoopString(
+        data.percentualTotalTributosEstaduais,
+      );
+      payload.percentual_total_tributos_municipais = SharedService.NoopString(
+        data.percentualTotalTributosMunicipais,
+      );
+      payload.situacao_tributaria_pis_cofins = SharedService.NoopString(
+        data.situacaoTributariaPisCofins,
+      );
+      payload.tipo_retencao_pis_cofins = SharedService.NoopString(data.tipoRetencaoPisCofins);
+      payload.aliquota_pis = data.aliquotaPis;
+      payload.aliquota_cofins = data.aliquotaCofins;
+      payload.valor_pis = data.valorPis?.toFixed(2);
+      payload.valor_cofins = data.valorCofins?.toFixed(2);
+    }
 
     return payload;
   }
@@ -768,9 +798,10 @@ export default class FocusNfeService {
     }
   }
 
-  public async cancelNfe(ref: string, reason: string, token: string) {
+  public async cancelNfe(ref: string, reason: string, token: string, model: string) {
     try {
-      const { data } = await this.ax.delete(`/v2/nfe/${ref}`, {
+      const endpoint = model === "65" ? `/v2/nfce/${ref}` : `/v2/nfe/${ref}`;
+      const { data } = await this.ax.delete(endpoint, {
         data: {
           justificativa: reason,
         },
@@ -785,7 +816,10 @@ export default class FocusNfeService {
       type T = TypedAxiosError<{ mensagem: string }, unknown>;
       // Logger.error((error as T).response?.data.mensagem ?? "");
 
-      return null;
+      return {
+        success: false as const,
+        message: (error as T).response?.data?.mensagem ?? "",
+      };
     }
   }
 
@@ -836,6 +870,7 @@ export default class FocusNfeService {
 
   public async sendNfse(
     ref: string,
+    businessUnitId: string,
     data: ISendNfse,
     token: string,
     meta: {
@@ -912,8 +947,12 @@ export default class FocusNfeService {
       })
       .useTransaction(tx);
 
+    // Unidade de Barretos que deve usar NFS-eN (rota /v2/nfsen)
+    const BARRETOS = "1937b039-38cd-4a05-b1c5-8a51a2905211";
+    const endpoint = businessUnitId === BARRETOS ? `/v2/nfsen?ref=${ref}` : `/v2/nfse?ref=${ref}`;
+
     try {
-      const { data } = await this.ax.post(`/v2/nfse?ref=${ref}`, this.sanitize(payload), {
+      const { data } = await this.ax.post(endpoint, this.sanitize(payload), {
         auth: {
           username: token,
           password: "",
@@ -1006,9 +1045,13 @@ export default class FocusNfeService {
     }
   }
 
-  public async cancelNfse(ref: string, reason: string, token: string) {
+  public async cancelNfse(ref: string, businessUnitId: string, reason: string, token: string) {
+    // Unidade de Barretos que deve usar NFS-eN (rota /v2/nfsen)
+    const BARRETOS = "1937b039-38cd-4a05-b1c5-8a51a2905211";
+    const endpoint = businessUnitId === BARRETOS ? `/v2/nfsen/${ref}` : `/v2/nfse/${ref}`;
+
     try {
-      const { data } = await this.ax.delete(`/v2/nfse/${ref}`, {
+      const { data } = await this.ax.delete(endpoint, {
         data: {
           justificativa: reason,
         },

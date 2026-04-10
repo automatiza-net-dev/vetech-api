@@ -656,26 +656,25 @@ export default class FocusNfeService {
       codigo_tributacao_municipal_iss: data.codigoTributacaoMunicipalIss,
     };
 
-    // Only include Simples Nacional fields when simple = true
-    if (!data.simple) {
-      payload.percentual_total_tributos_federais = SharedService.NoopString(
-        data.percentualTotalTributosFederais,
-      );
-      payload.percentual_total_tributos_estaduais = SharedService.NoopString(
-        data.percentualTotalTributosEstaduais,
-      );
-      payload.percentual_total_tributos_municipais = SharedService.NoopString(
-        data.percentualTotalTributosMunicipais,
-      );
-      payload.situacao_tributaria_pis_cofins = SharedService.NoopString(
-        data.situacaoTributariaPisCofins,
-      );
-      payload.tipo_retencao_pis_cofins = SharedService.NoopString(data.tipoRetencaoPisCofins);
-      payload.aliquota_pis = data.aliquotaPis;
-      payload.aliquota_cofins = data.aliquotaCofins;
-      payload.valor_pis = data.valorPis?.toFixed(2);
-      payload.valor_cofins = data.valorCofins?.toFixed(2);
-    }
+    // if (!data.simple) {
+    payload.percentual_total_tributos_federais = SharedService.NoopString(
+      data.percentualTotalTributosFederais,
+    );
+    payload.percentual_total_tributos_estaduais = SharedService.NoopString(
+      data.percentualTotalTributosEstaduais,
+    );
+    payload.percentual_total_tributos_municipais = SharedService.NoopString(
+      data.percentualTotalTributosMunicipais,
+    );
+    payload.situacao_tributaria_pis_cofins = SharedService.NoopString(
+      data.situacaoTributariaPisCofins,
+    );
+    payload.tipo_retencao_pis_cofins = SharedService.NoopString(data.tipoRetencaoPisCofins);
+    payload.aliquota_pis = SharedService.NoopNumber(data.aliquotaPis);
+    payload.aliquota_cofins = SharedService.NoopNumber(data.aliquotaCofins);
+    payload.valor_pis = SharedService.NoopString(data.valorPis?.toFixed(2));
+    payload.valor_cofins = SharedService.NoopString(data.valorCofins?.toFixed(2));
+    // }
 
     return payload;
   }

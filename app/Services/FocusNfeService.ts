@@ -655,18 +655,18 @@ export default class FocusNfeService {
       codigo_tributacao_nacional_iss: data.service.nationalTaxationCode,
       codigo_nbs: data.service.nationalServiceCode,
       codigo_tributacao_municipal_iss: data.codigoTributacaoMunicipalIss,
+      percentual_total_tributos_federais: SharedService.NoopString(
+        data.percentualTotalTributosFederais,
+      ),
+      percentual_total_tributos_estaduais: SharedService.NoopString(
+        data.percentualTotalTributosEstaduais,
+      ),
+      percentual_total_tributos_municipais: SharedService.NoopString(
+        data.percentualTotalTributosMunicipais,
+      ),
     };
 
     if (!data.simple) {
-      payload.percentual_total_tributos_federais = SharedService.NoopString(
-        data.percentualTotalTributosFederais,
-      );
-      payload.percentual_total_tributos_estaduais = SharedService.NoopString(
-        data.percentualTotalTributosEstaduais,
-      );
-      payload.percentual_total_tributos_municipais = SharedService.NoopString(
-        data.percentualTotalTributosMunicipais,
-      );
       payload.situacao_tributaria_pis_cofins = SharedService.NoopString(
         data.situacaoTributariaPisCofins,
       );

@@ -1136,6 +1136,9 @@ export default class BusinessUnitFiscalDocumentService {
       showPercentualAliquotaRelativaMunicipio:
         authCtx.unit.unitConfig.config.fiscalDocuments
           ?.show_percentual_aliquota_relativa_municipio ?? false,
+      percentualAliquotaRelativaMunicipio:
+        authCtx.unit.unitConfig.config.fiscalDocuments?.percentual_aliquota_relativa_municipio ??
+        undefined,
     };
   }
 

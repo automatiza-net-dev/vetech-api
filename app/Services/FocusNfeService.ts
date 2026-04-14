@@ -244,6 +244,7 @@ export interface ISendNationalNfse {
     issTotalValue: number;
   };
   showPercentualAliquotaRelativaMunicipio?: boolean;
+  percentualAliquotaRelativaMunicipio?: number;
 }
 
 export const nfeResponseSchema = z.object({
@@ -666,6 +667,12 @@ export default class FocusNfeService {
         data.percentualTotalTributosMunicipais,
       ),
     };
+
+    if (data.showPercentualAliquotaRelativaMunicipio) {
+      payload.percentual_aliquota_relativa_municipio = SharedService.NoopNumber(
+        data.percentualAliquotaRelativaMunicipio,
+      );
+    }
 
     if (!data.simple) {
       payload.situacao_tributaria_pis_cofins = SharedService.NoopString(

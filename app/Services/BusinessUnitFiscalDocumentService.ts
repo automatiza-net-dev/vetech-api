@@ -1065,9 +1065,11 @@ export default class BusinessUnitFiscalDocumentService {
         .toISO(),
       competenceDate: format(new Date(), "yyyy-MM-dd"),
       simple: authCtx.unit.simple,
-      codigoTributacaoMunicipalIss:
-        authCtx.unit.unitConfig.config.fiscalDocuments?.codigo_tributacao_municipal_iss ??
-        undefined,
+      codigoTributacaoMunicipalIss: authCtx.unit.unitConfig.config.fiscalDocuments
+        ?.nfse_hide_codigo_tributario_municipio
+        ? undefined
+        : (authCtx.unit.unitConfig.config.fiscalDocuments?.codigo_tributacao_municipal_iss ??
+          undefined),
       percentualTotalTributosFederais:
         authCtx.unit.unitConfig.config.fiscalDocuments?.percentual_total_tributos_federais ??
         undefined,

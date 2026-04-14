@@ -636,6 +636,7 @@ export default class FocusNfeService {
       codigo_municipio_prestacao: data.service.cityCode,
       regime_especial_tributacao: data.seller.specialTaxRegime,
       regime_tributario_simples_nacional: data.seller.regimeTributarySimplesNacional,
+      percentual_total_tributos_simples_nacional: data.seller.totalTaxPercentageSimplesNacional,
       cpf_tomador: data.buyer.cpfDocument,
       cnpj_tomador: data.buyer.cnpjDocument,
       razao_social_tomador: data.buyer.name,

@@ -657,6 +657,12 @@ export default class FocusNfeService {
     };
 
     // Only include Simples Nacional fields when simple = true
+    if (data.simple) {
+      payload.regime_tributario_simples_nacional = data.seller.regimeTributarySimplesNacional;
+      payload.percentual_total_tributos_simples_nacional =
+        data.seller.totalTaxPercentageSimplesNacional;
+    }
+
     if (!data.simple) {
       payload.percentual_total_tributos_federais = SharedService.NoopString(
         data.percentualTotalTributosFederais,

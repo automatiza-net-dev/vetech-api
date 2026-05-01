@@ -635,8 +635,6 @@ export default class FocusNfeService {
       codigo_opcao_simples_nacional: data.seller.simpleOptionCode,
       codigo_municipio_prestacao: data.service.cityCode,
       regime_especial_tributacao: data.seller.specialTaxRegime,
-      regime_tributario_simples_nacional: data.seller.regimeTributarySimplesNacional,
-      percentual_total_tributos_simples_nacional: data.seller.totalTaxPercentageSimplesNacional,
       cpf_tomador: data.buyer.cpfDocument,
       cnpj_tomador: data.buyer.cnpjDocument,
       razao_social_tomador: data.buyer.name,
@@ -656,18 +654,25 @@ export default class FocusNfeService {
       codigo_tributacao_nacional_iss: data.service.nationalTaxationCode,
       codigo_nbs: data.service.nationalServiceCode,
       codigo_tributacao_municipal_iss: data.codigoTributacaoMunicipalIss,
-      percentual_total_tributos_federais: SharedService.NoopString(
-        data.percentualTotalTributosFederais,
-      ),
-      percentual_total_tributos_estaduais: SharedService.NoopString(
-        data.percentualTotalTributosEstaduais,
-      ),
-      percentual_total_tributos_municipais: SharedService.NoopString(
-        data.percentualTotalTributosMunicipais,
-      ),
     };
 
+    // Only include Simples Nacional fields when simple = true
+    if (data.simple) {
+      payload.regime_tributario_simples_nacional = data.seller.regimeTributarySimplesNacional;
+      payload.percentual_total_tributos_simples_nacional =
+        data.seller.totalTaxPercentageSimplesNacional;
+    }
+
     if (!data.simple) {
+      payload.percentual_total_tributos_federais = SharedService.NoopString(
+        data.percentualTotalTributosFederais,
+      );
+      payload.percentual_total_tributos_estaduais = SharedService.NoopString(
+        data.percentualTotalTributosEstaduais,
+      );
+      payload.percentual_total_tributos_municipais = SharedService.NoopString(
+        data.percentualTotalTributosMunicipais,
+      );
       payload.situacao_tributaria_pis_cofins = SharedService.NoopString(
         data.situacaoTributariaPisCofins,
       );

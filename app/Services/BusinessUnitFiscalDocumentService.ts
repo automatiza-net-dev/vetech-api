@@ -1065,40 +1065,28 @@ export default class BusinessUnitFiscalDocumentService {
         .toISO(),
       competenceDate: format(new Date(), "yyyy-MM-dd"),
       simple: authCtx.unit.simple,
-      codigoTributacaoMunicipalIss:
-        authCtx.unit.unitConfig.config.fiscalDocuments?.codigo_tributacao_municipal_iss ??
+      codigoTributacaoMunicipalIss: authCtx.unit.unitConfig.config.fiscalDocuments
+        ?.nfse_hide_codigo_tributario_municipio
+        ? undefined
+        : (authCtx.unit.unitConfig.config.fiscalDocuments?.codigo_tributacao_municipal_iss ??
+          undefined),
+      percentualTotalTributosFederais:
+        authCtx.unit.unitConfig.config.fiscalDocuments?.percentual_total_tributos_federais ??
         undefined,
-      percentualTotalTributosFederais: !authCtx.unit.simple
-        ? (authCtx.unit.unitConfig.config.fiscalDocuments?.percentual_total_tributos_federais ??
-          undefined)
-        : undefined,
-      percentualTotalTributosEstaduais: !authCtx.unit.simple
-        ? (authCtx.unit.unitConfig.config.fiscalDocuments?.percentual_total_tributos_estaduais ??
-          undefined)
-        : undefined,
-      percentualTotalTributosMunicipais: !authCtx.unit.simple
-        ? (authCtx.unit.unitConfig.config.fiscalDocuments?.percentual_total_tributos_municipais ??
-          undefined)
-        : undefined,
-      situacaoTributariaPisCofins: !authCtx.unit.simple
-        ? (authCtx.unit.unitConfig.config.fiscalDocuments?.situacao_tributaria_pis_cofins ??
-          undefined)
-        : undefined,
-      tipoRetencaoPisCofins: !authCtx.unit.simple
-        ? (authCtx.unit.unitConfig.config.fiscalDocuments?.tipo_retencao_pis_cofins ?? undefined)
-        : undefined,
-      aliquotaPis: !authCtx.unit.simple
-        ? (mapItems.find((i) => i.taxRule?.pisPerc)?.taxRule?.pisPerc ?? undefined)
-        : undefined,
-      aliquotaCofins: !authCtx.unit.simple
-        ? (mapItems.find((i) => i.taxRule?.cofinsPerc)?.taxRule?.cofinsPerc ?? undefined)
-        : undefined,
-      valorPis: !authCtx.unit.simple
-        ? (this.sharedService.sum(mapItems.map((i) => i.pisValue)) ?? undefined)
-        : undefined,
-      valorCofins: !authCtx.unit.simple
-        ? (this.sharedService.sum(mapItems.map((i) => i.cofinsValue)) ?? undefined)
-        : undefined,
+      percentualTotalTributosEstaduais:
+        authCtx.unit.unitConfig.config.fiscalDocuments?.percentual_total_tributos_estaduais ??
+        undefined,
+      percentualTotalTributosMunicipais:
+        authCtx.unit.unitConfig.config.fiscalDocuments?.percentual_total_tributos_municipais ??
+        undefined,
+      situacaoTributariaPisCofins:
+        authCtx.unit.unitConfig.config.fiscalDocuments?.situacao_tributaria_pis_cofins ?? undefined,
+      tipoRetencaoPisCofins:
+        authCtx.unit.unitConfig.config.fiscalDocuments?.tipo_retencao_pis_cofins ?? undefined,
+      aliquotaPis: mapItems.find((i) => i.taxRule?.pisPerc)?.taxRule?.pisPerc ?? undefined,
+      aliquotaCofins: mapItems.find((i) => i.taxRule?.cofinsPerc)?.taxRule?.cofinsPerc ?? undefined,
+      valorPis: this.sharedService.sum(mapItems.map((i) => i.pisValue)) ?? undefined,
+      valorCofins: this.sharedService.sum(mapItems.map((i) => i.cofinsValue)) ?? undefined,
       seller: {
         document: authCtx.unit.document ?? "",
         municipalRegistration: authCtx.unit.cityRegistration ?? "",
@@ -1148,6 +1136,9 @@ export default class BusinessUnitFiscalDocumentService {
       showPercentualAliquotaRelativaMunicipio:
         authCtx.unit.unitConfig.config.fiscalDocuments
           ?.show_percentual_aliquota_relativa_municipio ?? false,
+      percentualAliquotaRelativaMunicipio:
+        authCtx.unit.unitConfig.config.fiscalDocuments?.percentual_aliquota_relativa_municipio ??
+        undefined,
     };
   }
 

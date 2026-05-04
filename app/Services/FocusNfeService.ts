@@ -244,6 +244,7 @@ export interface ISendNationalNfse {
     issTotalValue: number;
   };
   showPercentualAliquotaRelativaMunicipio?: boolean;
+  percentualAliquotaRelativaMunicipio?: number;
 }
 
 export const nfeResponseSchema = z.object({
@@ -635,6 +636,8 @@ export default class FocusNfeService {
       codigo_opcao_simples_nacional: data.seller.simpleOptionCode,
       codigo_municipio_prestacao: data.service.cityCode,
       regime_especial_tributacao: data.seller.specialTaxRegime,
+      regime_tributario_simples_nacional: data.seller.regimeTributarySimplesNacional,
+      percentual_total_tributos_simples_nacional: data.seller.totalTaxPercentageSimplesNacional,
       cpf_tomador: data.buyer.cpfDocument,
       cnpj_tomador: data.buyer.cnpjDocument,
       razao_social_tomador: data.buyer.name,
@@ -673,14 +676,23 @@ export default class FocusNfeService {
       payload.percentual_total_tributos_municipais = SharedService.NoopString(
         data.percentualTotalTributosMunicipais,
       );
+    }
+
+    if (data.showPercentualAliquotaRelativaMunicipio) {
+      payload.percentual_aliquota_relativa_municipio = SharedService.NoopNumber(
+        data.percentualAliquotaRelativaMunicipio,
+      );
+    }
+
+    if (!data.simple) {
       payload.situacao_tributaria_pis_cofins = SharedService.NoopString(
         data.situacaoTributariaPisCofins,
       );
       payload.tipo_retencao_pis_cofins = SharedService.NoopString(data.tipoRetencaoPisCofins);
-      payload.aliquota_pis = data.aliquotaPis;
-      payload.aliquota_cofins = data.aliquotaCofins;
-      payload.valor_pis = data.valorPis?.toFixed(2);
-      payload.valor_cofins = data.valorCofins?.toFixed(2);
+      payload.aliquota_pis = SharedService.NoopNumber(data.aliquotaPis);
+      payload.aliquota_cofins = SharedService.NoopNumber(data.aliquotaCofins);
+      payload.valor_pis = SharedService.NoopString(data.valorPis?.toFixed(2));
+      payload.valor_cofins = SharedService.NoopString(data.valorCofins?.toFixed(2));
     }
 
     return payload;

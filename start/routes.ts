@@ -21,7 +21,7 @@
 import Route from "@ioc:Adonis/Core/Route";
 
 Route.get("/", () => {
-  return "Vetech API - Desenvolvimento: CreativeCode 2022";
+  return "Vetech API - Desenvolvimento: Versão Automatiza.net 2026";
 });
 
 Route.group(() => {

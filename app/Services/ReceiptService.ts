@@ -44,7 +44,14 @@ import Database, { TransactionClientContract } from "@ioc:Adonis/Lucid/Database"
 import { format } from "date-fns";
 import { Decimal } from "decimal.js";
 import { DateTime } from "luxon";
-import xmlParser from "xml2json";
+import { XMLParser } from "fast-xml-parser";
+
+const xmlParser = new XMLParser({
+  ignoreAttributes: false,
+  attributeNamePrefix: "_",
+  parseTagValue: false,
+  parseAttributeValue: false,
+});
 import { z } from "zod";
 
 const detSchema = z.object({
@@ -967,7 +974,7 @@ export default class ReceiptService {
   async processReceipt(authCtx: AuthContext, contents: string, receiptXml: ReceiptXml) {
     let result = {};
     try {
-      result = xmlParser.toJson(contents, { object: true });
+      result = xmlParser.parse(contents);
     } catch (e) {
       Logger.error(e);
       throw new BadRequestException("Não foi possível ler o arquivo", 400, "E_INTERNAL");

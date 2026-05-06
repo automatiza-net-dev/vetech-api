@@ -25,6 +25,7 @@ jobs:
           sshpass -p '${{ secrets.PROD_PSWD }}' ssh -v -o StrictHostKeyChecking=no -p 41239 ${{ secrets.SSH_USER }}@${{ secrets.PROD_HOST }} <<'ENDSSH'
           cd ${{ secrets.FOLDER }}
           git fetch
+          git checkout master
           git pull origin master
           yarn
           yarn build

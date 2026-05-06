@@ -627,6 +627,7 @@ export default class FocusNfeService {
   }
 
   private mapToNationalNfsePayload(data: ISendNationalNfse) {
+    Logger.info(`[mapToNationalNfsePayload] data.simple = ${data.simple} (type: ${typeof data.simple})`);
     const payload: Record<string, any> = {
       data_emissao: data.issuedAt,
       data_competencia: data.competenceDate,
@@ -636,7 +637,6 @@ export default class FocusNfeService {
       codigo_opcao_simples_nacional: data.seller.simpleOptionCode,
       codigo_municipio_prestacao: data.service.cityCode,
       regime_especial_tributacao: data.seller.specialTaxRegime,
-      regime_tributario_simples_nacional: data.seller.regimeTributarySimplesNacional,
       percentual_total_tributos_simples_nacional: data.seller.totalTaxPercentageSimplesNacional,
       cpf_tomador: data.buyer.cpfDocument,
       cnpj_tomador: data.buyer.cnpjDocument,

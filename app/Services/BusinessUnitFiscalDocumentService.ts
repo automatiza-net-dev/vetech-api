@@ -772,6 +772,7 @@ export default class BusinessUnitFiscalDocumentService {
         clearDoc,
         items.find((i) => i.productVariation.product.serviceCode)?.productVariation.product
           .serviceCode ?? "",
+        bill.billDate,
       );
 
       const serviceDocument = await ServiceIssuedFiscalDocument.create(
@@ -1058,12 +1059,13 @@ export default class BusinessUnitFiscalDocumentService {
     responsible: any,
     clearDoc: string,
     serviceCode: string,
+    billDate: DateTime,
   ): ISendNationalNfse {
     return {
       issuedAt: DateTime.now()
         .minus({ hours: 3 - SharedService.GetPlatformOffset() })
         .toISO(),
-      competenceDate: format(new Date(), "yyyy-MM-dd"),
+      competenceDate: billDate.toFormat("yyyy-MM-dd"),
       simple: authCtx.unit.simple,
       codigoTributacaoMunicipalIss: authCtx.unit.unitConfig.config.fiscalDocuments
         ?.nfse_hide_codigo_tributario_municipio
